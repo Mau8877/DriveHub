@@ -1,146 +1,412 @@
-name: app
+name: drivehub
+
+# * Perfiles: la infraestructura (bases, broker, storage) no tiene perfil y
+# * siempre arranca. El resto se activa con COMPOSE_PROFILES en el .env
+# * (por defecto `backend,frontend,observabilidad`, o sea todo). Para levantar
+# * solo la infra y correr un servicio desde el IDE, dejar COMPOSE_PROFILES vacío.
+# * Puertos fijos por servicio (iguales dentro y fuera de Docker), ver
+# * docs/INFRAESTRUCTURA.md#puertos.
+
+x-spring-dev: &spring-dev
+  image: maven:3.9-eclipse-temurin-21-alpine
+  profiles: ['backend']
+  command: mvn spring-boot:run -Dspring-boot.run.profiles=dev
+  networks:
+    - drivehub-network
 
 services:
   # ---------------------------------------
-  # REVERSE PROXY (El punto de entrada)
+  # REVERSE PROXY (punto de entrada web)
   # ---------------------------------------
   proxy:
     image: nginx:alpine
-    container_name: app-proxy
-    # Defensa extra además de la resolución dinámica de nginx.conf: si de
-    # todos modos llegara a morir (ej. el propio Docker Desktop matándolo a
-    # mitad de un restart), que reintente solo en vez de quedar caído hasta
-    # que alguien lo note a mano.
+    container_name: drivehub-proxy
+    profiles: ['frontend']
+    # Si Docker Desktop lo mata a mitad de un restart, que reintente solo.
     restart: unless-stopped
     ports:
       - '80:80'
     volumes:
       - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - frontend
-      - backend
     networks:
-      - app-network
+      - drivehub-network
 
-  # ---------------------------------------
-  # FRONTEND (React + Vite) - MODO DESARROLLO
-  # ---------------------------------------
-  frontend:
-    image: node:22-alpine
-    container_name: app-frontend
-    working_dir: /app/projects/frontend
-    volumes:
-      - .:/app
-      # Ambos node_modules (raíz del workspace pnpm y el del paquete
-      # frontend) tienen que estar aislados del bind mount de arriba -- si
-      # no, pnpm dentro del contenedor escribe symlinks de Linux
-      # directamente en tu filesystem de Windows apuntando a rutas que solo
-      # existen DENTRO del contenedor (ej. /app/node_modules/.pnpm/...).
-      # Esos symlinks quedan rotos para cualquier pnpm/tsc/ESLint que corras
-      # en el host, y un pnpm install en el host los vuelve a pisar en
-      # sentido contrario -- rompiendo lo del contenedor. Con volúmenes
-      # nombrados, cada lado tiene su propio node_modules real y no chocan.
-      - frontend_node_modules_root:/app/node_modules
-      - frontend_node_modules_pkg:/app/projects/frontend/node_modules
-    command: sh -c "corepack enable pnpm && pnpm install && pnpm run dev --host 0.0.0.0"
-    ports:
-      - '5173:5173'
-    environment:
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-    networks:
-      - app-network
+  # =======================================
+  # BACKEND (microservicios)
+  # =======================================
 
-  # ---------------------------------------
-  # BACKEND (Spring Boot 4.1 / Java 21) - MODO DESARROLLO
-  # ---------------------------------------
-  backend:
-    image: maven:3.9-eclipse-temurin-21-alpine
-    container_name: app-backend
-    working_dir: /app/projects/backend
+  # API Gateway (Spring Cloud Gateway): único punto de entrada a /api/v1/**
+  gateway:
+    <<: *spring-dev
+    container_name: drivehub-gateway
+    working_dir: /app/projects/backend/gateway
     volumes:
       - .:/app
       - ~/.m2:/root/.m2
-      # Necesario para que Testcontainers (tests de integración, ver
-      # TESTING_BACKEND.md) pueda levantar contenedores (ej. Postgres real)
-      # desde DENTRO de este contenedor -- sin esto, `mvn test` falla con
-      # "Could not find a valid Docker environment" en cualquier test que
-      # use Testcontainers.
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: mvn spring-boot:run -Dspring-boot.run.profiles=dev
     ports:
       - '8080:8080'
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      # Testcontainers necesita esto para hablar con el Docker Desktop de
-      # Windows de forma confiable a través del socket montado -- sin esto,
-      # su detección automática de estrategia de conexión falla en Windows
-      # (ver TESTING_BACKEND.md).
+      - IDENTIDAD_URL=http://drivehub-identidad:8081
+      - ESCUELA_URL=http://drivehub-escuela:8082
+      - PAGOS_URL=http://drivehub-pagos:8083
+      - ACADEMICO_URL=http://drivehub-academico:8084
+      - CONTENIDO_URL=http://drivehub-contenido:8085
+      - NOTIFICACIONES_URL=http://drivehub-notificaciones:8086
+      - ASISTENTE_IA_URL=http://drivehub-asistente-ia:8087
+
+  # Identidad (Spring Boot, hexagonal) -- PostgreSQL `identidad`
+  identidad:
+    <<: *spring-dev
+    container_name: drivehub-identidad
+    working_dir: /app/projects/backend/identidad
+    volumes:
+      - .:/app
+      - ~/.m2:/root/.m2
+      # Para que Testcontainers (TESTING_BACKEND.md) pueda levantar contenedores
+      # desde DENTRO de este contenedor al correr `mvn test`.
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - '8081:8081'
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      # Testcontainers sobre el socket montado (ver nota de Docker Desktop en TESTING_BACKEND.md).
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=true
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://app-postgres:5432/${POSTGRES_DB}
-      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
-      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
-      - SPRING_DATA_REDIS_HOST=app-redis
-      - MINIO_URL=http://app-minio:9000
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://drivehub-postgres:5432/identidad
+      - SPRING_DATASOURCE_USERNAME=identidad
+      - SPRING_DATASOURCE_PASSWORD=${IDENTIDAD_DB_PASSWORD}
+      - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
+      - MINIO_URL=http://drivehub-minio:9000
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
+      rabbitmq:
+        condition: service_healthy
+
+  # Escuela (Spring Boot, clean) -- PostgreSQL `escuela`
+  escuela:
+    <<: *spring-dev
+    container_name: drivehub-escuela
+    working_dir: /app/projects/backend/escuela
+    volumes:
+      - .:/app
+      - ~/.m2:/root/.m2
+      # Para que Testcontainers (TESTING_BACKEND.md) pueda levantar contenedores
+      # desde DENTRO de este contenedor al correr `mvn test`.
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - '8082:8082'
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      # Testcontainers sobre el socket montado (ver nota de Docker Desktop en TESTING_BACKEND.md).
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TESTCONTAINERS_RYUK_DISABLED=true
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://drivehub-postgres:5432/escuela
+      - SPRING_DATASOURCE_USERNAME=escuela
+      - SPRING_DATASOURCE_PASSWORD=${ESCUELA_DB_PASSWORD}
+      - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # Pagos (Spring Boot, capas) -- PostgreSQL `pagos`
+  pagos:
+    <<: *spring-dev
+    container_name: drivehub-pagos
+    working_dir: /app/projects/backend/pagos
+    volumes:
+      - .:/app
+      - ~/.m2:/root/.m2
+      # Para que Testcontainers (TESTING_BACKEND.md) pueda levantar contenedores
+      # desde DENTRO de este contenedor al correr `mvn test`.
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - '8083:8083'
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      # Testcontainers sobre el socket montado (ver nota de Docker Desktop en TESTING_BACKEND.md).
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TESTCONTAINERS_RYUK_DISABLED=true
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://drivehub-postgres:5432/pagos
+      - SPRING_DATASOURCE_USERNAME=pagos
+      - SPRING_DATASOURCE_PASSWORD=${PAGOS_DB_PASSWORD}
+      - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
+      - MINIO_URL=http://drivehub-minio:9000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # Académico (Spring Boot, capas) -- MongoDB `academico`
+  academico:
+    <<: *spring-dev
+    container_name: drivehub-academico
+    working_dir: /app/projects/backend/academico
+    volumes:
+      - .:/app
+      - ~/.m2:/root/.m2
+      # Para que Testcontainers (TESTING_BACKEND.md) pueda levantar contenedores
+      # desde DENTRO de este contenedor al correr `mvn test`.
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - '8084:8084'
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TESTCONTAINERS_RYUK_DISABLED=true
+      - SPRING_MONGODB_URI=mongodb://drivehub-mongo:27017/academico?replicaSet=rs0
+      - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # Contenido (Laravel, capas) -- MongoDB `contenido`
+  contenido:
+    build:
+      context: ./projects/backend/contenido
+      target: dev
+    container_name: drivehub-contenido
+    profiles: ['backend']
+    working_dir: /app
+    volumes:
+      - ./projects/backend/contenido:/app
+      # vendor/ aislado del bind mount, mismo motivo que node_modules abajo.
+      - contenido_vendor:/app/vendor
+    ports:
+      - '8085:8085'
+    environment:
+      - APP_ENV=local
+      - APP_KEY=${CONTENIDO_APP_KEY}
+      - MONGODB_URI=mongodb://drivehub-mongo:27017/contenido?replicaSet=rs0
+      - MONGODB_DATABASE=contenido
+      - RABBITMQ_HOST=drivehub-rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
+      - MINIO_URL=http://drivehub-minio:9000
+    depends_on:
+      mongo:
         condition: service_healthy
     networks:
-      - app-network
+      - drivehub-network
 
-  # ---------------------------------------
-  # DATABASE (PostgreSQL 18)
-  # ---------------------------------------
+  # Notificaciones (NestJS, capas) -- DynamoDB
+  notificaciones:
+    image: node:24-alpine
+    container_name: drivehub-notificaciones
+    profiles: ['backend']
+    working_dir: /app/projects/backend/notificaciones
+    volumes:
+      - .:/app
+      # node_modules aislados del bind mount: si no, pnpm dentro del
+      # contenedor escribe symlinks de Linux en el filesystem de Windows que
+      # rompen el pnpm del host (y viceversa). Volúmenes propios de este
+      # contenedor, separados de los del frontend, para que dos `pnpm install`
+      # en paralelo no pisen el mismo node_modules raíz.
+      - notificaciones_node_modules_root:/app/node_modules
+      - notificaciones_node_modules_pkg:/app/projects/backend/notificaciones/node_modules
+    command: sh -c "corepack enable pnpm && pnpm install --filter ./projects/backend/notificaciones && pnpm run start:dev"
+    ports:
+      - '8086:8086'
+    environment:
+      - NODE_ENV=development
+      - PORT=8086
+      - DYNAMODB_ENDPOINT=http://drivehub-dynamodb:8000
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - RABBITMQ_URL=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@drivehub-rabbitmq:5672
+    depends_on:
+      dynamodb:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - drivehub-network
+
+  # Asistente IA (FastAPI, capas) -- DynamoDB
+  asistente-ia:
+    build:
+      context: ./projects/backend/asistente-ia
+      target: dev
+    container_name: drivehub-asistente-ia
+    profiles: ['backend']
+    working_dir: /app
+    volumes:
+      - ./projects/backend/asistente-ia:/app
+    ports:
+      - '8087:8087'
+    environment:
+      - DYNAMODB_ENDPOINT=http://drivehub-dynamodb:8000
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - RABBITMQ_URL=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@drivehub-rabbitmq:5672
+      - MINIO_URL=http://drivehub-minio:9000
+    depends_on:
+      dynamodb:
+        condition: service_started
+    networks:
+      - drivehub-network
+
+  # =======================================
+  # FRONTEND (micro-frontends, modo desarrollo)
+  # =======================================
+  # * Un solo contenedor corre los 7 dev servers en paralelo (shell + 6 remotos),
+  # * cada uno en su puerto. El navegador carga el shell por nginx (puerto 80)
+  # * y el shell trae cada remoto desde su propio puerto según
+  # * projects/frontend/shell/public/federation.manifest.json.
+  frontend:
+    image: node:24-alpine
+    container_name: drivehub-frontend
+    profiles: ['frontend']
+    working_dir: /app
+    volumes:
+      - .:/app
+      - frontend_node_modules_root:/app/node_modules
+      - frontend_nm_shell:/app/projects/frontend/shell/node_modules
+      - frontend_nm_identidad:/app/projects/frontend/identidad/node_modules
+      - frontend_nm_escuela:/app/projects/frontend/escuela/node_modules
+      - frontend_nm_pagos:/app/projects/frontend/pagos/node_modules
+      - frontend_nm_examenes:/app/projects/frontend/examenes/node_modules
+      - frontend_nm_contenido:/app/projects/frontend/contenido/node_modules
+      - frontend_nm_asistente_ia:/app/projects/frontend/asistente-ia/node_modules
+    command: >
+      sh -c "corepack enable pnpm &&
+      pnpm install --filter './projects/frontend/**' &&
+      pnpm --filter './projects/frontend/**' --parallel run dev"
+    ports:
+      - '4200:4200'
+      - '4201:4201'
+      - '4202:4202'
+      - '4203:4203'
+      - '4204:4204'
+      - '4205:4205'
+      - '4206:4206'
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      # Destino del proxy /api del dev server del shell (proxy.conf.mjs).
+      - API_GATEWAY_URL=http://drivehub-gateway:8080
+    networks:
+      - drivehub-network
+
+  # =======================================
+  # INFRAESTRUCTURA (siempre arranca)
+  # =======================================
+
+  # PostgreSQL 18: una base y un usuario por servicio (identidad, escuela,
+  # pagos), creados por infrastructure/postgres/init/01-crear-bases.sh.
   postgres:
     image: postgres:18-alpine
-    container_name: app-postgres
+    container_name: drivehub-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      IDENTIDAD_DB_PASSWORD: ${IDENTIDAD_DB_PASSWORD}
+      ESCUELA_DB_PASSWORD: ${ESCUELA_DB_PASSWORD}
+      PAGOS_DB_PASSWORD: ${PAGOS_DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d
+      - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
     ports:
-      # * Puerto del HOST configurable (POSTGRES_HOST_PORT en .env): si la máquina ya tiene
-      # * un Postgres propio en 5432, el contenedor no puede publicar el mismo puerto.
-      # * Dentro de la red de Docker el backend siempre usa 5432.
+      # * Puerto del HOST configurable: si la máquina ya tiene un Postgres en
+      # * 5432, se cambia POSTGRES_HOST_PORT en el .env. Dentro de la red de
+      # * Docker siempre es 5432.
       - '${POSTGRES_HOST_PORT:-5432}:5432'
     networks:
-      - app-network
+      - drivehub-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d postgres']
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # ---------------------------------------
-  # CACHE (Redis 8)
-  # ---------------------------------------
-  redis:
-    image: redis:8-alpine
-    container_name: app-redis
+  # MongoDB 8 como replica set de un nodo: las transacciones multi-documento
+  # (reserva + franja + outbox en Académico) solo funcionan sobre un replica set.
+  # * El healthcheck inicializa el replica set la primera vez (rs.initiate) y
+  # * después solo verifica que esté arriba. Sin auth: solo desarrollo local.
+  # * Desde el host, conectar con ?directConnection=true (el miembro del
+  # * replica set se anuncia como drivehub-mongo, que el host no resuelve).
+  mongo:
+    image: mongo:8
+    container_name: drivehub-mongo
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
     volumes:
-      - redis_data:/data
-      # Mapeamos tu archivo de configuración personalizado
-      - ./infrastructure/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - mongo_data:/data/db
     ports:
-      - '6379:6379'
+      - '27017:27017'
     networks:
-      - app-network
-    # Le decimos a Redis que arranque usando tu archivo
-    command: redis-server /usr/local/etc/redis/redis.conf
+      - drivehub-network
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'drivehub-mongo:27017' }] }).ok }"
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      start_period: 20s
+      retries: 10
+
+  # DynamoDB local (Notificaciones, Asistente IA). `-sharedDb` hace que todos
+  # los clientes vean las mismas tablas sin importar región/credenciales.
+  # * Cada servicio crea sus propias tablas al arrancar (no hay script central),
+  # * igual que Flyway en los servicios PostgreSQL. Ver docs/INFRAESTRUCTURA.md.
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: drivehub-dynamodb
+    # * Corre como root para poder escribir en el volumen montado (la imagen
+    # * usa un usuario sin permisos sobre /home/dynamodblocal/data).
+    user: root
+    command: ['-jar', 'DynamoDBLocal.jar', '-sharedDb', '-dbPath', '/home/dynamodblocal/data']
+    working_dir: /home/dynamodblocal
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+    ports:
+      - '8000:8000'
+    networks:
+      - drivehub-network
+
+  # RabbitMQ: bus de eventos entre servicios (outbox de Pagos y Académico,
+  # consumidores en Notificaciones, etc.). Consola en http://localhost:15672.
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: drivehub-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    networks:
+      - drivehub-network
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 10s
+      retries: 10
 
   # ---------------------------------------
-  # STORAGE (MinIO)
+  # STORAGE (MinIO): PDF, videos, fotos. Un bucket por servicio dueño,
+  # ver infrastructure/minio/create-buckets.sh.
   # ---------------------------------------
   # * minio/minio y minio/mc ya no existen en Docker Hub (pull access denied). El servidor usa la
   # * imagen de Chainguard: corre sin root y no puede escribir en el volumen, por eso `user: '0'`;
@@ -148,7 +414,7 @@ services:
   minio:
     image: cgr.dev/chainguard/minio:latest
     user: '0'
-    container_name: app-minio
+    container_name: drivehub-minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -159,7 +425,7 @@ services:
       - '9000:9000'
       - '9001:9001'
     networks:
-      - app-network
+      - drivehub-network
     healthcheck:
       test:
         - CMD
@@ -170,11 +436,11 @@ services:
       timeout: 20s
       retries: 3
 
-  # Contenedor temporal para crear el bucket automáticamente
+  # Contenedor temporal que crea los buckets y termina.
   # * Imagen congelada (bitnamilegacy): la de Chainguard no trae sh y create-buckets.sh lo necesita.
   minio-init:
     image: bitnamilegacy/minio-client:latest
-    container_name: app-minio-init
+    container_name: drivehub-minio-init
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
@@ -186,24 +452,26 @@ services:
     entrypoint: >
       /bin/sh -c "sh /create-buckets.sh"
     networks:
-      - app-network
+      - drivehub-network
 
   # ---------------------------------------
-  # METRICS & OBSERVABILITY
+  # MÉTRICAS Y OBSERVABILIDAD
   # ---------------------------------------
   prometheus:
     image: prom/prometheus:latest
-    container_name: app-prometheus
+    container_name: drivehub-prometheus
+    profiles: ['observabilidad']
     volumes:
       - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - '9090:9090'
     networks:
-      - app-network
+      - drivehub-network
 
   grafana:
     image: grafana/grafana:latest
-    container_name: app-grafana
+    container_name: drivehub-grafana
+    profiles: ['observabilidad']
     depends_on:
       - prometheus
     volumes:
@@ -211,24 +479,46 @@ services:
     ports:
       - '3000:3000'
     networks:
-      - app-network
+      - drivehub-network
 
 # ---------------------------------------
 # REDES Y VOLÚMENES
 # ---------------------------------------
 networks:
-  app-network:
-    name: app-network
+  drivehub-network:
+    name: drivehub-network
     driver: bridge
 
 volumes:
   postgres_data:
-    name: app-postgres_data
-  redis_data:
-    name: app-redis_data
+    name: drivehub-postgres_data
+  mongo_data:
+    name: drivehub-mongo_data
+  dynamodb_data:
+    name: drivehub-dynamodb_data
+  rabbitmq_data:
+    name: drivehub-rabbitmq_data
   minio_data:
-    name: app-minio_data
+    name: drivehub-minio_data
+  contenido_vendor:
+    name: drivehub-contenido_vendor
+  notificaciones_node_modules_root:
+    name: drivehub-notificaciones-nm-root
+  notificaciones_node_modules_pkg:
+    name: drivehub-notificaciones-nm-pkg
   frontend_node_modules_root:
-    name: app-frontend-node_modules-root
-  frontend_node_modules_pkg:
-    name: app-frontend-node_modules-pkg
+    name: drivehub-frontend-nm-root
+  frontend_nm_shell:
+    name: drivehub-frontend-nm-shell
+  frontend_nm_identidad:
+    name: drivehub-frontend-nm-identidad
+  frontend_nm_escuela:
+    name: drivehub-frontend-nm-escuela
+  frontend_nm_pagos:
+    name: drivehub-frontend-nm-pagos
+  frontend_nm_examenes:
+    name: drivehub-frontend-nm-examenes
+  frontend_nm_contenido:
+    name: drivehub-frontend-nm-contenido
+  frontend_nm_asistente_ia:
+    name: drivehub-frontend-nm-asistente-ia

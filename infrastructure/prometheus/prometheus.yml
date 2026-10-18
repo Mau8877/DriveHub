@@ -1,9 +1,17 @@
 # infrastructure/prometheus/prometheus.yml
+# Scrapea los servicios Spring Boot (exponen /prometheus vía Actuator).
+# NestJS, FastAPI y Laravel todavía no exponen métricas; se agregan acá
+# cuando cada uno tenga su endpoint.
 global:
   scrape_interval: 5s
 
 scrape_configs:
-  - job_name: 'app-backend'
+  - job_name: 'drivehub-spring'
     metrics_path: '/prometheus'
     static_configs:
-      - targets: ['app-backend:8080']
+      - targets:
+          - 'drivehub-gateway:8080'
+          - 'drivehub-identidad:8081'
+          - 'drivehub-escuela:8082'
+          - 'drivehub-pagos:8083'
+          - 'drivehub-academico:8084'
