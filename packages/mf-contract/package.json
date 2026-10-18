@@ -1,0 +1,14 @@
+{
+  "name": "@drivehub/mf-contract",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Contrato entre el shell y los micro-frontends remotos: contexto de sesión, mount/unmount de remotos React y bus de eventos del navegador",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  }
+}
