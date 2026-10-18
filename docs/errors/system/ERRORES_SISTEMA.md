@@ -1,9 +1,8 @@
 # Errores — Sistema (`SYS`)
 
-Códigos transversales, no ligados a ningún feature de negocio puntual (ver
-[EXCEPCIONES_BACKEND.md](../../../.claude/rules/backend/EXCEPCIONES_BACKEND.md#catálogo-de-códigos-de-error)
-para el criterio de cuándo un código va acá en vez de en el módulo de un
-feature).
+Códigos transversales: los mismos en **todos los microservicios** (y el
+gateway), no ligados a ningún servicio de negocio puntual (ver
+[EXCEPCIONES_BACKEND.md](../../../.claude/rules/backend/EXCEPCIONES_BACKEND.md#catálogo-de-códigos-de-error)).
 
 ## `ERR_SYS_00`
 
@@ -11,25 +10,43 @@ feature).
 - **Excepción:** (catch-all, no es una `BusinessException`)
 - **Significado:** Error interno no controlado — cualquier excepción no
   mapeada explícitamente, o una falla de infraestructura (base de datos
-  caída, etc.).
-- **Dónde se lanza:** `GlobalExceptionHandler.handleUnexpectedException()`
+  caída, etc.). El detalle se loguea en el servidor, nunca se expone al cliente.
+- **Dónde se lanza:** handler global de cada servicio — Spring
+  `GlobalExceptionHandler.handleUnexpectedException()`, NestJS
+  `GlobalExceptionFilter.catch()`, FastAPI `registrar_exception_handlers()`
+  (`_inesperada`), Laravel `bootstrap/app.php` (`withExceptions`).
 
 ## `ERR_SYS_01`
 
 - **HTTP:** 400
-- **Excepción:** `ValidationException` (genérica, no de un módulo puntual)
-- **Significado:** Falló una validación automática de `@Valid`/Bean
-  Validation sobre un DTO de request (campo obligatorio faltante, formato
-  inválido, etc.) — no una regla de negocio, esa se cataloga con su propio
-  código en el módulo que corresponda.
-- **Dónde se lanza:** `GlobalExceptionHandler.handleValidationException()`
+- **Excepción:** ninguna de negocio — validación automática del framework
+- **Significado:** Falló la validación de formato de un request (campo
+  obligatorio faltante, formato inválido, etc.: Bean Validation, ValidationPipe
+  de Nest, pydantic, validación de Laravel) — no una regla de negocio, esa
+  se cataloga con su propio código en el servicio que corresponda.
+- **Dónde se lanza:** handler global de cada servicio — Spring
+  `GlobalExceptionHandler.handleValidationException()`, NestJS
+  `GlobalExceptionFilter.catch()`, FastAPI `_validacion`, Laravel
+  `bootstrap/app.php`.
 
 ## `ERR_SYS_02`
 
 - **HTTP:** 429
-- **Excepción:** ninguna — lo escribe `RateLimitFilter` directo, antes de
-  que exista un `@RestControllerAdvice` que pueda intervenir (ver
+- **Excepción:** ninguna — lo escribe `RateLimitFilter` del **gateway**
+  directo, antes de enrutar (ver
   [SEGURIDAD_AUTH_BACKEND.md](../../../.claude/rules/backend/SEGURIDAD_AUTH_BACKEND.md#rate-limit)).
 - **Significado:** Se superó el límite de requests por IP configurado en
   `app.ratelimit.capacity` / `app.ratelimit.refill-per-minute`.
-- **Dónde se lanza:** `RateLimitFilter.writeTooManyRequests()`
+- **Dónde se lanza:** `gateway` — `RateLimitFilter.writeTooManyRequests()`
+
+## `ERR_SYS_03`
+
+- **HTTP:** 404
+- **Excepción:** ninguna de negocio — ruta inexistente del framework
+- **Significado:** Se pidió una ruta que el servicio no tiene (ej. un
+  recurso que el gateway enruta pero el servicio todavía no implementa, o
+  una URL mal escrita). No es "el recurso con ese codigo no existe": eso es
+  un `NotFoundException` con el código propio del servicio.
+- **Dónde se lanza:** handler global de cada servicio — Spring
+  `GlobalExceptionHandler.handleNoResourceFound()`, NestJS
+  `GlobalExceptionFilter.catch()`, FastAPI `_http`, Laravel `bootstrap/app.php`.

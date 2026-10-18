@@ -1,48 +1,45 @@
 # `docs/errors/` — Catálogo de códigos de error
 
 Esta carpeta documenta, para humanos (soporte, quien consume la API desde
-el frontend/mobile, o el propio equipo de backend meses después), qué
+la web o el móvil, o el propio equipo de backend meses después), qué
 significa cada código de error (`ERR_{MODULO}_{NUMERO}`) que la API puede
-devolver. El código en sí (la constante Java, `XxxErrorCodes`) le sirve al
-`service` que lo lanza; esto de acá le sirve a la persona que lo recibe y
-no quiere ponerse a leer código fuente para entender qué pasó.
+devolver. La constante en el código le sirve al servicio que la lanza;
+esto de acá le sirve a la persona que la recibe y no quiere leer código
+fuente para entender qué pasó.
 
 El **proceso** de cuándo y cómo se documenta un código nuevo (obligatorio
 en el mismo cambio que lo introduce) vive en
 [GUIA_ERRORES_BACKEND.md](../../.claude/rules/backend/GUIA_ERRORES_BACKEND.md).
-Este `README.md` es solo el índice — no repite esas reglas.
+Este `README.md` es solo el índice.
 
 ## Cómo está organizada
 
-Una carpeta por feature/módulo (`system/`, y a futuro `usuarios/`,
-`pedidos/`, etc. — se crean recién cuando ese módulo tiene su primer
-error real, no antes), y dentro un único archivo `ERRORES_{MODULO}.md` con
-todos los códigos de ese módulo, cada uno en su propia sección para poder
-enlazarlo directo:
+Una carpeta por **microservicio** (se crea recién cuando ese servicio
+tiene su primer error real) y dentro un único `ERRORES_{SERVICIO}.md`. El
+prefijo del código dice qué servicio lo produjo:
 
-```
-docs/errors/
-├── README.md                          <- este archivo, el índice
-├── system/
-│   └── ERRORES_SISTEMA.md
-├── usuarios/
-│   └── ERRORES_USUARIOS.md            (cuando exista el primer error de usuarios)
-└── pedidos/
-    └── ERRORES_PEDIDOS.md             (cuando exista el primer error de pedidos)
-```
+| Prefijo | Servicio | Carpeta |
+| --- | --- | --- |
+| `SYS` | Todos (transversales) | [`system/`](system/ERRORES_SISTEMA.md) |
+| `IDE` | Identidad | `identidad/` (sin errores todavía) |
+| `ESC` | Escuela | `escuela/` (sin errores todavía) |
+| `PAG` | Pagos | `pagos/` (sin errores todavía) |
+| `ACA` | Académico | `academico/` (sin errores todavía) |
+| `CON` | Contenido | `contenido/` (sin errores todavía) |
+| `NOT` | Notificaciones | `notificaciones/` (sin errores todavía) |
+| `IA` | Asistente IA | `asistente-ia/` (sin errores todavía) |
 
 ## Índice de errores
 
 ### Sistema (`SYS`)
 
 - [`ERR_SYS_00`](system/ERRORES_SISTEMA.md#err_sys_00) — Error interno no controlado (500)
-- [`ERR_SYS_01`](system/ERRORES_SISTEMA.md#err_sys_01) — Validación de Bean Validation fallida (400)
-- [`ERR_SYS_02`](system/ERRORES_SISTEMA.md#err_sys_02) — Límite de requests por IP superado (429)
+- [`ERR_SYS_01`](system/ERRORES_SISTEMA.md#err_sys_01) — Validación de formato del request fallida (400)
+- [`ERR_SYS_02`](system/ERRORES_SISTEMA.md#err_sys_02) — Límite de requests por IP superado (429, gateway)
+- [`ERR_SYS_03`](system/ERRORES_SISTEMA.md#err_sys_03) — Ruta inexistente en el servicio (404)
 
 <!--
-  A medida que se agregan módulos de negocio (usuarios, pedidos...),
-  cada uno suma acá su propia sección "### Nombre (PREFIJO)" con la lista
-  de sus códigos, igual que la sección de Sistema de arriba — ver
-  GUIA_ERRORES_BACKEND.md para el detalle exacto de qué hacer al agregar
-  un código nuevo.
+  A medida que cada servicio lance su primer error de negocio, suma acá su
+  sección "### Nombre (PREFIJO)" con la lista de sus códigos, igual que la
+  de Sistema — ver GUIA_ERRORES_BACKEND.md.
 -->
