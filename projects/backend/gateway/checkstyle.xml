@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  Config propia del proyecto, no la de Google/Sun. Ver
+  .claude/rules/backend/CONVENCIONES_JAVA_BACKEND.md y
+  .claude/rules/ESTANDARES_CODIGO.md. Solo cubre lo que ya está decidido
+  ahí (indentación, nombrado, imports), no un estilo genérico completo.
+-->
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="warning"/>
+
+    <module name="TreeWalker">
+        <!-- Indentación: 4 espacios, ver .editorconfig -->
+        <module name="Indentation">
+            <property name="basicOffset" value="4"/>
+            <property name="braceAdjustment" value="0"/>
+            <property name="caseIndent" value="4"/>
+        </module>
+
+        <!-- Nombrado, ver ESTANDARES_CODIGO.md -->
+        <module name="TypeName"/>
+        <!-- Formato relajado (no camelCase puro): TESTING_BACKEND.md pide
+             nombres de test tipo condicion_resultadoEsperado
+             (ej. crearUsuario_conEmailDuplicado_lanzaConflictException).
+             Este patrón acepta ese estilo Y camelCase normal a la vez, así
+             no hace falta una config aparte para src/test vs src/main. -->
+        <module name="MethodName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*$"/>
+        </module>
+        <module name="MemberName"/>
+        <module name="ParameterName"/>
+        <module name="LocalVariableName"/>
+        <module name="ConstantName"/>
+        <module name="StaticVariableName"/>
+
+        <!-- Imports -->
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+        <module name="AvoidStarImport"/>
+
+        <!-- Higiene básica -->
+        <module name="EqualsHashCode"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+    </module>
+</module>
