@@ -1,7 +1,7 @@
 # Projects
 
-Esta carpeta contiene los proyectos principales de la plantilla.
+- `backend/` — 8 proyectos independientes: el API Gateway y 7 microservicios (Spring Boot, NestJS, FastAPI, Laravel).
+- `frontend/` — 7 micro-frontends web: shell Angular + remotos Angular y React.
+- `mobile/` — app Flutter para estudiantes e instructores.
 
-- backend (SpringBoot)
-- frontend (ReactTS)
-- mobile (Flutter)
+Mapa completo: [`.claude/rules/MICROSERVICIOS.md`](../.claude/rules/MICROSERVICIOS.md).
