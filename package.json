@@ -1,0 +1,26 @@
+{
+	"name": "developlayout",
+	"private": true,
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"prepare": "husky"
+	},
+	"lint-staged": {
+		"projects/frontend/**/*.{ts,tsx}": [
+			"pnpm --dir projects/frontend exec eslint --fix"
+		],
+		"projects/mobile/**/*.dart": [
+			"sh -c 'cd projects/mobile && flutter analyze'"
+		],
+		"projects/backend/**/*.java": [
+			"sh -c 'cd projects/backend && ./mvnw -q checkstyle:check'"
+		]
+	},
+	"devDependencies": {
+		"@commitlint/cli": "^21.2.2",
+		"husky": "^9.1.7",
+		"lint-staged": "^17.4.1"
+	}
+}

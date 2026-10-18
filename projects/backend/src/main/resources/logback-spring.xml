@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logs en JSON estructurado, ver .claude/rules/backend/LOGGING_BACKEND.md.
+  `module` se agrega vía MDC.put("module", "...") en cada service (no acá);
+  este encoder solo define el formato, no el contenido de cada log puntual.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <!-- timestamp/level/message ya los agrega el encoder por default;
+                 excludeMdcKeyName solo si algún día se necesita ocultar una
+                 key puntual de MDC del output -->
+            <includeContext>false</includeContext>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="JSON"/>
+    </root>
+</configuration>

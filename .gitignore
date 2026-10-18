@@ -1,0 +1,79 @@
+# ===========================
+# Operating System
+# ===========================
+.DS_Store
+Thumbs.db
+
+# ===========================
+# IDE
+# ===========================
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# ===========================
+# Logs
+# ===========================
+logs/
+*.log
+
+# ===========================
+# Environment
+# ===========================
+.env
+.env.*
+!.env.example
+
+# ===========================
+# Node
+# ===========================
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-error.log*
+dist/
+coverage/
+
+# ===========================
+# Java / Spring Boot
+# ===========================
+target/
+build/
+.gradle/
+.mvn/wrapper/maven-wrapper.jar
+
+# ===========================
+# Flutter
+# ===========================
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+build/
+
+# ===========================
+# Android
+# ===========================
+android/.gradle/
+android/local.properties
+
+# ===========================
+# iOS
+# ===========================
+ios/Pods/
+ios/.symlinks/
+
+# ===========================
+# Docker
+# ===========================
+*.pid
+
+# ===========================
+# Misc
+# ===========================
+*.swp
+*.tmp

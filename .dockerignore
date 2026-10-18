@@ -1,0 +1,18 @@
+# Contexto de build = raíz del repo (ver projects/frontend/Dockerfile) --
+# Docker solo lee el .dockerignore que está en la raíz del contexto, el que
+# había en projects/frontend/.dockerignore nunca se aplicaba a un build con
+# ese contexto. Sin esto, `COPY projects/frontend ./projects/frontend`
+# arrastra el node_modules real del host (con symlinks que apuntan a rutas
+# que no existen dentro de la imagen) y pisa el que instaló `pnpm install`
+# adentro del build -- eso rompía `tsc`/`vite build` con "Cannot find module".
+
+**/node_modules
+**/dist
+**/dist-ssr
+**/.dart_tool
+**/build
+**/target
+.git
+**/.env
+**/.env.*
+!**/.env.example

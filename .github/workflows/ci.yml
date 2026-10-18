@@ -1,0 +1,137 @@
+name: CI
+
+# Corre en cada PR contra main y en cada push directo a main (ej. un merge).
+# No hay job de deploy acá -- ver .claude/rules/CI_CD.md para por qué CD
+# todavía no está definido para este proyecto.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  # Detecta qué carpetas cambiaron para no correr, por ejemplo, todo el
+  # pipeline de Flutter cuando el cambio solo tocó el backend -- ver
+  # .claude/rules/CI_CD.md#un-job-por-proyecto-no-uno-solo-para-todo.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'projects/backend/**'
+            frontend:
+              - 'projects/frontend/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            mobile:
+              - 'projects/mobile/**'
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/backend
+    # * Servicios reales para los tests que arrancan el contexto completo de Spring
+    # * (AppBackendApplicationTests: Flyway necesita Postgres; el health check de /health
+    # * necesita Redis). Mismas versiones que docker-compose.yml. Credenciales descartables
+    # * de CI, no secretos: la base vive solo mientras dura el job.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: app_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      # El runner de Ubuntu trae Docker nativo (a diferencia del socket
+      # restringido de Docker Desktop en Windows, ver TESTING_BACKEND.md),
+      # así que los tests con Testcontainers corren de verdad acá en vez
+      # de quedar SKIPPED como en el setup local de Windows.
+      - name: Dar permiso de ejecución a mvnw
+        run: chmod +x ./mvnw
+      - name: Checkstyle
+        run: ./mvnw -B checkstyle:check
+      - name: Tests
+        run: ./mvnw -B test
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/app_db
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+          SPRING_DATA_REDIS_HOST: localhost
+      - name: Build
+        run: ./mvnw -B clean package -DskipTests
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      # El lockfile vive en la raíz del workspace pnpm, no dentro de
+      # projects/frontend -- ver docs/README.md.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir projects/frontend run lint
+      - run: pnpm --dir projects/frontend run test
+      - run: pnpm --dir projects/frontend run build
+
+  mobile:
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      # pubspec.yaml declara `.env` como asset (ver CONSUMO_API_MOBILE.md) --
+      # el archivo real no se commitea (.gitignore), así que sin este paso
+      # `flutter analyze` falla con "asset_does_not_exist" en un checkout
+      # limpio como el de CI. Mismo criterio que backend/frontend: se arma
+      # a partir de `.env.example`, con valores dummy que alcanzan para que
+      # el análisis/los tests corran (no pegan contra un backend real).
+      - run: cp .env.example .env
+      - run: flutter analyze
+      - run: flutter test
