@@ -10,64 +10,86 @@ on:
     branches: [main]
 
 jobs:
-  # Detecta qué carpetas cambiaron para no correr, por ejemplo, todo el
-  # pipeline de Flutter cuando el cambio solo tocó el backend -- ver
-  # .claude/rules/CI_CD.md#un-job-por-proyecto-no-uno-solo-para-todo.
+  # Detecta qué microservicios / micro-frontends cambiaron para correr solo
+  # sus jobs -- ver .claude/rules/CI_CD.md#un-job-por-proyecto-no-uno-solo-para-todo.
+  # Cada filtro con nombre de servicio alimenta la matriz del job de su stack.
   changes:
     runs-on: ubuntu-latest
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      mobile: ${{ steps.filter.outputs.mobile }}
+      spring: ${{ steps.spring.outputs.changes }}
+      frontend: ${{ steps.frontend.outputs.changes }}
+      notificaciones: ${{ steps.otros.outputs.notificaciones }}
+      asistente-ia: ${{ steps.otros.outputs.asistente-ia }}
+      contenido: ${{ steps.otros.outputs.contenido }}
+      mobile: ${{ steps.otros.outputs.mobile }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
-        id: filter
+        id: spring
         with:
           filters: |
-            backend:
-              - 'projects/backend/**'
-            frontend:
-              - 'projects/frontend/**'
-              - 'pnpm-lock.yaml'
-              - 'pnpm-workspace.yaml'
-            mobile:
-              - 'projects/mobile/**'
+            gateway: 'projects/backend/gateway/**'
+            identidad: 'projects/backend/identidad/**'
+            escuela: 'projects/backend/escuela/**'
+            pagos: 'projects/backend/pagos/**'
+            academico: 'projects/backend/academico/**'
+      - uses: dorny/paths-filter@v3
+        id: frontend
+        with:
+          # Un cambio en un paquete compartido o en el lockfile re-valida todas las apps.
+          filters: |
+            shell: ['projects/frontend/shell/**', 'packages/**', 'pnpm-lock.yaml']
+            identidad: ['projects/frontend/identidad/**', 'packages/**', 'pnpm-lock.yaml']
+            escuela: ['projects/frontend/escuela/**', 'packages/**', 'pnpm-lock.yaml']
+            pagos: ['projects/frontend/pagos/**', 'packages/**', 'pnpm-lock.yaml']
+            examenes: ['projects/frontend/examenes/**', 'packages/**', 'pnpm-lock.yaml']
+            contenido: ['projects/frontend/contenido/**', 'packages/**', 'pnpm-lock.yaml']
+            asistente-ia: ['projects/frontend/asistente-ia/**', 'packages/**', 'pnpm-lock.yaml']
+      - uses: dorny/paths-filter@v3
+        id: otros
+        with:
+          filters: |
+            notificaciones: ['projects/backend/notificaciones/**', 'pnpm-lock.yaml']
+            asistente-ia: 'projects/backend/asistente-ia/**'
+            contenido: 'projects/backend/contenido/**'
+            mobile: 'projects/mobile/**'
 
-  backend:
+  # ---------------------------------------------------------------
+  # Microservicios Spring Boot (gateway, identidad, escuela, pagos, academico)
+  # ---------------------------------------------------------------
+  spring:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.spring != '[]'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        servicio: ${{ fromJSON(needs.changes.outputs.spring) }}
     defaults:
       run:
-        working-directory: projects/backend
-    # * Servicios reales para los tests que arrancan el contexto completo de Spring
-    # * (AppBackendApplicationTests: Flyway necesita Postgres; el health check de /health
-    # * necesita Redis). Mismas versiones que docker-compose.yml. Credenciales descartables
-    # * de CI, no secretos: la base vive solo mientras dura el job.
+        working-directory: projects/backend/${{ matrix.servicio }}
+    # * Bases reales para los tests que arrancan el contexto completo de Spring
+    # * (XxxApplicationTests: Flyway necesita Postgres, Académico necesita Mongo).
+    # * Mismas versiones que docker-compose.yml. Credenciales descartables de CI.
+    # * Cada job de la matriz tiene sus propios contenedores: no se comparten bases.
     services:
       postgres:
         image: postgres:18-alpine
         env:
-          POSTGRES_DB: app_db
+          POSTGRES_DB: drivehub
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d app_db"
+          --health-cmd "pg_isready -U postgres -d drivehub"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-      redis:
-        image: redis:8-alpine
+      mongo:
+        image: mongo:8
         ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+          - 27017:27017
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -75,10 +97,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      # El runner de Ubuntu trae Docker nativo (a diferencia del socket
-      # restringido de Docker Desktop en Windows, ver TESTING_BACKEND.md),
-      # así que los tests con Testcontainers corren de verdad acá en vez
-      # de quedar SKIPPED como en el setup local de Windows.
+      # El runner de Ubuntu trae Docker nativo: los tests con Testcontainers
+      # corren de verdad acá en vez de quedar SKIPPED como en Windows.
       - name: Dar permiso de ejecución a mvnw
         run: chmod +x ./mvnw
       - name: Checkstyle
@@ -86,33 +106,102 @@ jobs:
       - name: Tests
         run: ./mvnw -B test
         env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/app_db
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/drivehub
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgres
-          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_MONGODB_URI: mongodb://localhost:27017/academico
       - name: Build
         run: ./mvnw -B clean package -DskipTests
 
-  frontend:
+  # ---------------------------------------------------------------
+  # Notificaciones (NestJS)
+  # ---------------------------------------------------------------
+  notificaciones:
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.notificaciones == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
-      # El lockfile vive en la raíz del workspace pnpm, no dentro de
-      # projects/frontend -- ver docs/README.md.
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --dir projects/frontend run lint
-      - run: pnpm --dir projects/frontend run test
-      - run: pnpm --dir projects/frontend run build
+      - run: pnpm install --frozen-lockfile --filter ./projects/backend/notificaciones
+      - run: pnpm --dir projects/backend/notificaciones run lint
+      - run: pnpm --dir projects/backend/notificaciones run test
+      - run: pnpm --dir projects/backend/notificaciones run build
 
+  # ---------------------------------------------------------------
+  # Asistente IA (FastAPI)
+  # ---------------------------------------------------------------
+  asistente-ia:
+    needs: changes
+    if: needs.changes.outputs.asistente-ia == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/backend/asistente-ia
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: projects/backend/asistente-ia/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m ruff check .
+      - run: python -m ruff format --check .
+      - run: python -m pytest
+
+  # ---------------------------------------------------------------
+  # Contenido (Laravel)
+  # ---------------------------------------------------------------
+  contenido:
+    needs: changes
+    if: needs.changes.outputs.contenido == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/backend/contenido
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mongodb
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist
+      - run: ./vendor/bin/pint --test
+      - run: php artisan test
+
+  # ---------------------------------------------------------------
+  # Micro-frontends (shell + remotos Angular y React)
+  # ---------------------------------------------------------------
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.changes.outputs.frontend) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      # El lockfile vive en la raíz del workspace pnpm, no dentro de cada app.
+      - run: pnpm install --frozen-lockfile --filter ./projects/frontend/${{ matrix.app }}
+      - run: pnpm --dir projects/frontend/${{ matrix.app }} run lint
+      - run: pnpm --dir projects/frontend/${{ matrix.app }} run test
+      - run: pnpm --dir projects/frontend/${{ matrix.app }} run build
+
+  # ---------------------------------------------------------------
+  # Mobile (Flutter)
+  # ---------------------------------------------------------------
   mobile:
     needs: changes
     if: needs.changes.outputs.mobile == 'true'
@@ -129,9 +218,7 @@ jobs:
       # pubspec.yaml declara `.env` como asset (ver CONSUMO_API_MOBILE.md) --
       # el archivo real no se commitea (.gitignore), así que sin este paso
       # `flutter analyze` falla con "asset_does_not_exist" en un checkout
-      # limpio como el de CI. Mismo criterio que backend/frontend: se arma
-      # a partir de `.env.example`, con valores dummy que alcanzan para que
-      # el análisis/los tests corran (no pegan contra un backend real).
+      # limpio como el de CI. Se arma a partir de `.env.example`.
       - run: cp .env.example .env
       - run: flutter analyze
       - run: flutter test
