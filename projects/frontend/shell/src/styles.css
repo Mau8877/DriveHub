@@ -1,0 +1,4 @@
+/* Estilos globales del shell: Tailwind + los tokens comunes de DriveHub. */
+@import 'tailwindcss';
+@import '@drivehub/design-tokens/tokens.css';
+@import '@drivehub/design-tokens/theme.css';

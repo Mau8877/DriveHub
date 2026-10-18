@@ -1,0 +1,5 @@
+{
+  "examenes": "http://localhost:4204/remoteEntry.js",
+  "contenido": "http://localhost:4205/remoteEntry.js",
+  "asistente_ia": "http://localhost:4206/remoteEntry.js"
+}
