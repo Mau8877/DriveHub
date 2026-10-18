@@ -1,0 +1,5 @@
+/* Estilos del remoto Asistente IA: Tailwind + los tokens comunes de DriveHub
+   (mismos colores que el shell y el resto de los remotos). */
+@import 'tailwindcss';
+@import '@drivehub/design-tokens/tokens.css';
+@import '@drivehub/design-tokens/theme.css';
