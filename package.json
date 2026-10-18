@@ -39,10 +39,10 @@
 			"sh -c 'cd projects/backend/academico && ./mvnw -q checkstyle:check'"
 		],
 		"projects/backend/asistente-ia/**/*.py": [
-			"sh -c 'cd projects/backend/asistente-ia && python -m ruff check .'"
+			"sh scripts/hooks/lint-python.sh"
 		],
 		"projects/backend/contenido/**/*.php": [
-			"sh -c 'cd projects/backend/contenido && ./vendor/bin/pint --test'"
+			"sh scripts/hooks/lint-php.sh"
 		],
 		"projects/mobile/**/*.dart": [
 			"sh -c 'cd projects/mobile && flutter analyze'"

@@ -37,10 +37,16 @@ commit **se cancela**.
 | Contenido (Laravel) | Pint (`--test`) | `pint.json` | `projects/backend/contenido/**/*.php` |
 | Mobile | `flutter analyze` | `analysis_options.yaml` (`flutter_lints`) | `projects/mobile/**/*.dart` |
 
-Requisitos locales para que el hook pueda correr: JDK 21 para Checkstyle
-(`./mvnw` lo usa), `pip install -r requirements-dev.txt` para ruff, y
-`composer install` en Contenido para Pint (PHP 8.4). Sin la herramienta de
-un lenguaje, no se puede commitear un archivo de ese lenguaje.
+Requisitos locales: JDK 21 para Checkstyle (`./mvnw` lo usa; sin él no se
+puede commitear Java). **Python y PHP son la excepción**: los corren
+`scripts/hooks/lint-python.sh` y `scripts/hooks/lint-php.sh`, que si ruff
+(`pip install -r requirements-dev.txt`) o Pint (`composer install` en
+Contenido, requiere PHP 8.4) no están instalados **avisan y no bloquean**
+el commit. Se decidió así porque no todo el equipo tiene PHP/Python local
+y esos servicios corren en Docker; el CI (jobs `contenido` y
+`asistente-ia`) los valida siempre, así que un error de estilo igual frena
+el PR. Quien trabaja en esos servicios instala la herramienta para tener
+el chequeo antes de commitear.
 
 **El pre-commit solo lintea, no corre tests.** Se evaluó agregar
 `vitest run`/`flutter test`/`mvn test` al mismo hook, pero se decidió que
