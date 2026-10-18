@@ -1,0 +1,14 @@
+# Config de herramientas (no se empaqueta como librería: las dependencias
+# viven en requirements*.txt).
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B"]
+# N818 pide sufijo "Error" en excepciones; acá se llaman igual que en los
+# servicios Spring (BusinessException, NotFoundException...) a propósito.
+ignore = ["N818"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
