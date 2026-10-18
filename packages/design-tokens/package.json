@@ -1,0 +1,10 @@
+{
+  "name": "@drivehub/design-tokens",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Tokens de diseño compartidos por todos los micro-frontends (Angular y React): variables CSS + mapeo al tema de Tailwind 4",
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./theme.css": "./theme.css"
+  }
+}
