@@ -4,6 +4,16 @@ globs: projects/backend/**/*
 
 # Testing — Backend
 
+## Alcance
+
+La **regla estricta de tests al día** y el **foco** (service + controller)
+aplican a los 8 servicios del backend, cualquiera sea su stack. Las
+herramientas de abajo son las de Spring Boot; NestJS (Vitest), FastAPI
+(pytest) y Laravel (PHPUnit) tienen las suyas en su rule:
+[NESTJS_BACKEND.md](NESTJS_BACKEND.md#tests), [FASTAPI_BACKEND.md](FASTAPI_BACKEND.md#tests),
+[LARAVEL_BACKEND.md](LARAVEL_BACKEND.md#tests). Para hexagonal y clean, qué
+testear en cada capa está en su rule de arquitectura.
+
 ## Foco
 
 Los tests se concentran en **`service`** (lógica de negocio) y **`controller`**
@@ -13,13 +23,14 @@ getters/setters generados.
 
 ## Starters ya instalados — usar el que corresponde
 
-El proyecto ya trae los starters de test de Spring Boot 4 en `pom.xml`; cada
+Cada servicio Spring ya trae los starters de test de Spring Boot 4 en su `pom.xml`; cada
 tipo de test usa el que le corresponde, no todos en todos lados:
 
 | Qué se testea | Starter / herramienta |
 | --- | --- |
 | Controllers (contrato HTTP, `MockMvc`) | `spring-boot-starter-webmvc-test` |
 | Repositorios/queries JPA | `spring-boot-starter-data-jpa-test` (`@DataJpaTest`) |
+| Repositorios MongoDB (Académico) | `spring-boot-starter-data-mongodb-test` (`@DataMongoTest`) |
 | Endpoints protegidos / reglas de `SecurityConfig` | `spring-boot-starter-security-test` |
 | Migraciones Flyway | `spring-boot-starter-flyway-test` |
 | Validaciones Bean Validation en DTOs | `spring-boot-starter-validation-test` |
@@ -42,10 +53,11 @@ Para tests que necesitan una base de datos real (no un mock del
 repositorio) se usa **Testcontainers** con PostgreSQL — el mismo motor que
 `docker-compose.yml` usa en desarrollo (`postgres:18-alpine`), para que el
 comportamiento en test sea fiel al de verdad (constraints, tipos de dato,
-etc.).
+etc.). Académico usa `MongoDBContainer` (`mongo:8`, replica set de un nodo).
 
-**Ya agregado** en `pom.xml`: `org.springframework.boot:spring-boot-testcontainers`,
-`org.testcontainers:junit-jupiter` y `org.testcontainers:postgresql` (los
+**Ya agregado** en el `pom.xml` de cada servicio: `org.springframework.boot:spring-boot-testcontainers`,
+`org.testcontainers:junit-jupiter` y `org.testcontainers:postgresql` (o
+`org.testcontainers:mongodb` en Académico) (los
 dos últimos con versión fijada en la property `testcontainers.version`,
 porque `spring-boot-starter-parent` en esta versión no trae el BOM de
 Testcontainers y Maven tira `'dependencies.dependency.version' ... is
@@ -56,9 +68,9 @@ missing` sin eso).
   lógica de negocio pura en el `service`, se sigue mockeando el repositorio
   (`@Mock`/`@MockBean`) — no todo test pasa a ser de integración por default.
 - **Prerequisito de infra**: Testcontainers necesita hablar con el daemon de
-  Docker desde DENTRO del contenedor del backend — `docker-compose.yml`
-  monta `/var/run/docker.sock:/var/run/docker.sock` en el servicio
-  `backend` para esto.
+  Docker desde DENTRO del contenedor del servicio — `docker-compose.yml`
+  monta `/var/run/docker.sock:/var/run/docker.sock` en `identidad`,
+  `escuela`, `pagos` y `academico` para esto.
 - **Patrón obligatorio para tests que usan Testcontainers**: no manejar el
   container con `@Testcontainers`/`@Container` (arranca automático y sin
   forma limpia de saltear el test si Docker no está disponible). En cambio,
@@ -67,7 +79,8 @@ missing` sin eso).
   `Assumptions.assumeTrue(...)`, y manejar el container a mano
   (try-with-resources) dentro del test. Así, si Docker no está accesible, el
   test queda **SKIPPED** (no rompe el build) en vez de fallar — ver
-  `TestcontainersSmokeTest.java` como referencia.
+  `TestcontainersSmokeTest.java` de Identidad (Postgres) o de Académico
+  (MongoDB) como referencia.
 
 > **Docker Desktop en Windows, nota conocida:** montar
 > `/var/run/docker.sock` no alcanza siempre — Docker Desktop puede exponer
@@ -78,8 +91,7 @@ missing` sin eso).
 > máquina host, **Docker Desktop → Settings → Advanced → "Allow the default
 > Docker socket to be used"** (tiene que estar tildado). Confirmado en esta
 > sesión: con el mount + `DOCKER_HOST=unix:///var/run/docker.sock` +
-> `TESTCONTAINERS_RYUK_DISABLED=true` en el `environment` del servicio
-> `backend`, seguía sin conectar — es un tema de configuración de Docker
+> `TESTCONTAINERS_RYUK_DISABLED=true` en el `environment` del servicio, seguía sin conectar — es un tema de configuración de Docker
 > Desktop en el host, no del código ni de `docker-compose.yml`. Por eso el
 > patrón de `assumeTrue` de arriba es obligatorio: un dev sin ese setting
 > tildado sigue pudiendo correr `mvn test` sin que le rompa el build.

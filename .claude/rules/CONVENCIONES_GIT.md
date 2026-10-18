@@ -41,8 +41,8 @@ chore[REPO]: Actualizar dependencias del workspace
 
 | Scope | Cuándo |
 | --- | --- |
-| `BACK` | Cambios dentro de `projects/backend/` |
-| `FRONT` | Cambios dentro de `projects/frontend/` |
+| `BACK` | Cambios dentro de `projects/backend/` (cualquier microservicio o el gateway) |
+| `FRONT` | Cambios dentro de `projects/frontend/` o `packages/` (shell, remotos y paquetes compartidos de la web) |
 | `MOBILE` | Cambios dentro de `projects/mobile/` |
 | `INFRA` | Cambios dentro de `infrastructure/`, `docker-compose.yml` |
 | `DOCS` | Cambios dentro de `docs/`, o documentación suelta en cualquier proyecto |
@@ -61,6 +61,23 @@ consume), son **dos commits separados**, uno `[BACK]` y otro `[FRONT]`, aunque
 se hagan en la misma sesión de trabajo y terminen en el mismo PR. Esto
 mantiene el historial legible por módulo y hace posible revertir un lado sin
 tocar el otro.
+
+### Microservicios y micro-frontends: un commit, un servicio
+
+`BACK` y `FRONT` agrupan varios proyectos independientes. Además de la
+regla de un scope por commit, **un commit no mezcla dos microservicios ni
+dos micro-frontends** (mismo motivo: poder revertir uno sin tocar el otro),
+y la descripción empieza con el nombre del servicio o app:
+
+```
+feat[BACK]: identidad -- Creación de model Usuario y migración
+fix[BACK]: gateway -- Ruta de /api/v1/franjas apuntaba a escuela
+feat[FRONT]: shell -- Menú filtrado por rol
+chore[FRONT]: design-tokens -- Paleta de marca
+```
+
+Un cambio que toca el contrato entre dos piezas (ej. un recurso nuevo en
+`pagos` + su ruta en el `gateway`) son dos commits, uno por proyecto.
 
 ## Ramas
 

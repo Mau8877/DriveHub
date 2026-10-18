@@ -46,6 +46,25 @@ build/
 .mvn/wrapper/maven-wrapper.jar
 
 # ===========================
+# Python (Asistente IA)
+# ===========================
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# ===========================
+# PHP (Contenido)
+# ===========================
+vendor/
+
+# ===========================
+# Angular
+# ===========================
+.angular/
+
+# ===========================
 # Flutter
 # ===========================
 .dart_tool/

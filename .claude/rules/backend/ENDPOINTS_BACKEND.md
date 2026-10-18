@@ -13,6 +13,10 @@ globs: projects/backend/**/*
   [SEGURIDAD_AUTH_BACKEND.md](SEGURIDAD_AUTH_BACKEND.md) y
   [LOGGING_BACKEND.md](LOGGING_BACKEND.md) para el resto de excepciones de
   seguridad).
+- El cliente nunca sabe qué microservicio atiende un recurso: todo pasa por
+  el gateway, que enruta por recurso (ver
+  [MICROSERVICIOS.md](../MICROSERVICIOS.md#recursos-http-de-cada-servicio)).
+  Un recurso nuevo se registra ahí y en el gateway en el mismo cambio.
 - Recursos en **plural** y **kebab-case**: `/api/v1/usuarios`,
   `/api/v1/menus-semanales`, `/api/v1/tipos-comida`. Nunca camelCase ni
   snake_case en la URL.
@@ -67,6 +71,10 @@ GET /api/v1/usuarios?page=1&pageSize=20&search=texto&filter[rol]=admin
 
 ## Controllers delgados
 
+- Aplica igual en los 4 stacks (en NestJS/FastAPI/Laravel el "controller"
+  es su controller/router y la validación es su DTO/schema/FormRequest; en
+  hexagonal el controller llama a un puerto de entrada, en clean a un caso
+  de uso).
 - Un método de controller: valida el input (`@Valid` sobre el DTO de
   request), llama **un** método de `service`, envuelve el resultado en
   `ApiResponse` (ver [RESPONSES_BACKEND.md](RESPONSES_BACKEND.md)) y lo

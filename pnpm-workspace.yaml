@@ -1,2 +1,15 @@
+# Paquetes Node del monorepo. Los microservicios Java (Maven), PHP (Composer)
+# y Python (pip) no son paquetes de pnpm y no se listan acá.
 packages:
-  - 'projects/*'
+  - 'projects/frontend/*'
+  - 'projects/backend/notificaciones'
+  - 'packages/*'
+
+# pnpm 11 no corre scripts de instalación de dependencias salvo que se
+# autoricen explícitamente. Estos son binarios nativos del toolchain
+# (esbuild de Angular/Vite, watcher y caché del builder de Angular).
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true

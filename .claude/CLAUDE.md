@@ -1,74 +1,127 @@
-# DevelopLayout
+# DriveHub
 
-Plantilla base de arquitectura full-stack. Monorepo con pnpm workspaces
-(`pnpm-workspace.yaml`: `projects/*`) que contiene tres
-proyectos independientes más la infraestructura de desarrollo:
+Plataforma para autoescuelas: gestión escolar (autos, estudiantes,
+docentes), clases y horarios, exámenes, pagos, contenido, notificaciones y
+asistente con IA. Monorepo de **microservicios** + **micro-frontends** +
+app móvil. El diseño funcional y de datos está en
+[`docs/DriveHub/`](../docs/DriveHub/) (casos de uso por paquete, diseño de
+base de datos, bases de datos y micro-frontends).
 
-- **`projects/backend`** — API REST en Java 21 + Spring Boot 4.1 (Maven),
-  PostgreSQL + Flyway para persistencia, Redis para caché, MinIO para
-  almacenamiento de archivos.
-- **`projects/frontend`** — Panel web en React 19 + TypeScript + Vite,
-  TanStack (Query/Router/Form/Table), Tailwind CSS 4 + shadcn.
-- **`projects/mobile`** — App en Flutter/Dart, Riverpod para estado,
-  `go_router` para navegación, `dio` como cliente HTTP.
-- **`infrastructure/`** — configuración de Docker Compose: nginx (proxy),
-  postgres, redis, minio, prometheus, grafana.
+## Estructura
+
+```
+projects/
+├── backend/                 # 8 proyectos independientes
+│   ├── gateway/             # API Gateway (Spring Cloud Gateway)      :8080
+│   ├── identidad/           # Spring Boot, hexagonal  · PostgreSQL     :8081
+│   ├── escuela/             # Spring Boot, clean      · PostgreSQL     :8082
+│   ├── pagos/               # Spring Boot, capas      · PostgreSQL     :8083
+│   ├── academico/           # Spring Boot, capas      · MongoDB        :8084
+│   ├── contenido/           # Laravel, capas          · MongoDB        :8085
+│   ├── notificaciones/      # NestJS, capas           · DynamoDB       :8086
+│   └── asistente-ia/        # FastAPI, capas          · DynamoDB       :8087
+├── frontend/                # 7 micro-frontends web
+│   ├── shell/               # Angular, host (Native Federation)        :4200
+│   ├── identidad/ escuela/ pagos/            # Angular, remotos        :4201-4203
+│   └── examenes/ contenido/ asistente-ia/    # React, remotos (MF Vite) :4204-4206
+└── mobile/                  # Flutter (estudiante e instructor)
+packages/
+├── design-tokens/           # Variables CSS + tema Tailwind comunes a toda la web
+└── mf-contract/             # Contrato shell <-> remotos (sesión, mount/unmount, eventos)
+infrastructure/              # nginx, postgres (init), minio, prometheus, grafana
+```
+
+Mapa completo (recursos de cada servicio, prefijos de error, casos de uso
+de cada micro-frontend): [MICROSERVICIOS.md](rules/MICROSERVICIOS.md).
 
 ## Comandos básicos
 
-### Backend (`projects/backend`)
-
-```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev   # correr en modo dev
-./mvnw test                                              # tests
-./mvnw clean package                                     # build
-```
-
-### Frontend (`projects/frontend`)
-
-```bash
-pnpm dev       # servidor de desarrollo (Vite, puerto 5173)
-pnpm build     # build de producción
-pnpm lint      # ESLint
-```
-
-### Mobile (`projects/mobile`)
-
-```bash
-flutter pub get     # instalar dependencias
-flutter run          # correr en un emulador/dispositivo conectado
-flutter test          # tests
-flutter analyze       # análisis estático
-```
-
 ### Stack completo (Docker Compose)
 
-Desde la raíz del repo, con los `.env` ya creados a partir de sus
-`.env.example` correspondientes (raíz, `projects/backend/`,
-`projects/frontend/`):
+Desde la raíz, con `.env` creado a partir de `.env.example`:
 
 ```bash
 docker compose up
 ```
 
-Levanta proxy (puerto 80), frontend (5173), backend (8080), postgres (5432),
-redis (6379), minio (9000/9001), prometheus (9090) y grafana (3000). Ver
-[docs/README.md](../docs/README.md) para el detalle completo de variables de
-entorno y el checklist de puesta en marcha.
+La infraestructura siempre arranca: Postgres (5432, una base por servicio),
+MongoDB replica set (27017), DynamoDB local (8000), RabbitMQ (5672 / consola
+15672), MinIO (9000/9001). `COMPOSE_PROFILES` del `.env` agrega `backend`
+(los 8 servicios), `frontend` (las 7 apps + nginx en el puerto 80) y
+`observabilidad` (Prometheus 9090, Grafana 3000). Detalle en
+[docs/INFRAESTRUCTURA.md](../docs/INFRAESTRUCTURA.md).
+
+### Servicios Spring (`gateway`, `identidad`, `escuela`, `pagos`, `academico`)
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev   # en la carpeta del servicio
+./mvnw test
+./mvnw checkstyle:check
+```
+
+### Notificaciones (NestJS)
+
+```bash
+pnpm --dir projects/backend/notificaciones start:dev
+pnpm --dir projects/backend/notificaciones test
+```
+
+### Asistente IA (FastAPI)
+
+```bash
+pip install -r requirements-dev.txt          # en projects/backend/asistente-ia
+uvicorn app.main:app --reload --port 8087
+python -m pytest
+```
+
+### Contenido (Laravel, requiere PHP 8.4 + ext-mongodb, o Docker)
+
+```bash
+composer install && php artisan serve --port=8085   # en projects/backend/contenido
+php artisan test
+```
+
+### Micro-frontends
+
+```bash
+pnpm install                                  # desde la raíz (workspace pnpm)
+pnpm --dir projects/frontend/shell dev        # cada app: dev / test / build / lint
+pnpm --filter "./projects/frontend/**" --parallel run dev   # las 7 a la vez
+```
+
+### Mobile
+
+```bash
+flutter pub get && flutter run    # en projects/mobile
+flutter test && flutter analyze
+```
 
 ## Reglas del proyecto (`.claude/rules/`)
 
 **Antes de trabajar en cualquier archivo del proyecto, hay que respetar las
-reglas correspondientes en `.claude/rules/`** según la carpeta/proyecto en
-el que se esté trabajando (backend, frontend, mobile, o transversal a todo
-el repo). No es opcional ni una sugerencia — son las decisiones ya tomadas
-sobre cómo se construye este proyecto específico, y anulan cualquier
-default genérico de "buenas prácticas" cuando entran en conflicto.
+reglas correspondientes en `.claude/rules/`** según el servicio, la app o
+el área en la que se esté trabajando. No es opcional ni una sugerencia —
+son las decisiones ya tomadas sobre cómo se construye este proyecto, y
+anulan cualquier default genérico de "buenas prácticas" cuando entran en
+conflicto.
 
-El propio frontmatter `globs:` de cada archivo de regla determina en qué
-carpetas aplica automáticamente — no hace falta ir a buscarlas a mano, pero
-si algo no queda claro para el archivo que se está por tocar, se revisa la
-carpeta `.claude/rules/` correspondiente antes de asumir un criterio propio.
+El frontmatter `globs:` de cada rule determina dónde aplica: las
+transversales del backend (respuestas, excepciones, logging, endpoints,
+persistencia, seguridad) aplican a los 8 servicios; cada arquitectura y
+stack tiene la suya (hexagonal → `identidad`, clean → `escuela`, NestJS,
+FastAPI, Laravel, gateway, Angular, React). Si algo no queda claro para el
+archivo que se está por tocar, se revisa la carpeta `.claude/rules/` antes
+de asumir un criterio propio. Puntos que se suelen olvidar:
+
+- **Id interno Long + `codigo_{tabla}` UUID v7** en todas las tablas y
+  colecciones; el id Long nunca sale del servicio ([PERSISTENCIA_BD_BACKEND.md](rules/backend/PERSISTENCIA_BD_BACKEND.md)).
+- **Una base por servicio**: nadie lee la base de otro.
+- **Un recurso HTTP nuevo** se registra en el gateway y en
+  [MICROSERVICIOS.md](rules/MICROSERVICIOS.md) en el mismo cambio.
+- **No anticipar trabajo de casos de uso**: los servicios y apps tienen hoy
+  su estructura, sus Models y sus migraciones; controllers, servicios y
+  pantallas se crean con cada caso de uso, a partir de su Historia de
+  Usuario y sus Unidades de Trabajo.
 
 ## Commits de Git — Claude no commitea el trabajo final, salvo pruebas que deshace
 
@@ -79,9 +132,10 @@ responsabilidad exclusiva de la persona que está usando Claude.
 Cuando el trabajo esté listo para commitear, Claude debe:
 
 1. Seguir [CONVENCIONES_GIT.md](rules/CONVENCIONES_GIT.md) al armar el
-   mensaje: formato `tipo[SCOPE]: descripción concreta`, y **un commit por
-   scope** (si el cambio toca backend y frontend, son dos mensajes
-   separados, no uno).
+   mensaje: formato `tipo[SCOPE]: descripción concreta`, **un commit por
+   scope**, y dentro de `BACK`/`FRONT` **un commit por microservicio o
+   micro-frontend** (la descripción empieza con su nombre:
+   `feat[BACK]: pagos -- ...`).
 2. Proponerle a la persona el/los mensajes de commit listos para usar
    (idealmente en un bloque de código para copiar/pegar), explicando
    brevemente qué agrupa cada uno si hay más de uno.
@@ -103,5 +157,5 @@ correcto), usar los mecanismos que ni siquiera tocan el historial de git:
 ```bash
 pnpm exec lint-staged                     # simula el pre-commit sobre lo que esté staged
 sh .husky/commit-msg archivo_con_mensaje.txt  # simula el commit-msg sin commitear
-echo "feat[BACK]: mensaje de prueba" | pnpm exec commitlint  # valida un mensaje suelto
+echo "feat[BACK]: pagos -- mensaje de prueba" | pnpm exec commitlint  # valida un mensaje suelto
 ```

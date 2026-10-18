@@ -4,6 +4,17 @@ globs: projects/mobile/**/*
 
 # Consumo de API — Mobile
 
+## Una sola URL: el API Gateway
+
+La app habla **solo con el gateway** (`API_BASE_URL`, ej.
+`http://10.0.2.2:8080/api/v1` en el emulador de Android), nunca con un
+microservicio directo: el gateway enruta cada recurso al servicio que
+corresponde (ver [MICROSERVICIOS.md](../MICROSERVICIOS.md#recursos-http-de-cada-servicio)).
+Todos los servicios responden con el mismo sobre, sin importar su stack.
+El refresh token en mobile viaja en el body y se guarda en
+`flutter_secure_storage` (no hay cookies, ver
+[SEGURIDAD_AUTH_BACKEND.md](../backend/SEGURIDAD_AUTH_BACKEND.md)).
+
 ## Cliente `dio` centralizado (prerequisito)
 
 `dio` está en `pubspec.yaml`, pero **no existe todavía** ningún cliente

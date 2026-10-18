@@ -9,8 +9,18 @@ globs: projects/backend/**/*
 Los logs se emiten en JSON, no en texto plano — para que Grafana/cualquier
 sistema de logs los pueda indexar y filtrar por campo.
 
-- Librería: **`logstash-logback-encoder`** (8.1) sobre Logback (el logger
-  default de Spring Boot) — **ya agregada** en `pom.xml`, con
+Implementación por stack (todas ya configuradas, una línea JSON por
+evento a stdout/stderr):
+
+| Stack | Cómo |
+| --- | --- |
+| Spring Boot | `logstash-logback-encoder` (detalle abajo) |
+| NestJS | `ConsoleLogger({ json: true })` en `main.ts` |
+| FastAPI | `JsonFormatter` de `app/common/logging.py` |
+| Laravel | canal `json` (Monolog `JsonFormatter`) en `config/logging.php` |
+
+- Spring: **`logstash-logback-encoder`** (8.1) sobre Logback (el logger
+  default de Spring Boot) — **ya agregada** en el `pom.xml` de cada servicio, con
   `src/main/resources/logback-spring.xml` configurado con un `appender` que
   usa `net.logstash.logback.encoder.LogstashEncoder`. Confirmado en runtime:
   cada línea de log sale como `{"@timestamp":...,"message":...,"level":"INFO",...}`.
@@ -25,14 +35,14 @@ sistema de logs los pueda indexar y filtrar por campo.
 | --- | --- | --- |
 | `timestamp` | Sí | Se agrega automático por el encoder JSON |
 | `level` | Sí | `INFO` / `WARN` / `ERROR` (ver niveles abajo) |
-| `module` | Sí | Nombre del feature/módulo (ej. `usuarios`, `auth`, `pedidos`) — mismo prefijo que el `MODULO` de [EXCEPCIONES_BACKEND.md](EXCEPCIONES_BACKEND.md), en minúscula |
+| `module` | Sí | Nombre del feature/módulo dentro del servicio (ej. `pagos`, `reservas`, `manuales`), en minúscula. El servicio lo identifica el contenedor/aplicación que emite el log |
 | `message` | Sí | Descripción legible del evento |
 | campos contextuales | Cuando aplique | Ej. `userId`, `pedidoId` — se agregan vía MDC (`MDC.put("userId", id)`) o como argumentos estructurados del logger, nunca concatenados al `message` |
 | `errorCode` | Solo en WARN/ERROR ligados a una excepción catalogada | Mismo código `ERR_{MODULO}_{NUMERO}` que devuelve la API (ver [RESPONSES_BACKEND.md](RESPONSES_BACKEND.md) y [EXCEPCIONES_BACKEND.md](EXCEPCIONES_BACKEND.md)) — así un log y la respuesta que recibió el cliente se correlacionan por el mismo código |
 
 ## Dónde se loguea
 
-**Siempre en la capa de `service`.** El controller no loguea nada — ni al
+**Siempre en la capa de `service`** (en hexagonal, `application/service/`; en clean, el caso de uso). El controller no loguea nada — ni al
 entrar, ni al salir, ni en caso de error (el
 `GlobalExceptionHandler`/`@RestControllerAdvice` tampoco duplica el log de la
 excepción que ya logueó el service que la lanzó; ver

@@ -4,5 +4,11 @@
   "tabWidth": 2,
   "trailingComma": "es5",
   "printWidth": 100,
-  "endOfLine": "lf"
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "files": "projects/frontend/{shell,identidad,escuela,pagos}/**/*.html",
+      "options": { "parser": "angular" }
+    }
+  ]
 }

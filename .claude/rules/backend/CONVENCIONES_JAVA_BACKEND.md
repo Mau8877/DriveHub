@@ -1,70 +1,57 @@
 ---
-globs: projects/backend/**/*
+globs: projects/backend/{gateway,identidad,escuela,pagos,academico}/**/*
 ---
 
 # Convenciones de Código Java — Backend
 
+## Alcance
+
+Aplica a los 5 proyectos Spring Boot: `gateway`, `identidad`, `escuela`,
+`pagos` y `academico`. Paquete raíz: **`com.drivehub.{servicio}`**.
+
 ## Estructura de paquetes
 
-Todo bajo `com.example.backend`, siguiendo el scaffold feature-based ya
-creado:
+Depende de la arquitectura de cada servicio (ver
+[MICROSERVICIOS.md](../MICROSERVICIOS.md#mapa-de-servicios-backend)):
 
-```
-com.example.backend
-├── common/
-│   ├── constant/       # Constantes compartidas entre módulos
-│   ├── exception/       # BusinessException y jerarquía (ver EXCEPCIONES_BACKEND.md)
-│   ├── model/           # BaseModel (codigo UUID, timestamps, soft delete -- ver abajo)
-│   ├── response/        # ApiResponse, PageMeta (ver RESPONSES_BACKEND.md)
-│   └── util/            # Utilidades genéricas sin estado
-├── config/               # Configuración de Spring (SecurityConfig, etc.)
-├── security/             # JWT, filtros, @CurrentUserId, UserDetailsServiceImpl
-└── features/
-    └── {modulo}/         # ej. usuarios/, auth/, pedidos/
-        ├── controller/
-        ├── enums/        # Enumeraciones de negocio del módulo (si aplica, ver nota abajo)
-        ├── service/
-        ├── repository/
-        ├── dto/          # XxxRequest, XxxResponse
-        ├── model/        # La clase mapeada a una tabla (sigue llevando @Entity de JPA, ver nota abajo)
-        └── mapper/       # (si el mapeo Model↔DTO no es trivial)
-```
+- **Capas** (`pagos`, `academico`): `common/`, `config/`, `features/{modulo}/{controller,service,repository,dto,model,enums,mapper}`
+  — detalle en [ARQUITECTURA_BACKEND.md](../ARQUITECTURA_BACKEND.md#estructura-de-paquetes).
+- **Hexagonal** (`identidad`): [ARQUITECTURA_HEXAGONAL_BACKEND.md](ARQUITECTURA_HEXAGONAL_BACKEND.md).
+- **Clean** (`escuela`): [ARQUITECTURA_CLEAN_BACKEND.md](ARQUITECTURA_CLEAN_BACKEND.md).
+
+En los tres, `common/` contiene lo mismo: `exception/` (jerarquía +
+`GlobalExceptionHandler`), `response/` (`ApiResponse`, `PageMeta`) y
+`util/` (`UuidV7`). Es una copia por servicio a propósito (cada servicio se
+compila y despliega solo, ver ARQUITECTURA_BACKEND.md#regla-de-dependencia).
 
 Una clase que solo la usa un módulo vive **dentro de ese módulo**, no en
 `common/` — `common/` es exclusivamente para lo que de verdad comparten dos o
-más features. No se mueve algo a `common/` "por las dudas".
+más módulos del servicio. No se mueve algo a `common/` "por las dudas".
 
-`enums/` es solo para **enumeraciones de negocio propias del módulo** (ej.
-`TipoNotificacion { SUCCESS, INFO, WARNING, ERROR }` en `notificaciones/`) —
-un campo del Model que solo puede tomar un set fijo de valores, persistido
-`@Enumerated(EnumType.STRING)` (nunca `ORDINAL`, mismo criterio que `Role`
-en [SEGURIDAD_AUTH_BACKEND.md](SEGURIDAD_AUTH_BACKEND.md#roles-y-permisos)).
-No confundir con `{Recurso}ErrorCodes` (el catálogo de códigos de error del
-módulo, ver [EXCEPCIONES_BACKEND.md](EXCEPCIONES_BACKEND.md)) — eso sigue
-sin una subcarpeta dedicada, vive suelto en la raíz del paquete del módulo.
-Si el módulo no tiene ninguna enumeración de negocio, la carpeta
-directamente no existe (no se crea vacía "por si acaso").
+`enums/` (en capas; en hexagonal/clean los enums viven junto al modelo de
+dominio) es solo para **enumeraciones de negocio** — un campo que solo
+puede tomar un set fijo de valores, persistido `@Enumerated(EnumType.STRING)`
+(nunca `ORDINAL`). No confundir con `{Recurso}ErrorCodes` (el catálogo de
+códigos de error del módulo, ver [EXCEPCIONES_BACKEND.md](EXCEPCIONES_BACKEND.md))
+— vive suelto en la raíz del paquete del módulo. Si el módulo no tiene
+ninguna enumeración de negocio, la carpeta directamente no existe. Un enum
+que usan dos módulos del mismo servicio va en `common/enums/` (ej.
+`ResultadoEvaluacion` en Académico).
 
-Todo Model de un módulo extiende
-[`common/model/BaseModel.java`](../../../projects/backend/src/main/java/com/example/backend/common/model/BaseModel.java):
-`id` (`Long`, el `@Id`/PK real, nunca expuesto fuera de persistencia) +
-`codigo` (`UUID`, el identificador público que sí viaja en DTOs/URLs/JWT —
-ver [PERSISTENCIA_BD_BACKEND.md](PERSISTENCIA_BD_BACKEND.md#identificador-de-fila-id-interno--codigo-público-patrón-basemodel)
-para el detalle completo del porqué de esta separación), `createdAt`/`updatedAt`
-(de solo lectura, los administra Hibernate vía
-`@CreationTimestamp`/`@UpdateTimestamp`), y `deletedAt` (soft delete —
-`@SQLRestriction("deleted_at IS NULL")` en `BaseModel` filtra las filas
-borradas de **toda** query que Hibernate genere para la entidad, sin tener
-que repetir esa condición a mano en cada `Repository`).
+Todo Model JPA extiende el `BaseModel` de su servicio y todo documento de
+Mongo el `BaseDocument`: `id` Long interno + codigo UUID v7 público +
+`createdAt`/`updatedAt` + `deletedAt` (soft delete). Detalle completo en
+[PERSISTENCIA_BD_BACKEND.md](PERSISTENCIA_BD_BACKEND.md#identificadores-id-interno-long--codigo-público-uuid-v7).
 
 ## Nombres de clases
 
 | Tipo | Convención | Ejemplo |
 | --- | --- | --- |
-| Controller | `{Recurso}Controller` | `UsuarioController` |
+| Controller | `{Recurso}Controller` | `PagoController` |
 | Service | `{Recurso}Service` (clase concreta, **sin** interfaz `IXxx`/`XxxImpl` salvo que exista más de una implementación real) | `UsuarioService` |
-| Repository | `{Recurso}Repository extends JpaRepository<...>` | `UsuarioRepository` |
-| Model | Nombre de dominio en singular, sin sufijo | `Usuario` |
+| Repository | `{Recurso}Repository extends JpaRepository<...>` (o `MongoRepository`) | `PagoRepository` |
+| Model (capas) | Nombre de dominio en singular, sin sufijo | `Pago`, `Reserva` |
+| Model JPA (hexagonal / clean) | `{Dominio}Model`: el nombre sin sufijo es del modelo de dominio | `UsuarioModel`, `VehiculoModel` |
 | DTO de entrada | `{Recurso}Request` (o `Crear{Recurso}Request` / `Actualizar{Recurso}Request` si hace falta distinguir create de update) | `CrearUsuarioRequest` |
 | DTO de salida | `{Recurso}Response` | `UsuarioResponse` |
 | Mapper | `{Recurso}Mapper` | `UsuarioMapper` |

@@ -18,14 +18,14 @@ existen fuera de este contrato (`/health`, `/prometheus`, `/swagger-ui/**`,
   "data": {},
   "message": "string",
   "timestamp": "2026-08-28T01:22:02Z",
-  "error": "ERR_US_03"
+  "error": "ERR_IDE_03"
 }
 ```
 
 - `status`: `"success"` o `"failed"`. Nunca otro valor.
 - `data`: ver [criterio objeto vs array](#data-objeto-vs-array) abajo. `null` cuando no hay contenido que devolver.
 - `message`: texto legible para humanos (UI/logs), en español. En éxito describe la acción (`"Usuario creado correctamente"`); en error, el mensaje de negocio (no el mensaje técnico de la excepción/stacktrace).
-- `timestamp`: **siempre presente**, ISO-8601 en UTC (`Instant.now().toString()` en Java), generado en el momento de armar la respuesta, no reutilizado de ningún dato de dominio.
+- `timestamp`: **siempre presente**, ISO-8601 en UTC (`Instant.now()` en Java, `new Date().toISOString()` en TS, `datetime.now(UTC)` en Python, `now('UTC')` en PHP), generado en el momento de armar la respuesta, no reutilizado de ningún dato de dominio.
 - `error`: **solo presente cuando `status` es `"failed"`**. Es un código catalogado (ver [EXCEPCIONES_BACKEND.md](EXCEPCIONES_BACKEND.md)), nunca un mensaje libre. Cuando `status` es `"success"`, el campo `error` se omite (no se serializa `null`).
 
 ## `data`: objeto vs array
@@ -98,17 +98,21 @@ implementación.
   "data": null,
   "message": "El usuario ya existe con ese correo",
   "timestamp": "2026-08-28T01:22:02Z",
-  "error": "ERR_US_03"
+  "error": "ERR_IDE_03"
 }
 ```
 
 ## Implementación
 
-- Clase `ApiResponse<T>` en `common/response/` (record de Java), con factory
-  methods estáticos: `ApiResponse.success(data, message)`,
-  `ApiResponse.successList(items, message, meta)`, `ApiResponse.error(errorCode, message)`.
-- Clase `PageMeta` (record) en `common/response/` para el bloque `meta`.
-- Los controllers **nunca** arman el JSON a mano ni devuelven Models/DTOs
-  pelados — siempre devuelven `ResponseEntity<ApiResponse<T>>` (o el
-  `ResponseEntity<ApiResponse<List<T>>>` para listados), construido con estos
-  factory methods.
+El mismo contrato en los 7 servicios de negocio, cada uno con su helper
+(una copia por servicio, nunca una librería compartida):
+
+| Stack | Dónde | Uso |
+| --- | --- | --- |
+| Spring Boot | `common/response/ApiResponse` y `PageMeta` (records) | `ResponseEntity<ApiResponse<T>>` con `ApiResponse.success(data, msg)`, `successList(items, msg, meta)`, `error(code, msg)` |
+| NestJS | `src/common/response/api-response.ts` | `ApiResponses.success(...)`, `successList(...)`, `error(...)` |
+| FastAPI | `app/common/response.py` | `response.success(...)`, `success_list(...)`, `error(...)` |
+| Laravel | `app/Common/Responses/ApiResponse.php` | `response()->json(ApiResponse::success(...))` |
+
+Los controllers **nunca** arman el JSON a mano ni devuelven Models/DTOs
+pelados: siempre pasan por estos helpers.

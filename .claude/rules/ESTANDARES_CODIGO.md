@@ -1,7 +1,8 @@
 # Estándares de Código
 
-Aplica a todo el repositorio (backend Java, frontend TypeScript, mobile
-Dart). Convenciones de nombrado y comentarios comunes a los tres lenguajes —
+Aplica a todo el repositorio (backend en Java, TypeScript, Python y PHP;
+frontend en TypeScript con Angular y React; mobile en Dart). Convenciones
+de nombrado y comentarios comunes a todos los lenguajes —
 las convenciones específicas de arquitectura/librerías de cada uno viven en
 sus reglas dedicadas (`.claude/rules/backend/`, `.claude/rules/frontend/`,
 `.claude/rules/mobile/`).
@@ -11,12 +12,12 @@ sus reglas dedicadas (`.claude/rules/backend/`, `.claude/rules/frontend/`,
 Se sigue el estándar propio de cada lenguaje — no se inventa una convención
 distinta cuando el lenguaje ya tiene una establecida:
 
-| | Java | TypeScript | Dart |
-| --- | --- | --- | --- |
-| Variables / funciones / métodos | `camelCase` | `camelCase` | `camelCase` |
-| Clases / tipos / interfaces / enums | `PascalCase` | `PascalCase` | `PascalCase` |
-| Constantes | `UPPER_SNAKE_CASE` | `UPPER_SNAKE_CASE` | `UPPER_SNAKE_CASE` (Dart suele usar `lowerCamelCase` para constantes locales, pero las constantes de configuración/catálogo del proyecto — ej. códigos de error, claves de storage — usan `UPPER_SNAKE_CASE` para que se distingan a simple vista de una variable normal) |
-| Archivos | `PascalCase.java` (nombre = nombre de la clase pública) | `camelCase.ts`/`PascalCase.tsx` (componentes React en `PascalCase`) | `snake_case.dart` (convención oficial de Dart/Flutter) |
+| | Java | TypeScript | Python | PHP | Dart |
+| --- | --- | --- | --- | --- | --- |
+| Variables / funciones / métodos | `camelCase` | `camelCase` | `snake_case` (PEP 8) | `camelCase` | `camelCase` |
+| Clases / tipos / interfaces / enums | `PascalCase` | `PascalCase` | `PascalCase` | `PascalCase` | `PascalCase` |
+| Constantes | `UPPER_SNAKE_CASE` | `UPPER_SNAKE_CASE` | `UPPER_SNAKE_CASE` | `UPPER_SNAKE_CASE` | `UPPER_SNAKE_CASE` (Dart suele usar `lowerCamelCase` para constantes locales, pero las de configuración/catálogo del proyecto — códigos de error, claves de storage — usan `UPPER_SNAKE_CASE` para distinguirse a simple vista) |
+| Archivos | `PascalCase.java` (= clase pública) | React: `camelCase.ts`/`PascalCase.tsx`; Angular y NestJS: `kebab-case.ts` (`sesion.service.ts`, convención de cada framework) | `snake_case.py` | `PascalCase.php` (= clase, PSR-4) | `snake_case.dart` |
 
 ## Enforcement automático (pre-commit)
 
@@ -26,16 +27,26 @@ a su vez corre el linter que corresponde según qué archivos quedaron
 staged. Si el linter encuentra un error real (no un warning ignorable), el
 commit **se cancela**.
 
-| Lenguaje | Herramienta | Config | Alcance |
+| Proyecto | Herramienta | Config | Alcance |
 | --- | --- | --- | --- |
-| TypeScript (frontend) | ESLint (`--fix`) | `projects/frontend/eslint.config.js` | `projects/frontend/**/*.{ts,tsx}` |
-| Java (backend) | Checkstyle | `projects/backend/checkstyle.xml` | `projects/backend/**/*.java` |
-| Dart (mobile) | `flutter analyze` | `projects/mobile/analysis_options.yaml` (`flutter_lints`) | `projects/mobile/**/*.dart` |
+| Remotos React | ESLint (`--fix`) | `eslint.config.js` de cada remoto | `projects/frontend/{examenes,contenido,asistente-ia}/**/*.{ts,tsx}` |
+| Shell y remotos Angular | Prettier (`--write`) | `.prettierrc` de la raíz | `projects/frontend/{shell,identidad,escuela,pagos}/**/*.{ts,html,css}` |
+| Servicios Spring | Checkstyle | `checkstyle.xml` de cada servicio | `projects/backend/{gateway,identidad,escuela,pagos,academico}/**/*.java` |
+| Notificaciones (NestJS) | oxlint (`--type-aware`) | `.oxlintrc.json` | `projects/backend/notificaciones/**/*.ts` |
+| Asistente IA (FastAPI) | ruff | `pyproject.toml` | `projects/backend/asistente-ia/**/*.py` |
+| Contenido (Laravel) | Pint (`--test`) | `pint.json` | `projects/backend/contenido/**/*.php` |
+| Mobile | `flutter analyze` | `analysis_options.yaml` (`flutter_lints`) | `projects/mobile/**/*.dart` |
+
+Requisitos locales para que el hook pueda correr: JDK 21 para Checkstyle
+(`./mvnw` lo usa), `pip install -r requirements-dev.txt` para ruff, y
+`composer install` en Contenido para Pint (PHP 8.4). Sin la herramienta de
+un lenguaje, no se puede commitear un archivo de ese lenguaje.
 
 **El pre-commit solo lintea, no corre tests.** Se evaluó agregar
 `vitest run`/`flutter test`/`mvn test` al mismo hook, pero se decidió que
 correr la suite de tests completa es responsabilidad de cada dev **antes**
-de commitear (`pnpm test`, `flutter test`, `./mvnw test`), no algo que
+de commitear (`pnpm test`, `./mvnw test`, `python -m pytest`,
+`php artisan test`, `flutter test`), no algo que
 bloquee cada commit automáticamente — mantiene el pre-commit rápido. Nada
 impide agregarlo después a un hook `pre-push` si en el futuro se decide que
 sí hace falta forzarlo.

@@ -45,6 +45,10 @@ docs/UnidadesTrabajo/
 - Una subcarpeta **por capa** (`UT-BACKEND`, `UT-FRONTEND`, `UT-MOBILE`),
   nunca mezcladas en una sola carpeta — cada capa tiene su propio
   `README.md` índice y su propia numeración independiente.
+- Con microservicios, una UT de backend toca **un solo servicio** (o el
+  gateway): si una HU necesita cambios en dos servicios, son UT distintas,
+  cada una nombra su servicio en el campo **Microservicio** de su tabla.
+  Lo mismo en frontend con los micro-frontends.
 - Si una HU no toca una capa (ej. una HU 100% de backend, sin cambio de
   UI), esa subcarpeta directamente no se crea — no se deja una carpeta
   vacía "por si acaso".
@@ -72,6 +76,7 @@ secciones obligatorias:
 # Unidades de trabajo — HU{NN}-{CAPA}
 
 **Historia:** {resumen de una línea de qué cubre esta HU en esta capa}
+**Microservicio(s) / micro-frontend(s):** {ej. `pagos` + `gateway`, o `escuela` (web)} — ver [MICROSERVICIOS.md](ruta relativa a .claude/rules/MICROSERVICIOS.md)
 **Fuente HU:** [`ruta relativa a la HU`](../../HistoriasDeUsuario/HU{NN}%20-%20Nombre.md)
 **Recurso HTTP / contrato:** {endpoint(s) o pantalla(s) que esta HU expone}
 
@@ -129,6 +134,7 @@ corresponda a la capa.}
 | **Código** | `UT-HU{NN}-{CAPA}-{NN}` |
 | **Nombre** | {nombre completo} |
 | **Historia** | HU{NN}-{CAPA} |
+| **Microservicio** | {servicio o micro-frontend donde se implementa, ej. `identidad`, `shell`} |
 | **Depende de** | {otra(s) UT de esta misma HU, o "—" si no depende de ninguna} |
 
 ## Antes de implementar

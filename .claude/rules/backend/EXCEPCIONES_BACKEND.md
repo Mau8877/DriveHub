@@ -80,7 +80,11 @@ falla de infraestructura (DB caída, etc.), cae en el handler genérico del
 
 ## Manejo global
 
-`common/exception/GlobalExceptionHandler.java`, con `@RestControllerAdvice`:
+Un handler global por servicio. En Spring,
+`common/exception/GlobalExceptionHandler.java` con `@RestControllerAdvice`;
+en los otros stacks el equivalente (NestJS `GlobalExceptionFilter`, FastAPI
+`registrar_exception_handlers`, Laravel `withExceptions` en
+`bootstrap/app.php`), todos con el mismo mapeo:
 
 - Un `@ExceptionHandler(BusinessException.class)` (o uno por subtipo si hace
   falta lógica distinta) que arma la respuesta con
@@ -90,6 +94,8 @@ falla de infraestructura (DB caída, etc.), cae en el handler genérico del
   de `@Valid`/Bean Validation → `400`, con el código genérico de validación
   del módulo correspondiente (ej. `ERR_SYS_01` si no aplica a un módulo
   específico).
+- Ruta inexistente (`NoResourceFoundException` en Spring) → `404` con
+  `ERR_SYS_03`. Sin esto caería en el catch-all y respondería `500`.
 - Un `@ExceptionHandler(Exception.class)` catch-all → `500`, con un código
   genérico (ej. `ERR_SYS_00`), **sin** exponer el mensaje/stacktrace real al
   cliente (el mensaje de negocio es genérico: "Ocurrió un error inesperado"),
@@ -99,15 +105,29 @@ falla de infraestructura (DB caída, etc.), cae en el handler genérico del
 
 Formato fijo: **`ERR_{MODULO}_{NUMERO}`**.
 
-- `MODULO`: prefijo de **2 a 3 letras**, uno fijo por feature/módulo de
-  negocio (ej. `US` para usuarios, `AUTH` para autenticación, `PED` para
-  pedidos). Se define una vez por módulo, no cambia.
-- `NUMERO`: secuencial **dentro del módulo**, empieza en `01`. No se reusa un
-  número aunque el error que lo usaba se elimine (evita que un código viejo
-  documentado en un log histórico apunte a otra cosa).
-- Reservado: `SYS` para errores transversales/no ligados a un módulo de
-  negocio (`ERR_SYS_00` = error interno genérico, `ERR_SYS_01` = validación
-  genérica no específica de un módulo).
+- `MODULO`: prefijo de **2 a 3 letras**, **uno fijo por microservicio**
+  (ver [MICROSERVICIOS.md](../MICROSERVICIOS.md#mapa-de-servicios-backend)):
+
+  | Servicio | Prefijo |
+  | --- | --- |
+  | Identidad | `IDE` |
+  | Escuela | `ESC` |
+  | Pagos | `PAG` |
+  | Académico | `ACA` |
+  | Contenido | `CON` |
+  | Notificaciones | `NOT` |
+  | Asistente IA | `IA` |
+
+  Leyendo el prefijo de un código visto en un log o en la respuesta de la
+  API se sabe qué servicio lo produjo.
+- `NUMERO`: secuencial **dentro del servicio** (compartido por todas sus
+  features), empieza en `01`. No se reusa un número aunque el error que lo
+  usaba se elimine (evita que un código viejo documentado en un log
+  histórico apunte a otra cosa).
+- Reservado: `SYS` para errores transversales, iguales en todos los
+  servicios (`ERR_SYS_00` = error interno genérico, `ERR_SYS_01` =
+  validación genérica, `ERR_SYS_02` = rate limit del gateway, `ERR_SYS_03`
+  = ruta inexistente).
 
 Formato de ejemplo (ilustrativo — usa un módulo `XX` que no existe, para no
 confundirlo con un código real ya implementado):
@@ -127,10 +147,12 @@ solo explica el **formato** del código (`ERR_{MODULO}_{NUMERO}`), no
 reemplaza ni duplica esa fuente real — si alguna vez quedan
 desincronizados, gana `docs/errors/`.
 
-Cada módulo mantiene su catálogo como constantes (interfaz o `enum` Java,
-ej. `UsuarioErrorCodes`) en su propio paquete de feature, no en un único
-archivo gigante compartido — así el código y su catálogo viven juntos y es
-fácil ubicar en qué módulo y punto ocurrió un error solo leyendo el prefijo.
+Cada servicio mantiene su catálogo como constantes en **un solo lugar
+dentro del servicio** (así la numeración secuencial no choca entre sus
+features): Java `{Servicio}ErrorCodes` en `common/exception/` (ej.
+`PagosErrorCodes`), NestJS `src/common/exceptions/error-codes.ts`, FastAPI
+`app/common/error_codes.py`, Laravel `app/Common/Exceptions/ErrorCodes.php`.
+Nunca un catálogo compartido entre servicios.
 
 ## Regla estricta
 
@@ -145,7 +167,7 @@ Si aparece un caso de error nuevo durante el desarrollo, se agrega al
 catálogo del módulo correspondiente antes de mergear, no se deja para
 "después".
 
-Además de la constante Java del módulo, **todo código de error nuevo se
+Además de la constante del servicio, **todo código de error nuevo se
 documenta también en `docs/errors/`** — el paso a paso y el formato
 obligatorio de esa documentación viven en
 [GUIA_ERRORES_BACKEND.md](GUIA_ERRORES_BACKEND.md), no se repiten acá.

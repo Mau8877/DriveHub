@@ -1,8 +1,17 @@
 ---
-globs: projects/frontend/**/*
+globs: projects/frontend/{examenes,contenido,asistente-ia}/**/*
 ---
 
 # Formularios (Zod + TanStack Form) — Frontend
+
+> **Alcance**: remotos React (`examenes`, `contenido`, `asistente-ia`).
+> Cada remoto es una app independiente: las rutas `src/...` de esta rule
+> son relativas a la carpeta del remoto. El shell y los remotos Angular
+> tienen su propia rule: [ANGULAR_FRONTEND.md](ANGULAR_FRONTEND.md).
+
+> Los remotos Angular usan Reactive Forms (ver ANGULAR_FRONTEND.md): las
+> **reglas** de validación de un mismo campo tienen que coincidir entre
+> React, Angular y mobile.
 
 ## Un solo schema, dos usos
 

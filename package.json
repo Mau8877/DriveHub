@@ -1,5 +1,5 @@
 {
-	"name": "developlayout",
+	"name": "drivehub",
 	"private": true,
 	"engines": {
 		"node": ">=22"
@@ -8,19 +8,51 @@
 		"prepare": "husky"
 	},
 	"lint-staged": {
-		"projects/frontend/**/*.{ts,tsx}": [
-			"pnpm --dir projects/frontend exec eslint --fix"
+		"projects/frontend/examenes/**/*.{ts,tsx}": [
+			"pnpm --dir projects/frontend/examenes exec eslint --fix"
+		],
+		"projects/frontend/contenido/**/*.{ts,tsx}": [
+			"pnpm --dir projects/frontend/contenido exec eslint --fix"
+		],
+		"projects/frontend/asistente-ia/**/*.{ts,tsx}": [
+			"pnpm --dir projects/frontend/asistente-ia exec eslint --fix"
+		],
+		"projects/frontend/{shell,identidad,escuela,pagos}/**/*.{ts,html,css}": [
+			"prettier --write"
+		],
+		"projects/backend/notificaciones/**/*.ts": [
+			"pnpm --dir projects/backend/notificaciones exec oxlint --type-aware"
+		],
+		"projects/backend/gateway/**/*.java": [
+			"sh -c 'cd projects/backend/gateway && ./mvnw -q checkstyle:check'"
+		],
+		"projects/backend/identidad/**/*.java": [
+			"sh -c 'cd projects/backend/identidad && ./mvnw -q checkstyle:check'"
+		],
+		"projects/backend/escuela/**/*.java": [
+			"sh -c 'cd projects/backend/escuela && ./mvnw -q checkstyle:check'"
+		],
+		"projects/backend/pagos/**/*.java": [
+			"sh -c 'cd projects/backend/pagos && ./mvnw -q checkstyle:check'"
+		],
+		"projects/backend/academico/**/*.java": [
+			"sh -c 'cd projects/backend/academico && ./mvnw -q checkstyle:check'"
+		],
+		"projects/backend/asistente-ia/**/*.py": [
+			"sh -c 'cd projects/backend/asistente-ia && python -m ruff check .'"
+		],
+		"projects/backend/contenido/**/*.php": [
+			"sh -c 'cd projects/backend/contenido && ./vendor/bin/pint --test'"
 		],
 		"projects/mobile/**/*.dart": [
 			"sh -c 'cd projects/mobile && flutter analyze'"
-		],
-		"projects/backend/**/*.java": [
-			"sh -c 'cd projects/backend && ./mvnw -q checkstyle:check'"
 		]
 	},
 	"devDependencies": {
 		"@commitlint/cli": "^21.2.2",
 		"husky": "^9.1.7",
-		"lint-staged": "^17.4.1"
-	}
+		"lint-staged": "^17.4.1",
+		"prettier": "^3.9.6"
+	},
+	"packageManager": "pnpm@11.18.0"
 }

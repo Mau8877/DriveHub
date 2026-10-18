@@ -11,24 +11,24 @@ nuevo: dónde se documenta, con qué formato, y por qué.
 
 ## Estructura de `docs/errors/`
 
-Una carpeta por feature/módulo, y dentro un único archivo
-`ERRORES_{MODULO}.md` con **todos** los códigos de ese módulo, cada uno en
+Una carpeta por **microservicio**, y dentro un único archivo
+`ERRORES_{SERVICIO}.md` con **todos** los códigos de ese servicio, cada uno en
 su propia sección (`### \`ERR_XXX_NN\``) para poder enlazarlo directo por
 ancla:
 
 ```
 docs/errors/
-├── README.md                  <- índice: un link por código, agrupado por módulo
+├── README.md                  <- índice: un link por código, agrupado por servicio
 ├── system/
-│   └── ERRORES_SISTEMA.md
-├── usuarios/
-│   └── ERRORES_USUARIOS.md
-└── pedidos/
-    └── ERRORES_PEDIDOS.md
+│   └── ERRORES_SISTEMA.md     <- ERR_SYS_*, comunes a todos los servicios
+├── identidad/
+│   └── ERRORES_IDENTIDAD.md   <- ERR_IDE_* (cuando exista el primero)
+└── pagos/
+    └── ERRORES_PAGOS.md       <- ERR_PAG_* (cuando exista el primero)
 ```
 
-- Nombre de la carpeta: el mismo nombre del feature tal como aparece en
-  `features/{feature}/` (`usuarios`, `pedidos`...), en minúscula.
+- Nombre de la carpeta: el nombre del microservicio tal como aparece en
+  `projects/backend/{servicio}/` (`identidad`, `asistente-ia`...).
   Para los códigos transversales de `SYS` (ver
   [EXCEPCIONES_BACKEND.md](EXCEPCIONES_BACKEND.md#catálogo-de-códigos-de-error)),
   la carpeta es `system/` (no hay un `features/system/` real, es la
@@ -76,7 +76,7 @@ documentar — no cumple con esta regla.
 
 ### Por qué un catálogo aparte, si el código ya vive en `XxxErrorCodes.java`
 
-La constante Java le sirve al código (el `service` que la lanza). La
+La constante del servicio le sirve al código (el `service` que la lanza). La
 documentación en `docs/errors/` le sirve a las **personas** que no van a
 andar grepeando el código fuente para entender qué significa `ERR_PED_04`
 cuando lo ven en un log de producción o en la respuesta de un endpoint:

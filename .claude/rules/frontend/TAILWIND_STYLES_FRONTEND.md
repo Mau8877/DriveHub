@@ -1,5 +1,5 @@
 ---
-globs: projects/frontend/**/*
+globs: projects/frontend/{examenes,contenido,asistente-ia}/**/*, packages/design-tokens/**/*
 ---
 
 # Tailwind / Estilos — Frontend
@@ -25,16 +25,26 @@ esquivando el sistema de diseño en vez de extenderlo — si hace falta un
 tamaño/color nuevo con frecuencia, se agrega como token al tema, no se
 repite el valor arbitrario en cada lugar que lo necesita.
 
-## No hay paleta custom todavía
+## Tokens compartidos: `@drivehub/design-tokens`
 
-Hoy el proyecto usa el tema **default** de shadcn (`components.json`:
-`baseColor: "neutral"`, sin `tailwind.config` custom). **No hay una paleta
-de colores propia del proyecto definida todavía** — este archivo es un
-placeholder hasta que se defina: cuando exista la paleta final
-(colores de marca del proyecto), este documento se actualiza con los
-tokens reales y ejemplos concretos de uso. Hasta entonces, no se inventan
-colores de marca ni se asume que ya existe una paleta terminada — se sigue
-usando el set neutral default de shadcn.
+Los colores, radios y tipografía de **toda la web** (shell y los 6
+remotos, Angular y React) vienen de un único paquete,
+[`packages/design-tokens`](../../../packages/design-tokens/):
+
+- `tokens.css`: las variables CSS (`--primary`, `--background`,
+  `--radius`...), claro y oscuro (`.dark`).
+- `theme.css`: el mapeo a Tailwind 4 (`@theme inline`) que habilita
+  `bg-primary`, `text-foreground`, `rounded-lg`, etc.
+
+Cada app los importa en su CSS de entrada, después de `@import 'tailwindcss'`.
+**Nunca** se define un color en el CSS de una app: si falta un token, se
+agrega en `tokens.css` y su mapeo en `theme.css`.
+
+Hoy la paleta es la **neutra default de shadcn** (`baseColor: "neutral"`):
+no hay colores de marca definidos. Cuando existan, se cambian solo en
+`tokens.css` y en el mismo cambio en
+`projects/mobile/lib/core/theme/app_theme.dart` (espejo manual de la misma
+paleta). No se inventan colores de marca mientras tanto.
 
 ## Agregar componentes vía CLI de shadcn
 
@@ -42,7 +52,8 @@ usando el set neutral default de shadcn.
 pnpm dlx shadcn@latest add <componente>
 ```
 
-- El output del CLI aterriza en `src/components/ui/` (según
+- Se corre dentro de la carpeta del remoto (`projects/frontend/{remoto}`).
+  El output del CLI aterriza en `src/components/ui/` de ese remoto (según
   `components.json` → `aliases.ui`).
 - **No se edita a mano el output del CLI** salvo una necesidad puntual real
   (ej. un fix de accesibilidad que el componente base no cubre). Si se edita,

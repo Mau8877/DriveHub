@@ -1,8 +1,13 @@
 ---
-globs: projects/frontend/**/*
+globs: projects/frontend/{examenes,contenido,asistente-ia}/**/*
 ---
 
 # Estado Global — Frontend
+
+> **Alcance**: remotos React (`examenes`, `contenido`, `asistente-ia`).
+> Cada remoto es una app independiente: las rutas `src/...` de esta rule
+> son relativas a la carpeta del remoto. El shell y los remotos Angular
+> tienen su propia rule: [ANGULAR_FRONTEND.md](ANGULAR_FRONTEND.md).
 
 ## `src/store/` no es "solo Zustand"
 
@@ -42,9 +47,12 @@ tarde o temprano el store y el servidor quedan desincronizados.
 
 ## Un store global + stores por feature
 
-- **Store global** (`src/store/useUiStore.ts`) para estado transversal de la
-  UI del proyecto completo: sidebar, layout activo, tema. Un solo store, no
-  uno por cada pedacito de UI global.
+- **Estado de UI de toda la web** (sidebar, tema, layout): es del **shell**,
+  no de un remoto. Un remoto no guarda estado que otro remoto necesite
+  leer; si hace falta avisar algo, usa los eventos de `@drivehub/mf-contract`.
+- **Store global del remoto** (`src/store/useUiStore.ts`, se crea con el
+  primer caso que lo necesite) para estado de UI transversal a varias
+  features **de ese remoto**. Un solo store, no uno por cada pedacito.
 - **Stores de una sola feature** viven **dentro** de esa feature
   (`src/features/{feature}/store/use{Feature}Store.ts`), no en el store
   global — salvo que de verdad se necesite leer ese estado desde otra

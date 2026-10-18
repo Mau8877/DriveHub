@@ -1,8 +1,13 @@
 ---
-globs: projects/frontend/**/*
+globs: projects/frontend/{examenes,contenido,asistente-ia}/**/*
 ---
 
 # Testing — Frontend
+
+> **Alcance**: remotos React (`examenes`, `contenido`, `asistente-ia`).
+> Cada remoto es una app independiente: las rutas `src/...` de esta rule
+> son relativas a la carpeta del remoto. El shell y los remotos Angular
+> tienen su propia rule: [ANGULAR_FRONTEND.md](ANGULAR_FRONTEND.md).
 
 ## Setup (ya instalado)
 
@@ -30,6 +35,8 @@ export default defineConfig({
   componentes (render + interacción simulada).
 - `@testing-library/jest-dom` para matchers (`toBeInTheDocument()`, etc.),
   importado una sola vez en `src/setupTests.ts`.
+- `describe`/`it`/`expect` se importan explícitamente de `vitest` (el
+  `tsconfig.app.json` no declara los globales, y `pnpm build` corre `tsc -b`).
 - Comando: `pnpm test` (= `vitest run`, corre una vez y termina — no queda
   en modo watch, así sirve para el hook de pre-commit y para CI).
 
@@ -39,7 +46,8 @@ Dos criterios distintos según dónde vive el código bajo test — ver
 [ARQUITECTURA_FRONTEND.md](../ARQUITECTURA_FRONTEND.md#tests-co-ubicados-a-nivel-de-app-centralizados-a-nivel-de-feature)
 para el porqué:
 
-**Código transversal** (`src/utils/`, `src/lib/`, `src/components/ui/`):
+**Código transversal** (`src/store/`, `src/utils/`, `src/lib/`,
+`src/components/ui/`, `src/mount.ts`):
 **co-ubicado**, junto al archivo que prueba, no en una carpeta `__tests__/`
 separada:
 
@@ -66,9 +74,12 @@ src/features/usuarios/
 
 ## Qué testear
 
+- **El contrato con el shell** (`src/mount.test.tsx`): que `mount` monte en
+  el elemento recibido y `unmount` lo deje vacío. Ya existe en cada remoto.
+- **`apiClient`** (`src/store/apiClient.test.ts`): URL y token del shell,
+  desempaquetado del sobre y `ApiError`. Ya existe en cada remoto.
 - **Funciones puras / utilidades** (`src/utils/`, `src/lib/`): siempre que
-  tengan lógica no trivial — ver `debounce.test.ts` como referencia (usa
-  `vi.useFakeTimers()` para probar el timing sin esperas reales).
+  tengan lógica no trivial (con `vi.useFakeTimers()` si hay timing).
 - **Componentes de `src/components/ui/`**: comportamiento (qué renderiza,
   qué eventos dispara), no implementación interna ni estilos.
 - **Hooks de `api/`** (cuando existan): mockeando `apiClient` — no se pega

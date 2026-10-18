@@ -1,8 +1,13 @@
 ---
-globs: projects/frontend/**/*
+globs: projects/frontend/{examenes,contenido,asistente-ia}/**/*
 ---
 
 # TanStack Query — Frontend
+
+> **Alcance**: remotos React (`examenes`, `contenido`, `asistente-ia`).
+> Cada remoto es una app independiente: las rutas `src/...` de esta rule
+> son relativas a la carpeta del remoto. El shell y los remotos Angular
+> tienen su propia rule: [ANGULAR_FRONTEND.md](ANGULAR_FRONTEND.md).
 
 ## No es RTK Query
 
@@ -126,9 +131,12 @@ Todo lo relacionado a API/datos vive en `src/store/` — **no** en
   el body de la respuesta solo al expandir), activable con la env var
   `VITE_ENABLE_API_LOGS` (`true`/`false`, apagada por default). No sabe nada
   del sobre del backend — reusable con cualquier API.
-- **`src/store/apiClient.ts`** — la instancia real de la app, construida
-  sobre `createBaseApi({ baseURL: import.meta.env.VITE_API_BASE_URL })`, con
-  un segundo interceptor que desempaqueta el sobre estándar del backend
+- **`src/store/apiClient.ts`** — la instancia real del remoto, construida
+  sobre `createBaseApi(...)`. **La URL base y el token los decide el shell**:
+  `mount()` llama a `configurarApi({ apiBaseUrl, obtenerToken })` con lo que
+  recibe en `MountProps` (suelto, `main.tsx` usa `VITE_API_BASE_URL` y sin
+  token). Un interceptor de request agrega `Authorization: Bearer <token>`
+  y otro de respuesta desempaqueta el sobre estándar del backend
   (`{ status, data, message, error, timestamp, meta? }`, ver
   [RESPONSES_BACKEND.md](../backend/RESPONSES_BACKEND.md)):
   - Si `status === "success"`, deja `response.data` como el `data` real (y
@@ -147,21 +155,18 @@ Todo hook de `api/` de cada feature usa `apiClient` — no se crea una
 instancia de axios nueva por feature, y no se llama a `createBaseApi()` de
 nuevo fuera de `apiClient.ts` (una sola instancia real en toda la app).
 
-> Sin probar todavía contra un endpoint de negocio real (el backend no tiene
-> ningún `@RestController` aún) — sí se probó manualmente contra `/health` y
-> un endpoint inexistente (`403`/`404`), confirmando que el logging y el
-> manejo de error funcionan. Cuando exista el primer endpoint real, conviene
-> re-verificar el desempaquetado de `data`/`meta` contra una respuesta con
-> el sobre completo.
+> El desempaquetado y el `ApiError` están cubiertos por
+> `src/store/apiClient.test.ts` contra respuestas simuladas. Todavía no
+> hay ningún endpoint de negocio real (ningún caso de uso implementado):
+> con el primero conviene re-verificarlo contra la respuesta real.
 
 ## Utilidades genéricas: `src/utils/`
 
 Funciones utilitarias que no son específicas de shadcn (eso sigue siendo
 `src/lib/utils.ts`, el `cn()` que el CLI espera en `@/lib/utils` — no se
-toca ni se mueve) van en `src/utils/`, una carpeta nueva y separada. Hoy
-solo tiene `debounce.ts` (debounce genérico, pensado para UX puntual —
-doble-submit por doble-click, un buscador que no dispare en cada tecla — no
-para seguridad; el rate limit real está en el backend, ver
+toca ni se mueve) van en `src/utils/` del remoto, que se crea con la
+primera utilidad real (ej. un `debounce` para un buscador; no para
+seguridad: el rate limit real está en el gateway, ver
 [SEGURIDAD_AUTH_BACKEND.md](../backend/SEGURIDAD_AUTH_BACKEND.md#rate-limit)).
 No se envuelve `apiClient` completo con debounce — rompería llamadas
 legítimas en paralelo (varias queries de TanStack Query pidiendo cosas
