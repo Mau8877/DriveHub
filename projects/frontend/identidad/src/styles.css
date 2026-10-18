@@ -1,0 +1,4 @@
+/* Estilos globales del remoto Identidad cuando corre suelto (fuera del shell). */
+@import 'tailwindcss';
+@import '@drivehub/design-tokens/tokens.css';
+@import '@drivehub/design-tokens/theme.css';
