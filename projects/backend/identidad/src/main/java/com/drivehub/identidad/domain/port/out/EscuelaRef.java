@@ -4,6 +4,14 @@ import java.util.UUID;
 
 /**
  * Datos de una escuela que Identidad necesita (la referencia es del servicio Escuela).
+ *
+ * * `activa` es false cuando la escuela está suspendida: sus cuentas no pueden
+ * * iniciar ni renovar sesión (CU02). Al buscar por slug (registro) Escuela
+ * * solo devuelve escuelas activas, por eso el constructor corto la da por activa.
  */
-public record EscuelaRef(UUID codigo, String slug, String nombre) {
+public record EscuelaRef(UUID codigo, String slug, String nombre, boolean activa) {
+
+    public EscuelaRef(UUID codigo, String slug, String nombre) {
+        this(codigo, slug, nombre, true);
+    }
 }

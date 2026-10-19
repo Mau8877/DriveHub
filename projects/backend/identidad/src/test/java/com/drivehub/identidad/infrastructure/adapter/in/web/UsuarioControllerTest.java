@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -41,6 +42,10 @@ class UsuarioControllerTest {
 
     @MockitoBean
     private RegistrarEstudianteUseCase registrarEstudiante;
+
+    // * SecurityConfig es un resource server: necesita un decodificador de JWT
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     private static String cuerpo(String campoExtra) {
         return """

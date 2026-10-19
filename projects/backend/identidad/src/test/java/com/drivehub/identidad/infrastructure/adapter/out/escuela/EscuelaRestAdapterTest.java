@@ -48,6 +48,19 @@ class EscuelaRestAdapterTest {
         assertThatThrownBy(() -> adaptador.buscarActivaPorSlug("rota")).isInstanceOf(RuntimeException.class);
     }
 
+    @Test
+    void buscarPorCodigo_conEscuelaSuspendida_laDevuelveConActivaFalsa() {
+        assertThat(adaptador.buscarPorCodigo(CODIGO)).hasValueSatisfying(escuela -> {
+            assertThat(escuela.codigo()).isEqualTo(CODIGO);
+            assertThat(escuela.activa()).isFalse();
+        });
+    }
+
+    @Test
+    void buscarPorCodigo_conCodigoInexistente_devuelveVacio() {
+        assertThat(adaptador.buscarPorCodigo(UUID.randomUUID())).isEmpty();
+    }
+
     private static HttpServer levantarEscuelaFalsa() {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
@@ -55,7 +68,19 @@ class EscuelaRestAdapterTest {
                 String slug = intercambio.getRequestURI().getPath().substring("/api/v1/escuelas/".length());
                 int estado;
                 String cuerpo;
-                if ("escuelaexample".equals(slug)) {
+                if (slug.equals("por-codigo/" + CODIGO)) {
+                    estado = 200;
+                    cuerpo = "{\"status\":\"success\",\"data\":{\"codigo\":\"" + CODIGO
+                        + "\",\"slug\":\"escuelaexample\",\"nombre\":\"Escuela Example\",\"activa\":false},"
+                        + "\"message\":\"ok\",\"timestamp\":\"2026-10-19T00:00:00Z\"}";
+                } else if (slug.startsWith("por-codigo/") && slug.endsWith("-error")) {
+                    estado = 500;
+                    cuerpo = "{\"status\":\"failed\",\"error\":\"ERR_SYS_00\"}";
+                } else if (slug.startsWith("por-codigo/")) {
+                    estado = 404;
+                    cuerpo = "{\"status\":\"failed\",\"data\":null,\"message\":\"no existe\","
+                        + "\"timestamp\":\"2026-10-19T00:00:00Z\",\"error\":\"ERR_ESC_02\"}";
+                } else if ("escuelaexample".equals(slug)) {
                     estado = 200;
                     cuerpo = "{\"status\":\"success\",\"data\":{\"codigo\":\"" + CODIGO
                         + "\",\"slug\":\"escuelaexample\",\"nombre\":\"Escuela Example\"},"

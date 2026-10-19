@@ -74,6 +74,11 @@ public class UsuarioModel extends BaseModel {
     @Column(name = "ultimo_login")
     private Instant ultimoLogin;
 
+    // * Fin del bloqueo por intentos fallidos; null si la cuenta no está bloqueada
+    @Setter
+    @Column(name = "bloqueado_hasta")
+    private Instant bloqueadoHasta;
+
     public UsuarioModel(String email, String passwordHash, String nombres, String apellidos, String telefono,
             LocalDate fechaNacimiento, UUID escuelaCodigo, EstadoUsuario estado) {
         this.email = email;

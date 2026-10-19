@@ -17,7 +17,7 @@ import lombok.Getter;
  * * adaptador de persistencia y no existe en el dominio.
  */
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class Usuario {
 
     private final UUID codigo;
@@ -33,6 +33,8 @@ public class Usuario {
     private final EstadoUsuario estado;
     private final int intentosFallidos;
     private final Instant ultimoLogin;
+    // * Hasta cuándo está bloqueada la cuenta (login CU02); null si no lo está
+    private final Instant bloqueadoHasta;
     private final Set<Rol> roles;
     private final Instant creadoEn;
     private final Instant actualizadoEn;

@@ -1,6 +1,10 @@
 package com.drivehub.identidad.infrastructure.adapter.out.persistence.repository;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
@@ -17,7 +21,7 @@ import com.drivehub.identidad.infrastructure.adapter.out.persistence.model.Usuar
 import lombok.RequiredArgsConstructor;
 
 /**
- * Guarda usuarios y su asociación con roles (`usuario_rol`).
+ * Guarda y lee usuarios con sus roles (`usuario_rol`).
  *
  * * Traduce entre el `Usuario` de dominio y el `UsuarioModel` JPA: el dominio
  * * nunca ve un Model ni el id Long.
@@ -55,6 +59,41 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
             usuarioRolJpaRepository.save(new UsuarioRolModel(model, rolModel, Instant.now()));
         }
 
+        return aDominio(model, usuario.getRoles());
+    }
+
+    @Override
+    public Optional<Usuario> buscarPorEmail(String email) {
+        return usuarioJpaRepository.findByEmail(email).map(m -> aDominio(m, rolesDe(m)));
+    }
+
+    @Override
+    public Optional<Usuario> buscarPorCodigo(UUID codigo) {
+        return usuarioJpaRepository.findByCodigo(codigo).map(m -> aDominio(m, rolesDe(m)));
+    }
+
+    @Override
+    public Usuario actualizar(Usuario usuario) {
+        UsuarioModel model = usuarioJpaRepository.findByCodigo(usuario.getCodigo())
+            .orElseThrow(() -> new IllegalStateException("No existe el usuario a actualizar"));
+        model.setEstado(usuario.getEstado());
+        model.setIntentosFallidos(usuario.getIntentosFallidos());
+        model.setBloqueadoHasta(usuario.getBloqueadoHasta());
+        model.setUltimoLogin(usuario.getUltimoLogin());
+        return aDominio(usuarioJpaRepository.save(model), usuario.getRoles());
+    }
+
+    private Set<Rol> rolesDe(UsuarioModel model) {
+        Set<Rol> roles = new HashSet<>();
+        for (UsuarioRolModel asociacion : usuarioRolJpaRepository.findConRolPorUsuarioId(model.getId())) {
+            RolModel rol = asociacion.getRol();
+            roles.add(Rol.builder().codigo(rol.getCodigo()).nombre(rol.getNombre())
+                .descripcion(rol.getDescripcion()).permisos(Set.of()).build());
+        }
+        return roles;
+    }
+
+    private Usuario aDominio(UsuarioModel model, Set<Rol> roles) {
         return Usuario.builder()
             .codigo(model.getCodigo())
             .email(model.getEmail())
@@ -64,9 +103,12 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
             .telefono(model.getTelefono())
             .fechaNacimiento(model.getFechaNacimiento())
             .escuelaCodigo(model.getEscuelaCodigo())
+            .fotoUrl(model.getFotoUrl())
             .estado(model.getEstado())
             .intentosFallidos(model.getIntentosFallidos())
-            .roles(usuario.getRoles())
+            .ultimoLogin(model.getUltimoLogin())
+            .bloqueadoHasta(model.getBloqueadoHasta())
+            .roles(roles)
             .creadoEn(model.getCreatedAt())
             .actualizadoEn(model.getUpdatedAt())
             .build();

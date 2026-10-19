@@ -76,4 +76,34 @@ class UsuarioPersistenceAdapterTest extends PostgresIntegrationTestBase {
         assertThat(rolRepository.buscarPorNombre(RolNombres.ESTUDIANTE)).isPresent();
         assertThat(rolRepository.buscarPorNombre("ADMIN")).isEmpty();
     }
+
+    @Test
+    void buscarPorEmail_devuelveLaCuentaConSusRolesYSuEscuela() {
+        Rol estudiante = rolRepository.buscarPorNombre(RolNombres.ESTUDIANTE).orElseThrow();
+        Usuario guardado = usuarioRepository.guardar(nuevoEstudiante("lectura@gmail.com", estudiante));
+
+        Usuario leido = usuarioRepository.buscarPorEmail("lectura@gmail.com").orElseThrow();
+
+        assertThat(leido.getCodigo()).isEqualTo(guardado.getCodigo());
+        assertThat(leido.getEscuelaCodigo()).isEqualTo(guardado.getEscuelaCodigo());
+        assertThat(leido.getRoles()).extracting(Rol::getNombre).containsExactly(RolNombres.ESTUDIANTE);
+        assertThat(usuarioRepository.buscarPorCodigo(guardado.getCodigo())).isPresent();
+        assertThat(usuarioRepository.buscarPorEmail("no-existe@gmail.com")).isEmpty();
+    }
+
+    @Test
+    void actualizar_persisteElBloqueoLosIntentosYElUltimoIngreso() {
+        Rol estudiante = rolRepository.buscarPorNombre(RolNombres.ESTUDIANTE).orElseThrow();
+        Usuario guardado = usuarioRepository.guardar(nuevoEstudiante("bloqueo@gmail.com", estudiante));
+        java.time.Instant hasta = java.time.Instant.now().plusSeconds(900).truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
+
+        usuarioRepository.actualizar(guardado.toBuilder()
+            .estado(EstadoUsuario.BLOQUEADO).intentosFallidos(5).bloqueadoHasta(hasta).ultimoLogin(hasta).build());
+
+        Usuario leido = usuarioRepository.buscarPorCodigo(guardado.getCodigo()).orElseThrow();
+        assertThat(leido.getEstado()).isEqualTo(EstadoUsuario.BLOQUEADO);
+        assertThat(leido.getIntentosFallidos()).isEqualTo(5);
+        assertThat(leido.getBloqueadoHasta()).isEqualTo(hasta);
+        assertThat(leido.getUltimoLogin()).isEqualTo(hasta);
+    }
 }

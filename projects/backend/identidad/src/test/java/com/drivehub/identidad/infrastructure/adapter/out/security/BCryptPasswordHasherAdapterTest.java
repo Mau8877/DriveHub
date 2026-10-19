@@ -17,4 +17,12 @@ class BCryptPasswordHasherAdapterTest {
         assertThat(hash).isNotEqualTo("123456789").startsWith("$2");
         assertThat(encoder.matches("123456789", hash)).isTrue();
     }
+
+    @Test
+    void coincide_aciertaConLaContrasenaCorrectaYFallaConOtra() {
+        String hash = adaptador.hashear("123456789");
+
+        assertThat(adaptador.coincide("123456789", hash)).isTrue();
+        assertThat(adaptador.coincide("987654321", hash)).isFalse();
+    }
 }

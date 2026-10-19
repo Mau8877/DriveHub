@@ -50,10 +50,33 @@ public class EscuelaRestAdapter implements EscuelaConsultaPort {
         }
     }
 
+    @Override
+    public Optional<EscuelaRef> buscarPorCodigo(UUID codigo) {
+        try {
+            SobreEscuelaEstado sobre = restClient.get()
+                .uri("/api/v1/escuelas/por-codigo/{codigo}", codigo)
+                .retrieve()
+                .body(SobreEscuelaEstado.class);
+            if (sobre == null || sobre.data() == null) {
+                return Optional.empty();
+            }
+            DatosEscuelaEstado d = sobre.data();
+            return Optional.of(new EscuelaRef(d.codigo(), d.slug(), d.nombre(), d.activa()));
+        } catch (HttpClientErrorException.NotFound e) {
+            return Optional.empty();
+        }
+    }
+
     // * Sobre estándar de Escuela ({status, data, ...}); solo se leen estos campos
     private record SobreEscuela(DatosEscuela data) {
     }
 
     private record DatosEscuela(UUID codigo, String slug, String nombre) {
+    }
+
+    private record SobreEscuelaEstado(DatosEscuelaEstado data) {
+    }
+
+    private record DatosEscuelaEstado(UUID codigo, String slug, String nombre, boolean activa) {
     }
 }

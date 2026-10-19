@@ -13,7 +13,7 @@ import lombok.Getter;
  * ! únicamente el cliente.
  */
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class RefreshToken {
 
     private final UUID codigo;

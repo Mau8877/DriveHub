@@ -42,8 +42,16 @@ public class RefreshTokenModel extends BaseModel {
     @Column(name = "expira_en", nullable = false)
     private Instant expiraEn;
 
-    // * CU03 lo pone en true
+    // * Se pone en true al renovar (rotación), al iniciar sesión de nuevo en el mismo dispositivo y en CU03
     @Setter
     @Column(name = "revocado", nullable = false)
     private boolean revocado;
+
+    public RefreshTokenModel(UsuarioModel usuario, String tokenHash, Dispositivo dispositivo, Instant expiraEn) {
+        this.usuario = usuario;
+        this.tokenHash = tokenHash;
+        this.dispositivo = dispositivo;
+        this.expiraEn = expiraEn;
+        this.revocado = false;
+    }
 }
