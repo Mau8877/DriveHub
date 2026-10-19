@@ -5,8 +5,8 @@
 | [`DriveHub/`](DriveHub/) | Diseño del producto: casos de uso por paquete, diseño de base de datos, bases de datos y micro-frontends (PDF), arquitectura (imagen) y la [saga reserva-pago](DriveHub/SAGA_RESERVA_PAGO.md) |
 | [`INFRAESTRUCTURA.md`](INFRAESTRUCTURA.md) | Docker Compose: servicios, puertos, bases, buckets, variables, volúmenes |
 | [`errors/`](errors/README.md) | Catálogo de códigos de error de la API |
-| [`HistoriasDeUsuario/`](HistoriasDeUsuario/) | Historias de usuario (formato en `.claude/rules/HISTORIAS_DE_USUARIO.md`) |
-| [`UnidadesTrabajo/`](UnidadesTrabajo/) | Unidades de trabajo por HU (formato en `.claude/rules/UNIDADES_DE_TRABAJO.md`) |
+| [`CasosDeUso/`](CasosDeUso/) | Casos de uso, uno por archivo (formato en `.claude/rules/CASOS_DE_USO.md`) |
+| [`UnidadesTrabajo/`](UnidadesTrabajo/) | Unidades de trabajo por caso de uso (formato en `.claude/rules/UNIDADES_DE_TRABAJO.md`) |
 
 ## Puesta en marcha
 

@@ -4,11 +4,17 @@ globs: docs/UnidadesTrabajo/**/*
 
 # Unidades de Trabajo (UT)
 
-Esta regla define **cómo se descompone una [Historia de Usuario](HISTORIAS_DE_USUARIO.md)
-ya escrita en tareas técnicas ejecutables** — el formato de carpetas, el
-formato de cada archivo, y las reglas estrictas de alcance que evitan que
-una UT mezcle capas, invente algo no pedido, o construya por adelantado
-trabajo que pertenece a otra HU.
+Esta regla define **cómo se descompone un Caso de Uso (CU) ya escrito en
+tareas técnicas ejecutables** — el formato de carpetas, el formato de cada
+archivo, y las reglas estrictas de alcance que evitan que una UT mezcle
+capas, invente algo no pedido, o construya por adelantado trabajo que
+pertenece a otro caso de uso.
+
+Los casos de uso del proyecto (CU01, CU02, ... CU44) están numerados en
+[`docs/DriveHub/DriveHub_Casos_de_Uso_por_Paquete.pdf`](../../docs/DriveHub/DriveHub_Casos_de_Uso_por_Paquete.pdf)
+y cada uno se documenta en su propio archivo dentro de
+[`docs/CasosDeUso/`](../../docs/CasosDeUso/). La numeración `CU{NN}` es
+la del diseño: no se renumera ni se reasigna.
 
 Una UT es la unidad mínima de trabajo que se le puede pedir a alguien (o a
 una IA) para implementar **una tarea acotada y verificable**, con su
@@ -18,67 +24,68 @@ errores por interpretación al implementarla.
 
 ## Cuándo se crean
 
-Recién cuando la HU correspondiente ya está escrita y sus Criterios de
-Aceptación están completos (ver [HISTORIAS_DE_USUARIO.md](HISTORIAS_DE_USUARIO.md))
-— una UT nunca se escribe para una HU que todavía no tiene sus CA
-definidos, porque no hay contra qué verificarla.
+Recién cuando el caso de uso correspondiente ya está documentado en
+`docs/CasosDeUso/` y su flujo (actor, precondiciones, flujo principal,
+flujos alternativos y postcondiciones) está completo — una UT nunca se
+escribe para un CU que todavía no está definido, porque no hay contra qué
+verificarla.
 
 ## Estructura de carpetas
 
 ```
 docs/UnidadesTrabajo/
-└── HU{NN} - {Nombre corto}/        <- mismo nombre que el archivo de la HU, sin ".md"
+└── CU{NN} - {Nombre corto}/        <- mismo nombre que el archivo del CU, sin ".md"
     ├── UT-BACKEND/
     │   ├── README.md
-    │   ├── UT-HU{NN}-BE-01.md
-    │   ├── UT-HU{NN}-BE-02.md
+    │   ├── UT-CU{NN}-BE-01.md
+    │   ├── UT-CU{NN}-BE-02.md
     │   └── ...
     ├── UT-FRONTEND/
     │   ├── README.md
-    │   ├── UT-HU{NN}-FE-01.md
+    │   ├── UT-CU{NN}-FE-01.md
     │   └── ...
-    └── UT-MOBILE/                   <- solo si la HU también toca mobile
+    └── UT-MOBILE/                   <- solo si el CU también toca mobile
         ├── README.md
-        └── UT-HU{NN}-MOB-01.md
+        └── UT-CU{NN}-MOB-01.md
 ```
 
 - Una subcarpeta **por capa** (`UT-BACKEND`, `UT-FRONTEND`, `UT-MOBILE`),
   nunca mezcladas en una sola carpeta — cada capa tiene su propio
   `README.md` índice y su propia numeración independiente.
 - Con microservicios, una UT de backend toca **un solo servicio** (o el
-  gateway): si una HU necesita cambios en dos servicios, son UT distintas,
+  gateway): si un CU necesita cambios en dos servicios, son UT distintas,
   cada una nombra su servicio en el campo **Microservicio** de su tabla.
   Lo mismo en frontend con los micro-frontends.
-- Si una HU no toca una capa (ej. una HU 100% de backend, sin cambio de
+- Si un CU no toca una capa (ej. un CU 100% de backend, sin cambio de
   UI), esa subcarpeta directamente no se crea — no se deja una carpeta
   vacía "por si acaso".
 
 ## Nomenclatura de código
 
-**`UT-HU{NN}-{CAPA}-{NN}`**, ej. `UT-HU01-BE-03`, `UT-HU02-FE-01`.
+**`UT-CU{NN}-{CAPA}-{NN}`**, ej. `UT-CU01-BE-03`, `UT-CU02-FE-01`.
 
-- `HU{NN}`: mismo número que la Historia de Usuario de origen (dos
-  dígitos, `01`, `02`...).
+- `CU{NN}`: mismo número que el Caso de Uso de origen (dos dígitos,
+  `01`, `02`...).
 - `{CAPA}`: `BE` (backend), `FE` (frontend), `MOB` (mobile).
-- `{NN}`: secuencial dentro de esa HU+capa, empieza en `01`. No se reusa
+- `{NN}`: secuencial dentro de ese CU+capa, empieza en `01`. No se reusa
   un número aunque una UT se elimine durante la planificación.
 
 El código es único en todo el repositorio (no solo dentro de su carpeta)
 — sirve para citarlo en un commit o un PR sin ambigüedad
-(`feat[BACK]: UT-HU01-BE-07 -- AuthService.login()`).
+(`feat[BACK]: identidad -- UT-CU01-BE-07 AuthService.login()`).
 
 ## El `README.md` de cada capa
 
-Es el índice y el "mapa de diseño" de esa capa para esa HU puntual —
+Es el índice y el "mapa de diseño" de esa capa para ese CU puntual —
 secciones obligatorias:
 
 ```markdown
-# Unidades de trabajo — HU{NN}-{CAPA}
+# Unidades de trabajo — CU{NN}-{CAPA}
 
-**Historia:** {resumen de una línea de qué cubre esta HU en esta capa}
+**Caso de uso:** {resumen de una línea de qué cubre este CU en esta capa}
 **Microservicio(s) / micro-frontend(s):** {ej. `pagos` + `gateway`, o `escuela` (web)} — ver [MICROSERVICIOS.md](ruta relativa a .claude/rules/MICROSERVICIOS.md)
-**Fuente HU:** [`ruta relativa a la HU`](../../HistoriasDeUsuario/HU{NN}%20-%20Nombre.md)
-**Recurso HTTP / contrato:** {endpoint(s) o pantalla(s) que esta HU expone}
+**Fuente CU:** [`ruta relativa al CU`](../../CasosDeUso/CU{NN}%20-%20Nombre.md)
+**Recurso HTTP / contrato:** {endpoint(s) o pantalla(s) que este CU expone}
 
 ## Antes de implementar cualquier UT
 
@@ -88,9 +95,9 @@ conflicto, ganan las rules del proyecto.
 
 ## Decisiones de diseño
 
-{Cualquier decisión técnica que no estaba resuelta en la HU original y
-que hubo que tomar para poder desglosarla en UT concretas — con su
-razonamiento. Si la HU ya definía todo sin ambigüedad, esta sección se
+{Cualquier decisión técnica que no estaba resuelta en el CU original y
+que hubo que tomar para poder desglosarlo en UT concretas — con su
+razonamiento. Si el CU ya definía todo sin ambigüedad, esta sección se
 omite.}
 
 ## Contrato de datos / recurso HTTP
@@ -102,40 +109,41 @@ corresponda a la capa.}
 
 | Código | Nombre | Depende de |
 |--------|--------|------------|
-| [UT-HU{NN}-{CAPA}-01](./UT-HU{NN}-{CAPA}-01.md) | {nombre} | — |
+| [UT-CU{NN}-{CAPA}-01](./UT-CU{NN}-{CAPA}-01.md) | {nombre} | — |
 | ... | ... | ... |
 
 **Cadena:** resumen tipo `01, 02 → 03 → 04` de qué bloquea a qué.
 
-## Criterios de aceptación cubiertos
+## Cobertura del caso de uso
 
-| CA (HU{NN}) | Descripción | UTs |
-|-------------|-------------|-----|
-| CA01 | ... | 01, 03 |
+| Paso / flujo del CU | Descripción | UTs |
+|---------------------|-------------|-----|
+| Flujo principal | ... | 01, 03 |
+| Flujo alternativo A1 | ... | 02 |
 
 ## Follow-ups (no se implementan en estas UT)
 
 - {Trabajo real y previsible que queda pendiente, pero que no bloquea que
-  esta HU se dé por terminada.}
+  este CU se dé por terminado.}
 
 ## Qué NO incluyen estas UT
 
-- {Alcance de otras HU, otras capas, u otro trabajo relacionado que
+- {Alcance de otros CU, otras capas, u otro trabajo relacionado que
   alguien podría asumir por error que está acá.}
 ```
 
-## El formato de cada archivo `UT-HU{NN}-{CAPA}-{NN}.md`
+## El formato de cada archivo `UT-CU{NN}-{CAPA}-{NN}.md`
 
 ```markdown
-# UT-HU{NN}-{CAPA}-{NN} — {Nombre de la tarea}
+# UT-CU{NN}-{CAPA}-{NN} — {Nombre de la tarea}
 
 | Campo | Valor |
 |-------|-------|
-| **Código** | `UT-HU{NN}-{CAPA}-{NN}` |
+| **Código** | `UT-CU{NN}-{CAPA}-{NN}` |
 | **Nombre** | {nombre completo} |
-| **Historia** | HU{NN}-{CAPA} |
+| **Caso de uso** | CU{NN}-{CAPA} |
 | **Microservicio** | {servicio o micro-frontend donde se implementa, ej. `identidad`, `shell`} |
-| **Depende de** | {otra(s) UT de esta misma HU, o "—" si no depende de ninguna} |
+| **Depende de** | {otra(s) UT de este mismo CU, o "—" si no depende de ninguna} |
 
 ## Antes de implementar
 
@@ -177,31 +185,33 @@ que no. Ver la regla estricta de abajo.}
 
 ## Reglas estrictas
 
-### Una UT nunca construye trabajo de otra HU, aunque sea trivial agregarlo ahora
+### Una UT nunca construye trabajo de otro CU, aunque sea trivial agregarlo ahora
 
 Esta es la regla más importante de este documento. Si mientras se
-implementa la UT de una HU aparece la tentación de "ya que estoy, dejo
-también hecho X" porque X lo va a necesitar una HU futura relacionada —
-**no se hace**. Cada HU tiene que poder considerarse terminada, verificada
-y entregada de forma independiente, sin que su alcance real dependa de
+implementa la UT de un CU aparece la tentación de "ya que estoy, dejo
+también hecho X" porque X lo va a necesitar un CU futuro relacionado —
+**no se hace**. Cada CU tiene que poder considerarse terminado, verificado
+y entregado de forma independiente, sin que su alcance real dependa de
 adivinar qué construyó de más una UT anterior.
 
 Ejemplo del error concreto que esta regla existe para evitar (genérico,
-no ligado a ningún módulo puntual): si "HU-A" necesita un servicio con un
-método `emitir(...)`, y una HU futura "HU-B" (todavía sin sus propias UT)
-va a necesitar `revocar(...)` sobre ese mismo servicio, la UT de HU-A
+no ligado a ningún módulo puntual): si "CU-A" necesita un servicio con un
+método `emitir(...)`, y un CU futuro "CU-B" (todavía sin sus propias UT)
+va a necesitar `revocar(...)` sobre ese mismo servicio, la UT de CU-A
 **construye solo `emitir(...)`**. `revocar(...)` se agrega recién en la
-propia UT de HU-B, cuando esa HU se desglosa — aunque HU-B ya esté
-identificada de antemano y aunque agregar `revocar(...)` ahora sea
-técnicamente sencillo. La UT de HU-B simplemente **edita** el archivo que
+propia UT de CU-B, cuando ese CU se desglosa — aunque CU-B ya esté
+identificado de antemano y aunque agregar `revocar(...)` ahora sea
+técnicamente sencillo. La UT de CU-B simplemente **edita** el archivo que
 ya existe (lo declara en su "Alcance" como archivo a tocar, no a crear) en
 vez de encontrarlo ya completo.
 
-**Por qué:** si una UT de HU-A ya resolvió una porción de HU-B, la HU-B
-deja de ser verificable por sí sola (parte de su comportamiento depende de
-una UT que aparece documentada bajo otra HU), y si HU-B cambia de diseño
-antes de implementarse, hay que volver a tocar UT de HU-A para
-deshacerlo — quedan las dos HU acopladas en el cronograma sin necesidad.
+**Por qué:** si una UT de CU-A ya resolvió una porción de CU-B, el CU-B
+deja de ser verificable por sí solo (parte de su comportamiento depende de
+una UT que aparece documentada bajo otro CU), y si CU-B cambia de diseño
+antes de implementarse, hay que volver a tocar UT de CU-A para
+deshacerlo — quedan los dos CU acoplados en el cronograma sin necesidad.
+Es el mismo criterio de "no anticipar trabajo de casos de uso" de
+[CLAUDE.md](../CLAUDE.md).
 
 ### Alcance y fuera-de-alcance son ambos obligatorios
 
@@ -221,13 +231,13 @@ de "controllers delgados"/separación de capas que ya aplica el resto del
 proyecto (ver [ARQUITECTURA_BACKEND.md](ARQUITECTURA_BACKEND.md) y
 [ARQUITECTURA_FRONTEND.md](ARQUITECTURA_FRONTEND.md)).
 
-### Las dependencias solo cruzan UT de la misma HU (o apuntan a algo que ya existe)
+### Las dependencias solo cruzan UT del mismo CU (o apuntan a algo que ya existe)
 
-El campo "Depende de" de una UT nombra otra UT de **esa misma HU**, o un
-archivo/módulo que **ya existe en el proyecto** antes de que esta HU
-empezara. Nunca "esto lo necesita HU-B" como dependencia de salida — esa
-relación, si existe, se documenta en la HU misma (ver
-[HISTORIAS_DE_USUARIO.md](HISTORIAS_DE_USUARIO.md)), no en una UT.
+El campo "Depende de" de una UT nombra otra UT de **ese mismo CU**, o un
+archivo/módulo que **ya existe en el proyecto** antes de que este CU
+empezara. Nunca "esto lo necesita CU-B" como dependencia de salida — esa
+relación, si existe, se documenta en el caso de uso mismo (como
+precondición o relación con otro CU), no en una UT.
 
 ### Toda UT termina en algo verificable
 

@@ -60,7 +60,7 @@ Abrir http://localhost. Detalle de cada servicio, puertos y variables en
 Estructura, arquitectura y modelo de datos de todos los servicios
 implementados (Models, migraciones, índices, contrato de respuestas y
 errores, health checks, logging, CI). **Ningún caso de uso implementado
-todavía**: se desarrollan a partir de las Historias de Usuario y Unidades
+todavía**: se desarrollan a partir de los Casos de Uso y Unidades
 de Trabajo en `docs/`.
 
 ## Convenciones
