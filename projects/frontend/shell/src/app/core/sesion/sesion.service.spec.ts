@@ -1,0 +1,154 @@
+import { provideHttpClient, withInterceptors } from '@angular/common/http'
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
+import { TestBed } from '@angular/core/testing'
+import { Router } from '@angular/router'
+
+import { apiInterceptor } from '../api/api.interceptor'
+import { API_BASE_URL } from '../config'
+import { SesionService } from './sesion.service'
+
+const USUARIO = {
+  codigo: 'u1',
+  nombres: 'Ana',
+  apellidos: 'Pérez',
+  roles: ['ADMIN_ESCUELA'],
+  escuelaCodigo: 'e1',
+}
+
+function sesion(token: string, expiraEnSegundos = 900) {
+  return {
+    status: 'success',
+    data: { accessToken: token, expiraEnSegundos, usuario: USUARIO },
+    message: 'ok',
+    timestamp: 'x',
+  }
+}
+
+function fallo(error: string, status = 401) {
+  return [
+    { status: 'failed', data: null, message: 'm', timestamp: 'x', error },
+    { status, statusText: 'x' },
+  ] as const
+}
+
+describe('SesionService', () => {
+  let servicio: SesionService
+  let backend: HttpTestingController
+  const router = { url: '/escuela', navigate: vi.fn().mockResolvedValue(true) }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    router.url = '/escuela'
+    router.navigate.mockClear()
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(withInterceptors([apiInterceptor])),
+        provideHttpClientTesting(),
+        { provide: Router, useValue: router },
+      ],
+    })
+    servicio = TestBed.inject(SesionService)
+    backend = TestBed.inject(HttpTestingController)
+  })
+
+  afterEach(() => {
+    servicio.limpiar()
+    vi.useRealTimers()
+  })
+
+  const login = async () => {
+    const promesa = servicio.iniciarSesion('a@gmail.com', 'clave')
+    backend.expectOne(`${API_BASE_URL}/auth/login`).flush(sesion('jwt-1'))
+    await promesa
+  }
+
+  it('iniciarSesion guarda el token y el usuario en memoria', async () => {
+    await login()
+
+    expect(servicio.autenticado()).toBe(true)
+    expect(servicio.obtenerToken()).toBe('jwt-1')
+    expect(servicio.usuario()?.nombres).toBe('Ana')
+    expect(servicio.roles()).toEqual(['ADMIN_ESCUELA'])
+  })
+
+  it('renueva sola al 80 % de la vida del token', async () => {
+    await login()
+
+    await vi.advanceTimersByTimeAsync(719_000)
+    backend.expectNone(`${API_BASE_URL}/auth/refresh`)
+
+    await vi.advanceTimersByTimeAsync(2_000)
+    backend.expectOne(`${API_BASE_URL}/auth/refresh`).flush(sesion('jwt-2'))
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(servicio.obtenerToken()).toBe('jwt-2')
+  })
+
+  it('dos renovaciones a la vez hacen una sola petición', async () => {
+    await login()
+
+    const a = servicio.renovar()
+    const b = servicio.renovar()
+    backend.expectOne(`${API_BASE_URL}/auth/refresh`).flush(sesion('jwt-2'))
+
+    expect(await a).toBe('jwt-2')
+    expect(await b).toBe('jwt-2')
+  })
+
+  it('restaurar con una cookie válida deja la sesión sin pedir contraseña', async () => {
+    const promesa = servicio.restaurar()
+    backend.expectOne(`${API_BASE_URL}/auth/refresh`).flush(sesion('jwt-r'))
+    await promesa
+
+    expect(servicio.autenticado()).toBe(true)
+    expect(servicio.restaurada()).toBe(true)
+  })
+
+  it('restaurar sin cookie válida queda sin sesión y sin navegar', async () => {
+    const promesa = servicio.restaurar()
+    const [cuerpo, opciones] = fallo('ERR_IDE_09')
+    backend.expectOne(`${API_BASE_URL}/auth/refresh`).flush(cuerpo, opciones)
+    await promesa
+
+    expect(servicio.autenticado()).toBe(false)
+    expect(servicio.restaurada()).toBe(true)
+    expect(router.navigate).not.toHaveBeenCalled()
+  })
+
+  it('si no se puede renovar, limpia la sesión y lleva a /login con redirect y motivo', async () => {
+    await login()
+
+    const promesa = servicio.renovar()
+    const [cuerpo, opciones] = fallo('ERR_IDE_09')
+    backend.expectOne(`${API_BASE_URL}/auth/refresh`).flush(cuerpo, opciones)
+
+    expect(await promesa).toBeNull()
+    expect(servicio.autenticado()).toBe(false)
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], {
+      queryParams: { redirect: '/escuela', motivo: 'ERR_IDE_09' },
+    })
+  })
+
+  it('el motivo es el código del rechazo (ej. escuela suspendida)', async () => {
+    await login()
+
+    const promesa = servicio.renovar()
+    const [cuerpo, opciones] = fallo('ERR_IDE_07', 403)
+    backend.expectOne(`${API_BASE_URL}/auth/refresh`).flush(cuerpo, opciones)
+    await promesa
+
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], {
+      queryParams: { redirect: '/escuela', motivo: 'ERR_IDE_07' },
+    })
+  })
+
+  it('limpiar cancela la renovación programada', async () => {
+    await login()
+
+    servicio.limpiar()
+    await vi.advanceTimersByTimeAsync(900_000)
+
+    backend.expectNone(`${API_BASE_URL}/auth/refresh`)
+    expect(servicio.autenticado()).toBe(false)
+  })
+})

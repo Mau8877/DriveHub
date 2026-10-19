@@ -4,6 +4,7 @@ import type { Routes } from '@angular/router'
 import { RemoteHost } from './core/federacion/remote-host'
 import { prefijo } from './core/federacion/prefijo.matcher'
 import { ShellLayout } from './layout/shell-layout'
+import { loginGuard, sesionGuard } from './core/sesion/sesion.guard'
 import { Inicio } from './pages/inicio'
 import { Login } from './pages/login'
 import { NoEncontrado } from './pages/no-encontrado'
@@ -16,10 +17,11 @@ import { NoEncontrado } from './pages/no-encontrado'
  * * expone cada remoto ('./routes'), URL en public/federation.manifest.json.
  * * Remotos React (Module Federation): RemoteHost los monta con mount/unmount,
  * * URL en public/remotos-react.manifest.json.
- * TODO: guard de sesión (redirigir a /login sin token) cuando exista CU02.
+ * * El layout con todos los remotos exige sesión (sesionGuard); /login solo se
+ * * muestra sin sesión (loginGuard); /registro es público.
  */
 export const routes: Routes = [
-  { path: 'login', component: Login },
+  { path: 'login', component: Login, canActivate: [loginGuard] },
 
   // Público y fuera del layout (sin menú ni sesión): registro del estudiante
   // en el enlace de su escuela, /registro/:escuelaSlug (CU01, remoto identidad).
@@ -30,6 +32,7 @@ export const routes: Routes = [
   {
     path: '',
     component: ShellLayout,
+    canActivate: [sesionGuard],
     children: [
       { path: '', component: Inicio },
 
