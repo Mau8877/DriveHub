@@ -1,3 +1,5 @@
+import type { InternalAxiosRequestConfig } from 'axios'
+
 import { createBaseApi } from './createBaseApi'
 
 // Sobre estándar de todas las respuestas del backend -- ver
@@ -28,6 +30,9 @@ export class ApiError extends Error {
 }
 
 let obtenerToken: () => string | null = () => null
+// * El shell es el único dueño de la sesión: si una petición recibe un 401, se le pide renovarla.
+// * Suelto (sin shell) no hay función y el 401 llega como error.
+let renovarSesion: (() => Promise<string | null>) | undefined
 
 /**
  * Cliente HTTP único del remoto -- todo lo que llame a la API pasa por acá,
@@ -46,9 +51,14 @@ export const apiClient = createBaseApi({
 })
 
 /** Lo llama mount() con lo que entrega el shell (o main.tsx si corre suelto). */
-export function configurarApi(opciones: { apiBaseUrl: string; obtenerToken: () => string | null }) {
+export function configurarApi(opciones: {
+  apiBaseUrl: string
+  obtenerToken: () => string | null
+  renovarSesion?: () => Promise<string | null>
+}) {
   apiClient.defaults.baseURL = opciones.apiBaseUrl
   obtenerToken = opciones.obtenerToken
+  renovarSesion = opciones.renovarSesion
 }
 
 apiClient.interceptors.request.use((config) => {
@@ -63,7 +73,23 @@ apiClient.interceptors.response.use(
     response.data = envelope.meta ? { data: envelope.data, meta: envelope.meta } : envelope.data
     return response
   },
-  (error) => {
+  async (error) => {
+    const config = error.config as (InternalAxiosRequestConfig & { _reintentada?: boolean }) | undefined
+    // * 401 de una petición de negocio (no del login/renovación) que todavía no se repitió: renovar y repetir UNA vez
+    if (
+      error.response?.status === 401 &&
+      config &&
+      !config._reintentada &&
+      renovarSesion &&
+      !config.url?.includes('/auth/')
+    ) {
+      config._reintentada = true
+      const token = await renovarSesion()
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+        return apiClient.request(config)
+      }
+    }
     const envelope = error.response?.data as ApiEnvelope<unknown> | undefined
     if (envelope?.error) {
       return Promise.reject(new ApiError(envelope.error, envelope.message))

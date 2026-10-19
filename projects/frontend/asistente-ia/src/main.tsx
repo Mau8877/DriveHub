@@ -7,4 +7,6 @@ mount(document.getElementById('root')!, {
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
   obtenerToken: () => null,
   navegar: (ruta) => window.location.assign(ruta),
+  // * Suelto no hay shell que renueve la sesión
+  renovarSesion: async () => null,
 })
