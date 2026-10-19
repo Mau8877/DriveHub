@@ -6,6 +6,9 @@ export default withNativeFederation({
   exposes: {
     // El shell monta estas rutas con loadChildren bajo /identidad.
     './routes': './src/app/app.routes.ts',
+    // Pantallas sin sesión (registro del estudiante): el shell las monta bajo
+    // /registro, fuera de su layout.
+    './routes-publicas': './src/app/routes-publicas.ts',
   },
 
   shared: fromPackageJson({
