@@ -1,6 +1,7 @@
 package com.drivehub.identidad.domain.model;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,6 +26,9 @@ public class Usuario {
     private final String nombres;
     private final String apellidos;
     private final String telefono;
+    private final LocalDate fechaNacimiento;
+    // * Escuela (tenant) de la cuenta; null para el Super admin
+    private final UUID escuelaCodigo;
     private final String fotoUrl;
     private final EstadoUsuario estado;
     private final int intentosFallidos;
