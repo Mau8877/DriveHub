@@ -37,16 +37,25 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_SYS_01`](system/ERRORES_SISTEMA.md#err_sys_01) — Validación de formato del request fallida (400)
 - [`ERR_SYS_02`](system/ERRORES_SISTEMA.md#err_sys_02) — Límite de requests por IP superado (429, gateway)
 - [`ERR_SYS_03`](system/ERRORES_SISTEMA.md#err_sys_03) — Ruta inexistente en el servicio (404)
+- [`ERR_SYS_04`](system/ERRORES_SISTEMA.md#err_sys_04) — No autenticado: token ausente, inválido o vencido (401)
+- [`ERR_SYS_05`](system/ERRORES_SISTEMA.md#err_sys_05) — Sin permiso para la acción (403)
 
 ### Identidad (`IDE`)
 
 - [`ERR_IDE_01`](identidad/ERRORES_IDENTIDAD.md#err_ide_01) — El correo ya está registrado (409)
 - [`ERR_IDE_02`](identidad/ERRORES_IDENTIDAD.md#err_ide_02) — No alcanza la edad mínima para registrarse (400)
 - [`ERR_IDE_03`](identidad/ERRORES_IDENTIDAD.md#err_ide_03) — La escuela no existe o no está activa (404)
+- [`ERR_IDE_04`](identidad/ERRORES_IDENTIDAD.md#err_ide_04) — Credenciales de inicio de sesión incorrectas (401)
+- [`ERR_IDE_05`](identidad/ERRORES_IDENTIDAD.md#err_ide_05) — Cuenta bloqueada temporalmente (423)
+- [`ERR_IDE_06`](identidad/ERRORES_IDENTIDAD.md#err_ide_06) — Cuenta inactiva (403)
+- [`ERR_IDE_07`](identidad/ERRORES_IDENTIDAD.md#err_ide_07) — Escuela de la cuenta suspendida (403)
+- [`ERR_IDE_08`](identidad/ERRORES_IDENTIDAD.md#err_ide_08) — El rol no puede usar esta plataforma (403)
+- [`ERR_IDE_09`](identidad/ERRORES_IDENTIDAD.md#err_ide_09) — Sesión renovable inválida, vencida o ya usada (401)
 
 ### Escuela (`ESC`)
 
 - [`ERR_ESC_01`](escuela/ERRORES_ESCUELA.md#err_esc_01) — La escuela no existe o está inactiva (404)
+- [`ERR_ESC_02`](escuela/ERRORES_ESCUELA.md#err_esc_02) — No existe la escuela con ese código (404)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su

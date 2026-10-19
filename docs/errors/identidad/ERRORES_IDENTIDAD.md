@@ -32,3 +32,60 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
   activa. Se responde igual en ambos casos para no revelar qué escuelas
   existen.
 - **Dónde se lanza:** `RegistrarEstudianteService.registrar()`
+
+## `ERR_IDE_04`
+
+- **HTTP:** 401
+- **Excepción:** `UnauthorizedException`
+- **Significado:** Las credenciales de inicio de sesión son incorrectas: el correo
+  no existe o la contraseña no coincide. Se responde igual en ambos casos para no
+  revelar qué correos existen (CU02).
+- **Dónde se lanza:** `IniciarSesionService.iniciar()`
+
+## `ERR_IDE_05`
+
+- **HTTP:** 423
+- **Excepción:** `LockedException`
+- **Significado:** La cuenta está bloqueada temporalmente por 5 intentos fallidos
+  consecutivos (15 minutos, se levanta sola). También se devuelve en el propio 5.º
+  intento fallido, y mientras dure el bloqueo aunque la contraseña sea correcta, o
+  al renovar la sesión de una cuenta bloqueada (CU02).
+- **Dónde se lanza:** `IniciarSesionService.iniciar()`, `RenovarSesionService.renovar()`
+
+## `ERR_IDE_06`
+
+- **HTTP:** 403
+- **Excepción:** `ForbiddenException`
+- **Significado:** La cuenta está inactiva. Solo se informa con la contraseña
+  correcta, o al renovar la sesión (CU02).
+- **Dónde se lanza:** `IniciarSesionService.iniciar()`, `RenovarSesionService.renovar()`
+
+## `ERR_IDE_07`
+
+- **HTTP:** 403
+- **Excepción:** `ForbiddenException`
+- **Significado:** La escuela de la cuenta está suspendida o inactiva (o no se
+  encontró), al iniciar o renovar la sesión. El Super admin no pertenece a ninguna
+  escuela y no se ve afectado (CU02).
+- **Dónde se lanza:** `SesionEmisora.verificarEscuelaActiva()` (usada por
+  `IniciarSesionService.iniciar()` y `RenovarSesionService.renovar()`)
+
+## `ERR_IDE_08`
+
+- **HTTP:** 403
+- **Excepción:** `ForbiddenException`
+- **Significado:** El rol de la cuenta no puede usar la plataforma desde la que
+  entra: en la web solo Super admin y Administrador de escuela; en la app móvil
+  solo Estudiante e Instructor (CU02).
+- **Dónde se lanza:** `SesionEmisora.verificarPlataforma()` (usada por
+  `IniciarSesionService.iniciar()` y `RenovarSesionService.renovar()`)
+
+## `ERR_IDE_09`
+
+- **HTTP:** 401
+- **Excepción:** `UnauthorizedException`
+- **Significado:** La sesión renovable no sirve: falta, no existe, venció, ya fue
+  revocada o ya se usó (la renovación rota el token), o es de otro dispositivo.
+  El cliente debe llevar a la persona al inicio de sesión (CU02).
+- **Dónde se lanza:** `RenovarSesionService.renovar()`
+

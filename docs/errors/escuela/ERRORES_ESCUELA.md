@@ -12,3 +12,12 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
   inactiva. Se responde igual en ambos casos para no revelar qué escuelas
   existen (CU01, registro del estudiante).
 - **Dónde se lanza:** `ObtenerEscuelaPorSlugUseCase.ejecutar()`
+
+## `ERR_ESC_02`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** No existe ninguna escuela con el `codigo` pedido. Lo consulta
+  Identidad por la red interna al iniciar y renovar sesión (CU02); una escuela
+  suspendida **sí** existe y se devuelve con `activa = false`.
+- **Dónde se lanza:** `ObtenerEscuelaPorCodigoUseCase.ejecutar()`
