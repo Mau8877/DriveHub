@@ -80,6 +80,8 @@ services:
       - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
       - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
       - MINIO_URL=http://drivehub-minio:9000
+      # URL interna de Escuela: el registro (CU01) resuelve el slug de la escuela sin pasar por el gateway.
+      - ESCUELA_URL=http://drivehub-escuela:8082
     depends_on:
       postgres:
         condition: service_healthy
