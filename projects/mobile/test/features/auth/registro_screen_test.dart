@@ -8,7 +8,7 @@ import 'package:mobile/core/network/api_client.dart';
 import 'package:mobile/features/auth/models/registro_estudiante_request.dart';
 import 'package:mobile/features/auth/models/usuario_registrado.dart';
 import 'package:mobile/features/auth/providers/registro_provider.dart';
-import 'package:mobile/features/auth/screens/login_placeholder_screen.dart';
+import 'package:mobile/features/auth/screens/login_screen.dart';
 import 'package:mobile/features/auth/screens/registro_screen.dart';
 import 'package:mobile/features/auth/services/registro_service.dart';
 
@@ -37,7 +37,7 @@ Future<void> _montar(WidgetTester tester, _ServicioFalso servicio) async {
       GoRoute(path: '/registro', builder: (_, _) => const RegistroScreen()),
       GoRoute(
         path: '/login',
-        builder: (_, state) => LoginPlaceholderScreen(
+        builder: (_, state) => LoginScreen(
           cuentaCreada: state.uri.queryParameters['registrado'] == '1',
         ),
       ),

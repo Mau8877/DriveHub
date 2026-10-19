@@ -4,17 +4,25 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mobile/core/routing/app_router.dart';
 import 'package:mobile/core/theme/app_theme.dart';
+import 'package:mobile/features/auth/providers/sesion_provider.dart';
 import 'package:mobile/layouts/usuario/usuario_shell.dart';
+
+import 'helpers/sesion_falsa.dart';
 
 // * No se testea `MyApp` completo -- `main()` depende de `dotenv.load()`
 // * (lee un archivo real), que no tiene sentido resolver en un widget test.
-// * Se monta el router real en un MaterialApp.router y el shell de usuario
-// * directo (todavía no está conectado al router, llega con CU02).
+// * Se monta el router real con la sesión sustituida y el shell de usuario directo.
 void main() {
-  testWidgets('la app arranca en el login provisional', (tester) async {
+  testWidgets('sin sesión la app arranca en el login', (tester) async {
+    final container = ProviderContainer(
+      overrides: [sesionFalsa(SesionFalsa(const EstadoSesion.sinSesion()))],
+    );
+    addTearDown(container.dispose);
+
     await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp.router(theme: AppTheme.light, routerConfig: appRouter),
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: container.read(routerProvider)),
       ),
     );
     await tester.pumpAndSettle();
