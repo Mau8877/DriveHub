@@ -20,6 +20,13 @@ import { NoEncontrado } from './pages/no-encontrado'
  */
 export const routes: Routes = [
   { path: 'login', component: Login },
+
+  // Público y fuera del layout (sin menú ni sesión): registro del estudiante
+  // en el enlace de su escuela, /registro/:escuelaSlug (CU01, remoto identidad).
+  {
+    path: 'registro',
+    loadChildren: () => loadRemoteModule('identidad', './routes-publicas').then((m) => m.routes),
+  },
   {
     path: '',
     component: ShellLayout,
