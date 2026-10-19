@@ -2,6 +2,7 @@ package com.drivehub.escuela.infrastructure.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -27,6 +28,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/health", "/health/**", "/prometheus").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                // * Consulta pública de la escuela por slug (registro del estudiante, CU01)
+                .requestMatchers(HttpMethod.GET, "/api/v1/escuelas/*").permitAll()
                 .anyRequest().authenticated()
             );
 
