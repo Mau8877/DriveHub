@@ -13,9 +13,17 @@ Cada microservicio tiene **su propia base** y nadie más la toca (ver
 | MongoDB 8 (replica set) | Académico, Contenido | Documentos con estructura variable (exámenes, preguntas anidadas, metadatos de archivos) |
 | DynamoDB | Notificaciones, Asistente IA | Mucho historial consultado siempre por usuario y fecha; TTL para limpiar |
 
-El diseño completo de cada tabla/colección (campos, índices, casos de uso
-que cubre) está en `docs/DriveHub/DriveHub_Diseno_Base_de_Datos.pdf`; esta
+El diseño **real y vigente** de cada tabla/colección (campos, tipos, índices,
+relaciones, por microservicio) está en
+[`docs/DriveHub/DISENO_BASE_DE_DATOS.md`](../../../docs/DriveHub/DISENO_BASE_DE_DATOS.md);
+el PDF `DriveHub_Diseno_Base_de_Datos.pdf` queda solo como guía histórica. Esta
 rule define **cómo** se implementa ese diseño.
+
+**Todo cambio de esquema actualiza ese Markdown en el mismo cambio**: una
+migración nueva (Flyway o Laravel), un campo nuevo en un `@Document`, un
+atributo o GSI nuevo en DynamoDB. Un esquema que cambió en el código pero no en
+el Markdown es, a todo efecto práctico, un esquema sin documentar (mismo
+criterio que `docs/errors/`).
 
 ## Identificadores: id interno Long + codigo público UUID v7
 
