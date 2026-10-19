@@ -55,12 +55,13 @@ cuando el proyecto defina su propio `GoRouter`.
 
 ## Estructura de un feature (`lib/features/{feature}/`)
 
-Ya scaffoldeada como ejemplo de referencia en `lib/features/auth/` (hoy
-vacía, solo `.gitkeep` en cada subcarpeta) — cualquier feature nueva sigue
+Ya scaffoldeada como ejemplo de referencia en `lib/features/auth/` (con
+los DTOs, validadores, servicio, provider y pantallas del registro, CU01) — cualquier feature nueva sigue
 esta misma forma:
 
 ```
 lib/features/usuarios/
+├── models/       # DTOs Dart del JSON de la API (request/response) de ESTE feature
 ├── providers/    # Riverpod: AsyncNotifier/FutureProvider (datos) + *UiProvider (estado de UI)
 ├── screens/      # Pantallas completas que apunta el GoRouter de core/routing/
 ├── services/     # Llamadas a la API de ESTE feature, vía el ApiClient de core/network/
@@ -74,13 +75,9 @@ convención de nombres), [CONSUMO_API_MOBILE.md](mobile/CONSUMO_API_MOBILE.md)
 `screens/` se conecta con el router central), [WIDGETS_UI_MOBILE.md](mobile/WIDGETS_UI_MOBILE.md)
 (`widgets/`, y cuándo algo pasa a `shared/widgets/`).
 
-> **Modelos de datos (DTOs Dart) — todavía sin convención definida.** Ni el
-> scaffold actual ni ninguna rule dice hoy dónde viven las clases que
-> representan el JSON de request/response de la API (¿un `models/` nuevo
-> por feature? ¿adentro de `services/`?). No se asume ninguna de las dos —
-> se define explícitamente en la rule correspondiente ([CONSUMO_API_MOBILE.md](mobile/CONSUMO_API_MOBILE.md))
-> antes de escribir el primer `service` real que necesite parsear una
-> respuesta.
+> **Modelos de datos (DTOs Dart):** viven en `models/` dentro de cada
+> feature (`features/{feature}/models/`), con las reglas de
+> [CONSUMO_API_MOBILE.md](mobile/CONSUMO_API_MOBILE.md#modelos-de-datos-dtos).
 
 ## Regla de dependencia
 

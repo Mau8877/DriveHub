@@ -37,7 +37,7 @@ el espejo de las rutas de
 | Servicio | Recursos (`/api/v1/...`) |
 | --- | --- |
 | `identidad` | `auth`, `usuarios`, `roles`, `permisos` |
-| `escuela` | `estudiantes`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
+| `escuela` | `escuelas`, `estudiantes`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
 | `pagos` | `planes-pago`, `inscripciones-plan`, `cuotas`, `pagos`, `comprobantes` |
 | `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
 | `contenido` | `manuales`, `tutoriales` |
