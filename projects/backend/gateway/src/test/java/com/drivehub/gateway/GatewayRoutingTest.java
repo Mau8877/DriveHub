@@ -38,6 +38,7 @@ class GatewayRoutingTest {
 
     @DynamicPropertySource
     static void apuntarAIdentidadFalsa(DynamicPropertyRegistry registry) {
+        registry.add("app.auth.jwks-uri", () -> "http://localhost:" + IDENTIDAD_FALSA.getAddress().getPort() + "/.well-known/jwks.json");
         registry.add("IDENTIDAD_URL", () -> "http://localhost:" + IDENTIDAD_FALSA.getAddress().getPort());
         registry.add("ESCUELA_URL", () -> "http://localhost:" + ESCUELA_FALSA.getAddress().getPort());
     }
@@ -50,7 +51,7 @@ class GatewayRoutingTest {
 
     @Test
     void recursoDeIdentidad_seReenviaAlServicioConLaMismaRuta() throws Exception {
-        HttpResponse<String> respuesta = get("/api/v1/usuarios/123");
+        HttpResponse<String> respuesta = get("/api/v1/usuarios/123", TokensDePrueba.valido());
 
         assertThat(respuesta.statusCode()).isEqualTo(200);
         assertThat(respuesta.body()).isEqualTo("identidad:/api/v1/usuarios/123");
@@ -66,7 +67,7 @@ class GatewayRoutingTest {
 
     @Test
     void rutaQueNoEsDeNingunServicio_devuelve404SinTocarIdentidad() throws Exception {
-        HttpResponse<String> respuesta = get("/api/v1/recurso-inexistente");
+        HttpResponse<String> respuesta = get("/api/v1/recurso-inexistente", TokensDePrueba.valido());
 
         assertThat(respuesta.statusCode()).isEqualTo(404);
         assertThat(respuesta.body()).doesNotContain("identidad:");
@@ -87,7 +88,15 @@ class GatewayRoutingTest {
     }
 
     private HttpResponse<String> get(String ruta) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + puerto + ruta)).GET().build();
+        return get(ruta, null);
+    }
+
+    private HttpResponse<String> get(String ruta, String token) throws IOException, InterruptedException {
+        HttpRequest.Builder constructor = HttpRequest.newBuilder(URI.create("http://localhost:" + puerto + ruta)).GET();
+        if (token != null) {
+            constructor.header("Authorization", "Bearer " + token);
+        }
+        HttpRequest request = constructor.build();
         return CLIENTE.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
@@ -95,7 +104,10 @@ class GatewayRoutingTest {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
             server.createContext("/", intercambio -> {
-                byte[] cuerpo = (nombre + ":" + intercambio.getRequestURI().getPath()).getBytes(StandardCharsets.UTF_8);
+                String ruta = intercambio.getRequestURI().getPath();
+                // * Identidad también publica las claves con las que el gateway verifica los tokens
+                String texto = ruta.equals("/.well-known/jwks.json") ? TokensDePrueba.jwks() : nombre + ":" + ruta;
+                byte[] cuerpo = texto.getBytes(StandardCharsets.UTF_8);
                 intercambio.sendResponseHeaders(200, cuerpo.length);
                 try (OutputStream salida = intercambio.getResponseBody()) {
                     salida.write(cuerpo);
