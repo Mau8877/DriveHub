@@ -1,6 +1,7 @@
 package com.drivehub.escuela.infrastructure.persistence.repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Repository;
 
@@ -20,6 +21,11 @@ public class EscuelaRepositoryImpl implements EscuelaRepository {
     @Override
     public Optional<Escuela> buscarActivaPorSlug(String slug) {
         return jpaRepository.findBySlugAndEstado(slug, EstadoEscuela.ACTIVA).map(this::aDominio);
+    }
+
+    @Override
+    public Optional<Escuela> buscarPorCodigo(UUID codigo) {
+        return jpaRepository.findByCodigo(codigo).map(this::aDominio);
     }
 
     private Escuela aDominio(EscuelaModel model) {

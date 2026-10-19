@@ -81,6 +81,16 @@ class EscuelaRepositoryImplTest {
     }
 
     @Test
+    void buscarPorCodigo_encuentraUnaEscuelaInactivaYNoUnaInexistente() {
+        UUID codigo = UUID.randomUUID();
+        escuelaJpaRepository.save(new EscuelaModel(codigo, "suspendida-repo", "Suspendida", EstadoEscuela.INACTIVA));
+
+        assertThat(escuelaRepository.buscarPorCodigo(codigo))
+            .hasValueSatisfying(e -> assertThat(e.getEstado()).isEqualTo(EstadoEscuela.INACTIVA));
+        assertThat(escuelaRepository.buscarPorCodigo(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
     void buscarActivaPorSlug_conSlugInexistente_devuelveVacio() {
         assertThat(escuelaRepository.buscarActivaPorSlug("no-existe-repo")).isEmpty();
     }

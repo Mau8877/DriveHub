@@ -9,6 +9,7 @@ package com.drivehub.escuela.common.exception;
 public final class EscuelaErrorCodes {
 
     public static final String ESCUELA_NO_ENCONTRADA = "ERR_ESC_01";
+    public static final String ESCUELA_NO_ENCONTRADA_POR_CODIGO = "ERR_ESC_02";
 
     private EscuelaErrorCodes() {
     }

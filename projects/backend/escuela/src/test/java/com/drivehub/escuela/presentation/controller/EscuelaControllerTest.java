@@ -14,7 +14,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.drivehub.escuela.application.dto.EscuelaEstadoOutput;
 import com.drivehub.escuela.application.dto.EscuelaPublicaOutput;
+import com.drivehub.escuela.application.usecase.ObtenerEscuelaPorCodigoUseCase;
 import com.drivehub.escuela.application.usecase.ObtenerEscuelaPorSlugUseCase;
 import com.drivehub.escuela.common.exception.EscuelaErrorCodes;
 import com.drivehub.escuela.common.exception.GlobalExceptionHandler;
@@ -30,6 +32,9 @@ class EscuelaControllerTest {
 
     @MockitoBean
     private ObtenerEscuelaPorSlugUseCase obtenerEscuelaPorSlug;
+
+    @MockitoBean
+    private ObtenerEscuelaPorCodigoUseCase obtenerEscuelaPorCodigo;
 
     @Test
     void obtenerPorSlug_conEscuelaActiva_respondeEnSobreSinAutenticacion() throws Exception {
@@ -56,5 +61,37 @@ class EscuelaControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.status").value("failed"))
             .andExpect(jsonPath("$.error").value("ERR_ESC_01"));
+    }
+
+    @Test
+    void obtenerPorCodigo_conEscuelaSuspendida_respondeActivaFalsaSinAutenticacion() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        when(obtenerEscuelaPorCodigo.ejecutar(codigo))
+            .thenReturn(new EscuelaEstadoOutput(codigo, "escuelaexample", "Escuela Example", false));
+
+        mockMvc.perform(get("/api/v1/escuelas/por-codigo/" + codigo))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.data.codigo").value(codigo.toString()))
+            .andExpect(jsonPath("$.data.activa").value(false))
+            .andExpect(jsonPath("$.error").doesNotExist());
+    }
+
+    @Test
+    void obtenerPorCodigo_conCodigoInexistente_responde404ConErrEsc02() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        when(obtenerEscuelaPorCodigo.ejecutar(codigo))
+            .thenThrow(new NotFoundException(EscuelaErrorCodes.ESCUELA_NO_ENCONTRADA_POR_CODIGO, "no existe"));
+
+        mockMvc.perform(get("/api/v1/escuelas/por-codigo/" + codigo))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("ERR_ESC_02"));
+    }
+
+    @Test
+    void obtenerPorCodigo_conCodigoQueNoEsUuid_responde400ConErrSys01() throws Exception {
+        mockMvc.perform(get("/api/v1/escuelas/por-codigo/no-es-uuid"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
     }
 }
