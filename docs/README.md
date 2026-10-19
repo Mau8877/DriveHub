@@ -2,7 +2,7 @@
 
 | Documento | Qué es |
 | --- | --- |
-| [`DriveHub/`](DriveHub/) | Diseño del producto: casos de uso por paquete, diseño de base de datos, bases de datos y micro-frontends (PDF), arquitectura (imagen) y la [saga reserva-pago](DriveHub/SAGA_RESERVA_PAGO.md) |
+| [`DriveHub/`](DriveHub/) | Diseño del producto: casos de uso por paquete, diseño de base de datos, bases de datos y micro-frontends (PDF, guía histórica), arquitectura (imagen), la [saga reserva-pago](DriveHub/SAGA_RESERVA_PAGO.md) y el [**diseño de base de datos real**](DriveHub/DISENO_BASE_DE_DATOS.md) (Markdown, fuente de verdad del esquema) |
 | [`INFRAESTRUCTURA.md`](INFRAESTRUCTURA.md) | Docker Compose: servicios, puertos, bases, buckets, variables, volúmenes |
 | [`errors/`](errors/README.md) | Catálogo de códigos de error de la API |
 | [`CasosDeUso/`](CasosDeUso/) | Casos de uso, uno por archivo (formato en `.claude/rules/CASOS_DE_USO.md`) |
