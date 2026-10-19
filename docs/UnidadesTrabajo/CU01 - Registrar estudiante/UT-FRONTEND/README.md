@@ -13,7 +13,7 @@ Leer en [`.claude/rules/`](../../../.claude/rules/): [ARQUITECTURA_FRONTEND.md](
 
 1. **La escuela viene de la URL** (`/registro/:escuelaSlug`). La pantalla consulta `GET /api/v1/escuelas/{slug}` para mostrar el nombre de la escuela; si responde 404 muestra "escuela no disponible" y no muestra el formulario.
 2. **La ruta es pública y vive fuera de `ShellLayout`** (sin menú ni cabecera): el shell monta en `/registro` un módulo público que expone el remoto `identidad` (`'./routes-publicas'`), distinto de `'./routes'`, que seguirá siendo el de las pantallas con sesión (CU05, CU06).
-3. **Sin auto-login** (CA02): al terminar bien, el remoto navega a `/login?registrado=1` con `navegar(...)` del contexto del shell. El login real es CU02; esta UT solo agrega al login provisional del shell un aviso de "Cuenta creada".
+3. **Sin auto-login y sin ir al login** (CA02): en la web entran solo Super admin y Administrador de escuela ([CU02](../../../CasosDeUso/CU02%20-%20Iniciar%20sesi%C3%B3n.md)), así que el estudiante que se registra en la web no puede iniciar sesión ahí. Al terminar bien, la misma página de registro reemplaza el formulario por una confirmación: "Tu cuenta fue creada. Ingresa desde la app móvil de DriveHub". No navega a ninguna otra ruta y el shell no cambia.
 4. **Reglas de validación iguales a backend y mobile** (en un solo archivo, importadas por el formulario): nombres y apellidos obligatorios (máx. 80); fecha de nacimiento obligatoria, pasada y con al menos 18 años cumplidos (`EDAD_MINIMA_REGISTRO = 18`); correo obligatorio, con formato válido (máx. 120); contraseña de 9 a 64 caracteres; teléfono opcional (máx. 20).
 5. **Errores del backend en español, inline:** `ERR_IDE_01` bajo el campo correo, `ERR_IDE_02` bajo la fecha de nacimiento, `ERR_IDE_03` como estado "escuela no disponible"; un `ERR_SYS_01` con detalle por campo se muestra bajo cada campo.
 
@@ -24,8 +24,8 @@ Leer en [`.claude/rules/`](../../../.claude/rules/): [ARQUITECTURA_FRONTEND.md](
 | Ruta | `/registro/:escuelaSlug` (pública, fuera del layout del shell) |
 | Campos | nombres, apellidos, fecha de nacimiento, correo, contraseña, teléfono (opcional) |
 | Petición | `POST /api/v1/usuarios` con los campos + `escuelaSlug` (de la URL) |
-| Éxito | navega a `/login?registrado=1` |
-| Estados | cargando escuela, escuela no disponible, formulario, enviando, error general |
+| Éxito | la misma página muestra la confirmación "ingresa desde la app móvil" |
+| Estados | cargando escuela, escuela no disponible, formulario, enviando, error general, cuenta creada |
 
 ## Orden de ejecución
 
@@ -35,7 +35,7 @@ Leer en [`.claude/rules/`](../../../.claude/rules/): [ARQUITECTURA_FRONTEND.md](
 | [UT-CU01-FE-02](./UT-CU01-FE-02.md) | `RegistroService` (llamadas a la API) | `identidad` | 01 |
 | [UT-CU01-FE-03](./UT-CU01-FE-03.md) | Página de registro (formulario) | `identidad` | 01, 02 |
 | [UT-CU01-FE-04](./UT-CU01-FE-04.md) | Rutas públicas y exposición por federación | `identidad` | 03 |
-| [UT-CU01-FE-05](./UT-CU01-FE-05.md) | Ruta pública `/registro` y aviso en el login | `shell` | 04 |
+| [UT-CU01-FE-05](./UT-CU01-FE-05.md) | Ruta pública `/registro` | `shell` | 04 |
 
 **Cadena:** `01 → 02 → 03 → 04 → 05`. Necesita el backend (UT-CU01-BE-04, 06 y 13) solo para la validación manual de punta a punta; las UT 01 a 04 se prueban con `HttpTestingController`.
 
@@ -43,7 +43,7 @@ Leer en [`.claude/rules/`](../../../.claude/rules/): [ARQUITECTURA_FRONTEND.md](
 
 | CA (CU01) | Descripción | UTs |
 |-----------|-------------|-----|
-| CA02 | Tras registrarse, va al login sin sesión | 03, 05 |
+| CA02 | Tras registrarse, la web indica que ingrese desde la app móvil, sin sesión | 03 |
 | CA03 | Campos obligatorios y correo inválido, error por campo | 01, 03 |
 | CA04 | Contraseña de menos de 9 caracteres | 01, 03 |
 | CA05, CA06 | Menor de 18 años rechazado; exactamente 18 aceptado | 01, 03 |

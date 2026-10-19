@@ -29,7 +29,7 @@ Este CU cubre **solo** el auto-registro del estudiante. Los demás roles no se r
 4. El sistema valida los datos: campos obligatorios, formato de correo, contraseña de al menos 9 caracteres y edad mínima.
 5. El sistema verifica que la escuela existe y está activa, y que el correo no está registrado.
 6. El sistema crea la cuenta con estado `ACTIVO`, rol `ESTUDIANTE` y la escuela indicada.
-7. El sistema informa que el registro fue exitoso y lleva a la persona a la pantalla de inicio de sesión.
+7. El sistema informa que el registro fue exitoso. En la app, lleva a la persona a la pantalla de inicio de sesión; en la web, le muestra una pantalla que le indica que su cuenta está lista y que debe ingresar desde la app móvil (los estudiantes no usan la web).
 
 ## Flujos alternativos y excepciones
 
@@ -53,13 +53,13 @@ Este CU cubre **solo** el auto-registro del estudiante. Los demás roles no se r
 
 ## Postcondiciones
 
-- Existe una cuenta `ACTIVO` con rol `ESTUDIANTE` y su escuela, lista para iniciar sesión (CU02).
+- Existe una cuenta `ACTIVO` con rol `ESTUDIANTE` y su escuela, lista para iniciar sesión desde la app móvil (CU02).
 - No hay sesión iniciada.
 
 ## Criterios de aceptación
 
 - **CA01:** Dado que la escuela existe y está activa y los datos son válidos, el sistema debe crear la cuenta `ACTIVO` con rol `ESTUDIANTE` y la escuela indicada, y responder éxito sin devolver sesión ni contraseña.
-- **CA02:** Dado que el registro fue exitoso, la web y la app deben llevar a la persona a la pantalla de inicio de sesión, sin sesión iniciada.
+- **CA02:** Dado que el registro fue exitoso, la app debe llevar a la persona a la pantalla de inicio de sesión y la web debe mostrarle una pantalla que le indique que ingrese desde la app móvil, sin sesión iniciada en ninguna de las dos.
 - **CA03:** Dado que falta un campo obligatorio o el correo tiene formato inválido, el sistema debe responder 400 con el error del campo y no crear la cuenta.
 - **CA04:** Dado que la contraseña tiene menos de 9 caracteres, el sistema debe responder 400 y no crear la cuenta.
 - **CA05:** Dado que la persona tiene menos de 18 años a la fecha del registro, el sistema debe responder 400 con un código de error propio y no crear la cuenta.

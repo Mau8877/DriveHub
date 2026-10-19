@@ -35,7 +35,7 @@ Leer en [`.claude/rules/`](../../../.claude/rules/): [ARQUITECTURA_MOBILE.md](..
 
 | CA (CU01) | Descripción | UTs |
 |-----------|-------------|-----|
-| CA02 | Tras registrarse, va al login sin sesión | 02, 06 |
+| CA02 | Tras registrarse, va al login sin sesión (la web muestra "ingresa desde la app", ver UT-CU01-FE-03) | 02, 06 |
 | CA03 | Campos obligatorios y correo inválido, error por campo | 03, 06 |
 | CA04 | Contraseña de menos de 9 caracteres | 03, 06 |
 | CA05, CA06 | Menor de 18 años rechazado; exactamente 18 aceptado | 03, 06 |
