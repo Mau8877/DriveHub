@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, provideRouter } from '@angular/router'
-import { registrarContextoShell } from '@drivehub/mf-contract'
 import { of, throwError } from 'rxjs'
 
 import { ApiError } from '../../../core/api/api.types'
@@ -18,7 +17,6 @@ function fechaHaceAnios(anios: number, diasExtra = 0): string {
 }
 
 describe('Registro', () => {
-  const navegar = vi.fn()
   const servicio = { obtenerEscuela: vi.fn(), registrar: vi.fn() }
 
   async function crear() {
@@ -53,17 +51,7 @@ describe('Registro', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
-    navegar.mockReset()
     servicio.obtenerEscuela.mockReturnValue(of(ESCUELA))
-    registrarContextoShell({
-      apiBaseUrl: 'http://localhost:8080/api/v1',
-      obtenerToken: () => null,
-      navegar,
-    })
-  })
-
-  afterEach(() => {
-    registrarContextoShell(null as never)
   })
 
   it('muestra el nombre de la escuela y el formulario', async () => {
@@ -108,7 +96,7 @@ describe('Registro', () => {
     )
   })
 
-  it('con exactamente 18 años registra, sin rol, y navega al login', async () => {
+  it('con exactamente 18 años registra, sin rol, y muestra que ingrese desde la app móvil', async () => {
     servicio.registrar.mockReturnValue(of({ codigo: 'u1' }))
     const fixture = await crear()
     llenar(fixture, fechaHaceAnios(18))
@@ -123,7 +111,10 @@ describe('Registro', () => {
       password: '123456789',
       escuelaSlug: 'escuelaexample',
     })
-    expect(navegar).toHaveBeenCalledWith('/login?registrado=1')
+    fixture.detectChanges()
+    const html = fixture.nativeElement as HTMLElement
+    expect(html.textContent).toContain('Ingresa desde la app móvil')
+    expect(html.querySelector('form')).toBeNull()
   })
 
   it('ERR_IDE_01 marca el campo correo', async () => {
@@ -137,7 +128,7 @@ describe('Registro', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(
       'Este correo ya está registrado'
     )
-    expect(navegar).not.toHaveBeenCalled()
+    expect(fixture.componentInstance.registrado()).toBe(false)
   })
 
   it('un error desconocido muestra un mensaje general en español', async () => {

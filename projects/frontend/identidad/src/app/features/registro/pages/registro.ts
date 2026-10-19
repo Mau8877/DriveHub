@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
-import { ActivatedRoute, Router } from '@angular/router'
-import { obtenerContextoShell } from '@drivehub/mf-contract'
+import { ActivatedRoute } from '@angular/router'
 
 import { ApiError } from '../../../core/api/api.types'
 import type { EscuelaPublica } from '../models/registro.models'
@@ -19,11 +18,10 @@ import {
 } from '../registro.reglas'
 import { RegistroService } from '../registro.service'
 
-const DESTINO_TRAS_REGISTRO = '/login?registrado=1'
-
 /**
  * Registro del estudiante en el enlace de su escuela (CU01). Pantalla
- * pública: sin sesión y sin auto-login, al terminar va al login.
+ * pública: sin sesión y sin auto-login. Al terminar muestra que ingrese
+ * desde la app móvil (los estudiantes no usan la web).
  *
  * * La escuela sale de la URL (/registro/:escuelaSlug); se consulta para
  * * mostrar su nombre y, si no está disponible, no se muestra el formulario.
@@ -36,6 +34,11 @@ const DESTINO_TRAS_REGISTRO = '/login?registrado=1'
       <div class="bg-card border-border w-full max-w-md rounded-lg border p-6">
         @if (cargandoEscuela()) {
           <p class="text-muted-foreground text-sm">Cargando escuela…</p>
+        } @else if (registrado()) {
+          <h1 class="mb-1 text-xl font-semibold">¡Cuenta creada!</h1>
+          <p class="text-muted-foreground text-sm" role="status">
+            Tu cuenta fue creada. Ingresa desde la app móvil de DriveHub.
+          </p>
         } @else if (escuelaNoDisponible()) {
           <h1 class="mb-1 text-xl font-semibold">Registro</h1>
           <p class="text-destructive text-sm" role="alert">Esta escuela no está disponible.</p>
@@ -148,13 +151,13 @@ const DESTINO_TRAS_REGISTRO = '/login?registrado=1'
 export class Registro implements OnInit {
   private readonly fb = inject(FormBuilder).nonNullable
   private readonly ruta = inject(ActivatedRoute)
-  private readonly router = inject(Router)
   private readonly servicio = inject(RegistroService)
 
   readonly cargandoEscuela = signal(true)
   readonly escuela = signal<EscuelaPublica | null>(null)
   readonly escuelaNoDisponible = signal(false)
   readonly enviando = signal(false)
+  readonly registrado = signal(false)
   readonly errorGeneral = signal<string | null>(null)
 
   readonly form = this.fb.group({
@@ -223,7 +226,7 @@ export class Registro implements OnInit {
       .subscribe({
         next: () => {
           this.enviando.set(false)
-          this.irAlLogin()
+          this.registrado.set(true)
         },
         error: (error: unknown) => {
           this.enviando.set(false)
@@ -255,14 +258,5 @@ export class Registro implements OnInit {
   private marcarCampo(campo: CampoRegistro, mensaje: string): void {
     this.form.controls[campo].markAsTouched()
     this.erroresDelServidor.set({ [campo]: mensaje })
-  }
-
-  private irAlLogin(): void {
-    const contexto = obtenerContextoShell()
-    if (contexto) {
-      contexto.navegar(DESTINO_TRAS_REGISTRO)
-    } else {
-      void this.router.navigateByUrl(DESTINO_TRAS_REGISTRO)
-    }
   }
 }
