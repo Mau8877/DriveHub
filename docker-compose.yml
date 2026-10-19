@@ -107,6 +107,8 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=true
       - SPRING_DATASOURCE_URL=jdbc:postgresql://drivehub-postgres:5432/escuela
+      # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
+      - IDENTIDAD_URL=http://drivehub-identidad:8081
       - SPRING_DATASOURCE_USERNAME=escuela
       - SPRING_DATASOURCE_PASSWORD=${ESCUELA_DB_PASSWORD}
       - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
@@ -137,6 +139,8 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=true
       - SPRING_DATASOURCE_URL=jdbc:postgresql://drivehub-postgres:5432/pagos
+      # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
+      - IDENTIDAD_URL=http://drivehub-identidad:8081
       - SPRING_DATASOURCE_USERNAME=pagos
       - SPRING_DATASOURCE_PASSWORD=${PAGOS_DB_PASSWORD}
       - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
@@ -167,6 +171,8 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=true
       - SPRING_MONGODB_URI=mongodb://drivehub-mongo:27017/academico?replicaSet=rs0
+      # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
+      - IDENTIDAD_URL=http://drivehub-identidad:8081
       - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
       - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
       - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
