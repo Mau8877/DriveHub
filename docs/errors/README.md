@@ -21,8 +21,8 @@ prefijo del código dice qué servicio lo produjo:
 | Prefijo | Servicio | Carpeta |
 | --- | --- | --- |
 | `SYS` | Todos (transversales) | [`system/`](system/ERRORES_SISTEMA.md) |
-| `IDE` | Identidad | `identidad/` (sin errores todavía) |
-| `ESC` | Escuela | `escuela/` (sin errores todavía) |
+| `IDE` | Identidad | [`identidad/`](identidad/ERRORES_IDENTIDAD.md) |
+| `ESC` | Escuela | [`escuela/`](escuela/ERRORES_ESCUELA.md) |
 | `PAG` | Pagos | `pagos/` (sin errores todavía) |
 | `ACA` | Académico | `academico/` (sin errores todavía) |
 | `CON` | Contenido | `contenido/` (sin errores todavía) |
@@ -37,6 +37,16 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_SYS_01`](system/ERRORES_SISTEMA.md#err_sys_01) — Validación de formato del request fallida (400)
 - [`ERR_SYS_02`](system/ERRORES_SISTEMA.md#err_sys_02) — Límite de requests por IP superado (429, gateway)
 - [`ERR_SYS_03`](system/ERRORES_SISTEMA.md#err_sys_03) — Ruta inexistente en el servicio (404)
+
+### Identidad (`IDE`)
+
+- [`ERR_IDE_01`](identidad/ERRORES_IDENTIDAD.md#err_ide_01) — El correo ya está registrado (409)
+- [`ERR_IDE_02`](identidad/ERRORES_IDENTIDAD.md#err_ide_02) — No alcanza la edad mínima para registrarse (400)
+- [`ERR_IDE_03`](identidad/ERRORES_IDENTIDAD.md#err_ide_03) — La escuela no existe o no está activa (404)
+
+### Escuela (`ESC`)
+
+- [`ERR_ESC_01`](escuela/ERRORES_ESCUELA.md#err_esc_01) — La escuela no existe o está inactiva (404)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su
