@@ -78,8 +78,17 @@ class GatewayAuthTest {
         assertThat(enviar("POST", "/api/v1/auth/login", null).statusCode()).isEqualTo(200);
         assertThat(enviar("POST", "/api/v1/auth/refresh", null).statusCode()).isEqualTo(200);
         assertThat(enviar("POST", "/api/v1/auth/logout", null).statusCode()).isEqualTo(200);
+        assertThat(enviar("POST", "/api/v1/auth/verificar-correo/confirmar", null).statusCode()).isEqualTo(200);
         assertThat(enviar("POST", "/api/v1/usuarios", null).statusCode()).isEqualTo(200);
         assertThat(enviar("GET", "/api/v1/escuelas/escuelaexample", null).statusCode()).isEqualTo(200);
+    }
+
+    @Test
+    void pedirLaVerificacionDelCorreo_exigeToken_yConfirmarEsPublico() throws Exception {
+        var sinToken = enviar("POST", "/api/v1/auth/verificar-correo", null);
+        assertThat(sinToken.statusCode()).isEqualTo(401);
+        assertThat(sinToken.body()).contains("ERR_SYS_04");
+        assertThat(enviar("POST", "/api/v1/auth/verificar-correo", TokensDePrueba.valido()).statusCode()).isEqualTo(200);
     }
 
     @Test

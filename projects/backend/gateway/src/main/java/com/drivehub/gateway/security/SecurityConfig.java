@@ -39,7 +39,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/health", "/health/**", "/prometheus").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh",
-                    "/api/v1/auth/logout").permitAll()
+                    "/api/v1/auth/logout", "/api/v1/auth/verificar-correo/confirmar").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/usuarios").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/escuelas/*").permitAll()
                 .anyRequest().authenticated()
