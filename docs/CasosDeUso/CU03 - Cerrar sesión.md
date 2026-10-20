@@ -2,7 +2,7 @@
 
 | Id   | Nombre         | Paquete                | Prioridad | Estado    |
 | ---- | -------------- | ---------------------- | --------- | --------- |
-| CU03 | Cerrar sesión | P1. Identidad y acceso | Alta      | Pendiente |
+| CU03 | Cerrar sesión | P1. Identidad y acceso | Alta      | Hecho     |
 
 **Actor principal:** Estudiante, Instructor, Administrador de escuela o Super admin (cualquier persona con una sesión abierta)
 **Actores secundarios:** —
