@@ -42,6 +42,18 @@ class AuthService {
     }
   }
 
+  /// Pide el correo con el enlace para verificar la dirección de la cuenta
+  /// (CU04b). Exige sesión: el Bearer lo agrega el interceptor del [ApiClient].
+  Future<void> solicitarVerificacionCorreo() async {
+    try {
+      await _dio.post<Object?>('/auth/verificar-correo');
+    } on DioException catch (e) {
+      final error = e.error;
+      if (error is ApiException) throw error;
+      rethrow;
+    }
+  }
+
   Future<SesionRespuesta> _post(
     String ruta,
     Map<String, dynamic> cuerpo,

@@ -32,6 +32,8 @@ class _ServicioFalso extends AuthService {
   Object? errorAlRenovar;
   Object? errorAlLogin;
   Object? errorAlCerrar;
+  Object? errorAlVerificar;
+  int verificaciones = 0;
   final cerrados = <String>[];
   SesionRespuesta Function() siguiente = () => _sesion('access-nuevo', 'refresh-nuevo');
 
@@ -46,6 +48,12 @@ class _ServicioFalso extends AuthService {
   Future<void> cerrar(String refreshToken) async {
     cerrados.add(refreshToken);
     if (errorAlCerrar != null) throw errorAlCerrar!;
+  }
+
+  @override
+  Future<void> solicitarVerificacionCorreo() async {
+    verificaciones++;
+    if (errorAlVerificar != null) throw errorAlVerificar!;
   }
 
   @override
@@ -163,6 +171,36 @@ void main() {
 
     expect(servicio.cerrados, isEmpty);
     expect(estado().fase, FaseSesion.sinSesion);
+  });
+
+  test('verificarCorreo pide el correo al backend', () async {
+    await notifier().iniciarSesion('a@gmail.com', 'clave');
+
+    await notifier().verificarCorreo();
+
+    expect(servicio.verificaciones, 1);
+    expect(servicio.llamadasRenovar, 0);
+  });
+
+  test('verificarCorreo con ERR_IDE_10 renueva la sesión y no es un error', () async {
+    await notifier().iniciarSesion('a@gmail.com', 'clave');
+    servicio.errorAlVerificar = ApiException(code: 'ERR_IDE_10', message: 'ya verificado');
+
+    await notifier().verificarCorreo();
+
+    expect(servicio.llamadasRenovar, 1);
+    expect(notifier().obtenerToken(), 'access-nuevo');
+  });
+
+  test('verificarCorreo relanza cualquier otro error', () async {
+    await notifier().iniciarSesion('a@gmail.com', 'clave');
+    servicio.errorAlVerificar = ApiException(code: 'ERR_SYS_00', message: 'falló');
+
+    await expectLater(
+      notifier().verificarCorreo(),
+      throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_SYS_00')),
+    );
+    expect(servicio.llamadasRenovar, 0);
   });
 
   test('dos renovaciones a la vez hacen una sola llamada', () async {

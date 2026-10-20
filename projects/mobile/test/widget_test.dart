@@ -33,7 +33,10 @@ void main() {
 
   testWidgets('muestra la sección inicial del shell de usuario', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const UsuarioShell()),
+      ProviderScope(
+        overrides: [sesionFalsa(SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)))],
+        child: MaterialApp(theme: AppTheme.light, home: const UsuarioShell()),
+      ),
     );
 
     expect(find.text('Inicio'), findsWidgets);

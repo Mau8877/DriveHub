@@ -15,6 +15,10 @@ class SesionFalsa extends SesionNotifier {
   final EstadoSesion inicial;
   Future<void> Function(String email, String password)? alIniciar;
   int cierres = 0;
+  int verificaciones = 0;
+  int renovaciones = 0;
+  Object? errorAlVerificar;
+  void Function()? alVerificar;
 
   SesionFalsa(this.inicial);
 
@@ -32,6 +36,20 @@ class SesionFalsa extends SesionNotifier {
   Future<void> cerrarSesion() async {
     cierres++;
   }
+
+  @override
+  Future<void> verificarCorreo() async {
+    verificaciones++;
+    if (errorAlVerificar != null) throw errorAlVerificar!;
+    alVerificar?.call();
+  }
+
+  @override
+  Future<String?> renovar() async {
+    renovaciones++;
+    return null;
+  }
 }
 
-Override sesionFalsa(SesionFalsa falsa) => sesionProvider.overrideWith(() => falsa);
+Override sesionFalsa(SesionFalsa falsa) =>
+    sesionProvider.overrideWith(() => falsa);

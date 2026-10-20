@@ -51,6 +51,28 @@ void main() {
     expect(adaptador.peticiones.single.data, {'dispositivo': 'MOVIL', 'refreshToken': 'refresh-actual'});
   });
 
+  test('solicitarVerificacionCorreo hace POST a /auth/verificar-correo sin cuerpo', () async {
+    final adaptador = AdaptadorEnCola([
+      RespuestaFalsa(200, {'status': 'success', 'data': null, 'message': 'ok', 'timestamp': 'x'}),
+    ]);
+    ApiClient.instance.httpClientAdapter = adaptador;
+
+    await AuthService().solicitarVerificacionCorreo();
+
+    expect(adaptador.peticiones.single.path, '/auth/verificar-correo');
+    expect(adaptador.peticiones.single.method, 'POST');
+    expect(adaptador.peticiones.single.data, isNull);
+  });
+
+  test('un 409 ERR_IDE_10 al pedir la verificación llega como ApiException', () async {
+    ApiClient.instance.httpClientAdapter = AdaptadorEnCola([RespuestaFalsa(409, fallo('ERR_IDE_10'))]);
+
+    await expectLater(
+      AuthService().solicitarVerificacionCorreo(),
+      throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_IDE_10')),
+    );
+  });
+
   test('un 401 ERR_IDE_04 y un 423 ERR_IDE_05 llegan como ApiException con su código', () async {
     ApiClient.instance.httpClientAdapter = AdaptadorEnCola([RespuestaFalsa(401, fallo('ERR_IDE_04'))]);
     await expectLater(

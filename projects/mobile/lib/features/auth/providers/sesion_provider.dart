@@ -78,6 +78,18 @@ class SesionNotifier extends Notifier<EstadoSesion> {
     await _establecer(sesion);
   }
 
+  /// Pide el correo de verificación (CU04b). Si el correo ya estaba verificado
+  /// (`ERR_IDE_10`) renueva la sesión para actualizarla y no es un error; cualquier
+  /// otro fallo se relanza para que la pantalla lo muestre.
+  Future<void> verificarCorreo() async {
+    try {
+      await ref.read(authServiceProvider).solicitarVerificacionCorreo();
+    } on ApiException catch (e) {
+      if (e.code != 'ERR_IDE_10') rethrow;
+      await renovar();
+    }
+  }
+
   /// Cierra la sesión (CU03): avisa al backend y borra todo lo local.
   ///
   /// * El borrado local no depende del backend: si falla (red, 429, 5xx) igual
