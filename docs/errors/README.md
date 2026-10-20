@@ -51,6 +51,8 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IDE_07`](identidad/ERRORES_IDENTIDAD.md#err_ide_07) — Escuela de la cuenta suspendida (403)
 - [`ERR_IDE_08`](identidad/ERRORES_IDENTIDAD.md#err_ide_08) — El rol no puede usar esta plataforma (403)
 - [`ERR_IDE_09`](identidad/ERRORES_IDENTIDAD.md#err_ide_09) — Sesión renovable inválida, vencida o ya usada (401)
+- [`ERR_IDE_10`](identidad/ERRORES_IDENTIDAD.md#err_ide_10) — El correo de la cuenta ya está verificado (409)
+- [`ERR_IDE_11`](identidad/ERRORES_IDENTIDAD.md#err_ide_11) — Enlace de verificación o recuperación inválido, vencido o ya usado (400)
 
 ### Escuela (`ESC`)
 

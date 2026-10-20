@@ -89,3 +89,22 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
   El cliente debe llevar a la persona al inicio de sesión (CU02).
 - **Dónde se lanza:** `RenovarSesionService.renovar()`
 
+## `ERR_IDE_10`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La persona pidió el correo de verificación pero el correo de su
+  cuenta ya estaba verificado (CU04b). El cliente debe actualizar la sesión y ocultar
+  el botón.
+- **Dónde se lanza:** `SolicitarVerificacionCorreoService.solicitar()`
+
+## `ERR_IDE_11`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** El enlace recibido por correo no sirve: no existe, ya se usó, venció,
+  fue reemplazado por uno más nuevo o es de otro tipo (un enlace de verificación no
+  sirve para restablecer la contraseña ni al revés). Se responde igual en todos los
+  casos para no revelar cuál fue (CU04b, CU04).
+- **Dónde se lanza:** `ConfirmarCorreoService.confirmar()` (CU04 lo reutiliza en
+  `RestablecerContrasenaService`)

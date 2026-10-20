@@ -83,7 +83,7 @@ Las líneas punteadas son **referencias por código, sin FK**: se validan al esc
 
 ## 2. Identidad — PostgreSQL
 
-Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02).
+Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02), `V20261020120000__correo_verificado_y_tipo_token.sql` (CU04b).
 
 ```mermaid
 erDiagram
@@ -145,6 +145,7 @@ Cuenta de acceso. `codigo_usuario` es la **persona única** en toda la plataform
 | `estado` | `VARCHAR(12) NOT NULL DEFAULT 'ACTIVO'` | `CHECK IN ('ACTIVO','INACTIVO','BLOQUEADO')` |
 | `intentos_fallidos` | `INT NOT NULL DEFAULT 0` | Se reinicia en un login correcto. Bloqueo al 5.º fallo. *CU02* |
 | `bloqueado_hasta` | `TIMESTAMPTZ` | Fin del bloqueo (15 min); se levanta solo. *CU02* |
+| `correo_verificado` | `BOOLEAN NOT NULL DEFAULT FALSE` | El correo se verificó con el enlace enviado. Todas las cuentas, también las existentes, empiezan en `false`. No bloquea el login: solo condiciona la recuperación de contraseña. *CU04b* |
 | `ultimo_login` | `TIMESTAMPTZ` | |
 
 ### `rol`
@@ -200,11 +201,12 @@ Sesiones renovables (CU02, CU03). **Solo el hash SHA-256**: el valor en claro lo
 
 ### `token_recuperacion`
 
-Restablecer contraseña (CU04), un solo uso. Aún sin uso.
+Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b) y restablecer la contraseña (CU04). Solo se guarda el hash.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `usuario_id` | `BIGINT NOT NULL REFERENCES usuario(id)` | Índice `idx_token_recuperacion_usuario_id` |
+| `tipo` | `VARCHAR(20) NOT NULL DEFAULT 'RECUPERACION'` | `CHECK IN ('RECUPERACION','VERIFICACION')`. Un enlace de un tipo no sirve para el otro. *CU04b* |
 | `token_hash` | `VARCHAR(64) NOT NULL UNIQUE` | |
 | `expira_en` | `TIMESTAMPTZ NOT NULL` | |
 | `usado` | `BOOLEAN NOT NULL DEFAULT FALSE` | |
@@ -941,6 +943,7 @@ Todas por **código público**, sin FK física.
 | Tabla nueva `escuela` | `escuela` | La escuela es el tenant de la plataforma |
 | `fecha_nacimiento`, `escuela_codigo` | `identidad.usuario` | Edad mínima del registro (CU01) y escuela de la cuenta |
 | `bloqueado_hasta` | `identidad.usuario` | Bloqueo temporal de 15 minutos (CU02) |
+| `correo_verificado`; `token_recuperacion.tipo` | `identidad.usuario`, `identidad.token_recuperacion` | Verificar el correo (CU04b) y distinguir esos enlaces de los de recuperación |
 | `permiso.clave` y `categoria_licencia.sigla` | `identidad`, `escuela` | Evitar chocar con el `codigo` UUID público |
 | `created_at`/`updated_at`/`deleted_at` en vez de `creado_en`/`actualizado_en` | todas las tablas | Se unificó con `BaseModel` |
 | Código público UUID v7 (no ULID) en DynamoDB | `notificaciones`, `asistente-ia` | Igual de ordenable por tiempo |

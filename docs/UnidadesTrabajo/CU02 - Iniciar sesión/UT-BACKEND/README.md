@@ -35,7 +35,7 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [SEGURIDAD_AUTH_BACKEND.
 
 | Respuesta | `data` / efecto |
 |-----------|-----------------|
-| `200` | `{ accessToken, expiraEnSegundos, usuario: { codigo, nombres, apellidos, roles, escuelaCodigo } }` y, **solo `MOVIL`**, `refreshToken`. En `WEB`, `Set-Cookie: refreshToken` |
+| `200` | `{ accessToken, expiraEnSegundos, usuario: { codigo, nombres, apellidos, roles, escuelaCodigo, correoVerificado } }` y, **solo `MOVIL`**, `refreshToken`. En `WEB`, `Set-Cookie: refreshToken` |
 | `400` | `ERR_SYS_01` (campos) |
 | `401` | `ERR_IDE_04` credenciales incorrectas |
 | `403` | `ERR_IDE_06` cuenta inactiva · `ERR_IDE_07` escuela suspendida · `ERR_IDE_08` plataforma no permitida |
