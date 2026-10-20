@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, Router, provideRouter } from '@angular/router'
 
 import { ApiError } from '../core/api/api.types'
 import { SesionService } from '../core/sesion/sesion.service'
@@ -18,14 +18,16 @@ describe('Login', () => {
     await TestBed.configureTestingModule({
       imports: [Login],
       providers: [
+        provideRouter([]),
         { provide: SesionService, useValue: sesion },
-        { provide: Router, useValue: router },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { queryParamMap: new Map(Object.entries(query)) } },
         },
       ],
     }).compileComponents()
+    // * Router real (el routerLink lo necesita); solo se sustituye la navegación para poder verificarla
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockImplementation(router.navigateByUrl)
     const fixture = TestBed.createComponent(Login)
     await fixture.whenStable()
     return fixture
@@ -137,5 +139,15 @@ describe('Login', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(
       'ingresa desde la app móvil'
     )
+  })
+
+  it('enlaza a recuperar la contraseña', async () => {
+    const fixture = await crear()
+    fixture.detectChanges()
+
+    const enlace = (fixture.nativeElement as HTMLElement).querySelector('a')
+
+    expect(enlace?.textContent).toContain('¿Olvidaste tu contraseña?')
+    expect(enlace?.getAttribute('href')).toBe('/cuenta/recuperar')
   })
 })

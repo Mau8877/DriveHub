@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 
 import { ApiError } from '../core/api/api.types'
 import { destinoSeguro } from '../core/sesion/redireccion'
@@ -21,7 +21,7 @@ const MENSAJES_DE_MOTIVO: Record<string, string> = {
  */
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   template: `
     <section class="flex min-h-svh items-center justify-center p-6">
       <div class="bg-card border-border w-full max-w-sm rounded-lg border p-6">
@@ -80,6 +80,13 @@ const MENSAJES_DE_MOTIVO: Record<string, string> = {
             {{ enviando() ? 'Ingresando…' : 'Ingresar' }}
           </button>
         </form>
+
+        <a
+          routerLink="/cuenta/recuperar"
+          class="mt-4 block text-center text-sm font-medium underline"
+        >
+          ¿Olvidaste tu contraseña?
+        </a>
       </div>
     </section>
   `,
