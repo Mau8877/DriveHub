@@ -4,9 +4,9 @@ import type { Routes } from '@angular/router'
 import { apiInterceptor } from './core/api/api.interceptor'
 
 /**
- * Páginas públicas de la cuenta (sin sesión): verificar el correo (CU04b). Es lo
- * que expone el remoto por Native Federation como './routes-cuenta': el shell las
- * monta bajo /cuenta, fuera de su layout con menú, y los enlaces de los correos
+ * Páginas públicas de la cuenta (sin sesión): verificar el correo (CU04b) y recuperar la
+ * contraseña (CU04). Es lo que expone el remoto por Native Federation como './routes-cuenta':
+ * el shell las monta bajo /cuenta, fuera de su layout con menú, y los enlaces de los correos
  * apuntan acá.
  *
  * * Registro es otra cosa y sigue en './routes-publicas'.
@@ -20,6 +20,15 @@ export const routes: Routes = [
         path: 'verificar-correo',
         loadComponent: () =>
           import('./features/cuenta/pages/verificar-correo').then((m) => m.VerificarCorreo),
+      },
+      {
+        path: 'recuperar',
+        loadComponent: () => import('./features/cuenta/pages/recuperar').then((m) => m.Recuperar),
+      },
+      {
+        path: 'restablecer',
+        loadComponent: () =>
+          import('./features/cuenta/pages/restablecer').then((m) => m.Restablecer),
       },
     ],
   },

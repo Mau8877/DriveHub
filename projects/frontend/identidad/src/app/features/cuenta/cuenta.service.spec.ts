@@ -57,4 +57,48 @@ describe('CuentaService', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ code: 'ERR_IDE_11' })
   })
+
+  it('solicitarRecuperacion manda el correo a /auth/recuperar sin token y entrega null', async () => {
+    const respuesta = firstValueFrom(servicio.solicitarRecuperacion('ana@gmail.com'))
+
+    const req = http.expectOne(`${BASE}/auth/recuperar`)
+    expect(req.request.method).toBe('POST')
+    expect(req.request.body).toEqual({ email: 'ana@gmail.com' })
+    expect(req.request.headers.has('Authorization')).toBe(false)
+    req.flush({ status: 'success', data: null, message: 'ok', timestamp: 'x' })
+
+    expect(await respuesta).toBeNull()
+  })
+
+  it('restablecerContrasena manda el token y la contraseña a /auth/restablecer', async () => {
+    const respuesta = firstValueFrom(servicio.restablecerContrasena('abc123', 'contraseña-nueva-1'))
+
+    const req = http.expectOne(`${BASE}/auth/restablecer`)
+    expect(req.request.method).toBe('POST')
+    expect(req.request.body).toEqual({ token: 'abc123', password: 'contraseña-nueva-1' })
+    req.flush({ status: 'success', data: null, message: 'ok', timestamp: 'x' })
+
+    expect(await respuesta).toBeNull()
+  })
+
+  it('restablecerContrasena con un enlace inválido llega como ApiError ERR_IDE_11', async () => {
+    const rechazo = firstValueFrom(
+      servicio.restablecerContrasena('viejo', 'contraseña-nueva-1')
+    ).catch((e: unknown) => e)
+
+    http.expectOne(`${BASE}/auth/restablecer`).flush(
+      {
+        status: 'failed',
+        data: null,
+        message: 'El enlace no es válido o ya venció',
+        timestamp: 'x',
+        error: 'ERR_IDE_11',
+      },
+      { status: 400, statusText: 'Bad Request' }
+    )
+
+    const error = await rechazo
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ code: 'ERR_IDE_11' })
+  })
 })
