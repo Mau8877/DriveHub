@@ -33,6 +33,8 @@ import com.drivehub.identidad.common.exception.UnauthorizedException;
 import com.drivehub.identidad.domain.model.Dispositivo;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.Usuario;
+import com.drivehub.identidad.domain.port.in.CerrarSesionComando;
+import com.drivehub.identidad.domain.port.in.CerrarSesionUseCase;
 import com.drivehub.identidad.domain.port.in.IniciarSesionComando;
 import com.drivehub.identidad.domain.port.in.IniciarSesionUseCase;
 import com.drivehub.identidad.domain.port.in.RenovarSesionComando;
@@ -54,6 +56,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private RenovarSesionUseCase renovarSesion;
+
+    @MockitoBean
+    private CerrarSesionUseCase cerrarSesion;
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
@@ -186,5 +191,52 @@ class AuthControllerTest {
         verify(renovarSesion).renovar(comando.capture());
         assertThat(comando.getValue().refreshToken()).isNull();
         assertThat(respuesta.andReturn().getResponse().getHeader(HttpHeaders.SET_COOKIE)).contains("refreshToken=;", "Max-Age=0");
+    }
+
+    @Test
+    void logout_enLaWeb_tomaElTokenDeLaCookieYLaBorra() throws Exception {
+        ResultActions respuesta = mockMvc.perform(post("/api/v1/auth/logout")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"dispositivo\":\"WEB\"}")
+                .cookie(new Cookie("refreshToken", "token-de-la-cookie")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.data").doesNotExist());
+
+        ArgumentCaptor<CerrarSesionComando> comando = ArgumentCaptor.forClass(CerrarSesionComando.class);
+        verify(cerrarSesion).cerrar(comando.capture());
+        assertThat(comando.getValue().refreshToken()).isEqualTo("token-de-la-cookie");
+        assertThat(comando.getValue().dispositivo()).isEqualTo(Dispositivo.WEB);
+        assertThat(respuesta.andReturn().getResponse().getHeader(HttpHeaders.SET_COOKIE))
+            .contains("refreshToken=;", "Max-Age=0", "HttpOnly", "SameSite=Lax", "Path=/api/v1/auth");
+    }
+
+    @Test
+    void logout_enLaWebSinCookie_respondeOkConLaCookieBorrada() throws Exception {
+        ResultActions respuesta = enviar("/api/v1/auth/logout", "{\"dispositivo\":\"WEB\"}")
+            .andExpect(status().isOk());
+
+        ArgumentCaptor<CerrarSesionComando> comando = ArgumentCaptor.forClass(CerrarSesionComando.class);
+        verify(cerrarSesion).cerrar(comando.capture());
+        assertThat(comando.getValue().refreshToken()).isNull();
+        assertThat(respuesta.andReturn().getResponse().getHeader(HttpHeaders.SET_COOKIE)).contains("Max-Age=0");
+    }
+
+    @Test
+    void logout_enElMovil_tomaElTokenDelCuerpoYNoEnviaCookie() throws Exception {
+        enviar("/api/v1/auth/logout", "{\"dispositivo\":\"MOVIL\",\"refreshToken\":\"token-del-cuerpo\"}")
+            .andExpect(status().isOk())
+            .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        ArgumentCaptor<CerrarSesionComando> comando = ArgumentCaptor.forClass(CerrarSesionComando.class);
+        verify(cerrarSesion).cerrar(comando.capture());
+        assertThat(comando.getValue().refreshToken()).isEqualTo("token-del-cuerpo");
+    }
+
+    @Test
+    void logout_conDispositivoFaltanteOInvalido_responde400() throws Exception {
+        enviar("/api/v1/auth/logout", "{}").andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        enviar("/api/v1/auth/logout", "{\"dispositivo\":\"TV\"}").andExpect(status().isBadRequest());
+
+        verify(cerrarSesion, never()).cerrar(any());
     }
 }

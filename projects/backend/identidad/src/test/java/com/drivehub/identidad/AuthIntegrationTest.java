@@ -45,7 +45,7 @@ import com.sun.net.httpserver.HttpServer;
 import jakarta.servlet.http.Cookie;
 
 /**
- * CU02 de punta a punta: login y renovación con Postgres real y un Escuela
+ * CU02 y CU03 de punta a punta: login, renovación y cierre de sesión con Postgres real y un Escuela
  * falso cuyas escuelas se marcan activas o suspendidas desde el test.
  * Cada método nombra el criterio de aceptación (CAxx) que cubre.
  */
@@ -303,6 +303,71 @@ class AuthIntegrationTest extends PostgresIntegrationTestBase {
     }
 
     // ---------- Escuela falso ----------
+
+    // ---------- CU03: cerrar sesión ----------
+
+    private ResultActions logoutWeb(String refreshToken) throws Exception {
+        var peticion = post("/api/v1/auth/logout").contentType(MediaType.APPLICATION_JSON).content("{\"dispositivo\":\"WEB\"}");
+        if (refreshToken != null) {
+            peticion.cookie(new Cookie("refreshToken", refreshToken));
+        }
+        return mockMvc.perform(peticion);
+    }
+
+    private ResultActions logoutMovil(String refreshToken) throws Exception {
+        return mockMvc.perform(post("/api/v1/auth/logout").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"dispositivo\":\"MOVIL\",\"refreshToken\":\"" + refreshToken + "\"}"));
+    }
+
+    @Test
+    void cu03Ca01Ca02_logoutEnLaWeb_revocaLaSesionYBorraLaCookie() throws Exception {
+        String correo = email("logout-web");
+        crear(correo, UUID.randomUUID(), true, RolNombres.ADMIN_ESCUELA);
+        String refresh = cookieDe(login(correo, PASSWORD, "WEB"));
+
+        logoutWeb(refresh).andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.data").doesNotExist());
+        assertThat(logoutWeb(refresh).andReturn().getResponse().getHeader(HttpHeaders.SET_COOKIE)).contains("Max-Age=0");
+
+        refreshWeb(refresh).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.error").value("ERR_IDE_09"));
+    }
+
+    @Test
+    void cu03Ca01_logoutEnElMovil_revocaLaSesionDelCuerpo() throws Exception {
+        String correo = email("logout-movil");
+        crear(correo, UUID.randomUUID(), true, RolNombres.ESTUDIANTE);
+        String refresh = refreshDelCuerpo(login(correo, PASSWORD, "MOVIL"));
+
+        logoutMovil(refresh).andExpect(status().isOk());
+
+        refreshMovil(refresh).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.error").value("ERR_IDE_09"));
+    }
+
+    @Test
+    void cu03Ca05_cerrarLaWebConservaLaSesionDelMovil() throws Exception {
+        String correo = email("logout-dos");
+        crear(correo, UUID.randomUUID(), true, RolNombres.ADMIN_ESCUELA, RolNombres.ESTUDIANTE);
+        String refreshWeb = cookieDe(login(correo, PASSWORD, "WEB"));
+        String refreshMovil = refreshDelCuerpo(login(correo, PASSWORD, "MOVIL"));
+
+        logoutWeb(refreshWeb).andExpect(status().isOk());
+
+        refreshMovil(refreshMovil).andExpect(status().isOk());
+    }
+
+    @Test
+    void cu03Ca04Ca07_logoutIdempotenteYSinAccessToken() throws Exception {
+        String correo = email("logout-idem");
+        crear(correo, UUID.randomUUID(), true, RolNombres.ADMIN_ESCUELA);
+        String refresh = cookieDe(login(correo, PASSWORD, "WEB"));
+
+        logoutWeb(null).andExpect(status().isOk());
+        logoutWeb("token-inventado").andExpect(status().isOk());
+        logoutMovil("token-inventado").andExpect(status().isOk());
+        logoutWeb(refresh).andExpect(status().isOk());
+        logoutWeb(refresh).andExpect(status().isOk());
+    }
 
     private static HttpServer levantarEscuelaFalsa() {
         try {

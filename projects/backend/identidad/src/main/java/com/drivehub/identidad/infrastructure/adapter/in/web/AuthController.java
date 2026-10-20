@@ -17,6 +17,8 @@ import com.drivehub.identidad.common.response.ApiResponse;
 import com.drivehub.identidad.domain.model.Dispositivo;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.Usuario;
+import com.drivehub.identidad.domain.port.in.CerrarSesionComando;
+import com.drivehub.identidad.domain.port.in.CerrarSesionUseCase;
 import com.drivehub.identidad.domain.port.in.IniciarSesionComando;
 import com.drivehub.identidad.domain.port.in.IniciarSesionUseCase;
 import com.drivehub.identidad.domain.port.in.RenovarSesionComando;
@@ -26,7 +28,7 @@ import com.drivehub.identidad.domain.port.in.SesionEmitida;
 import jakarta.validation.Valid;
 
 /**
- * Inicio y renovación de sesión (CU02). Ambos endpoints son públicos.
+ * Inicio, renovación (CU02) y cierre de sesión (CU03). Los tres endpoints son públicos.
  *
  * * Web: el refresh token viaja SOLO en la cookie `refreshToken` (HttpOnly,
  * * SameSite=Lax, Path=/api/v1/auth); el código de la página nunca lo ve.
@@ -41,16 +43,19 @@ public class AuthController {
 
     private final IniciarSesionUseCase iniciarSesion;
     private final RenovarSesionUseCase renovarSesion;
+    private final CerrarSesionUseCase cerrarSesion;
     private final boolean cookieSegura;
     private final Duration vidaCookie;
 
     public AuthController(
             IniciarSesionUseCase iniciarSesion,
             RenovarSesionUseCase renovarSesion,
+            CerrarSesionUseCase cerrarSesion,
             @Value("${app.cookies.secure:false}") boolean cookieSegura,
             @Value("${app.auth.refresh-ttl-dias:7}") long refreshTtlDias) {
         this.iniciarSesion = iniciarSesion;
         this.renovarSesion = renovarSesion;
+        this.cerrarSesion = cerrarSesion;
         this.cookieSegura = cookieSegura;
         this.vidaCookie = Duration.ofDays(refreshTtlDias);
     }
@@ -69,6 +74,24 @@ public class AuthController {
         String refreshToken = request.dispositivo() == Dispositivo.WEB ? refreshDeCookie : request.refreshToken();
         SesionEmitida sesion = renovarSesion.renovar(new RenovarSesionComando(refreshToken, request.dispositivo()));
         return respuesta(sesion, request.dispositivo(), "Sesión renovada correctamente");
+    }
+
+    /**
+     * Idempotente: responde 200 aunque la sesión no exista o ya esté cerrada.
+     * En la web siempre borra la cookie.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @Valid @RequestBody RenovarRequest request,
+            @CookieValue(name = COOKIE_REFRESH, required = false) String refreshDeCookie) {
+        String refreshToken = request.dispositivo() == Dispositivo.WEB ? refreshDeCookie : request.refreshToken();
+        cerrarSesion.cerrar(new CerrarSesionComando(refreshToken, request.dispositivo()));
+
+        ResponseEntity.BodyBuilder respuesta = ResponseEntity.ok();
+        if (request.dispositivo() == Dispositivo.WEB) {
+            respuesta.header(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO).toString());
+        }
+        return respuesta.body(ApiResponse.success(null, "Sesión cerrada correctamente"));
     }
 
     private ResponseEntity<ApiResponse<SesionResponse>> respuesta(SesionEmitida sesion, Dispositivo dispositivo, String mensaje) {

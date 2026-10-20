@@ -36,8 +36,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json").permitAll()
                 // * Registro del estudiante (CU01): público, sin sesión
                 .requestMatchers(HttpMethod.POST, "/api/v1/usuarios").permitAll()
-                // * Inicio y renovación de sesión (CU02)
-                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+                // * Inicio, renovación (CU02) y cierre de sesión (CU03)
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh",
+                    "/api/v1/auth/logout").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth
