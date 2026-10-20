@@ -2,7 +2,7 @@
 
 | Id   | Nombre               | Paquete                | Prioridad | Estado    |
 | ---- | -------------------- | ---------------------- | --------- | --------- |
-| CU04 | Recuperar contraseña | P1. Identidad y acceso | Alta      | Pendiente |
+| CU04 | Recuperar contraseña | P1. Identidad y acceso | Alta      | Hecho     |
 
 **Actor principal:** Estudiante, Instructor, Administrador de escuela o Super admin (cualquier persona con cuenta que olvidó su contraseña)
 **Actores secundarios:** —
@@ -10,7 +10,7 @@
 **Plataforma:** Móvil y Web
 
 **Descripción:**
-En el inicio de sesión (web o app) la persona elige "¿Olvidaste tu contraseña?" e ingresa su correo. El sistema responde siempre lo mismo, exista o no la cuenta, para no revelar qué correos están registrados. Si la cuenta existe, está activa y su **correo está verificado** ([CU04b](CU04b%20-%20Verificar%20correo.md)), le envía un correo con un enlace de un solo uso y vigencia corta. El enlace abre una página pública de la web (también desde el teléfono) donde la persona escribe la contraseña nueva. Al guardarla, el sistema cierra todas las sesiones de la cuenta, la desbloquea si estaba bloqueada y lleva a la persona al inicio de sesión: no inicia sesión sola. Si el correo no estaba verificado, no se envía nada; por eso la pantalla avisa que la recuperación solo funciona con el correo verificado.
+En el inicio de sesión (web o app) la persona elige "¿Olvidaste tu contraseña?" e ingresa su correo. El sistema responde siempre lo mismo, exista o no la cuenta, para no revelar qué correos están registrados. Si la cuenta existe, no está inactiva y su **correo está verificado** ([CU04b](CU04b%20-%20Verificar%20correo.md)), le envía un correo con un enlace de un solo uso y vigencia corta. El enlace abre una página pública de la web (también desde el teléfono) donde la persona escribe la contraseña nueva. Al guardarla, el sistema cierra todas las sesiones de la cuenta, la desbloquea si estaba bloqueada y lleva a la persona al inicio de sesión: no inicia sesión sola. Si el correo no estaba verificado, no se envía nada; por eso la pantalla avisa que la recuperación solo funciona con el correo verificado.
 
 ---
 
@@ -24,7 +24,7 @@ En el inicio de sesión (web o app) la persona elige "¿Olvidaste tu contraseña
 2. La persona ingresa su correo y envía el formulario.
 3. El sistema valida que el correo esté completo y tenga formato válido.
 4. El sistema responde que, si el correo está registrado y verificado, se envió un enlace. La respuesta es la misma en todos los casos.
-5. Si la cuenta existe, está activa y su correo está verificado, el sistema invalida los enlaces de recuperación anteriores, genera uno de un solo uso y válido por 30 minutos, y lo envía al correo.
+5. Si la cuenta existe, no está inactiva (una cuenta bloqueada por intentos fallidos sí puede recuperar) y su correo está verificado, el sistema invalida los enlaces de recuperación anteriores, genera uno de un solo uso y válido por 30 minutos, y lo envía al correo.
 6. La persona abre el enlace y llega a la página pública de restablecer contraseña.
 7. La persona escribe la contraseña nueva, la confirma y envía.
 8. El sistema valida el enlace y la contraseña (mismas reglas que el registro), guarda la contraseña nueva y consume el enlace.
@@ -60,7 +60,7 @@ En el inicio de sesión (web o app) la persona elige "¿Olvidaste tu contraseña
 
 ## Criterios de aceptación
 
-- **CA01:** Dado que la cuenta existe, está activa y su correo está verificado, el sistema debe enviar un correo con el enlace de recuperación y responder el mensaje estándar.
+- **CA01:** Dado que la cuenta existe, no está inactiva y su correo está verificado, el sistema debe enviar un correo con el enlace de recuperación y responder el mensaje estándar.
 - **CA02:** Dado que el correo no existe, la cuenta está inactiva o el correo no está verificado, el sistema debe responder exactamente igual que en CA01 y no enviar nada.
 - **CA03:** Dado que el servidor de correo falla, el sistema debe responder igual que en CA01.
 - **CA04:** Dado que se pide otro enlace, el sistema debe invalidar los anteriores.

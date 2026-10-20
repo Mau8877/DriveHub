@@ -25,13 +25,16 @@ La persona fija una contraseña nueva con el enlace; las sesiones anteriores dej
 - `domain/port/in/RestablecerContrasenaUseCase` con `void restablecer(String token, String nuevaPassword)`.
 - `application/service/RestablecerContrasenaService`, `@Transactional(noRollbackFor = BusinessException.class)`: hashea el token y lo busca; si no existe, `usado`, vencido, de tipo `VERIFICACION` o la cuenta está `INACTIVO` → `ERR_IDE_11` (el de CU04b; no se agrega código nuevo). Si sirve: guarda la contraseña nueva con `PasswordHasherPort` (BCrypt, igual que el registro), reinicia `intentosFallidos`, quita `bloqueadoHasta` y, si la cuenta estaba `BLOQUEADO`, la deja `ACTIVO`; `marcarUsado`; `invalidarPendientes(RECUPERACION)`; `RefreshTokenRepositoryPort.revocarTodos`.
 - Logs: `INFO` al restablecer (`usuarioCodigo`), `WARN` con `errorCode` si el enlace no sirve. Nunca la contraseña ni el token.
+- `UsuarioPersistenceAdapter.actualizar` ahora también persiste `passwordHash` (hasta ahora solo guardaba estado, intentos, bloqueo, último ingreso y correo verificado), con su test en `UsuarioPersistenceAdapterTest`.
 - Tests unitarios: caso exitoso (nueva contraseña hasheada y distinta, contador en 0, sin bloqueo, `BLOQUEADO` pasa a `ACTIVO`, token usado, sesiones revocadas); token inexistente, usado, vencido, de verificación y cuenta inactiva → `ERR_IDE_11` sin cambios; la contraseña en claro nunca se guarda.
 
 Archivos esperados (crear/tocar):
 
 - `projects/backend/identidad/src/main/java/com/drivehub/identidad/domain/port/in/RestablecerContrasenaUseCase.java`
 - `projects/backend/identidad/src/main/java/com/drivehub/identidad/application/service/RestablecerContrasenaService.java`
+- `projects/backend/identidad/src/main/java/com/drivehub/identidad/infrastructure/adapter/out/persistence/repository/UsuarioPersistenceAdapter.java`
 - `projects/backend/identidad/src/test/java/com/drivehub/identidad/application/service/RestablecerContrasenaServiceTest.java`
+- `projects/backend/identidad/src/test/java/com/drivehub/identidad/infrastructure/adapter/out/persistence/repository/UsuarioPersistenceAdapterTest.java`
 
 ## Fuera de alcance (no tocar)
 

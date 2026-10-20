@@ -23,10 +23,10 @@ La persona pide el enlace de recuperación sin que el sistema revele qué correo
 ## Alcance
 
 - `domain/port/in/SolicitarRecuperacionUseCase` con `void solicitar(String email)` (el correo se normaliza: sin espacios y en minúsculas).
-- `application/service/SolicitarRecuperacionService`, `@Transactional`: busca la cuenta; si no existe, no está `ACTIVO` o `correoVerificado` es `false`, termina sin hacer nada. Si sirve: `invalidarPendientes(usuario, RECUPERACION)`, genera el token, guarda el hash (`tipo = RECUPERACION`, vigencia `app.auth.recuperacion-ttl-minutos` = 30) y envía el enlace `${app.web.url}/cuenta/restablecer?token=<token en claro>`.
+- `application/service/SolicitarRecuperacionService`, `@Transactional`: busca la cuenta; si no existe, está `INACTIVO` o `correoVerificado` es `false`, termina sin hacer nada. Si sirve: `invalidarPendientes(usuario, RECUPERACION)`, genera el token, guarda el hash (`tipo = RECUPERACION`, vigencia `app.auth.recuperacion-ttl-minutos` = 30) y envía el enlace `${app.web.url}/cuenta/restablecer?token=<token en claro>`.
 - Nunca lanza una excepción por el estado de la cuenta ni por un fallo del envío: ante `EnviadorCorreoPort` fallido registra `ERROR` (`module="auth"`, `usuarioCodigo`) y termina normalmente.
 - Logs: `INFO` al enviar (`usuarioCodigo`); los rechazos silenciosos no se registran con el correo recibido. Nunca el token ni el enlace.
-- Tests unitarios: cuenta válida → guarda hash, invalida pendientes y envía el enlace correcto; correo inexistente, cuenta inactiva y cuenta sin verificar → no guardan ni envían y no lanzan; fallo del envío no lanza; el correo se normaliza.
+- Tests unitarios: cuenta válida → guarda hash, invalida pendientes y envía el enlace correcto; correo inexistente, cuenta inactiva y cuenta sin verificar → no guardan ni envían; una cuenta `BLOQUEADO` por intentos sí recibe el enlace y no lanzan; fallo del envío no lanza; el correo se normaliza.
 
 Archivos esperados (crear/tocar):
 
@@ -42,7 +42,7 @@ Archivos esperados (crear/tocar):
 
 ## Resultado esperado
 
-Pedir la recuperación envía el enlace solo a cuentas activas con el correo verificado y no filtra información a quien lo pide.
+Pedir la recuperación envía el enlace solo a cuentas no inactivas (una bloqueada por intentos también) con el correo verificado y no filtra información a quien lo pide.
 
 ## Validación
 

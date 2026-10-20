@@ -24,6 +24,7 @@ El login del shell enlaza a `/cuenta/recuperar`.
 
 - `pages/login.ts`: bajo el formulario, un `routerLink` "¿Olvidaste tu contraseña?" hacia `/cuenta/recuperar`, con las clases de tokens que ya usa la pantalla.
 - Test de la pantalla: el enlace existe y apunta a `/cuenta/recuperar`.
+- `login.spec.ts` pasa a usar `provideRouter([])` (el `routerLink` necesita el router real) y espía `navigateByUrl` para conservar las aserciones de navegación existentes.
 
 Archivos esperados (crear/tocar):
 

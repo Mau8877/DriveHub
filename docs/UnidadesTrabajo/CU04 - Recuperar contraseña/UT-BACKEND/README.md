@@ -11,7 +11,7 @@
 
 ## Decisiones de diseño
 
-1. **Solo cuentas activas con el correo verificado reciben el enlace.** Las demás reciben exactamente la misma respuesta, sin correo (CU04b explica cómo verificar).
+1. **Solo cuentas con el correo verificado y no inactivas reciben el enlace** (una cuenta `BLOQUEADO` por intentos fallidos sí: restablecer la desbloquea). Las demás reciben exactamente la misma respuesta, sin correo (CU04b explica cómo verificar).
 2. **Pedir la recuperación nunca falla de forma visible:** ni por cuenta inexistente, inactiva o sin verificar, ni por un fallo del SMTP (se registra `ERROR`). Esto es lo contrario a CU04b, donde la persona tiene sesión y sí debe enterarse.
 3. **Enlace de 30 minutos y un solo uso;** pedir otro invalida los anteriores. Un token de verificación no sirve para restablecer y al revés (`tipo`).
 4. **Un solo código de error para enlaces malos:** se reutiliza `ERR_IDE_11` (inválido, vencido, usado, reemplazado o de otro tipo); no se agregan códigos nuevos.
