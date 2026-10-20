@@ -42,6 +42,19 @@ public class SmtpCorreoAdapter implements EnviadorCorreoPort {
         enviar(destinatario, "Verifica tu correo en DriveHub", texto, html);
     }
 
+    @Override
+    public void enviarRecuperacionContrasena(String destinatario, String nombres, String enlace) {
+        String texto = "Hola " + nombres + ",\n\n"
+            + "Para elegir una contraseña nueva en DriveHub abre este enlace (sirve una sola vez y vence en 30 minutos):\n\n"
+            + enlace + "\n\n"
+            + "Si no lo pediste, puedes ignorar este mensaje: tu contraseña no cambia.\n";
+        String html = "<p>Hola " + HtmlUtils.htmlEscape(nombres) + ",</p>"
+            + "<p>Para elegir una contraseña nueva en DriveHub abre este enlace (sirve una sola vez y vence en 30 minutos):</p>"
+            + "<p><a href=\"" + HtmlUtils.htmlEscape(enlace) + "\">Cambiar mi contraseña</a></p>"
+            + "<p>Si no lo pediste, puedes ignorar este mensaje: tu contraseña no cambia.</p>";
+        enviar(destinatario, "Recupera tu contraseña de DriveHub", texto, html);
+    }
+
     private void enviar(String destinatario, String asunto, String texto, String html) {
         try {
             MimeMessage mensaje = sender.createMimeMessage();

@@ -9,4 +9,7 @@ public interface EnviadorCorreoPort {
 
     /** Correo con el enlace para verificar la dirección (CU04b). */
     void enviarVerificacionCorreo(String destinatario, String nombres, String enlace);
+
+    /** Correo con el enlace para elegir una contraseña nueva (CU04). */
+    void enviarRecuperacionContrasena(String destinatario, String nombres, String enlace);
 }

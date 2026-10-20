@@ -15,5 +15,8 @@ public interface RefreshTokenRepositoryPort {
     /** Revoca las sesiones activas de ese usuario en ese dispositivo (no las del otro dispositivo). */
     void revocarActivos(UUID usuarioCodigo, Dispositivo dispositivo);
 
+    /** Revoca todas las sesiones activas del usuario, en la web y en el móvil (ej. al cambiar la contraseña). */
+    void revocarTodos(UUID usuarioCodigo);
+
     void revocar(RefreshToken token);
 }

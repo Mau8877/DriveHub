@@ -77,6 +77,29 @@ class SmtpCorreoAdapterTest {
     }
 
     @Test
+    void enviarRecuperacionContrasena_armaElMensajeConDestinatarioAsuntoYEnlace() throws Exception {
+        String enlace = "http://localhost:4200/cuenta/restablecer?token=xyz789";
+
+        adaptador.enviarRecuperacionContrasena("ana@gmail.com", "Ana", enlace);
+
+        ArgumentCaptor<MimeMessage> enviado = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(enviado.capture());
+        MimeMessage mensaje = enviado.getValue();
+        assertThat(((InternetAddress) mensaje.getRecipients(Message.RecipientType.TO)[0]).getAddress())
+            .isEqualTo("ana@gmail.com");
+        assertThat(mensaje.getSubject()).isEqualTo("Recupera tu contraseña de DriveHub");
+        assertThat(cuerpo(mensaje)).contains("Hola Ana").contains(enlace).contains("30 minutos");
+    }
+
+    @Test
+    void enviarRecuperacionContrasena_siFallaElEnvio_laExcepcionSePropaga() {
+        doThrow(new MailSendException("SMTP caido")).when(sender).send(org.mockito.ArgumentMatchers.any(MimeMessage.class));
+
+        assertThatThrownBy(() -> adaptador.enviarRecuperacionContrasena("ana@gmail.com", "Ana", ENLACE))
+            .isInstanceOf(MailSendException.class);
+    }
+
+    @Test
     void enviarVerificacionCorreo_siFallaElEnvio_laExcepcionSePropaga() {
         doThrow(new MailSendException("SMTP caido")).when(sender).send(org.mockito.ArgumentMatchers.any(MimeMessage.class));
 

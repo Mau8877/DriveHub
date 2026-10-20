@@ -48,6 +48,12 @@ public class RefreshTokenPersistenceAdapter implements RefreshTokenRepositoryPor
 
     @Override
     @Transactional
+    public void revocarTodos(UUID usuarioCodigo) {
+        refreshTokenJpaRepository.revocarTodos(usuarioCodigo);
+    }
+
+    @Override
+    @Transactional
     public void revocar(RefreshToken token) {
         refreshTokenJpaRepository.findConUsuarioPorCodigo(token.getCodigo()).ifPresent(model -> {
             model.setRevocado(true);

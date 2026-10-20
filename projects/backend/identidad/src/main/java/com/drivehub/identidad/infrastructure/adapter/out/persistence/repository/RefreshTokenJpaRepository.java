@@ -24,4 +24,10 @@ public interface RefreshTokenJpaRepository extends JpaRepository<RefreshTokenMod
         + "where t.revocado = false and t.dispositivo = :dispositivo "
         + "and t.usuario.id = (select u.id from UsuarioModel u where u.codigo = :usuarioCodigo)")
     int revocarActivos(@Param("usuarioCodigo") UUID usuarioCodigo, @Param("dispositivo") Dispositivo dispositivo);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update RefreshTokenModel t set t.revocado = true "
+        + "where t.revocado = false "
+        + "and t.usuario.id = (select u.id from UsuarioModel u where u.codigo = :usuarioCodigo)")
+    int revocarTodos(@Param("usuarioCodigo") UUID usuarioCodigo);
 }

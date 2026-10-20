@@ -76,6 +76,21 @@ class RefreshTokenPersistenceAdapterTest extends PostgresIntegrationTestBase {
     }
 
     @Test
+    void revocarTodos_revocaLasSesionesDeLosDosDispositivosPeroNoLasDeOtroUsuario() {
+        Usuario u = usuario("sesion4@gmail.com");
+        Usuario otro = usuario("sesion5@gmail.com");
+        sesion(u, "e".repeat(64), Dispositivo.WEB);
+        sesion(u, "f".repeat(64), Dispositivo.MOVIL);
+        sesion(otro, "g".repeat(64), Dispositivo.WEB);
+
+        refreshTokens.revocarTodos(u.getCodigo());
+
+        assertThat(refreshTokens.buscarPorHash("e".repeat(64)).orElseThrow().isRevocado()).isTrue();
+        assertThat(refreshTokens.buscarPorHash("f".repeat(64)).orElseThrow().isRevocado()).isTrue();
+        assertThat(refreshTokens.buscarPorHash("g".repeat(64)).orElseThrow().isRevocado()).isFalse();
+    }
+
+    @Test
     void revocar_marcaUnaSesionComoRevocada() {
         Usuario u = usuario("sesion3@gmail.com");
         RefreshToken guardado = sesion(u, "d".repeat(64), Dispositivo.MOVIL);

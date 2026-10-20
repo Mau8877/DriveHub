@@ -77,6 +77,7 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
     public Usuario actualizar(Usuario usuario) {
         UsuarioModel model = usuarioJpaRepository.findByCodigo(usuario.getCodigo())
             .orElseThrow(() -> new IllegalStateException("No existe el usuario a actualizar"));
+        model.setPasswordHash(usuario.getPasswordHash());
         model.setEstado(usuario.getEstado());
         model.setIntentosFallidos(usuario.getIntentosFallidos());
         model.setBloqueadoHasta(usuario.getBloqueadoHasta());
