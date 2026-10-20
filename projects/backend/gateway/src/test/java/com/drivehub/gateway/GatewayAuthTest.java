@@ -79,6 +79,8 @@ class GatewayAuthTest {
         assertThat(enviar("POST", "/api/v1/auth/refresh", null).statusCode()).isEqualTo(200);
         assertThat(enviar("POST", "/api/v1/auth/logout", null).statusCode()).isEqualTo(200);
         assertThat(enviar("POST", "/api/v1/auth/verificar-correo/confirmar", null).statusCode()).isEqualTo(200);
+        assertThat(enviar("POST", "/api/v1/auth/recuperar", null).statusCode()).isEqualTo(200);
+        assertThat(enviar("POST", "/api/v1/auth/restablecer", null).statusCode()).isEqualTo(200);
         assertThat(enviar("POST", "/api/v1/usuarios", null).statusCode()).isEqualTo(200);
         assertThat(enviar("GET", "/api/v1/escuelas/escuelaexample", null).statusCode()).isEqualTo(200);
     }
