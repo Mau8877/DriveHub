@@ -17,6 +17,7 @@ const SESION = {
     apellidos: 'Pérez',
     roles: ['ADMIN_ESCUELA'],
     escuelaCodigo: 'e1',
+    correoVerificado: false,
   },
 }
 
@@ -69,6 +70,17 @@ describe('AuthApiService', () => {
     const req = backend.expectOne(`${API_BASE_URL}/auth/logout`)
     expect(req.request.method).toBe('POST')
     expect(req.request.body).toEqual({ dispositivo: 'WEB' })
+    req.flush({ status: 'success', data: null, message: 'ok', timestamp: 'x' })
+
+    expect(await respuesta).toBeNull()
+  })
+
+  it('solicitarVerificacionCorreo hace POST sin cuerpo y entrega null', async () => {
+    const respuesta = firstValueFrom(api.solicitarVerificacionCorreo())
+
+    const req = backend.expectOne(`${API_BASE_URL}/auth/verificar-correo`)
+    expect(req.request.method).toBe('POST')
+    expect(req.request.body).toBeNull()
     req.flush({ status: 'success', data: null, message: 'ok', timestamp: 'x' })
 
     expect(await respuesta).toBeNull()

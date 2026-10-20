@@ -13,6 +13,7 @@ const USUARIO = {
   apellidos: 'Pérez',
   roles: ['ADMIN_ESCUELA'],
   escuelaCodigo: 'e1',
+  correoVerificado: false,
 }
 
 function sesion(token: string, expiraEnSegundos = 900) {
@@ -201,6 +202,90 @@ describe('SesionService', () => {
 
       expect(servicio.autenticado()).toBe(false)
       expect(router.navigate).toHaveBeenCalledWith(['/login'])
+    })
+  })
+
+  describe('verificarCorreo', () => {
+    const ok = { status: 'success', data: null, message: 'ok', timestamp: 'x' }
+
+    it('pide el correo de verificación al backend', async () => {
+      await login()
+
+      const promesa = servicio.verificarCorreo()
+      const peticion = backend.expectOne(`${API_BASE_URL}/auth/verificar-correo`)
+      expect(peticion.request.method).toBe('POST')
+      peticion.flush(ok)
+      await promesa
+    })
+
+    it('si el correo ya estaba verificado (ERR_IDE_10) renueva la sesión y no es un error', async () => {
+      await login()
+
+      const promesa = servicio.verificarCorreo()
+      const [cuerpo, opciones] = fallo('ERR_IDE_10', 409)
+      backend.expectOne(`${API_BASE_URL}/auth/verificar-correo`).flush(cuerpo, opciones)
+      await vi.advanceTimersByTimeAsync(0)
+      backend.expectOne(`${API_BASE_URL}/auth/refresh`).flush(sesion('jwt-2'))
+      await promesa
+
+      expect(servicio.obtenerToken()).toBe('jwt-2')
+    })
+
+    it('cualquier otro error se propaga para que la pantalla lo muestre', async () => {
+      await login()
+
+      const promesa = servicio.verificarCorreo()
+      const resultado = promesa.catch((e: unknown) => e)
+      const [cuerpo, opciones] = fallo('ERR_SYS_00', 500)
+      backend.expectOne(`${API_BASE_URL}/auth/verificar-correo`).flush(cuerpo, opciones)
+
+      expect(await resultado).toMatchObject({ code: 'ERR_SYS_00' })
+    })
+  })
+
+  describe('al volver a la pestaña', () => {
+    const volverAVerLaPestania = async (estado: DocumentVisibilityState) => {
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(estado)
+      document.dispatchEvent(new Event('visibilitychange'))
+      await vi.advanceTimersByTimeAsync(0)
+    }
+
+    afterEach(() => vi.restoreAllMocks())
+
+    it('con el correo sin verificar renueva la sesión', async () => {
+      await login()
+
+      await volverAVerLaPestania('visible')
+
+      backend.expectOne(`${API_BASE_URL}/auth/refresh`).flush(sesion('jwt-2'))
+      await vi.advanceTimersByTimeAsync(0)
+      expect(servicio.obtenerToken()).toBe('jwt-2')
+    })
+
+    it('si la pestaña queda oculta no renueva', async () => {
+      await login()
+
+      await volverAVerLaPestania('hidden')
+
+      backend.expectNone(`${API_BASE_URL}/auth/refresh`)
+    })
+
+    it('sin sesión no renueva', async () => {
+      await volverAVerLaPestania('visible')
+
+      backend.expectNone(`${API_BASE_URL}/auth/refresh`)
+    })
+
+    it('con el correo ya verificado no renueva', async () => {
+      const promesa = servicio.iniciarSesion('a@gmail.com', 'clave')
+      const verificado = sesion('jwt-1')
+      verificado.data.usuario = { ...USUARIO, correoVerificado: true }
+      backend.expectOne(`${API_BASE_URL}/auth/login`).flush(verificado)
+      await promesa
+
+      await volverAVerLaPestania('visible')
+
+      backend.expectNone(`${API_BASE_URL}/auth/refresh`)
     })
   })
 })

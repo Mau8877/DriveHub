@@ -14,6 +14,8 @@ export interface UsuarioSesion {
   apellidos: string
   roles: string[]
   escuelaCodigo: string | null
+  /** El correo se verificó con el enlace enviado (CU04b); no bloquea nada, solo la recuperación. */
+  correoVerificado: boolean
 }
 
 /**

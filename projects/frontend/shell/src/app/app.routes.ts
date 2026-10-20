@@ -29,6 +29,14 @@ export const routes: Routes = [
     path: 'registro',
     loadChildren: () => loadRemoteModule('identidad', './routes-publicas').then((m) => m.routes),
   },
+
+  // Público y fuera del layout: páginas de la cuenta a las que llevan los enlaces de los
+  // correos, /cuenta/verificar-correo (CU04b, remoto identidad). Sin sesionGuard ni loginGuard:
+  // se abren con o sin sesión, también desde el navegador de un teléfono.
+  {
+    path: 'cuenta',
+    loadChildren: () => loadRemoteModule('identidad', './routes-cuenta').then((m) => m.routes),
+  },
   {
     path: '',
     component: ShellLayout,

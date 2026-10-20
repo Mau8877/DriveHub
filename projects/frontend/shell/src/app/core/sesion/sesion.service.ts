@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core'
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 
@@ -10,6 +10,8 @@ import type { SesionRespuesta, UsuarioSesion } from './sesion.models'
 const FRACCION_DE_VIDA_PARA_RENOVAR = 0.8
 /** Código con el que se explica una sesión que no se pudo renovar sin un motivo más específico. */
 const SESION_TERMINADA = 'ERR_IDE_09'
+/** El correo ya estaba verificado: la sesión que tiene el cliente quedó vieja. */
+const CORREO_YA_VERIFICADO = 'ERR_IDE_10'
 
 /**
  * Sesión del usuario: el ÚNICO lugar de la web donde vive el access token.
@@ -39,6 +41,24 @@ export class SesionService {
 
   private temporizador: ReturnType<typeof setTimeout> | null = null
   private renovacionEnCurso: Promise<string | null> | null = null
+
+  constructor() {
+    // * Si la persona verifica el correo en otra pestaña o ventana, al volver se renueva la
+    // * sesión para que el botón "Verificar correo" desaparezca sin esperar a la renovación.
+    if (typeof document !== 'undefined') {
+      const alVolver = () => {
+        if (
+          document.visibilityState === 'visible' &&
+          this.autenticado() &&
+          this._usuario()?.correoVerificado === false
+        ) {
+          void this.renovar()
+        }
+      }
+      document.addEventListener('visibilitychange', alVolver)
+      inject(DestroyRef).onDestroy(() => document.removeEventListener('visibilitychange', alVolver))
+    }
+  }
 
   obtenerToken(): string | null {
     return this.accessToken()
@@ -71,6 +91,23 @@ export class SesionService {
       })
     }
     return this.renovacionEnCurso
+  }
+
+  /**
+   * Pide el correo de verificación (CU04b). Si el correo ya estaba verificado (`ERR_IDE_10`),
+   * renueva la sesión para actualizarla y no es un error; cualquier otro fallo se propaga
+   * para que la pantalla lo muestre.
+   */
+  async verificarCorreo(): Promise<void> {
+    try {
+      await firstValueFrom(this.api.solicitarVerificacionCorreo())
+    } catch (error) {
+      if (error instanceof ApiError && error.code === CORREO_YA_VERIFICADO) {
+        await this.renovar()
+        return
+      }
+      throw error
+    }
   }
 
   /**

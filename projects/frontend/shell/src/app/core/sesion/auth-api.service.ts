@@ -25,6 +25,11 @@ export class AuthApiService {
     return this.http.post<SesionRespuesta>(`${API_BASE_URL}/auth/refresh`, { dispositivo: 'WEB' })
   }
 
+  /** Pide el correo con el enlace para verificar la dirección de la cuenta (CU04b). */
+  solicitarVerificacionCorreo(): Observable<null> {
+    return this.http.post<null>(`${API_BASE_URL}/auth/verificar-correo`, null)
+  }
+
   cerrar(): Observable<null> {
     return this.http.post<null>(`${API_BASE_URL}/auth/logout`, { dispositivo: 'WEB' })
   }
