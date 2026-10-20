@@ -9,6 +9,9 @@ export default withNativeFederation({
     // Pantallas sin sesión (registro del estudiante): el shell las monta bajo
     // /registro, fuera de su layout.
     './routes-publicas': './src/app/routes-publicas.ts',
+    // Páginas públicas de la cuenta (verificar el correo, CU04b): el shell las monta
+    // bajo /cuenta, fuera de su layout. Los enlaces de los correos apuntan acá.
+    './routes-cuenta': './src/app/routes-cuenta.ts',
   },
 
   shared: fromPackageJson({
