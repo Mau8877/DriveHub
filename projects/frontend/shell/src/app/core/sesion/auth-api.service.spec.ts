@@ -63,6 +63,17 @@ describe('AuthApiService', () => {
     expect(await respuesta).toEqual(SESION)
   })
 
+  it('cerrar manda solo el dispositivo y entrega null', async () => {
+    const respuesta = firstValueFrom(api.cerrar())
+
+    const req = backend.expectOne(`${API_BASE_URL}/auth/logout`)
+    expect(req.request.method).toBe('POST')
+    expect(req.request.body).toEqual({ dispositivo: 'WEB' })
+    req.flush({ status: 'success', data: null, message: 'ok', timestamp: 'x' })
+
+    expect(await respuesta).toBeNull()
+  })
+
   it('un 401 con ERR_IDE_04 llega como ApiError con su código', async () => {
     const respuesta = firstValueFrom(api.login('a@gmail.com', 'mal'))
 

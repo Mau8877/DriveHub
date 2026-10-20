@@ -151,4 +151,56 @@ describe('SesionService', () => {
     backend.expectNone(`${API_BASE_URL}/auth/refresh`)
     expect(servicio.autenticado()).toBe(false)
   })
+
+  describe('cerrarSesion', () => {
+    const ok = { status: 'success', data: null, message: 'ok', timestamp: 'x' }
+
+    it('avisa al backend, limpia la sesión y lleva a /login sin redirect ni motivo', async () => {
+      await login()
+
+      const promesa = servicio.cerrarSesion()
+      const peticion = backend.expectOne(`${API_BASE_URL}/auth/logout`)
+      expect(peticion.request.body).toEqual({ dispositivo: 'WEB' })
+      peticion.flush(ok)
+      await promesa
+
+      expect(servicio.autenticado()).toBe(false)
+      expect(servicio.usuario()).toBeNull()
+      expect(router.navigate).toHaveBeenCalledWith(['/login'])
+    })
+
+    it('cancela la renovación programada', async () => {
+      await login()
+
+      const promesa = servicio.cerrarSesion()
+      backend.expectOne(`${API_BASE_URL}/auth/logout`).flush(ok)
+      await promesa
+      await vi.advanceTimersByTimeAsync(900_000)
+
+      backend.expectNone(`${API_BASE_URL}/auth/refresh`)
+    })
+
+    it('si el backend responde con error, igual limpia y navega', async () => {
+      await login()
+
+      const promesa = servicio.cerrarSesion()
+      const [cuerpo, opciones] = fallo('ERR_SYS_02', 429)
+      backend.expectOne(`${API_BASE_URL}/auth/logout`).flush(cuerpo, opciones)
+      await promesa
+
+      expect(servicio.autenticado()).toBe(false)
+      expect(router.navigate).toHaveBeenCalledWith(['/login'])
+    })
+
+    it('si falla la red, igual limpia y navega', async () => {
+      await login()
+
+      const promesa = servicio.cerrarSesion()
+      backend.expectOne(`${API_BASE_URL}/auth/logout`).error(new ProgressEvent('error'))
+      await promesa
+
+      expect(servicio.autenticado()).toBe(false)
+      expect(router.navigate).toHaveBeenCalledWith(['/login'])
+    })
+  })
 })

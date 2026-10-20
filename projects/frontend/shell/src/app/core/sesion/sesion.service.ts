@@ -21,7 +21,6 @@ const SESION_TERMINADA = 'ERR_IDE_09'
  * * La renovación se hace de a una: en la pestaña comparte la promesa en curso
  * * y entre pestañas se serializa con Web Locks, porque la rotación invalida el
  * * refresh token usado y dos renovaciones simultáneas harían fallar a una.
- * TODO: CU03 agrega el cierre de sesión (hoy `limpiar` solo olvida la sesión local).
  */
 @Injectable({ providedIn: 'root' })
 export class SesionService {
@@ -72,6 +71,23 @@ export class SesionService {
       })
     }
     return this.renovacionEnCurso
+  }
+
+  /**
+   * Cierra la sesión: avisa al backend (revoca el refresh token y borra la cookie),
+   * olvida la sesión local y lleva a /login sin redirect ni motivo.
+   *
+   * * El borrado local no depende de la respuesta: si el backend falla (red, 429, 5xx)
+   * * igual se sale, la sesión renovable vence sola en el servidor.
+   */
+  async cerrarSesion(): Promise<void> {
+    try {
+      await firstValueFrom(this.api.cerrar())
+    } catch {
+      // * El borrado local no depende del backend
+    }
+    this.limpiar()
+    await this.router.navigate(['/login'])
   }
 
   /** Olvida la sesión local (token, usuario y temporizador). No llama al backend. */

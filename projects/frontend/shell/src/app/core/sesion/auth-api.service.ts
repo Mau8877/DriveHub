@@ -24,4 +24,8 @@ export class AuthApiService {
   renovar(): Observable<SesionRespuesta> {
     return this.http.post<SesionRespuesta>(`${API_BASE_URL}/auth/refresh`, { dispositivo: 'WEB' })
   }
+
+  cerrar(): Observable<null> {
+    return this.http.post<null>(`${API_BASE_URL}/auth/logout`, { dispositivo: 'WEB' })
+  }
 }

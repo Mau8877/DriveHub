@@ -1,6 +1,7 @@
-import { Component } from '@angular/core'
+import { Component, inject, signal } from '@angular/core'
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 
+import { SesionService } from '../core/sesion/sesion.service'
 import { NAV_ITEMS } from './nav-items'
 
 /**
@@ -42,6 +43,14 @@ import { NAV_ITEMS } from './nav-items'
           >
             Avisos
           </button>
+          <button
+            type="button"
+            class="hover:bg-accent rounded-md px-3 py-1 text-sm disabled:opacity-50"
+            [disabled]="cerrando()"
+            (click)="cerrarSesion()"
+          >
+            Cerrar sesión
+          </button>
         </header>
         <main class="flex-1">
           <router-outlet />
@@ -51,5 +60,17 @@ import { NAV_ITEMS } from './nav-items'
   `,
 })
 export class ShellLayout {
+  private readonly sesion = inject(SesionService)
+
   protected readonly navItems = NAV_ITEMS
+  protected readonly cerrando = signal(false)
+
+  protected async cerrarSesion(): Promise<void> {
+    this.cerrando.set(true)
+    try {
+      await this.sesion.cerrarSesion()
+    } finally {
+      this.cerrando.set(false)
+    }
+  }
 }
