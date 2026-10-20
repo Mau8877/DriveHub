@@ -35,6 +35,8 @@ public class Usuario {
     private final Instant ultimoLogin;
     // * Hasta cuándo está bloqueada la cuenta (login CU02); null si no lo está
     private final Instant bloqueadoHasta;
+    // * El correo se verificó con el enlace enviado (CU04b); no bloquea el login, solo la recuperación (CU04)
+    private final boolean correoVerificado;
     private final Set<Rol> roles;
     private final Instant creadoEn;
     private final Instant actualizadoEn;

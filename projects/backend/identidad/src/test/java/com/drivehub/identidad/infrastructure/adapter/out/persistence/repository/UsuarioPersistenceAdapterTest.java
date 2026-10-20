@@ -106,4 +106,15 @@ class UsuarioPersistenceAdapterTest extends PostgresIntegrationTestBase {
         assertThat(leido.getBloqueadoHasta()).isEqualTo(hasta);
         assertThat(leido.getUltimoLogin()).isEqualTo(hasta);
     }
+
+    @Test
+    void correoVerificado_empiezaEnFalseYSePersisteAlActualizar() {
+        Rol estudiante = rolRepository.buscarPorNombre(RolNombres.ESTUDIANTE).orElseThrow();
+        Usuario guardado = usuarioRepository.guardar(nuevoEstudiante("verificado@gmail.com", estudiante));
+        assertThat(guardado.isCorreoVerificado()).isFalse();
+
+        usuarioRepository.actualizar(guardado.toBuilder().correoVerificado(true).build());
+
+        assertThat(usuarioRepository.buscarPorCodigo(guardado.getCodigo()).orElseThrow().isCorreoVerificado()).isTrue();
+    }
 }

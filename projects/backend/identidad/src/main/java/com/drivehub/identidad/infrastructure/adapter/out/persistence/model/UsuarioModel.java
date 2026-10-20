@@ -79,6 +79,11 @@ public class UsuarioModel extends BaseModel {
     @Column(name = "bloqueado_hasta")
     private Instant bloqueadoHasta;
 
+    // * Se marca con el enlace de verificación (CU04b)
+    @Setter
+    @Column(name = "correo_verificado", nullable = false)
+    private boolean correoVerificado;
+
     public UsuarioModel(String email, String passwordHash, String nombres, String apellidos, String telefono,
             LocalDate fechaNacimiento, UUID escuelaCodigo, EstadoUsuario estado) {
         this.email = email;

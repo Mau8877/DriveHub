@@ -17,6 +17,8 @@ public final class IdentidadErrorCodes {
     public static final String ESCUELA_SUSPENDIDA = "ERR_IDE_07";
     public static final String PLATAFORMA_NO_PERMITIDA = "ERR_IDE_08";
     public static final String SESION_INVALIDA = "ERR_IDE_09";
+    public static final String CORREO_YA_VERIFICADO = "ERR_IDE_10";
+    public static final String ENLACE_INVALIDO = "ERR_IDE_11";
 
     private IdentidadErrorCodes() {
     }

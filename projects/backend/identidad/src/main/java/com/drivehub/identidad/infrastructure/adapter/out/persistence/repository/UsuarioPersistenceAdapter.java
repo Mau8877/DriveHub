@@ -44,6 +44,7 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
         UsuarioModel model = new UsuarioModel(
             usuario.getEmail(), usuario.getPasswordHash(), usuario.getNombres(), usuario.getApellidos(),
             usuario.getTelefono(), usuario.getFechaNacimiento(), usuario.getEscuelaCodigo(), usuario.getEstado());
+        model.setCorreoVerificado(usuario.isCorreoVerificado());
 
         try {
             // * saveAndFlush: el UNIQUE del correo salta acá y no al final de la transacción
@@ -80,6 +81,7 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
         model.setIntentosFallidos(usuario.getIntentosFallidos());
         model.setBloqueadoHasta(usuario.getBloqueadoHasta());
         model.setUltimoLogin(usuario.getUltimoLogin());
+        model.setCorreoVerificado(usuario.isCorreoVerificado());
         return aDominio(usuarioJpaRepository.save(model), usuario.getRoles());
     }
 
@@ -108,6 +110,7 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
             .intentosFallidos(model.getIntentosFallidos())
             .ultimoLogin(model.getUltimoLogin())
             .bloqueadoHasta(model.getBloqueadoHasta())
+            .correoVerificado(model.isCorreoVerificado())
             .roles(roles)
             .creadoEn(model.getCreatedAt())
             .actualizadoEn(model.getUpdatedAt())

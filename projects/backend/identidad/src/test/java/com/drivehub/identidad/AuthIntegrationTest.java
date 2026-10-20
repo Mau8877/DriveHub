@@ -138,6 +138,7 @@ class AuthIntegrationTest extends PostgresIntegrationTestBase {
             .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
             .andExpect(jsonPath("$.data.expiraEnSegundos").value(900))
             .andExpect(jsonPath("$.data.usuario.roles[0]").value("ADMIN_ESCUELA"))
+            .andExpect(jsonPath("$.data.usuario.correoVerificado").value(false))
             .andExpect(jsonPath("$.data.usuario.escuelaCodigo").value(IdentidadSeeder.CODIGO_ESCUELA_EXAMPLE.toString()))
             .andExpect(jsonPath("$.data.refreshToken").doesNotExist());
         String cabecera = r.andReturn().getResponse().getHeader(HttpHeaders.SET_COOKIE);

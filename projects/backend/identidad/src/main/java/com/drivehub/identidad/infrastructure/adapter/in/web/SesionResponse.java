@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record SesionResponse(String accessToken, long expiraEnSegundos, UsuarioSesionResponse usuario, String refreshToken) {
 
-    public record UsuarioSesionResponse(UUID codigo, String nombres, String apellidos, List<String> roles, UUID escuelaCodigo) {
+    public record UsuarioSesionResponse(UUID codigo, String nombres, String apellidos, List<String> roles, UUID escuelaCodigo,
+            boolean correoVerificado) {
     }
 }

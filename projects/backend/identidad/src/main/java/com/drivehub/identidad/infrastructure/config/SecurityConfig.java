@@ -39,6 +39,8 @@ public class SecurityConfig {
                 // * Inicio, renovación (CU02) y cierre de sesión (CU03)
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh",
                     "/api/v1/auth/logout").permitAll()
+                // * Confirmar el correo (CU04b): el enlace se abre fuera de la sesión
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/verificar-correo/confirmar").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth

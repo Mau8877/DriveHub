@@ -110,7 +110,8 @@ public class AuthController {
     private SesionResponse.UsuarioSesionResponse aUsuarioResponse(Usuario usuario) {
         List<String> roles = usuario.getRoles().stream().map(Rol::getNombre).sorted().toList();
         return new SesionResponse.UsuarioSesionResponse(
-            usuario.getCodigo(), usuario.getNombres(), usuario.getApellidos(), roles, usuario.getEscuelaCodigo());
+            usuario.getCodigo(), usuario.getNombres(), usuario.getApellidos(), roles, usuario.getEscuelaCodigo(),
+            usuario.isCorreoVerificado());
     }
 
     ResponseCookie cookie(String valor, Duration vida) {

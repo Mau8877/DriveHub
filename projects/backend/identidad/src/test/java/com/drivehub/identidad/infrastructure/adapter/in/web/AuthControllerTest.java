@@ -88,6 +88,7 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.data.expiraEnSegundos").value(900))
             .andExpect(jsonPath("$.data.usuario.nombres").value("Ana"))
             .andExpect(jsonPath("$.data.usuario.roles[0]").value("ADMIN_ESCUELA"))
+            .andExpect(jsonPath("$.data.usuario.correoVerificado").value(false))
             .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
             .andExpect(jsonPath("$.data.password").doesNotExist());
 
