@@ -73,6 +73,28 @@ void main() {
     );
   });
 
+  test('recuperar hace POST a /auth/recuperar con el correo', () async {
+    final adaptador = AdaptadorEnCola([
+      RespuestaFalsa(200, {'status': 'success', 'data': null, 'message': 'ok', 'timestamp': 'x'}),
+    ]);
+    ApiClient.instance.httpClientAdapter = adaptador;
+
+    await AuthService().recuperar('ana@gmail.com');
+
+    expect(adaptador.peticiones.single.path, '/auth/recuperar');
+    expect(adaptador.peticiones.single.method, 'POST');
+    expect(adaptador.peticiones.single.data, {'email': 'ana@gmail.com'});
+  });
+
+  test('un 429 ERR_SYS_02 al pedir la recuperación llega como ApiException', () async {
+    ApiClient.instance.httpClientAdapter = AdaptadorEnCola([RespuestaFalsa(429, fallo('ERR_SYS_02'))]);
+
+    await expectLater(
+      AuthService().recuperar('ana@gmail.com'),
+      throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_SYS_02')),
+    );
+  });
+
   test('un 401 ERR_IDE_04 y un 423 ERR_IDE_05 llegan como ApiException con su código', () async {
     ApiClient.instance.httpClientAdapter = AdaptadorEnCola([RespuestaFalsa(401, fallo('ERR_IDE_04'))]);
     await expectLater(

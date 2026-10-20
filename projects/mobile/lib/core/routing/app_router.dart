@@ -5,10 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/providers/sesion_provider.dart';
 import '../../features/auth/screens/cargando_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
+import '../../features/auth/screens/recuperar_screen.dart';
 import '../../features/auth/screens/registro_screen.dart';
 import '../../layouts/usuario/usuario_shell.dart';
 
-const _rutasPublicas = {'/login', '/registro'};
+const _rutasPublicas = {'/login', '/registro', '/recuperar'};
 
 /// Router único de la app (ver NAVEGACION_MOBILE.md) con el redirect global
 /// por sesión: el chequeo vive acá una sola vez, no en cada pantalla.
@@ -52,6 +53,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/registro',
         builder: (context, state) => const RegistroScreen(),
+      ),
+      GoRoute(
+        path: '/recuperar',
+        builder: (context, state) => const RecuperarScreen(),
       ),
       GoRoute(
         path: '/inicio',

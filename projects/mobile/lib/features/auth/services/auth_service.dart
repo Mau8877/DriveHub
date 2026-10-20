@@ -54,6 +54,18 @@ class AuthService {
     }
   }
 
+  /// Pide el enlace para recuperar la contraseña (CU04). Es público y responde
+  /// siempre lo mismo, exista o no la cuenta: no hay nada que parsear.
+  Future<void> recuperar(String email) async {
+    try {
+      await _dio.post<Object?>('/auth/recuperar', data: {'email': email});
+    } on DioException catch (e) {
+      final error = e.error;
+      if (error is ApiException) throw error;
+      rethrow;
+    }
+  }
+
   Future<SesionRespuesta> _post(
     String ruta,
     Map<String, dynamic> cuerpo,

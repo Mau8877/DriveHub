@@ -166,6 +166,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: () => context.go('/registro'),
                     child: const Text('Crear cuenta'),
                   ),
+                  TextButton(
+                    key: const Key('botonOlvideContrasena'),
+                    onPressed: () => context.go('/recuperar'),
+                    child: const Text('¿Olvidaste tu contraseña?'),
+                  ),
                 ],
               ),
             ),

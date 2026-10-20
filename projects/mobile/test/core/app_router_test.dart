@@ -48,6 +48,38 @@ void main() {
     expect(find.text('Registrarme'), findsOneWidget);
   });
 
+  testWidgets('sin sesión /recuperar es accesible', (tester) async {
+    final container = await montar(tester, SesionFalsa(const EstadoSesion.sinSesion()));
+
+    container.read(routerProvider).go('/recuperar');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recuperar contraseña'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsNothing);
+  });
+
+  testWidgets('desde el login, "¿Olvidaste tu contraseña?" lleva a recuperar y se puede volver', (tester) async {
+    await montar(tester, SesionFalsa(const EstadoSesion.sinSesion()));
+
+    await tester.tap(find.byKey(const Key('botonOlvideContrasena')));
+    await tester.pumpAndSettle();
+    expect(find.text('Recuperar contraseña'), findsOneWidget);
+
+    await tester.tap(find.text('Volver a iniciar sesión'));
+    await tester.pumpAndSettle();
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+  });
+
+  testWidgets('con sesión /recuperar redirige al inicio', (tester) async {
+    final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)));
+
+    container.read(routerProvider).go('/recuperar');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recuperar contraseña'), findsNothing);
+    expect(find.text('Inicio'), findsWidgets);
+  });
+
   testWidgets('con sesión entra al inicio y no vuelve a ver el login ni el registro', (tester) async {
     final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)));
 

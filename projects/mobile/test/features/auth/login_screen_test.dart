@@ -48,6 +48,13 @@ void main() {
     expect(llamadas, 0);
   });
 
+  testWidgets('ofrece recuperar la contraseña', (tester) async {
+    await montar(tester);
+
+    expect(find.byKey(const Key('botonOlvideContrasena')), findsOneWidget);
+    expect(find.text('¿Olvidaste tu contraseña?'), findsOneWidget);
+  });
+
   testWidgets('un correo mal formado no llama a la API', (tester) async {
     final sesion = await montar(tester);
     var llamadas = 0;
