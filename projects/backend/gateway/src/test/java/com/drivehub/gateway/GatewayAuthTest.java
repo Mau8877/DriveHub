@@ -77,6 +77,7 @@ class GatewayAuthTest {
     void rutasPublicas_llegan_sinToken() throws Exception {
         assertThat(enviar("POST", "/api/v1/auth/login", null).statusCode()).isEqualTo(200);
         assertThat(enviar("POST", "/api/v1/auth/refresh", null).statusCode()).isEqualTo(200);
+        assertThat(enviar("POST", "/api/v1/auth/logout", null).statusCode()).isEqualTo(200);
         assertThat(enviar("POST", "/api/v1/usuarios", null).statusCode()).isEqualTo(200);
         assertThat(enviar("GET", "/api/v1/escuelas/escuelaexample", null).statusCode()).isEqualTo(200);
     }
