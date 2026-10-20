@@ -78,6 +78,22 @@ class SesionNotifier extends Notifier<EstadoSesion> {
     await _establecer(sesion);
   }
 
+  /// Cierra la sesión (CU03): avisa al backend y borra todo lo local.
+  ///
+  /// * El borrado local no depende del backend: si falla (red, 429, 5xx) igual
+  /// * se sale. El redirect global del router lleva al login.
+  Future<void> cerrarSesion() async {
+    final refresh = _refreshToken;
+    if (refresh != null) {
+      try {
+        await ref.read(authServiceProvider).cerrar(refresh);
+      } catch (_) {
+        // * La sesión renovable vence sola en el servidor
+      }
+    }
+    await _perderSesion(null);
+  }
+
   /// Renueva la sesión; devuelve el token nuevo o `null` si no se pudo.
   Future<String?> renovar() {
     return _renovacionEnCurso ??= _renovar().whenComplete(

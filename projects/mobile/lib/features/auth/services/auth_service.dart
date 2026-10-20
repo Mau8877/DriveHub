@@ -27,6 +27,21 @@ class AuthService {
     });
   }
 
+  /// Cierra la sesión de este dispositivo (CU03). El backend responde 200
+  /// aunque la sesión ya no exista, así que no hay respuesta que parsear.
+  Future<void> cerrar(String refreshToken) async {
+    try {
+      await _dio.post<Object?>(
+        '/auth/logout',
+        data: {'dispositivo': 'MOVIL', 'refreshToken': refreshToken},
+      );
+    } on DioException catch (e) {
+      final error = e.error;
+      if (error is ApiException) throw error;
+      rethrow;
+    }
+  }
+
   Future<SesionRespuesta> _post(
     String ruta,
     Map<String, dynamic> cuerpo,

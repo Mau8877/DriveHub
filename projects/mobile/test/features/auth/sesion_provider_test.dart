@@ -31,6 +31,8 @@ class _ServicioFalso extends AuthService {
   String? ultimoRefreshUsado;
   Object? errorAlRenovar;
   Object? errorAlLogin;
+  Object? errorAlCerrar;
+  final cerrados = <String>[];
   SesionRespuesta Function() siguiente = () => _sesion('access-nuevo', 'refresh-nuevo');
 
   @override
@@ -38,6 +40,12 @@ class _ServicioFalso extends AuthService {
     llamadasLogin++;
     if (errorAlLogin != null) throw errorAlLogin!;
     return _sesion('access-1', 'refresh-1');
+  }
+
+  @override
+  Future<void> cerrar(String refreshToken) async {
+    cerrados.add(refreshToken);
+    if (errorAlCerrar != null) throw errorAlCerrar!;
   }
 
   @override
@@ -123,6 +131,38 @@ void main() {
     expect(estado().fase, FaseSesion.conSesion);
     expect(notifier().obtenerToken(), 'access-nuevo');
     expect(storage.guardada!.refreshToken, 'refresh-nuevo');
+  });
+
+  test('cerrarSesion avisa al backend con el refresh vigente y deja sinSesion sin motivo', () async {
+    await notifier().iniciarSesion('a@gmail.com', 'clave');
+
+    await notifier().cerrarSesion();
+
+    expect(servicio.cerrados, ['refresh-1']);
+    expect(estado().fase, FaseSesion.sinSesion);
+    expect(estado().motivo, isNull);
+    expect(notifier().obtenerToken(), isNull);
+    expect(storage.guardada, isNull);
+  });
+
+  test('cerrarSesion borra todo aunque el backend falle (ApiException o red)', () async {
+    for (final error in <Object>[ApiException(code: 'ERR_SYS_02', message: 'límite'), Exception('sin red')]) {
+      await notifier().iniciarSesion('a@gmail.com', 'clave');
+      servicio.errorAlCerrar = error;
+
+      await notifier().cerrarSesion();
+
+      expect(estado().fase, FaseSesion.sinSesion);
+      expect(storage.guardada, isNull);
+      expect(notifier().obtenerToken(), isNull);
+    }
+  });
+
+  test('cerrarSesion sin sesión guardada no llama al backend', () async {
+    await notifier().cerrarSesion();
+
+    expect(servicio.cerrados, isEmpty);
+    expect(estado().fase, FaseSesion.sinSesion);
   });
 
   test('dos renovaciones a la vez hacen una sola llamada', () async {

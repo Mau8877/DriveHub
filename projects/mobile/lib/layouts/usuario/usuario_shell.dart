@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../features/auth/providers/sesion_provider.dart';
 
 /// Shell del rol Usuario -- AppBar + `NavigationBar` (Material 3) inferior,
 /// tres secciones. Equivalente mobile de `UsuarioLayout` en el frontend
 /// web (ver ARQUITECTURA_FRONTEND.md#layouts-por-rol): una barra inferior es
 /// el patrón mobile estándar para navegación de nivel superior con pocas
 /// secciones, a diferencia del sidebar que usa el rol Admin.
-class UsuarioShell extends StatefulWidget {
+class UsuarioShell extends ConsumerStatefulWidget {
   const UsuarioShell({super.key});
 
   @override
-  State<UsuarioShell> createState() => _UsuarioShellState();
+  ConsumerState<UsuarioShell> createState() => _UsuarioShellState();
 }
 
 class _UsuarioSeccion {
@@ -25,7 +28,7 @@ const _secciones = [
   _UsuarioSeccion('Perfil', Icons.person_outline),
 ];
 
-class _UsuarioShellState extends State<UsuarioShell> {
+class _UsuarioShellState extends ConsumerState<UsuarioShell> {
   int _selected = 0;
 
   @override
@@ -33,7 +36,16 @@ class _UsuarioShellState extends State<UsuarioShell> {
     final seccionActual = _secciones[_selected];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('App')),
+      appBar: AppBar(
+        title: const Text('App'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: () => ref.read(sesionProvider.notifier).cerrarSesion(),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(

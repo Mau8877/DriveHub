@@ -14,6 +14,7 @@ const usuarioDePrueba = UsuarioSesion(
 class SesionFalsa extends SesionNotifier {
   final EstadoSesion inicial;
   Future<void> Function(String email, String password)? alIniciar;
+  int cierres = 0;
 
   SesionFalsa(this.inicial);
 
@@ -25,6 +26,11 @@ class SesionFalsa extends SesionNotifier {
   @override
   Future<void> iniciarSesion(String email, String password) async {
     await alIniciar?.call(email, password);
+  }
+
+  @override
+  Future<void> cerrarSesion() async {
+    cierres++;
   }
 }
 

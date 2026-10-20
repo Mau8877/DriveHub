@@ -39,6 +39,18 @@ void main() {
     expect(sesion.refreshToken, 'refresh2');
   });
 
+  test('cerrar envía el refresh token y el dispositivo a /auth/logout', () async {
+    final adaptador = AdaptadorEnCola([
+      RespuestaFalsa(200, {'status': 'success', 'data': null, 'message': 'ok', 'timestamp': 'x'}),
+    ]);
+    ApiClient.instance.httpClientAdapter = adaptador;
+
+    await AuthService().cerrar('refresh-actual');
+
+    expect(adaptador.peticiones.single.path, '/auth/logout');
+    expect(adaptador.peticiones.single.data, {'dispositivo': 'MOVIL', 'refreshToken': 'refresh-actual'});
+  });
+
   test('un 401 ERR_IDE_04 y un 423 ERR_IDE_05 llegan como ApiException con su código', () async {
     ApiClient.instance.httpClientAdapter = AdaptadorEnCola([RespuestaFalsa(401, fallo('ERR_IDE_04'))]);
     await expectLater(
