@@ -82,10 +82,20 @@ services:
       - MINIO_URL=http://drivehub-minio:9000
       # URL interna de Escuela: el registro (CU01) resuelve el slug de la escuela sin pasar por el gateway.
       - ESCUELA_URL=http://drivehub-escuela:8082
+      # Correo (CU04b, CU04): en desarrollo va a Mailpit; con un SMTP real solo cambian estos valores.
+      - SMTP_HOST=${SMTP_HOST:-drivehub-mailpit}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-no-reply@drivehub.local}
+      # Web a la que apuntan los enlaces de los correos.
+      - APP_WEB_URL=${APP_WEB_URL:-http://localhost:4200}
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      mailpit:
         condition: service_healthy
 
   # Escuela (Spring Boot, clean) -- PostgreSQL `escuela`
@@ -461,6 +471,25 @@ services:
       /bin/sh -c "sh /create-buckets.sh"
     networks:
       - drivehub-network
+
+  # Servidor SMTP de desarrollo (Identidad: recuperar contraseña y confirmar correo).
+  # * No entrega nada de verdad: guarda los correos y los muestra en su bandeja web (:8025).
+  # * Para enviar correos reales basta con apuntar las variables SMTP_* de Identidad a otro servidor.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: drivehub-mailpit
+    environment:
+      MP_MAX_MESSAGES: 500
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+    networks:
+      - drivehub-network
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # ---------------------------------------
   # MÉTRICAS Y OBSERVABILIDAD
