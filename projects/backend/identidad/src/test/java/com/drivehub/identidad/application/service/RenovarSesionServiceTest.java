@@ -180,6 +180,18 @@ class RenovarSesionServiceTest {
     }
 
     @Test
+    void renovar_conEscuelaInactiva_elMensajeDiceQueLaEscuelaEstaInactiva() {
+        Usuario usuario = cuenta(RolNombres.ESTUDIANTE, EstadoUsuario.ACTIVO, null);
+        tokenGuardado(token(usuario.getCodigo(), Dispositivo.MOVIL, false, AHORA.plusSeconds(3600)));
+        when(usuarioRepository.buscarPorCodigo(usuario.getCodigo())).thenReturn(Optional.of(usuario));
+        escuela(false);
+
+        assertThatThrownBy(() -> servicio.renovar(renovar(Dispositivo.MOVIL)))
+            .isInstanceOf(BusinessException.class)
+            .hasMessage("Tu escuela está inactiva. Contacta al administrador de la plataforma");
+    }
+
+    @Test
     void renovar_conEscuelaSuspendida_revocaElTokenYLanzaErrIde07() {
         Usuario usuario = cuenta(RolNombres.ESTUDIANTE, EstadoUsuario.ACTIVO, null);
         RefreshToken viejo = token(usuario.getCodigo(), Dispositivo.MOVIL, false, AHORA.plusSeconds(3600));

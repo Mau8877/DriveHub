@@ -232,6 +232,17 @@ class IniciarSesionServiceTest {
     }
 
     @Test
+    void iniciar_conEscuelaInactiva_elMensajeDiceQueLaEscuelaEstaInactiva() {
+        cuentaExiste(cuenta(RolNombres.ADMIN_ESCUELA, ESCUELA, EstadoUsuario.ACTIVO, 0, null));
+        passwordCorrecta();
+        escuela(false);
+
+        assertThatThrownBy(() -> servicio.iniciar(login(Dispositivo.WEB)))
+            .isInstanceOf(BusinessException.class)
+            .hasMessage("Tu escuela está inactiva. Contacta al administrador de la plataforma");
+    }
+
+    @Test
     void iniciar_conEscuelaInexistente_lanzaErrIde07() {
         cuentaExiste(cuenta(RolNombres.ADMIN_ESCUELA, ESCUELA, EstadoUsuario.ACTIVO, 0, null));
         passwordCorrecta();

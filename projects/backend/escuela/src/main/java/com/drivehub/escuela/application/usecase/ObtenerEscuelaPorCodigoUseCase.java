@@ -13,7 +13,6 @@ import com.drivehub.escuela.application.dto.EscuelaEstadoOutput;
 import com.drivehub.escuela.common.exception.EscuelaErrorCodes;
 import com.drivehub.escuela.common.exception.NotFoundException;
 import com.drivehub.escuela.domain.entity.Escuela;
-import com.drivehub.escuela.domain.entity.EstadoEscuela;
 import com.drivehub.escuela.domain.repository.EscuelaRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -45,6 +44,6 @@ public class ObtenerEscuelaPorCodigoUseCase {
 
         return new EscuelaEstadoOutput(
             escuela.getCodigo(), escuela.getSlug(), escuela.getNombre(),
-            escuela.getEstado() == EstadoEscuela.ACTIVA);
+            escuela.activa());
     }
 }

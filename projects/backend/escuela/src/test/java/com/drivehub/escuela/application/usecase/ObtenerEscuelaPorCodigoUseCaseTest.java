@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,7 +18,6 @@ import com.drivehub.escuela.application.dto.EscuelaEstadoOutput;
 import com.drivehub.escuela.common.exception.EscuelaErrorCodes;
 import com.drivehub.escuela.common.exception.NotFoundException;
 import com.drivehub.escuela.domain.entity.Escuela;
-import com.drivehub.escuela.domain.entity.EstadoEscuela;
 import com.drivehub.escuela.domain.repository.EscuelaRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,14 +29,15 @@ class ObtenerEscuelaPorCodigoUseCaseTest {
     @InjectMocks
     private ObtenerEscuelaPorCodigoUseCase useCase;
 
-    private Escuela escuela(UUID codigo, EstadoEscuela estado) {
-        return Escuela.builder().codigo(codigo).slug("escuelaexample").nombre("Escuela Example").estado(estado).build();
+    private Escuela escuela(UUID codigo, boolean activa) {
+        return Escuela.builder().codigo(codigo).slug("escuelaexample").nombre("Escuela Example")
+            .eliminadaEn(activa ? null : Instant.now()).build();
     }
 
     @Test
     void ejecutar_conEscuelaActiva_devuelveActivaVerdadera() {
         UUID codigo = UUID.randomUUID();
-        when(escuelaRepository.buscarPorCodigo(codigo)).thenReturn(Optional.of(escuela(codigo, EstadoEscuela.ACTIVA)));
+        when(escuelaRepository.buscarPorCodigo(codigo)).thenReturn(Optional.of(escuela(codigo, true)));
 
         EscuelaEstadoOutput resultado = useCase.ejecutar(codigo);
 
@@ -47,7 +48,7 @@ class ObtenerEscuelaPorCodigoUseCaseTest {
     @Test
     void ejecutar_conEscuelaSuspendida_laDevuelveConActivaFalsa() {
         UUID codigo = UUID.randomUUID();
-        when(escuelaRepository.buscarPorCodigo(codigo)).thenReturn(Optional.of(escuela(codigo, EstadoEscuela.INACTIVA)));
+        when(escuelaRepository.buscarPorCodigo(codigo)).thenReturn(Optional.of(escuela(codigo, false)));
 
         assertThat(useCase.ejecutar(codigo).activa()).isFalse();
     }

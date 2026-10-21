@@ -101,6 +101,39 @@ class GatewayAuthTest {
         assertThat(enviar("GET", ruta, TokensDePrueba.valido()).statusCode()).isEqualTo(200);
     }
 
+    // * CU05: solo la consulta por slug (registro del estudiante) es pública. El resto de `escuelas`, que
+    // * comparte el recurso, y los endpoints de administradores de `usuarios` exigen token.
+    @Test
+    void gestionDeEscuelas_exigeTokenEnCadaEndpoint_yLaConsultaPorSlugSigueSiendoPublica() throws Exception {
+        String codigo = "0198f0a0-0000-7000-8000-000000000001";
+        String[][] endpoints = {
+            {"GET", "/api/v1/escuelas"},
+            {"POST", "/api/v1/escuelas"},
+            {"PATCH", "/api/v1/escuelas/" + codigo},
+            {"DELETE", "/api/v1/escuelas/" + codigo},
+            {"POST", "/api/v1/escuelas/" + codigo + "/reactivar"},
+        };
+        for (String[] endpoint : endpoints) {
+            HttpResponse<String> sinToken = enviar(endpoint[0], endpoint[1], null);
+            assertThat(sinToken.statusCode()).as(endpoint[0] + " " + endpoint[1] + " sin token").isEqualTo(401);
+            assertThat(sinToken.body()).contains("ERR_SYS_04");
+            assertThat(enviar(endpoint[0], endpoint[1], TokensDePrueba.valido()).statusCode())
+                .as(endpoint[0] + " " + endpoint[1] + " con token").isEqualTo(200);
+        }
+        assertThat(enviar("GET", "/api/v1/escuelas/escuelaexample", null).statusCode()).isEqualTo(200);
+    }
+
+    @Test
+    void administradoresDeEscuela_exigenToken() throws Exception {
+        String ruta = "/api/v1/usuarios/administradores-escuela";
+        for (String metodo : new String[] {"POST", "DELETE"}) {
+            assertThat(enviar(metodo, ruta, null).statusCode()).as(metodo + " sin token").isEqualTo(401);
+            assertThat(enviar(metodo, ruta, TokensDePrueba.valido()).statusCode()).as(metodo + " con token").isEqualTo(200);
+        }
+        // * El registro del estudiante, en el mismo recurso, sigue siendo la única ruta pública de `usuarios`
+        assertThat(enviar("POST", "/api/v1/usuarios", null).statusCode()).isEqualTo(200);
+    }
+
     @Test
     void getDeUsuariosSinToken_responde401PorqueSoloElRegistroEsPublico() throws Exception {
         assertThat(enviar("GET", "/api/v1/usuarios/123", null).statusCode()).isEqualTo(401);

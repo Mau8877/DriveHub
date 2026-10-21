@@ -19,6 +19,8 @@ public final class IdentidadErrorCodes {
     public static final String SESION_INVALIDA = "ERR_IDE_09";
     public static final String CORREO_YA_VERIFICADO = "ERR_IDE_10";
     public static final String ENLACE_INVALIDO = "ERR_IDE_11";
+    public static final String ADMIN_YA_EXISTE_EN_ESCUELA = "ERR_IDE_12";
+    public static final String ADMIN_EN_USO = "ERR_IDE_13";
 
     private IdentidadErrorCodes() {
     }

@@ -88,6 +88,6 @@ public class SesionEmisora {
     }
 
     private ForbiddenException escuelaSuspendida() {
-        return new ForbiddenException(IdentidadErrorCodes.ESCUELA_SUSPENDIDA, "La escuela de tu cuenta está suspendida");
+        return new ForbiddenException(IdentidadErrorCodes.ESCUELA_SUSPENDIDA, "Tu escuela está inactiva. Contacta al administrador de la plataforma");
     }
 }

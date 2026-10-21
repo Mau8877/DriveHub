@@ -15,7 +15,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-import com.drivehub.escuela.domain.entity.EstadoEscuela;
 import com.drivehub.escuela.infrastructure.persistence.repository.EscuelaJpaRepository;
 
 /**
@@ -69,8 +68,7 @@ class EscuelaSeederTest {
             .filter(e -> EscuelaSeeder.SLUG_ESCUELA_EXAMPLE.equals(e.getSlug()))
             .count();
         assertThat(cantidad).isEqualTo(1);
-        assertThat(escuelaJpaRepository.findBySlugAndEstado(
-                EscuelaSeeder.SLUG_ESCUELA_EXAMPLE, EstadoEscuela.ACTIVA))
+        assertThat(escuelaJpaRepository.findBySlug(EscuelaSeeder.SLUG_ESCUELA_EXAMPLE))
             .hasValueSatisfying(e ->
                 assertThat(e.getCodigo()).isEqualTo(EscuelaSeeder.CODIGO_ESCUELA_EXAMPLE));
     }

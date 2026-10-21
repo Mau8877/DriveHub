@@ -17,6 +17,18 @@ public interface UsuarioRepositoryPort {
 
     Optional<Usuario> buscarPorCodigo(UUID codigo);
 
+    /** Si la escuela ya tiene una cuenta con rol ADMIN_ESCUELA (CU05). */
+    boolean existeAdministradorDeEscuela(UUID escuelaCodigo);
+
+    /** La cuenta ADMIN_ESCUELA de esa escuela, si la hay (CU05). */
+    Optional<Usuario> buscarAdministradorDeEscuela(UUID escuelaCodigo);
+
+    /**
+     * Borra la cuenta y todo lo que cuelga de ella (roles, sesiones, enlaces de correo), de forma
+     * FÍSICA. Solo para revertir la creación de un Administrador sin uso (CU05).
+     */
+    void eliminarDefinitivamente(UUID usuarioCodigo);
+
     /** Persiste el estado de acceso: intentos fallidos, estado, bloqueo y último ingreso. */
     Usuario actualizar(Usuario usuario);
 }

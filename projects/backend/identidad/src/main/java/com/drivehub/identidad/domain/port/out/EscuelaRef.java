@@ -5,7 +5,7 @@ import java.util.UUID;
 /**
  * Datos de una escuela que Identidad necesita (la referencia es del servicio Escuela).
  *
- * * `activa` es false cuando la escuela está suspendida: sus cuentas no pueden
+ * * `activa` es false cuando la escuela está inactiva (desactivada por el Super admin): sus cuentas no pueden
  * * iniciar ni renovar sesión (CU02). Al buscar por slug (registro) Escuela
  * * solo devuelve escuelas activas, por eso el constructor corto la da por activa.
  */

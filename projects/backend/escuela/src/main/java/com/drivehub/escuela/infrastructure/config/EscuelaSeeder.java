@@ -9,7 +9,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import com.drivehub.escuela.domain.entity.EstadoEscuela;
 import com.drivehub.escuela.infrastructure.persistence.model.EscuelaModel;
 import com.drivehub.escuela.infrastructure.persistence.repository.EscuelaJpaRepository;
 
@@ -36,11 +35,11 @@ public class EscuelaSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (escuelaJpaRepository.existsBySlug(SLUG_ESCUELA_EXAMPLE)) {
+        if (escuelaJpaRepository.existePorSlugIncluyendoEliminadas(SLUG_ESCUELA_EXAMPLE)) {
             return;
         }
         escuelaJpaRepository.save(new EscuelaModel(
-            CODIGO_ESCUELA_EXAMPLE, SLUG_ESCUELA_EXAMPLE, "Escuela Example", EstadoEscuela.ACTIVA));
+            CODIGO_ESCUELA_EXAMPLE, SLUG_ESCUELA_EXAMPLE, "Escuela Example"));
         LOG.info("Escuela de ejemplo creada para desarrollo");
     }
 }

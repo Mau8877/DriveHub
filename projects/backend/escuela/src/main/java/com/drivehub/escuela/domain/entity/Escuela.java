@@ -19,7 +19,16 @@ public class Escuela {
     private final UUID codigo;
     private final String slug;
     private final String nombre;
-    private final EstadoEscuela estado;
+    // * Nulo mientras la escuela está activa; con fecha, está desactivada (borrado lógico)
+    private final Instant eliminadaEn;
     private final Instant creadoEn;
     private final Instant actualizadoEn;
+
+    public boolean activa() {
+        return eliminadaEn == null;
+    }
+
+    public EstadoEscuela estado() {
+        return activa() ? EstadoEscuela.ACTIVA : EstadoEscuela.INACTIVA;
+    }
 }

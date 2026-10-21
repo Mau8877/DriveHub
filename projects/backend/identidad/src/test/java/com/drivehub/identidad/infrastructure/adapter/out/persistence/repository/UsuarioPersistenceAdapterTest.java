@@ -3,6 +3,7 @@ package com.drivehub.identidad.infrastructure.adapter.out.persistence.repository
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
@@ -15,11 +16,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.drivehub.identidad.PostgresIntegrationTestBase;
 import com.drivehub.identidad.common.exception.ConflictException;
 import com.drivehub.identidad.common.exception.IdentidadErrorCodes;
+import com.drivehub.identidad.domain.model.Dispositivo;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.RefreshToken;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.RolNombres;
+import com.drivehub.identidad.domain.model.TipoTokenCorreo;
+import com.drivehub.identidad.domain.model.TokenRecuperacion;
 import com.drivehub.identidad.domain.model.Usuario;
+import com.drivehub.identidad.domain.port.out.RefreshTokenRepositoryPort;
 import com.drivehub.identidad.domain.port.out.RolRepositoryPort;
+import com.drivehub.identidad.domain.port.out.TokenRecuperacionRepositoryPort;
 import com.drivehub.identidad.domain.port.out.UsuarioRepositoryPort;
 
 /**
@@ -33,6 +40,12 @@ class UsuarioPersistenceAdapterTest extends PostgresIntegrationTestBase {
 
     @Autowired
     private RolRepositoryPort rolRepository;
+
+    @Autowired
+    private RefreshTokenRepositoryPort refreshTokens;
+
+    @Autowired
+    private TokenRecuperacionRepositoryPort tokensDeCorreo;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -127,5 +140,61 @@ class UsuarioPersistenceAdapterTest extends PostgresIntegrationTestBase {
 
         assertThat(usuarioRepository.buscarPorCodigo(guardado.getCodigo()).orElseThrow().getPasswordHash())
             .isEqualTo("$2a$hash-nuevo");
+    }
+
+    private Usuario nuevoAdministrador(String email, UUID escuela) {
+        Rol admin = rolRepository.buscarPorNombre(RolNombres.ADMIN_ESCUELA).orElseThrow();
+        return usuarioRepository.guardar(Usuario.builder()
+            .email(email).passwordHash("$2a$hash").nombres("Marta").apellidos("Gómez")
+            .fechaNacimiento(LocalDate.of(1985, 5, 5)).escuelaCodigo(escuela)
+            .estado(EstadoUsuario.ACTIVO).intentosFallidos(0).roles(Set.of(admin)).build());
+    }
+
+    @Test
+    void existeAdministradorDeEscuela_soloSiLaEscuelaTieneUnaCuentaAdminEscuela() {
+        UUID conAdmin = UUID.randomUUID();
+        UUID soloEstudiante = UUID.randomUUID();
+        nuevoAdministrador("admin-existe@gmail.com", conAdmin);
+        Rol estudiante = rolRepository.buscarPorNombre(RolNombres.ESTUDIANTE).orElseThrow();
+        usuarioRepository.guardar(nuevoEstudiante("est-existe@gmail.com", estudiante).toBuilder()
+            .escuelaCodigo(soloEstudiante).build());
+
+        assertThat(usuarioRepository.existeAdministradorDeEscuela(conAdmin)).isTrue();
+        assertThat(usuarioRepository.existeAdministradorDeEscuela(soloEstudiante)).isFalse();
+        assertThat(usuarioRepository.existeAdministradorDeEscuela(UUID.randomUUID())).isFalse();
+    }
+
+    @Test
+    void buscarAdministradorDeEscuela_devuelveLaCuentaConSuRol() {
+        UUID escuela = UUID.randomUUID();
+        Usuario guardado = nuevoAdministrador("admin-busca@gmail.com", escuela);
+
+        Usuario encontrado = usuarioRepository.buscarAdministradorDeEscuela(escuela).orElseThrow();
+
+        assertThat(encontrado.getCodigo()).isEqualTo(guardado.getCodigo());
+        assertThat(encontrado.getRoles()).extracting(Rol::getNombre).containsExactly(RolNombres.ADMIN_ESCUELA);
+        assertThat(usuarioRepository.buscarAdministradorDeEscuela(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    void eliminarDefinitivamente_borraLaCuentaConTodoLoQueCuelgaDeEllaYLiberaElCorreo() {
+        UUID escuela = UUID.randomUUID();
+        Usuario admin = nuevoAdministrador("admin-borra@gmail.com", escuela);
+        refreshTokens.guardar(RefreshToken.builder().usuarioCodigo(admin.getCodigo()).tokenHash("r".repeat(64))
+            .dispositivo(Dispositivo.WEB).expiraEn(Instant.now().plusSeconds(3600)).build());
+        tokensDeCorreo.guardar(TokenRecuperacion.builder().usuarioCodigo(admin.getCodigo())
+            .tipo(TipoTokenCorreo.VERIFICACION).tokenHash("t".repeat(64)).expiraEn(Instant.now().plusSeconds(3600)).build());
+
+        usuarioRepository.eliminarDefinitivamente(admin.getCodigo());
+
+        assertThat(usuarioRepository.buscarPorCodigo(admin.getCodigo())).isEmpty();
+        assertThat(usuarioRepository.existePorEmail("admin-borra@gmail.com")).isFalse();
+        for (String tabla : new String[] {"usuario_rol", "refresh_token", "token_recuperacion"}) {
+            Integer filas = jdbc.queryForObject("SELECT count(*) FROM " + tabla + " WHERE usuario_id NOT IN"
+                + " (SELECT id FROM usuario)", Integer.class);
+            assertThat(filas).as("filas huérfanas en " + tabla).isZero();
+        }
+        // * El correo quedó libre: se puede volver a crear la cuenta
+        assertThat(nuevoAdministrador("admin-borra@gmail.com", escuela)).isNotNull();
     }
 }

@@ -18,7 +18,6 @@ import com.drivehub.escuela.application.dto.EscuelaPublicaOutput;
 import com.drivehub.escuela.common.exception.EscuelaErrorCodes;
 import com.drivehub.escuela.common.exception.NotFoundException;
 import com.drivehub.escuela.domain.entity.Escuela;
-import com.drivehub.escuela.domain.entity.EstadoEscuela;
 import com.drivehub.escuela.domain.repository.EscuelaRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,7 +34,7 @@ class ObtenerEscuelaPorSlugUseCaseTest {
         UUID codigo = UUID.randomUUID();
         when(escuelaRepository.buscarActivaPorSlug("escuelaexample")).thenReturn(Optional.of(
             Escuela.builder().codigo(codigo).slug("escuelaexample").nombre("Escuela Example")
-                .estado(EstadoEscuela.ACTIVA).build()));
+                .build()));
 
         EscuelaPublicaOutput resultado = useCase.ejecutar("escuelaexample");
 
@@ -57,7 +56,7 @@ class ObtenerEscuelaPorSlugUseCaseTest {
     void ejecutar_conMayusculasYEspacios_normalizaElSlugAntesDeBuscar() {
         when(escuelaRepository.buscarActivaPorSlug("escuelaexample")).thenReturn(Optional.of(
             Escuela.builder().codigo(UUID.randomUUID()).slug("escuelaexample").nombre("Escuela Example")
-                .estado(EstadoEscuela.ACTIVA).build()));
+                .build()));
 
         useCase.ejecutar("  EscuelaExample ");
 

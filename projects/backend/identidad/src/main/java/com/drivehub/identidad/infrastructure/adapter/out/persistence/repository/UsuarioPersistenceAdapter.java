@@ -8,10 +8,12 @@ import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.drivehub.identidad.common.exception.ConflictException;
 import com.drivehub.identidad.common.exception.IdentidadErrorCodes;
 import com.drivehub.identidad.domain.model.Rol;
+import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.out.UsuarioRepositoryPort;
 import com.drivehub.identidad.infrastructure.adapter.out.persistence.model.RolModel;
@@ -71,6 +73,26 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
     @Override
     public Optional<Usuario> buscarPorCodigo(UUID codigo) {
         return usuarioJpaRepository.findByCodigo(codigo).map(m -> aDominio(m, rolesDe(m)));
+    }
+
+    @Override
+    public boolean existeAdministradorDeEscuela(UUID escuelaCodigo) {
+        return usuarioRolJpaRepository.existeUsuarioConRolEnEscuela(escuelaCodigo, RolNombres.ADMIN_ESCUELA);
+    }
+
+    @Override
+    public Optional<Usuario> buscarAdministradorDeEscuela(UUID escuelaCodigo) {
+        return usuarioRolJpaRepository.findUsuariosConRolEnEscuela(escuelaCodigo, RolNombres.ADMIN_ESCUELA).stream()
+            .findFirst().map(m -> aDominio(m, rolesDe(m)));
+    }
+
+    @Override
+    @Transactional
+    public void eliminarDefinitivamente(UUID usuarioCodigo) {
+        usuarioJpaRepository.borrarRolesDe(usuarioCodigo);
+        usuarioJpaRepository.borrarSesionesDe(usuarioCodigo);
+        usuarioJpaRepository.borrarEnlacesDeCorreoDe(usuarioCodigo);
+        usuarioJpaRepository.borrarUsuario(usuarioCodigo);
     }
 
     @Override
