@@ -9,7 +9,7 @@ import { apiInterceptor } from './core/api/api.interceptor'
  * SUPER_ADMIN. Aparte de './routes' a propósito: esas son las del Administrador de escuela
  * (bajo /escuela) y el Super admin no las carga.
  *
- * * HttpClient se provee acá (a nivel de ruta), igual que en app.routes.ts.
+ * * Es UNA sola ruta: <dh-gestion> maneja por dentro el listado, crear y editar.
  */
 export const routes: Routes = [
   {
@@ -19,17 +19,7 @@ export const routes: Routes = [
       {
         path: '',
         loadComponent: () =>
-          import('./features/escuelas/screens/escuelas-lista').then((m) => m.EscuelasLista),
-      },
-      {
-        path: 'nueva',
-        loadComponent: () =>
-          import('./features/escuelas/screens/escuela-crear').then((m) => m.EscuelaCrear),
-      },
-      {
-        path: ':codigo/editar',
-        loadComponent: () =>
-          import('./features/escuelas/screens/escuela-editar').then((m) => m.EscuelaEditar),
+          import('./features/escuelas/screens/escuelas-gestion').then((m) => m.EscuelasGestion),
       },
     ],
   },

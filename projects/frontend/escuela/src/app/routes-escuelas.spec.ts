@@ -1,18 +1,13 @@
 import { routes as routesDelAdministrador } from './app.routes'
-import { EscuelaCrear } from './features/escuelas/screens/escuela-crear'
-import { EscuelaEditar } from './features/escuelas/screens/escuela-editar'
-import { EscuelasLista } from './features/escuelas/screens/escuelas-lista'
+import { EscuelasGestion } from './features/escuelas/screens/escuelas-gestion'
 import { routes } from './routes-escuelas'
 
 describe('routes-escuelas', () => {
   const hijas = routes[0].children ?? []
 
-  it('expone el listado, nueva y editar con los componentes correctos', async () => {
-    const componente = (path: string) => hijas.find((r) => r.path === path)?.loadComponent?.()
-
-    expect(await componente('')).toBe(EscuelasLista)
-    expect(await componente('nueva')).toBe(EscuelaCrear)
-    expect(await componente(':codigo/editar')).toBe(EscuelaEditar)
+  it('es una sola ruta hacia la pantalla de gestión', async () => {
+    expect(hijas).toHaveLength(1)
+    expect(await hijas[0].loadComponent?.()).toBe(EscuelasGestion)
   })
 
   it('provee HttpClient a nivel de ruta, como las demás rutas del remoto', () => {
