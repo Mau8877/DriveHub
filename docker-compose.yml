@@ -2,14 +2,19 @@ name: drivehub
 
 # * Perfiles: la infraestructura (bases, broker, storage) no tiene perfil y
 # * siempre arranca. El resto se activa con COMPOSE_PROFILES en el .env
-# * (por defecto `backend,frontend,observabilidad`, o sea todo). Para levantar
+# * (por defecto `backend,frontend`, o sea todo). Para levantar
 # * solo la infra y correr un servicio desde el IDE, dejar COMPOSE_PROFILES vacío.
+# * Perfil `extras` (no activo por defecto): pagos, academico, contenido, notificaciones,
+# * asistente-ia y sus bases (mongo, dynamodb, minio). Se suman con
+# * COMPOSE_PROFILES=backend,frontend,extras cuando hagan falta (consume bastante RAM).
 # * Puertos fijos por servicio (iguales dentro y fuera de Docker), ver
 # * docs/INFRAESTRUCTURA.md#puertos.
 
 x-spring-dev: &spring-dev
   image: maven:3.9-eclipse-temurin-21-alpine
   profiles: ['backend']
+  # * RAM acotada: Maven + la app corren como dos JVM dentro del contenedor.
+  mem_limit: 700m
   command: mvn spring-boot:run -Dspring-boot.run.profiles=dev
   networks:
     - drivehub-network
@@ -21,6 +26,7 @@ services:
   proxy:
     image: nginx:alpine
     container_name: drivehub-proxy
+    mem_limit: 64m
     profiles: ['frontend']
     # Si Docker Desktop lo mata a mitad de un restart, que reintente solo.
     restart: unless-stopped
@@ -47,6 +53,7 @@ services:
       - '8080:8080'
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - JAVA_TOOL_OPTIONS=-Xmx224m -Xms32m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:MaxMetaspaceSize=160m
       - IDENTIDAD_URL=http://drivehub-identidad:8081
       - ESCUELA_URL=http://drivehub-escuela:8082
       - PAGOS_URL=http://drivehub-pagos:8083
@@ -70,6 +77,7 @@ services:
       - '8081:8081'
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - JAVA_TOOL_OPTIONS=-Xmx224m -Xms32m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:MaxMetaspaceSize=160m
       # Testcontainers sobre el socket montado (ver nota de Docker Desktop en TESTING_BACKEND.md).
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=true
@@ -113,6 +121,7 @@ services:
       - '8082:8082'
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - JAVA_TOOL_OPTIONS=-Xmx224m -Xms32m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:MaxMetaspaceSize=160m
       # Testcontainers sobre el socket montado (ver nota de Docker Desktop en TESTING_BACKEND.md).
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=true
@@ -134,6 +143,7 @@ services:
   pagos:
     <<: *spring-dev
     container_name: drivehub-pagos
+    profiles: ['extras']
     working_dir: /app/projects/backend/pagos
     volumes:
       - .:/app
@@ -145,6 +155,7 @@ services:
       - '8083:8083'
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - JAVA_TOOL_OPTIONS=-Xmx224m -Xms32m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:MaxMetaspaceSize=160m
       # Testcontainers sobre el socket montado (ver nota de Docker Desktop en TESTING_BACKEND.md).
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=true
@@ -167,6 +178,7 @@ services:
   academico:
     <<: *spring-dev
     container_name: drivehub-academico
+    profiles: ['extras']
     working_dir: /app/projects/backend/academico
     volumes:
       - .:/app
@@ -178,6 +190,7 @@ services:
       - '8084:8084'
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - JAVA_TOOL_OPTIONS=-Xmx224m -Xms32m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:MaxMetaspaceSize=160m
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=true
       - SPRING_MONGODB_URI=mongodb://drivehub-mongo:27017/academico?replicaSet=rs0
@@ -198,7 +211,8 @@ services:
       context: ./projects/backend/contenido
       target: dev
     container_name: drivehub-contenido
-    profiles: ['backend']
+    mem_limit: 384m
+    profiles: ['extras']
     working_dir: /app
     volumes:
       - ./projects/backend/contenido:/app
@@ -225,7 +239,8 @@ services:
   notificaciones:
     image: node:24-alpine
     container_name: drivehub-notificaciones
-    profiles: ['backend']
+    mem_limit: 512m
+    profiles: ['extras']
     working_dir: /app/projects/backend/notificaciones
     volumes:
       - .:/app
@@ -241,6 +256,7 @@ services:
       - '8086:8086'
     environment:
       - NODE_ENV=development
+      - NODE_OPTIONS=--max-old-space-size=256
       - PORT=8086
       - DYNAMODB_ENDPOINT=http://drivehub-dynamodb:8000
       - AWS_REGION=${AWS_REGION}
@@ -261,7 +277,8 @@ services:
       context: ./projects/backend/asistente-ia
       target: dev
     container_name: drivehub-asistente-ia
-    profiles: ['backend']
+    mem_limit: 256m
+    profiles: ['extras']
     working_dir: /app
     volumes:
       - ./projects/backend/asistente-ia:/app
@@ -290,6 +307,9 @@ services:
   frontend:
     image: node:24-alpine
     container_name: drivehub-frontend
+    # * Solo shell + identidad (los 2 dev servers que hoy hacen falta). Para sumar un remoto: agregar
+    # * `--filter <app>` a los dos comandos de abajo (y su puerto ya esta publicado).
+    mem_limit: 1792m
     profiles: ['frontend']
     working_dir: /app
     volumes:
@@ -304,8 +324,8 @@ services:
       - frontend_nm_asistente_ia:/app/projects/frontend/asistente-ia/node_modules
     command: >
       sh -c "corepack enable pnpm &&
-      pnpm install --filter './projects/frontend/**' &&
-      pnpm --filter './projects/frontend/**' --parallel run dev"
+      pnpm install --filter shell --filter identidad &&
+      pnpm --filter shell --filter identidad --parallel run dev"
     ports:
       - '4200:4200'
       - '4201:4201'
@@ -316,6 +336,7 @@ services:
       - '4206:4206'
     environment:
       - NODE_ENV=development
+      - NODE_OPTIONS=--max-old-space-size=384
       - CHOKIDAR_USEPOLLING=true
       # Destino del proxy /api del dev server del shell (proxy.conf.mjs).
       - API_GATEWAY_URL=http://drivehub-gateway:8080
@@ -331,6 +352,7 @@ services:
   postgres:
     image: postgres:18-alpine
     container_name: drivehub-postgres
+    mem_limit: 256m
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -363,7 +385,9 @@ services:
   mongo:
     image: mongo:8
     container_name: drivehub-mongo
-    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+    profiles: ['extras']
+    mem_limit: 512m
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all', '--wiredTigerCacheSizeGB', '0.25']
     volumes:
       - mongo_data:/data/db
     ports:
@@ -389,6 +413,10 @@ services:
   dynamodb:
     image: amazon/dynamodb-local:latest
     container_name: drivehub-dynamodb
+    profiles: ['extras']
+    mem_limit: 384m
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx192m -XX:+UseSerialGC
     # * Corre como root para poder escribir en el volumen montado (la imagen
     # * usa un usuario sin permisos sobre /home/dynamodblocal/data).
     user: root
@@ -406,6 +434,7 @@ services:
   rabbitmq:
     image: rabbitmq:4-management-alpine
     container_name: drivehub-rabbitmq
+    mem_limit: 512m
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -433,6 +462,8 @@ services:
     image: cgr.dev/chainguard/minio:latest
     user: '0'
     container_name: drivehub-minio
+    profiles: ['extras']
+    mem_limit: 256m
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -459,6 +490,8 @@ services:
   minio-init:
     image: bitnamilegacy/minio-client:latest
     container_name: drivehub-minio-init
+    profiles: ['extras']
+    mem_limit: 64m
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
@@ -478,6 +511,7 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     container_name: drivehub-mailpit
+    mem_limit: 64m
     environment:
       MP_MAX_MESSAGES: 500
     ports:
@@ -490,33 +524,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # ---------------------------------------
-  # MÉTRICAS Y OBSERVABILIDAD
-  # ---------------------------------------
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: drivehub-prometheus
-    profiles: ['observabilidad']
-    volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - '9090:9090'
-    networks:
-      - drivehub-network
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: drivehub-grafana
-    profiles: ['observabilidad']
-    depends_on:
-      - prometheus
-    volumes:
-      - ./infrastructure/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-    ports:
-      - '3000:3000'
-    networks:
-      - drivehub-network
 
 # ---------------------------------------
 # REDES Y VOLÚMENES
