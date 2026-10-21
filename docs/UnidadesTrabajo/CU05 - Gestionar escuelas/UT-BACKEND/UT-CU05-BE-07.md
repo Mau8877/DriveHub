@@ -38,7 +38,6 @@ Archivos esperados (crear/tocar):
 - `projects/backend/escuela/src/main/java/com/drivehub/escuela/domain/gateway/AdministradorCreado.java`
 - `projects/backend/escuela/src/main/java/com/drivehub/escuela/domain/gateway/IdentidadNoDisponibleException.java`
 - `projects/backend/escuela/src/main/java/com/drivehub/escuela/infrastructure/client/AdministradorEscuelaRestClient.java`
-- `projects/backend/escuela/src/main/java/com/drivehub/escuela/infrastructure/config/RestClientConfig.java`
 - `projects/backend/escuela/src/main/resources/application.properties`
 - `projects/backend/escuela/src/test/java/com/drivehub/escuela/infrastructure/client/AdministradorEscuelaRestClientTest.java`
 - `.claude/rules/MICROSERVICIOS.md`

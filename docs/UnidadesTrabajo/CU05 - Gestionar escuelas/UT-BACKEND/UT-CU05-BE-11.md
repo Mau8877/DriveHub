@@ -34,8 +34,7 @@ Archivos esperados (crear/tocar):
 - `projects/backend/escuela/src/main/java/com/drivehub/escuela/application/usecase/DesactivarEscuelaUseCase.java`
 - `projects/backend/escuela/src/main/java/com/drivehub/escuela/application/usecase/ReactivarEscuelaUseCase.java`
 - `projects/backend/escuela/src/main/java/com/drivehub/escuela/common/exception/EscuelaErrorCodes.java`
-- `projects/backend/escuela/src/test/java/com/drivehub/escuela/application/usecase/DesactivarEscuelaUseCaseTest.java`
-- `projects/backend/escuela/src/test/java/com/drivehub/escuela/application/usecase/ReactivarEscuelaUseCaseTest.java`
+- `projects/backend/escuela/src/test/java/com/drivehub/escuela/application/usecase/DesactivarYReactivarEscuelaUseCaseTest.java`
 - `docs/errors/escuela/ERRORES_ESCUELA.md`
 - `docs/errors/README.md`
 

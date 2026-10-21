@@ -21,3 +21,36 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
   Identidad por la red interna al iniciar y renovar sesión (CU02); una escuela
   suspendida **sí** existe y se devuelve con `activa = false`.
 - **Dónde se lanza:** `ObtenerEscuelaPorCodigoUseCase.ejecutar()`
+
+## `ERR_ESC_03`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Ya existe una escuela con ese `slug`, activa o desactivada: el slug
+  sigue reservado aunque la escuela esté eliminada lógicamente (CU05). También se
+  responde si dos creaciones simultáneas chocan con el mismo slug.
+- **Dónde se lanza:** `CrearEscuelaUseCase.ejecutar()` y `EscuelaRepositoryImpl.guardar()`
+
+## `ERR_ESC_04`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se intentó desactivar una escuela que ya estaba inactiva (CU05). También
+  se responde si dos desactivaciones simultáneas chocan: la segunda no cambia nada.
+- **Dónde se lanza:** `DesactivarEscuelaUseCase.ejecutar()`
+
+## `ERR_ESC_05`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se intentó reactivar una escuela que ya estaba activa (CU05). También se
+  responde si dos reactivaciones simultáneas chocan: la segunda no cambia nada.
+- **Dónde se lanza:** `ReactivarEscuelaUseCase.ejecutar()`
+
+## `ERR_ESC_06`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se intentó editar el nombre de una escuela inactiva: primero hay que
+  reactivarla (CU05).
+- **Dónde se lanza:** `EditarEscuelaUseCase.ejecutar()`

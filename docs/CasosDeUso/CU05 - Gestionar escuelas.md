@@ -2,7 +2,7 @@
 
 | Id   | Nombre            | Paquete                | Prioridad | Estado    |
 | ---- | ----------------- | ---------------------- | --------- | --------- |
-| CU05 | Gestionar escuelas | P1. Identidad y acceso | Alta      | Pendiente |
+| CU05 | Gestionar escuelas | P1. Identidad y acceso | Alta      | Hecho |
 
 **Actor principal:** Super admin
 **Actores secundarios:** Administrador de escuela (la cuenta que se crea junto con la escuela)

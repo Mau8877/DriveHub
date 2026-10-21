@@ -217,7 +217,7 @@ Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b) y resta
 
 ## 3. Escuela — PostgreSQL
 
-Escuelas (tenants), personas de la escuela, flota y asignaciones. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01).
+Escuelas (tenants), personas de la escuela, flota y asignaciones. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05).
 
 ```mermaid
 erDiagram
@@ -235,7 +235,7 @@ erDiagram
         bigint id PK
         uuid codigo_escuela UK
         varchar slug UK
-        varchar estado
+        timestamptz deleted_at "NULL = activa"
     }
     categoria_licencia {
         bigint id PK
@@ -264,14 +264,16 @@ erDiagram
 
 ### `escuela`
 
-El **tenant** de la plataforma SaaS: cada autoescuela cliente es una fila. CU01, CU02.
+El **tenant** de la plataforma SaaS: cada autoescuela cliente es una fila. CU01, CU02, CU05.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `codigo_escuela` | `UUID NOT NULL UNIQUE` | Es el `escuela_codigo` que guardan los demás servicios |
 | `slug` | `VARCHAR(60) NOT NULL UNIQUE` | Identificador legible del enlace de registro (`/register/{slug}`) |
 | `nombre` | `VARCHAR(120) NOT NULL` | |
-| `estado` | `VARCHAR(10) NOT NULL DEFAULT 'ACTIVA'` | `CHECK IN ('ACTIVA','INACTIVA')`. Una escuela inactiva no admite registros ni inicios de sesión |
+| `deleted_at` | `TIMESTAMPTZ` | Borrado lógico y **única fuente del estado**: activa si es `NULL`, inactiva si tiene fecha. Una escuela inactiva no admite registros ni inicios de sesión de nadie de ella. Desactivar es poner la fecha y reactivar es quitarla (CU05) |
+
+La columna `estado` (`ACTIVA`/`INACTIVA`) se **eliminó** en `V20261021100000`: era una segunda fuente que podía contradecir a `deleted_at`; la migración pasó a borrado lógico las filas que estaban `INACTIVA`. Como el filtro automático de soft delete oculta las filas eliminadas, el listado, la consulta por código y la unicidad del `slug` (que sigue reservado aunque la escuela esté eliminada) usan consultas nativas.
 
 En `dev` se siembra `escuelaexample` con código fijo `0198f0a0-0000-7000-8000-000000000001`.
 

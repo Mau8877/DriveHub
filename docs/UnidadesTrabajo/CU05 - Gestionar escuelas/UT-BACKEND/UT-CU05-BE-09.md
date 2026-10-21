@@ -22,7 +22,7 @@ Un caso de uso devuelve el listado paginado con búsqueda y filtro de estado.
 
 ## Alcance
 
-- `application/usecase/ListarEscuelasUseCase.ejecutar(ListarEscuelasInput)` con `@PreAuthorize("hasRole('SUPER_ADMIN')")` y `@Transactional(readOnly = true)`. `ListarEscuelasInput` (`pagina`, `tamano`, `busqueda`, `estado`); `application/dto/EscuelaListadaOutput` (`codigo`, `slug`, `nombre`, `estado`, `creadoEn`) y `application/dto/PaginaOutput<T>` (`elementos`, `pagina`, `tamano`, `totalElementos`, `totalPaginas`).
+- `application/usecase/ListarEscuelasUseCase.ejecutar(ListarEscuelasInput)` con `@PreAuthorize("hasRole('SUPER_ADMIN')")` y `@Transactional(readOnly = true)`. `ListarEscuelasInput` (`pagina`, `tamano`, `busqueda`, `estado`); `application/dto/EscuelaOutput` (`codigo`, `slug`, `nombre`, `estado`, `creadoEn`; lo reutilizan editar y reactivar) y `application/dto/PaginaOutput<T>` (`elementos`, `pagina`, `tamano`, `totalElementos`, `totalPaginas`).
 - Valores por defecto: `pagina` 1, `tamano` 20; el tamaño máximo es 100 (más se recorta a 100); `busqueda` vacía equivale a no filtrar; `estado` vacío devuelve activas e inactivas.
 - Sin log por lectura (LOGGING_BACKEND.md: no se loguea cada `GET`).
 - Tests unitarios con el repositorio mockeado: valores por defecto, recorte del tamaño, cálculo de `totalPaginas` (listado vacío: 0 elementos y 0 páginas) y que traduce el estado a `ACTIVA`/`INACTIVA`.
@@ -31,7 +31,7 @@ Archivos esperados (crear/tocar):
 
 - `projects/backend/escuela/src/main/java/com/drivehub/escuela/application/usecase/ListarEscuelasUseCase.java`
 - `projects/backend/escuela/src/main/java/com/drivehub/escuela/application/dto/ListarEscuelasInput.java`
-- `projects/backend/escuela/src/main/java/com/drivehub/escuela/application/dto/EscuelaListadaOutput.java`
+- `projects/backend/escuela/src/main/java/com/drivehub/escuela/application/dto/EscuelaOutput.java`
 - `projects/backend/escuela/src/main/java/com/drivehub/escuela/application/dto/PaginaOutput.java`
 - `projects/backend/escuela/src/test/java/com/drivehub/escuela/application/usecase/ListarEscuelasUseCaseTest.java`
 

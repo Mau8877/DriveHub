@@ -64,9 +64,10 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
 
 - **HTTP:** 403
 - **Excepción:** `ForbiddenException`
-- **Significado:** La escuela de la cuenta está suspendida o inactiva (o no se
-  encontró), al iniciar o renovar la sesión. El Super admin no pertenece a ninguna
-  escuela y no se ve afectado (CU02).
+- **Significado:** La escuela de la cuenta está inactiva (la desactivó el Super admin, CU05)
+  o ya no existe, al iniciar o renovar la sesión. Afecta a todas las cuentas de esa escuela:
+  Administrador, Instructores y Estudiantes. El mensaje es "Tu escuela está inactiva. Contacta al administrador de la plataforma". El Super admin no
+  pertenece a ninguna escuela y no se ve afectado (CU02).
 - **Dónde se lanza:** `SesionEmisora.verificarEscuelaActiva()` (usada por
   `IniciarSesionService.iniciar()` y `RenovarSesionService.renovar()`)
 
@@ -108,3 +109,21 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
   casos para no revelar cuál fue (CU04b, CU04).
 - **Dónde se lanza:** `ConfirmarCorreoService.confirmar()` (CU04 lo reutiliza en
   `RestablecerContrasenaService`)
+
+## `ERR_IDE_12`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La escuela ya tiene un Administrador: se intentó crear una segunda
+  cuenta `ADMIN_ESCUELA` para el mismo `escuela_codigo` (CU05). Una escuela tiene un solo
+  Administrador.
+- **Dónde se lanza:** `CrearAdministradorEscuelaService.crear()`
+
+## `ERR_IDE_13`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se intentó revertir al Administrador de una escuela, pero esa cuenta ya
+  inició sesión alguna vez y se considera en uso: no se borra (CU05). Solo se puede
+  revertir una cuenta que nunca se usó.
+- **Dónde se lanza:** `RevertirAdministradorEscuelaService.revertir()`

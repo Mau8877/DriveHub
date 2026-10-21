@@ -25,7 +25,9 @@ Existen `POST` y `DELETE /api/v1/usuarios/administradores-escuela`, solo para el
 - `UsuarioController` (recurso `usuarios`) suma `POST /api/v1/usuarios/administradores-escuela` → `201`, `data`: `AdministradorEscuelaResponse` (`codigo`, `email`, `nombres`, `apellidos`, `escuelaCodigo`); y `DELETE /api/v1/usuarios/administradores-escuela?escuelaCodigo={uuid}` → `200`, `data: null`, mensaje "Administrador revertido correctamente" (también cuando no había nada que revertir).
 - `CrearAdministradorEscuelaRequest`: mismas validaciones que `RegistrarEstudianteRequest` (obligatorios, correo válido, contraseña de 9 caracteres como mínimo, longitudes) más `escuelaCodigo` (`@NotNull`). La contraseña no se devuelve nunca.
 - `SecurityConfig` **no** suma `permitAll`: ambos endpoints exigen token y la autorización por rol queda en los casos de uso (UT 03 y 04).
-- `@WebMvcTest` (importando `SecurityConfig`): sin token → 401; con rol `ADMIN_ESCUELA` → 403 y el caso de uso no se invoca; con `SUPER_ADMIN` → 201 y el sobre estándar; campos inválidos → 400 `ERR_SYS_01` sin llamar al caso de uso; `ERR_IDE_01`, `ERR_IDE_02`, `ERR_IDE_12` y `ERR_IDE_13` llegan con su HTTP; `DELETE` sin `escuelaCodigo` → 400.
+- `GlobalExceptionHandler`: un parámetro de la URL que falta o no es un UUID (`MissingServletRequestParameterException`, `MethodArgumentTypeMismatchException`) responde 400 `ERR_SYS_01` y no 500.
+- `@WebMvcTest` (importando `SecurityConfig`, casos de uso simulados): sin token → 401; con sesión → 201 y el sobre estándar sin contraseña; campos inválidos → 400 `ERR_SYS_01` sin llamar al caso de uso; `ERR_IDE_01`, `ERR_IDE_02`, `ERR_IDE_12` y `ERR_IDE_13` llegan con su HTTP; `DELETE` sin `escuelaCodigo` o con uno que no es UUID → 400.
+- Prueba de integración con los servicios reales (`AdministradorEscuelaIntegrationTest`, Postgres real): **aquí se ejerce el rol**, porque el `@PreAuthorize` vive en el caso de uso y un caso de uso simulado no lo ejecuta: sin token → 401; `ADMIN_ESCUELA` y `ESTUDIANTE` → 403 y no se crea nada; `SUPER_ADMIN` crea, revierte (idempotente) y recibe `ERR_IDE_13` si el Administrador ya inició sesión.
 
 Archivos esperados (crear/tocar):
 
@@ -33,6 +35,8 @@ Archivos esperados (crear/tocar):
 - `projects/backend/identidad/src/main/java/com/drivehub/identidad/infrastructure/adapter/in/web/CrearAdministradorEscuelaRequest.java`
 - `projects/backend/identidad/src/main/java/com/drivehub/identidad/infrastructure/adapter/in/web/AdministradorEscuelaResponse.java`
 - `projects/backend/identidad/src/test/java/com/drivehub/identidad/infrastructure/adapter/in/web/UsuarioControllerTest.java`
+- `projects/backend/identidad/src/test/java/com/drivehub/identidad/AdministradorEscuelaIntegrationTest.java`
+- `projects/backend/identidad/src/main/java/com/drivehub/identidad/common/exception/GlobalExceptionHandler.java`
 
 ## Fuera de alcance (no tocar)
 

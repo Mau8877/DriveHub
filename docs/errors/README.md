@@ -53,11 +53,17 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IDE_09`](identidad/ERRORES_IDENTIDAD.md#err_ide_09) — Sesión renovable inválida, vencida o ya usada (401)
 - [`ERR_IDE_10`](identidad/ERRORES_IDENTIDAD.md#err_ide_10) — El correo de la cuenta ya está verificado (409)
 - [`ERR_IDE_11`](identidad/ERRORES_IDENTIDAD.md#err_ide_11) — Enlace de verificación o recuperación inválido, vencido o ya usado (400)
+- [`ERR_IDE_12`](identidad/ERRORES_IDENTIDAD.md#err_ide_12) — La escuela ya tiene un Administrador (409)
+- [`ERR_IDE_13`](identidad/ERRORES_IDENTIDAD.md#err_ide_13) — El Administrador ya inició sesión y no se puede revertir (409)
 
 ### Escuela (`ESC`)
 
 - [`ERR_ESC_01`](escuela/ERRORES_ESCUELA.md#err_esc_01) — La escuela no existe o está inactiva (404)
 - [`ERR_ESC_02`](escuela/ERRORES_ESCUELA.md#err_esc_02) — No existe la escuela con ese código (404)
+- [`ERR_ESC_03`](escuela/ERRORES_ESCUELA.md#err_esc_03) — Ya existe una escuela con ese slug (409)
+- [`ERR_ESC_04`](escuela/ERRORES_ESCUELA.md#err_esc_04) — La escuela ya estaba inactiva (409)
+- [`ERR_ESC_05`](escuela/ERRORES_ESCUELA.md#err_esc_05) — La escuela ya estaba activa (409)
+- [`ERR_ESC_06`](escuela/ERRORES_ESCUELA.md#err_esc_06) — La escuela está inactiva y no se puede editar (409)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su
