@@ -53,6 +53,19 @@ que el esquema solo dice el `recurso` (`/api/v1/{recurso}`).
   (recurso, filtros, acciones, errores de campo y reglas de validación),
   usando `validar` de `@drivehub/gestion`.
 
+## La tabla
+
+- **Siempre lleva una primera columna `Nro`**, de 1 a N, que sigue contando entre
+  páginas (la página 2 con 20 por página empieza en 21). La pone el componente: el
+  esquema no la declara.
+- **Anchos fijos** (`table-layout: fixed`): cada columna mide lo mismo en todas las
+  filas y páginas, así los datos quedan bajo su encabezado. Las columnas de insignia
+  y fecha son cortas por defecto (8rem), Acciones mide 13rem y el resto reparte lo que
+  sobra. Una columna que necesite otro ancho lo declara con `ancho: '12rem'` en el
+  esquema; no se tocan los estilos para una sola pantalla.
+- La pantalla de gestión ocupa todo el ancho disponible del contenido (sin
+  `max-width`); solo el formulario de crear/editar tiene un ancho acotado.
+
 ## Cómo se usa en cada framework
 
 **Angular** (remotos `identidad`, `escuela`, `pagos`): un componente de
@@ -84,6 +97,14 @@ El componente usa **solo tokens** (`var(--primary)`, `var(--border)`...),
 nunca colores propios. El aspecto de todas las pantallas de gestión cambia
 en `packages/gestion/src/estilos.js` o en `tokens.css`, no pantalla por
 pantalla. Ver [TAILWIND_STYLES_FRONTEND.md](TAILWIND_STYLES_FRONTEND.md).
+
+## Desarrollo: si un cambio del paquete no se ve
+
+El servidor de desarrollo de una app Angular guarda una copia empaquetada del paquete
+en `.angular/cache/<versión>/<app>/vite`. Si editas `packages/gestion` y el navegador
+sigue mostrando lo anterior, esa caché quedó vieja: se borra y se reinicia el servicio
+(en Docker: `docker compose exec frontend rm -rf /app/projects/frontend/<app>/.angular/cache/*/<app>/vite`
+y `docker compose restart frontend`). No es un bug del componente.
 
 ## Tests del paquete
 
