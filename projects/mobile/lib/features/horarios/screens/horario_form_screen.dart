@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../models/crear_plantilla_horario_request.dart';
 import '../models/fechas.dart';
 import '../providers/horarios_provider.dart';
 import '../validators/horarios_validators.dart';
+import '../widgets/dias_semana.dart';
 import '../widgets/errores.dart';
 
-/// Formulario de un horario nuevo (CU12).
+/// Duraciones que ofrece el formulario (el backend acepta de 15 a 240 minutos).
+const List<int> _duracionesDeClase = [45, 60, 90];
+
+/// Formulario de un horario nuevo (CU12): nombre, varios días, ventana de horas, duración y vigencia.
 ///
 /// * Las reglas de validación son las del backend (horarios_validators.dart). El cruce con otros
 /// * horarios solo lo sabe el backend: su error (`ERR_ACA_04`) se muestra arriba del botón.
+/// * La vista previa de franjas se calcula en el teléfono: es solo una ayuda, el backend es quien genera.
 class HorarioFormScreen extends ConsumerStatefulWidget {
   const HorarioFormScreen({super.key});
 
@@ -21,16 +28,18 @@ class HorarioFormScreen extends ConsumerStatefulWidget {
 
 class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nombre = TextEditingController();
   final _horaInicio = TextEditingController();
   final _horaFin = TextEditingController();
-  final _duracion = TextEditingController(text: '60');
   final _desde = TextEditingController();
   final _hasta = TextEditingController();
 
-  int _diaSemana = 1;
+  final Set<int> _dias = {};
+  int _duracion = 60;
   DateTime? _vigenteDesde;
   DateTime? _vigenteHasta;
   bool _enviando = false;
+  bool _intentoEnviar = false;
   String? _errorGeneral;
 
   late final DateTime _hoy = soloFecha(DateTime.now());
@@ -44,7 +53,7 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
 
   @override
   void dispose() {
-    for (final c in [_horaInicio, _horaFin, _duracion, _desde, _hasta]) {
+    for (final c in [_nombre, _horaInicio, _horaFin, _desde, _hasta]) {
       c.dispose();
     }
     super.dispose();
@@ -61,8 +70,7 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
   /// defecto, queda un horario de una sola franja); sin hora de inicio, las 12:00.
   TimeOfDay _finSugerido() {
     final inicio = _horaInicial(_horaInicio, const TimeOfDay(hour: 11, minute: 0));
-    final clase = int.tryParse(_duracion.text.trim()) ?? 60;
-    final minutos = (inicio.hour * 60 + inicio.minute + clase).clamp(0, 23 * 60 + 59);
+    final minutos = (inicio.hour * 60 + inicio.minute + _duracion).clamp(0, 23 * 60 + 59);
     return TimeOfDay(hour: minutos ~/ 60, minute: minutos % 60);
   }
 
@@ -70,10 +78,8 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
     final elegida = await showTimePicker(
       context: context,
       initialTime: _horaInicial(controlador, porDefecto),
-      builder: (contexto, hijo) => MediaQuery(
-        data: MediaQuery.of(contexto).copyWith(alwaysUse24HourFormat: true),
-        child: hijo!,
-      ),
+      builder: (contexto, hijo) =>
+          MediaQuery(data: MediaQuery.of(contexto).copyWith(alwaysUse24HourFormat: true), child: hijo!),
     );
     if (elegida == null) return;
     setState(() => controlador.text = horaParaApi(elegida.hour, elegida.minute));
@@ -115,9 +121,17 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
     _hasta.clear();
   });
 
+  void _alternarDia(int dia) => setState(() {
+    if (!_dias.remove(dia)) _dias.add(dia);
+  });
+
   Future<void> _guardar() async {
-    setState(() => _errorGeneral = null);
-    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _errorGeneral = null;
+      _intentoEnviar = true;
+    });
+    final formularioValido = _formKey.currentState!.validate();
+    if (!formularioValido || validarDias(_dias) != null) return;
 
     final mensajes = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
@@ -127,10 +141,11 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
           .read(horariosProvider.notifier)
           .crear(
             CrearPlantillaHorarioRequest(
-              diaSemana: _diaSemana,
+              nombre: _nombre.text.trim(),
+              diasSemana: _dias.toList()..sort(),
               horaInicio: _horaInicio.text,
               horaFin: _horaFin.text,
-              duracionClaseMin: int.parse(_duracion.text.trim()),
+              duracionClaseMin: _duracion,
               vigenteDesde: _vigenteDesde,
               vigenteHasta: _vigenteHasta,
             ),
@@ -147,113 +162,245 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final errorDeDias = _intentoEnviar ? validarDias(_dias) : null;
+    final vista = vistaPreviaFranjas(
+      horaInicio: _horaInicio.text,
+      horaFin: _horaFin.text,
+      duracionMin: _duracion,
+      cantidadDias: _dias.length,
+    );
+
     return Scaffold(
       appBar: AppBar(title: const Text('Nuevo horario')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.md, AppSpace.lg, AppSpace.lg),
         child: Form(
           key: _formKey,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DropdownButtonFormField<int>(
-                key: const Key('campoDia'),
-                initialValue: _diaSemana,
-                decoration: const InputDecoration(labelText: 'Día de la semana'),
-                items: [
-                  for (var dia = 1; dia <= 7; dia++)
-                    DropdownMenuItem(
-                      value: dia,
-                      child: Text('${nombreDeDia(dia)[0].toUpperCase()}${nombreDeDia(dia).substring(1)}'),
+              _Etiqueta('Nombre', tema),
+              TextFormField(
+                key: const Key('campoNombre'),
+                controller: _nombre,
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: [LengthLimitingTextInputFormatter(nombreMaximo)],
+                decoration: const InputDecoration(hintText: 'Por ejemplo, Mañanas entre semana'),
+                validator: validarNombre,
+              ),
+              const SizedBox(height: AppSpace.lg),
+              _Etiqueta('¿Qué días atiendes?', tema),
+              SelectorDeDias(seleccionados: _dias, alAlternar: _alternarDia),
+              if (errorDeDias != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpace.sm),
+                  child: Text(
+                    errorDeDias,
+                    key: const Key('errorDias'),
+                    style: tema.textTheme.bodyMedium?.copyWith(color: tema.colorScheme.error),
+                  ),
+                ),
+              const SizedBox(height: AppSpace.lg),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _campoHora(
+                      etiqueta: 'Desde las',
+                      clave: 'campoHoraInicio',
+                      controlador: _horaInicio,
+                      porDefecto: const TimeOfDay(hour: 8, minute: 0),
+                      validador: validarHoraInicio,
                     ),
+                  ),
+                  const SizedBox(width: AppSpace.md),
+                  Expanded(
+                    child: _campoHora(
+                      etiqueta: 'Hasta las',
+                      clave: 'campoHoraFin',
+                      controlador: _horaFin,
+                      sugerida: _finSugerido,
+                      validador: (valor) =>
+                          validarHoraFin(_horaInicio.text, valor) ??
+                          validarVentana(_horaInicio.text, valor, _duracion.toString()),
+                    ),
+                  ),
                 ],
-                onChanged: (valor) => setState(() => _diaSemana = valor ?? 1),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const Key('campoHoraInicio'),
-                controller: _horaInicio,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Hora de inicio',
-                  suffixIcon: Icon(Icons.schedule_outlined),
-                ),
-                onTap: () => _elegirHora(_horaInicio, const TimeOfDay(hour: 8, minute: 0)),
-                validator: validarHoraInicio,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const Key('campoHoraFin'),
-                controller: _horaFin,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Hora de fin',
-                  suffixIcon: Icon(Icons.schedule_outlined),
-                ),
-                onTap: () => _elegirHora(_horaFin, _finSugerido()),
-                validator: (valor) =>
-                    validarHoraFin(_horaInicio.text, valor) ??
-                    validarVentana(_horaInicio.text, valor, _duracion.text),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
+              const SizedBox(height: AppSpace.lg),
+              _Etiqueta('Duración de cada clase', tema),
+              SegmentedButton<int>(
                 key: const Key('campoDuracion'),
-                controller: _duracion,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Duración de cada clase (minutos)'),
-                validator: (valor) =>
-                    validarDuracion(valor) ?? validarVentana(_horaInicio.text, _horaFin.text, valor),
+                segments: [
+                  for (final minutos in _duracionesDeClase) ButtonSegment(value: minutos, label: Text('$minutos min')),
+                ],
+                selected: {_duracion},
+                onSelectionChanged: (elegida) => setState(() => _duracion = elegida.first),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const Key('campoDesde'),
-                controller: _desde,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Vigente desde',
-                  suffixIcon: Icon(Icons.calendar_today_outlined),
-                ),
-                onTap: _elegirDesde,
-                validator: (_) => validarVigenteDesde(_vigenteDesde, hoy: _hoy),
+              const SizedBox(height: AppSpace.lg),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _campoFecha(
+                      etiqueta: 'Vigente desde',
+                      clave: 'campoDesde',
+                      controlador: _desde,
+                      alTocar: _elegirDesde,
+                      validador: (_) => validarVigenteDesde(_vigenteDesde, hoy: _hoy),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpace.md),
+                  Expanded(
+                    child: _campoFecha(
+                      etiqueta: 'Hasta (opcional)',
+                      clave: 'campoHasta',
+                      controlador: _hasta,
+                      alTocar: _elegirHasta,
+                      quitar: _vigenteHasta == null ? null : _limpiarHasta,
+                      validador: (_) => validarVigenteHasta(_vigenteHasta, _vigenteDesde, hoy: _hoy),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const Key('campoHasta'),
-                controller: _hasta,
-                readOnly: true,
-                decoration: InputDecoration(
-                  labelText: 'Vigente hasta (opcional)',
-                  suffixIcon: _vigenteHasta == null
-                      ? const Icon(Icons.calendar_today_outlined)
-                      : IconButton(
-                          tooltip: 'Quitar fecha',
-                          icon: const Icon(Icons.clear),
-                          onPressed: _limpiarHasta,
-                        ),
-                ),
-                onTap: _elegirHasta,
-                validator: (_) => validarVigenteHasta(_vigenteHasta, _vigenteDesde, hoy: _hoy),
-              ),
+              const SizedBox(height: AppSpace.lg),
+              _VistaPrevia(vista: vista),
               if (_errorGeneral != null) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpace.lg),
                 Text(
                   _errorGeneral!,
                   key: const Key('errorGeneral'),
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(color: tema.colorScheme.error),
                 ),
               ],
-              const SizedBox(height: 24),
-              FilledButton(
-                key: const Key('botonGuardarHorario'),
-                onPressed: _enviando ? null : _guardar,
-                child: _enviando
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Guardar'),
-              ),
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.sm, AppSpace.lg, AppSpace.lg),
+          child: FilledButton(
+            key: const Key('botonGuardarHorario'),
+            onPressed: _enviando ? null : _guardar,
+            child: _enviando
+                ? const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                      SizedBox(width: AppSpace.sm),
+                      Text('Guardando…'),
+                    ],
+                  )
+                : const Text('Guardar horario'),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _campoHora({
+    required String etiqueta,
+    required String clave,
+    required TextEditingController controlador,
+    required String? Function(String?) validador,
+    TimeOfDay porDefecto = const TimeOfDay(hour: 12, minute: 0),
+    TimeOfDay Function()? sugerida,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Etiqueta(etiqueta, Theme.of(context)),
+        TextFormField(
+          key: Key(clave),
+          controller: controlador,
+          readOnly: true,
+          decoration: const InputDecoration(prefixIcon: Icon(Icons.schedule_outlined)),
+          onTap: () => _elegirHora(controlador, sugerida?.call() ?? porDefecto),
+          validator: validador,
+        ),
+      ],
+    );
+  }
+
+  Widget _campoFecha({
+    required String etiqueta,
+    required String clave,
+    required TextEditingController controlador,
+    required VoidCallback alTocar,
+    required String? Function(String?) validador,
+    VoidCallback? quitar,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Etiqueta(etiqueta, Theme.of(context)),
+        TextFormField(
+          key: Key(clave),
+          controller: controlador,
+          readOnly: true,
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.calendar_today_outlined),
+            suffixIcon: quitar == null
+                ? null
+                : IconButton(tooltip: 'Quitar fecha', icon: const Icon(Icons.clear), onPressed: quitar),
+          ),
+          onTap: alTocar,
+          validator: validador,
+        ),
+      ],
+    );
+  }
+}
+
+class _Etiqueta extends StatelessWidget {
+  final String texto;
+  final ThemeData tema;
+
+  const _Etiqueta(this.texto, this.tema);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 0, 0, 6),
+      child: Text(texto, style: tema.textTheme.labelMedium),
+    );
+  }
+}
+
+/// «Se crearán N franjas por día, M por semana», recalculado con cada cambio del formulario.
+class _VistaPrevia extends StatelessWidget {
+  final ({int porDia, int porSemana})? vista;
+
+  const _VistaPrevia({required this.vista});
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final texto = vista == null
+        ? 'Elige los días y las horas para ver cuántas franjas se crearán.'
+        : 'Se crearán ${vista!.porDia} ${vista!.porDia == 1 ? 'franja' : 'franjas'} por día, ${vista!.porSemana} por semana.';
+
+    return Container(
+      key: const Key('vistaPrevia'),
+      padding: const EdgeInsets.all(AppSpace.lg),
+      decoration: BoxDecoration(
+        color: tema.colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(AppRadius.textarea),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.schedule, color: tema.colorScheme.onSecondaryContainer),
+          const SizedBox(width: AppSpace.md),
+          Expanded(
+            child: Text(
+              texto,
+              style: tema.textTheme.bodyMedium?.copyWith(color: tema.colorScheme.onSecondaryContainer),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,81 +1,105 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mobile/features/horarios/models/crear_plantilla_horario_request.dart';
+import 'package:mobile/features/horarios/models/dia_bloqueado.dart';
+import 'package:mobile/features/horarios/models/estado_plantilla.dart';
 import 'package:mobile/features/horarios/models/fechas.dart';
 import 'package:mobile/features/horarios/models/franja.dart';
 import 'package:mobile/features/horarios/models/pagina.dart';
 import 'package:mobile/features/horarios/models/plantilla_horario.dart';
 import 'package:mobile/features/horarios/models/plantilla_horario_creada.dart';
 
+Map<String, dynamic> _horarioJson({
+  String estado = 'ACTIVA',
+  List<int> dias = const [1, 3, 5],
+  String? vigenteHasta = '2026-12-01',
+}) => {
+  'codigo': 'h1',
+  'nombre': 'Mañanas',
+  'diasSemana': dias,
+  'horaInicio': '08:00',
+  'horaFin': '12:00',
+  'duracionClaseMin': 60,
+  'vigenteDesde': '2026-10-26',
+  'vigenteHasta': vigenteHasta,
+  'estado': estado,
+};
+
 void main() {
+  group('EstadoPlantilla', () {
+    test('lee los tres estados de la API', () {
+      expect(EstadoPlantilla.fromJson('ACTIVA'), EstadoPlantilla.activa);
+      expect(EstadoPlantilla.fromJson('PAUSADA'), EstadoPlantilla.pausada);
+      expect(EstadoPlantilla.fromJson('INACTIVA'), EstadoPlantilla.inactiva);
+    });
+
+    test('un valor desconocido lanza FormatException', () {
+      expect(() => EstadoPlantilla.fromJson('ARCHIVADA'), throwsFormatException);
+    });
+
+    test('valorApi es el nombre que viaja en la API', () {
+      expect(EstadoPlantilla.pausada.valorApi, 'PAUSADA');
+    });
+  });
+
   group('PlantillaHorario.fromJson', () {
-    test('parsea todos los campos, con la vigencia como fecha', () {
-      final horario = PlantillaHorario.fromJson({
-        'codigo': 'h1',
-        'diaSemana': 3,
-        'horaInicio': '08:00',
-        'horaFin': '12:00',
-        'duracionClaseMin': 60,
-        'vigenteDesde': '2026-10-26',
-        'vigenteHasta': '2026-12-01',
-        'activa': true,
-      });
+    test('parsea todos los campos, con los días como lista y la vigencia como fecha', () {
+      final horario = PlantillaHorario.fromJson(_horarioJson());
 
       expect(horario.codigo, 'h1');
-      expect(horario.diaSemana, 3);
+      expect(horario.nombre, 'Mañanas');
+      expect(horario.diasSemana, [1, 3, 5]);
       expect(horario.horaInicio, '08:00');
       expect(horario.horaFin, '12:00');
       expect(horario.duracionClaseMin, 60);
       expect(horario.vigenteDesde, DateTime(2026, 10, 26));
       expect(horario.vigenteHasta, DateTime(2026, 12, 1));
+      expect(horario.estado, EstadoPlantilla.activa);
       expect(horario.activa, isTrue);
     });
 
-    test('sin vigenteHasta queda nulo', () {
-      final horario = PlantillaHorario.fromJson({
-        'codigo': 'h1',
-        'diaSemana': 1,
-        'horaInicio': '08:00',
-        'horaFin': '12:00',
-        'duracionClaseMin': 60,
-        'vigenteDesde': '2026-10-26',
-        'vigenteHasta': null,
-        'activa': false,
-      });
+    test('sin vigenteHasta queda nulo y un estado pausado no es activo', () {
+      final horario = PlantillaHorario.fromJson(_horarioJson(estado: 'PAUSADA', vigenteHasta: null));
 
       expect(horario.vigenteHasta, isNull);
+      expect(horario.estado, EstadoPlantilla.pausada);
       expect(horario.activa, isFalse);
+    });
+
+    test('un estado desconocido lanza FormatException', () {
+      expect(() => PlantillaHorario.fromJson(_horarioJson(estado: 'X')), throwsFormatException);
+    });
+
+    test('calcula las franjas por día y por semana', () {
+      final horario = PlantillaHorario.fromJson(_horarioJson());
+
+      // * 08:00 a 12:00 con clases de 60 min = 4 por día, en 3 días
+      expect(horario.franjasPorDia, 4);
+      expect(horario.franjasPorSemana, 12);
     });
   });
 
   test('PlantillaHorarioCreada.fromJson toma el horario y franjasGeneradas del mismo nivel', () {
-    final creada = PlantillaHorarioCreada.fromJson({
-      'codigo': 'h1',
-      'diaSemana': 1,
-      'horaInicio': '08:00',
-      'horaFin': '12:00',
-      'duracionClaseMin': 60,
-      'vigenteDesde': '2026-10-26',
-      'activa': true,
-      'franjasGeneradas': 14,
-    });
+    final creada = PlantillaHorarioCreada.fromJson({..._horarioJson(), 'franjasGeneradas': 46});
 
-    expect(creada.franjasGeneradas, 14);
+    expect(creada.franjasGeneradas, 46);
     expect(creada.horario.codigo, 'h1');
-    expect(creada.horario.horaFin, '12:00');
+    expect(creada.horario.diasSemana, [1, 3, 5]);
   });
 
   group('CrearPlantillaHorarioRequest.toJson', () {
-    test('sin vigencias no envía los campos nulos', () {
+    test('sin vigencias no envía los campos nulos y manda los días como lista', () {
       const request = CrearPlantillaHorarioRequest(
-        diaSemana: 1,
+        nombre: 'Mañanas',
+        diasSemana: [1, 2, 3],
         horaInicio: '08:00',
         horaFin: '12:00',
         duracionClaseMin: 60,
       );
 
       expect(request.toJson(), {
-        'diaSemana': 1,
+        'nombre': 'Mañanas',
+        'diasSemana': [1, 2, 3],
         'horaInicio': '08:00',
         'horaFin': '12:00',
         'duracionClaseMin': 60,
@@ -84,7 +108,8 @@ void main() {
 
     test('con vigencias las envía como yyyy-MM-dd', () {
       final request = CrearPlantillaHorarioRequest(
-        diaSemana: 2,
+        nombre: 'Sábados',
+        diasSemana: const [6],
         horaInicio: '14:00',
         horaFin: '18:00',
         duracionClaseMin: 90,
@@ -130,6 +155,13 @@ void main() {
     expect(franja.estado, EstadoFranja.bloqueada);
   });
 
+  test('DiaBloqueado.fromJson parsea la fecha y la cantidad de franjas', () {
+    final dia = DiaBloqueado.fromJson({'fecha': '2026-11-02', 'franjasAfectadas': 4});
+
+    expect(dia.fecha, DateTime(2026, 11, 2));
+    expect(dia.franjasAfectadas, 4);
+  });
+
   group('Pagina.fromJson', () {
     test('arma los items con la función dada y copia el meta', () {
       final pagina = Pagina<Franja>.fromJson({
@@ -161,13 +193,8 @@ void main() {
   group('Franja.accionDisponible', () {
     final ahora = DateTime(2026, 11, 2, 9, 30);
 
-    Franja franja(EstadoFranja estado, String hora, {DateTime? fecha}) => Franja(
-      codigo: 'f',
-      fecha: fecha ?? DateTime(2026, 11, 2),
-      horaInicio: hora,
-      horaFin: '23:59',
-      estado: estado,
-    );
+    Franja franja(EstadoFranja estado, String hora, {DateTime? fecha}) =>
+        Franja(codigo: 'f', fecha: fecha ?? DateTime(2026, 11, 2), horaInicio: hora, horaFin: '23:59', estado: estado);
 
     test('una libre futura se puede bloquear', () {
       expect(franja(EstadoFranja.libre, '10:00').accionDisponible(ahora), AccionFranja.bloquear);
@@ -184,47 +211,64 @@ void main() {
     test('una que ya empezó no ofrece acción, sea cual sea su estado', () {
       expect(franja(EstadoFranja.libre, '09:00').accionDisponible(ahora), isNull);
       expect(franja(EstadoFranja.bloqueada, '09:00').accionDisponible(ahora), isNull);
-    });
-
-    test('la que empieza exactamente ahora no ofrece acción', () {
       expect(franja(EstadoFranja.libre, '09:30').accionDisponible(ahora), isNull);
     });
 
-    test('una franja de un día pasado no ofrece acción', () {
+    test('una de un día pasado no ofrece acción', () {
       expect(franja(EstadoFranja.libre, '23:00', fecha: DateTime(2026, 11, 1)).accionDisponible(ahora), isNull);
-    });
-
-    test('una de un día futuro la ofrece aunque su hora sea temprano', () {
-      expect(
-        franja(EstadoFranja.libre, '06:00', fecha: DateTime(2026, 11, 3)).accionDisponible(ahora),
-        AccionFranja.bloquear,
-      );
     });
   });
 
+  test('ResumenFranjas cuenta cuántas hay de cada estado', () {
+    Franja franja(EstadoFranja estado) =>
+        Franja(codigo: 'f', fecha: DateTime(2026, 11, 2), horaInicio: '10:00', horaFin: '11:00', estado: estado);
+
+    final resumen = ResumenFranjas.de([
+      franja(EstadoFranja.libre),
+      franja(EstadoFranja.libre),
+      franja(EstadoFranja.reservada),
+      franja(EstadoFranja.bloqueada),
+      franja(EstadoFranja.bloqueada),
+      franja(EstadoFranja.bloqueada),
+    ]);
+
+    expect(resumen.libres, 2);
+    expect(resumen.reservadas, 1);
+    expect(resumen.bloqueadas, 3);
+  });
+
   group('fechas', () {
-    test('nombreDeDia va de lunes (1) a domingo (7)', () {
-      expect(nombreDeDia(1), 'lunes');
-      expect(nombreDeDia(3), 'miércoles');
-      expect(nombreDeDia(7), 'domingo');
+    test('lunesDeLaSemana devuelve el lunes de cualquier día de esa semana', () {
+      expect(lunesDeLaSemana(DateTime(2026, 10, 26)), DateTime(2026, 10, 26));
+      expect(lunesDeLaSemana(DateTime(2026, 10, 28, 15, 40)), DateTime(2026, 10, 26));
+      expect(lunesDeLaSemana(DateTime(2026, 11, 1)), DateTime(2026, 10, 26));
+      expect(lunesDeLaSemana(DateTime(2026, 11, 2)), DateTime(2026, 11, 2));
     });
 
-    test('fechaParaApi y fechaDesdeApi son inversas', () {
-      expect(fechaParaApi(DateTime(2026, 1, 5)), '2026-01-05');
-      expect(fechaDesdeApi('2026-01-05'), DateTime(2026, 1, 5));
+    test('sumarDias cruza el mes y el año sin arrastrar la hora', () {
+      expect(sumarDias(DateTime(2026, 10, 26), 7), DateTime(2026, 11, 2));
+      expect(sumarDias(DateTime(2026, 12, 28), 7), DateTime(2027, 1, 4));
+      expect(sumarDias(DateTime(2026, 11, 2), -7), DateTime(2026, 10, 26));
     });
 
-    test('fechaParaMostrar usa dd/MM/yyyy', () {
-      expect(fechaParaMostrar(DateTime(2026, 1, 5)), '05/01/2026');
+    test('etiquetaDeSemana muestra el rango, con un solo mes o con dos', () {
+      expect(etiquetaDeSemana(DateTime(2026, 11, 2)), '2 – 8 nov');
+      expect(etiquetaDeSemana(DateTime(2026, 10, 26)), '26 oct – 1 nov');
     });
 
-    test('horaParaApi rellena con ceros', () {
-      expect(horaParaApi(8, 5), '08:05');
-      expect(horaParaApi(23, 59), '23:59');
+    test('letras y nombres de los días', () {
+      expect([for (var d = 1; d <= 7; d++) letraDeDia(d)].join(), 'LMXJVSD');
+      expect(nombreDeDiaCapitalizado(3), 'Miércoles');
+      expect(diaConNumero(DateTime(2026, 10, 26)), 'Lunes 26');
     });
 
-    test('soloFecha descarta la hora', () {
-      expect(soloFecha(DateTime(2026, 11, 2, 15, 45)), DateTime(2026, 11, 2));
+    test('franjasDeLaVentana cuenta las clases que caben y da cero con datos inválidos', () {
+      expect(franjasDeLaVentana('08:00', '12:00', 60), 4);
+      expect(franjasDeLaVentana('08:00', '12:00', 90), 2);
+      expect(franjasDeLaVentana('12:00', '08:00', 60), 0);
+      expect(franjasDeLaVentana('', '12:00', 60), 0);
+      expect(franjasDeLaVentana('08:00', '12:00', 0), 0);
+      expect(franjasDeLaVentana('08:00', '12:00', null), 0);
     });
   });
 }

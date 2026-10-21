@@ -23,6 +23,32 @@ enum EstadoFranja {
 /// Lo que el instructor puede hacer con una franja.
 enum AccionFranja { bloquear, desbloquear }
 
+/// Cuántas franjas hay de cada estado: el resumen que se muestra arriba de la semana.
+class ResumenFranjas {
+  final int libres;
+  final int reservadas;
+  final int bloqueadas;
+
+  const ResumenFranjas({required this.libres, required this.reservadas, required this.bloqueadas});
+
+  factory ResumenFranjas.de(Iterable<Franja> franjas) {
+    var libres = 0;
+    var reservadas = 0;
+    var bloqueadas = 0;
+    for (final franja in franjas) {
+      switch (franja.estado) {
+        case EstadoFranja.libre:
+          libres++;
+        case EstadoFranja.reservada:
+          reservadas++;
+        case EstadoFranja.bloqueada:
+          bloqueadas++;
+      }
+    }
+    return ResumenFranjas(libres: libres, reservadas: reservadas, bloqueadas: bloqueadas);
+  }
+}
+
 /// Un bloque de clase reservable de un instructor (CU12).
 class Franja {
   final String codigo;

@@ -4,7 +4,10 @@ import 'fechas.dart';
 ///
 /// * `vigenteDesde` nulo = hoy (lo decide el backend). Los campos nulos no se envían.
 class CrearPlantillaHorarioRequest {
-  final int diaSemana;
+  final String nombre;
+
+  /// 1 (lunes) a 7 (domingo).
+  final List<int> diasSemana;
 
   /// `HH:mm`.
   final String horaInicio;
@@ -14,7 +17,8 @@ class CrearPlantillaHorarioRequest {
   final DateTime? vigenteHasta;
 
   const CrearPlantillaHorarioRequest({
-    required this.diaSemana,
+    required this.nombre,
+    required this.diasSemana,
     required this.horaInicio,
     required this.horaFin,
     required this.duracionClaseMin,
@@ -23,7 +27,8 @@ class CrearPlantillaHorarioRequest {
   });
 
   Map<String, dynamic> toJson() => {
-    'diaSemana': diaSemana,
+    'nombre': nombre,
+    'diasSemana': diasSemana,
     'horaInicio': horaInicio,
     'horaFin': horaFin,
     'duracionClaseMin': duracionClaseMin,

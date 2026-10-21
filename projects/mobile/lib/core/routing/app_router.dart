@@ -7,7 +7,6 @@ import '../../features/auth/screens/cargando_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/recuperar_screen.dart';
 import '../../features/auth/screens/registro_screen.dart';
-import '../../features/horarios/screens/franjas_screen.dart';
 import '../../features/horarios/screens/horario_form_screen.dart';
 import '../../layouts/inicio_por_rol.dart';
 
@@ -73,10 +72,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/schedules/new',
         builder: (context, state) => const HorarioFormScreen(),
-      ),
-      GoRoute(
-        path: '/schedules/slots',
-        builder: (context, state) => const FranjasScreen(),
       ),
     ],
   );

@@ -124,15 +124,6 @@ void main() {
       expect(find.byKey(const Key('botonGuardarHorario')), findsOneWidget);
     });
 
-    testWidgets('el Instructor entra a /schedules/slots y ve las franjas', (tester) async {
-      final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(instructor)));
-
-      container.read(routerProvider).go('/schedules/slots');
-      await tester.pumpAndSettle();
-
-      expect(find.text('Mis franjas'), findsOneWidget);
-    });
-
     testWidgets('un Estudiante que pide /schedules/new vuelve al inicio', (tester) async {
       final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)));
 
@@ -143,13 +134,14 @@ void main() {
       expect(find.text('Inicio'), findsWidgets);
     });
 
-    testWidgets('un Estudiante que pide /schedules/slots vuelve al inicio', (tester) async {
-      final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)));
+    testWidgets('la ruta /schedules/slots ya no existe: las franjas son una pestaña de Horarios', (tester) async {
+      final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(instructor)));
 
       container.read(routerProvider).go('/schedules/slots');
       await tester.pumpAndSettle();
 
       expect(find.text('Mis franjas'), findsNothing);
+      expect(find.byKey(const Key('botonGuardarHorario')), findsNothing);
     });
 
     testWidgets('sin sesión, las rutas de horarios llevan al login', (tester) async {

@@ -116,7 +116,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byKey(const Key('botonNuevoHorario')), findsOneWidget);
-        expect(find.byKey(const Key('botonVerFranjas')), findsOneWidget);
+        expect(find.byKey(const Key('pestanasHorarios')), findsOneWidget);
       },
     );
   });

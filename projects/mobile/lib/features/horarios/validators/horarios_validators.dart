@@ -17,6 +17,37 @@ int? _minutos(String? hora) {
   return int.parse(partes[0]) * 60 + int.parse(partes[1]);
 }
 
+const int nombreMaximo = 60;
+
+/// Obligatorio y de hasta [nombreMaximo] caracteres.
+String? validarNombre(String? nombre) {
+  final limpio = nombre?.trim() ?? '';
+  if (limpio.isEmpty) return 'El nombre es obligatorio';
+  if (limpio.length > nombreMaximo) return 'El nombre no puede pasar de $nombreMaximo caracteres';
+  return null;
+}
+
+/// Al menos un día elegido.
+String? validarDias(Iterable<int> dias) => dias.isEmpty ? 'Elige al menos un día de la semana' : null;
+
+/// Cuántas franjas se crearán con esos datos: por día y por semana. `null` si los datos todavía no
+/// alcanzan (sin días, horas inválidas, la ventana no es múltiplo de la duración) para no mostrar una
+/// cifra que el backend va a rechazar. Es solo una ayuda: el backend es quien genera las franjas.
+({int porDia, int porSemana})? vistaPreviaFranjas({
+  required String? horaInicio,
+  required String? horaFin,
+  required int? duracionMin,
+  required int cantidadDias,
+}) {
+  final inicio = _minutos(horaInicio);
+  final fin = _minutos(horaFin);
+  if (cantidadDias <= 0 || inicio == null || fin == null || duracionMin == null) return null;
+  if (duracionMin < duracionMinima || duracionMin > duracionMaxima || fin <= inicio) return null;
+  if ((fin - inicio) % duracionMin != 0) return null;
+  final porDia = (fin - inicio) ~/ duracionMin;
+  return (porDia: porDia, porSemana: porDia * cantidadDias);
+}
+
 String? validarHoraInicio(String? horaInicio) {
   if (horaInicio == null || horaInicio.isEmpty) return 'La hora de inicio es obligatoria';
   return _minutos(horaInicio) == null ? 'La hora de inicio debe tener el formato HH:mm' : null;

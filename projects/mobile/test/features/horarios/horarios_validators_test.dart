@@ -127,4 +127,64 @@ void main() {
       expect(validarVigenteHasta(DateTime(2026, 10, 26), null, hoy: hoy), isNull);
     });
   });
+
+  group('validarNombre', () {
+    test('acepta un nombre normal y uno de exactamente 60 caracteres', () {
+      expect(validarNombre('Mañanas entre semana'), isNull);
+      expect(validarNombre('a' * 60), isNull);
+    });
+
+    test('rechaza vacío, solo espacios y nulo', () {
+      expect(validarNombre(''), 'El nombre es obligatorio');
+      expect(validarNombre('   '), 'El nombre es obligatorio');
+      expect(validarNombre(null), 'El nombre es obligatorio');
+    });
+
+    test('rechaza más de 60 caracteres', () {
+      expect(validarNombre('a' * 61), 'El nombre no puede pasar de 60 caracteres');
+    });
+  });
+
+  group('validarDias', () {
+    test('exige al menos un día', () {
+      expect(validarDias(<int>{}), 'Elige al menos un día de la semana');
+      expect(validarDias(<int>{3}), isNull);
+      expect(validarDias(<int>{1, 2, 3, 4, 5}), isNull);
+    });
+  });
+
+  group('vistaPreviaFranjas', () {
+    test('con datos válidos devuelve las franjas por día y por semana', () {
+      final vista = vistaPreviaFranjas(horaInicio: '08:00', horaFin: '12:00', duracionMin: 60, cantidadDias: 5);
+
+      expect(vista, (porDia: 4, porSemana: 20));
+    });
+
+    test('con otra duración recalcula', () {
+      final vista = vistaPreviaFranjas(horaInicio: '08:00', horaFin: '11:00', duracionMin: 90, cantidadDias: 2);
+
+      expect(vista, (porDia: 2, porSemana: 4));
+    });
+
+    test('devuelve null si no hay días', () {
+      expect(vistaPreviaFranjas(horaInicio: '08:00', horaFin: '12:00', duracionMin: 60, cantidadDias: 0), isNull);
+    });
+
+    test('devuelve null si falta una hora o tiene un formato inválido', () {
+      expect(vistaPreviaFranjas(horaInicio: '', horaFin: '12:00', duracionMin: 60, cantidadDias: 1), isNull);
+      expect(vistaPreviaFranjas(horaInicio: '08:00', horaFin: null, duracionMin: 60, cantidadDias: 1), isNull);
+      expect(vistaPreviaFranjas(horaInicio: '8:00', horaFin: '12:00', duracionMin: 60, cantidadDias: 1), isNull);
+    });
+
+    test('devuelve null si la hora de fin no es posterior a la de inicio', () {
+      expect(vistaPreviaFranjas(horaInicio: '12:00', horaFin: '12:00', duracionMin: 60, cantidadDias: 1), isNull);
+      expect(vistaPreviaFranjas(horaInicio: '12:00', horaFin: '08:00', duracionMin: 60, cantidadDias: 1), isNull);
+    });
+
+    test('devuelve null si la duración no divide la ventana o está fuera de rango', () {
+      expect(vistaPreviaFranjas(horaInicio: '08:00', horaFin: '09:00', duracionMin: 45, cantidadDias: 1), isNull);
+      expect(vistaPreviaFranjas(horaInicio: '08:00', horaFin: '12:00', duracionMin: 10, cantidadDias: 1), isNull);
+      expect(vistaPreviaFranjas(horaInicio: '08:00', horaFin: '12:00', duracionMin: null, cantidadDias: 1), isNull);
+    });
+  });
 }
