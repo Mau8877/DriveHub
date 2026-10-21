@@ -322,9 +322,11 @@ services:
       - frontend_nm_examenes:/app/projects/frontend/examenes/node_modules
       - frontend_nm_contenido:/app/projects/frontend/contenido/node_modules
       - frontend_nm_asistente_ia:/app/projects/frontend/asistente-ia/node_modules
+      # * El paquete compartido @drivehub/gestion (lit): su node_modules también va aislado, por lo mismo.
+      - frontend_nm_gestion:/app/packages/gestion/node_modules
     command: >
       sh -c "corepack enable pnpm &&
-      pnpm install --filter shell --filter identidad --filter escuela &&
+      pnpm install --filter shell --filter identidad --filter escuela --filter @drivehub/gestion &&
       pnpm --filter shell --filter identidad --filter escuela --parallel run dev"
     ports:
       - '4200:4200'
@@ -566,3 +568,5 @@ volumes:
     name: drivehub-frontend-nm-contenido
   frontend_nm_asistente_ia:
     name: drivehub-frontend-nm-asistente-ia
+  frontend_nm_gestion:
+    name: drivehub-frontend-nm-gestion
