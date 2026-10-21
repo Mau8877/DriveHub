@@ -2,12 +2,12 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import type { Observable } from 'rxjs'
 
-import { apiBaseUrl } from '../../core/api/api.config'
+import { apiBaseUrl } from '../../../core/api/api.config'
 import type {
   EscuelaPublica,
   RegistroEstudianteRequest,
   UsuarioRegistrado,
-} from './models/registro.models'
+} from '../types/registro.types'
 
 /**
  * Llamadas a la API del registro del estudiante (CU01), ya desempaquetadas

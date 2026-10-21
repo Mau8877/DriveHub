@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core'
 import { ActivatedRoute, RouterLink } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 
-import { CuentaService } from '../cuenta.service'
+import { CuentaService } from '../api/cuenta.service'
 
 type Estado = 'verificando' | 'verificado' | 'invalido'
 

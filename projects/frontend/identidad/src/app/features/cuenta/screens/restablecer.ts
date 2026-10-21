@@ -10,8 +10,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 
 import { ApiError } from '../../../core/api/api.types'
-import { PASSWORD_MAX, PASSWORD_MIN } from '../../registro/registro.reglas'
-import { CuentaService } from '../cuenta.service'
+import { PASSWORD_MAX, PASSWORD_MIN } from '../../registro'
+import { CuentaService } from '../api/cuenta.service'
 
 type Estado = 'formulario' | 'hecho' | 'invalido'
 type Campo = 'password' | 'confirmacion'

@@ -3,8 +3,8 @@ import { ActivatedRoute, provideRouter } from '@angular/router'
 import { of, throwError } from 'rxjs'
 
 import { ApiError } from '../../../core/api/api.types'
-import { CuentaService } from '../cuenta.service'
-import { VerificarCorreo } from './verificar-correo'
+import { CuentaService } from '../api/cuenta.service'
+import { VerificarCorreo } from '../screens/verificar-correo'
 
 describe('VerificarCorreo', () => {
   const servicio = { confirmarCorreo: vi.fn() }

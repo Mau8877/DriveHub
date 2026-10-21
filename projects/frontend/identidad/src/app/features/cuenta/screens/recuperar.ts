@@ -3,8 +3,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 
-import { EMAIL_MAX } from '../../registro/registro.reglas'
-import { CuentaService } from '../cuenta.service'
+import { EMAIL_MAX } from '../../registro'
+import { CuentaService } from '../api/cuenta.service'
 
 /** Mismo texto siempre: no revela si el correo existe ni si está verificado. */
 const MENSAJE_ENVIADO =

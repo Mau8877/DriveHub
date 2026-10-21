@@ -1,6 +1,6 @@
 import { FormControl, Validators } from '@angular/forms'
 
-import { mensajeDeError } from './registro.mensajes'
+import { mensajeDeError } from '../schemas/registro.mensajes'
 import {
   edadEnAnios,
   edadMinima,
@@ -8,7 +8,7 @@ import {
   obligatorioConTexto,
   PASSWORD_MAX,
   PASSWORD_MIN,
-} from './registro.reglas'
+} from '../schemas/registro.reglas'
 
 const HOY = new Date(2026, 9, 19) // 19 de octubre de 2026
 

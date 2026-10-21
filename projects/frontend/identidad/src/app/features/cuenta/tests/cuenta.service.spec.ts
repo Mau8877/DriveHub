@@ -3,9 +3,9 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing'
 import { firstValueFrom } from 'rxjs'
 
-import { apiInterceptor } from '../../core/api/api.interceptor'
-import { ApiError } from '../../core/api/api.types'
-import { CuentaService } from './cuenta.service'
+import { apiInterceptor } from '../../../core/api/api.interceptor'
+import { ApiError } from '../../../core/api/api.types'
+import { CuentaService } from '../api/cuenta.service'
 
 const BASE = 'http://localhost:8080/api/v1'
 

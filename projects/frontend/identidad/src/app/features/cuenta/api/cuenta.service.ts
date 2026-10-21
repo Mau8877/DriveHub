@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import type { Observable } from 'rxjs'
 
-import { apiBaseUrl } from '../../core/api/api.config'
+import { apiBaseUrl } from '../../../core/api/api.config'
 
 /**
  * Llamadas a la API de las páginas públicas de la cuenta (verificar el correo, CU04b,

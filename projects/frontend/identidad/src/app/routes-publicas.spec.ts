@@ -1,4 +1,4 @@
-import { Registro } from './features/registro/pages/registro'
+import { Registro } from './features/registro/screens/registro'
 import { routes } from './routes-publicas'
 import { routes as routesConSesion } from './app.routes'
 

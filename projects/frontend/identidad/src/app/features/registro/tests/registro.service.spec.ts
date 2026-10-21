@@ -2,10 +2,10 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
 
-import { apiInterceptor } from '../../core/api/api.interceptor'
-import { ApiError } from '../../core/api/api.types'
-import type { RegistroEstudianteRequest } from './models/registro.models'
-import { RegistroService } from './registro.service'
+import { apiInterceptor } from '../../../core/api/api.interceptor'
+import { ApiError } from '../../../core/api/api.types'
+import type { RegistroEstudianteRequest } from '../types/registro.types'
+import { RegistroService } from '../api/registro.service'
 
 const BASE = 'http://localhost:8080/api/v1'
 

@@ -3,8 +3,8 @@ import { ActivatedRoute, provideRouter } from '@angular/router'
 import { of, throwError } from 'rxjs'
 
 import { ApiError } from '../../../core/api/api.types'
-import { RegistroService } from '../registro.service'
-import { Registro } from './registro'
+import { RegistroService } from '../api/registro.service'
+import { Registro } from '../screens/registro'
 
 const ESCUELA = { codigo: 'c1', slug: 'escuelaexample', nombre: 'Escuela Example' }
 

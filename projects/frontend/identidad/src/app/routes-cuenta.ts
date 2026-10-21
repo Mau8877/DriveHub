@@ -19,16 +19,16 @@ export const routes: Routes = [
       {
         path: 'verify-email',
         loadComponent: () =>
-          import('./features/cuenta/pages/verificar-correo').then((m) => m.VerificarCorreo),
+          import('./features/cuenta/screens/verificar-correo').then((m) => m.VerificarCorreo),
       },
       {
         path: 'forgot-password',
-        loadComponent: () => import('./features/cuenta/pages/recuperar').then((m) => m.Recuperar),
+        loadComponent: () => import('./features/cuenta/screens/recuperar').then((m) => m.Recuperar),
       },
       {
         path: 'reset-password',
         loadComponent: () =>
-          import('./features/cuenta/pages/restablecer').then((m) => m.Restablecer),
+          import('./features/cuenta/screens/restablecer').then((m) => m.Restablecer),
       },
     ],
   },

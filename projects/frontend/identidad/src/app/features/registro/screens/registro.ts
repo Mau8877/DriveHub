@@ -3,8 +3,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
 
 import { ApiError } from '../../../core/api/api.types'
-import type { EscuelaPublica } from '../models/registro.models'
-import { type CampoRegistro, mensajeDeError } from '../registro.mensajes'
+import type { EscuelaPublica } from '../types/registro.types'
+import { type CampoRegistro, mensajeDeError } from '../schemas/registro.mensajes'
 import {
   APELLIDOS_MAX,
   edadMinima,
@@ -15,8 +15,8 @@ import {
   PASSWORD_MAX,
   PASSWORD_MIN,
   TELEFONO_MAX,
-} from '../registro.reglas'
-import { RegistroService } from '../registro.service'
+} from '../schemas/registro.reglas'
+import { RegistroService } from '../api/registro.service'
 
 /**
  * Registro del estudiante en el enlace de su escuela (CU01). Pantalla

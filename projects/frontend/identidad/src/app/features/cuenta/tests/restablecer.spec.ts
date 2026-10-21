@@ -3,8 +3,8 @@ import { ActivatedRoute, provideRouter } from '@angular/router'
 import { of, throwError } from 'rxjs'
 
 import { ApiError } from '../../../core/api/api.types'
-import { CuentaService } from '../cuenta.service'
-import { Restablecer } from './restablecer'
+import { CuentaService } from '../api/cuenta.service'
+import { Restablecer } from '../screens/restablecer'
 
 describe('Restablecer', () => {
   const servicio = { restablecerContrasena: vi.fn() }

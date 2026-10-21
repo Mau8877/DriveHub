@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { of, throwError } from 'rxjs'
 
-import { CuentaService } from '../cuenta.service'
-import { Recuperar } from './recuperar'
+import { CuentaService } from '../api/cuenta.service'
+import { Recuperar } from '../screens/recuperar'
 
 describe('Recuperar', () => {
   const servicio = { solicitarRecuperacion: vi.fn() }

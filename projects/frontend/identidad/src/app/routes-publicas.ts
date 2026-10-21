@@ -17,7 +17,7 @@ export const routes: Routes = [
     children: [
       {
         path: ':escuelaSlug',
-        loadComponent: () => import('./features/registro/pages/registro').then((m) => m.Registro),
+        loadComponent: () => import('./features/registro/screens/registro').then((m) => m.Registro),
       },
     ],
   },
