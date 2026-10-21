@@ -24,6 +24,12 @@ aunque uno se descarte (mismo criterio que los códigos de error de
 [EXCEPCIONES_BACKEND.md](backend/EXCEPCIONES_BACKEND.md)). El nombre corto
 del archivo coincide con el campo "Nombre" de la tabla interna.
 
+**Excepción vigente: CU05.** El PDF lo llama "Gestionar roles y permisos"
+y estaba equivocado: el CU05 del proyecto es **Gestionar escuelas** (el
+Super admin crea escuelas con su Administrador, edita su nombre y las
+desactiva o reactiva). La gestión de roles y permisos quedó sin CU asignado.
+El archivo, las UT y los comentarios usan solo el significado nuevo.
+
 ## Granularidad: un CU, un flujo
 
 Si una funcionalidad agrupa más de un flujo de usuario independiente, se

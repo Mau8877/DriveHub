@@ -102,6 +102,10 @@ de la carpeta.
   `@drivehub/mf-contract` va en `skip`.
 - **Formato**: el `.prettierrc` de la raíz (sin punto y coma, comillas
   simples, parser `angular` para templates). `pnpm lint` = `prettier --check`.
+- **Idioma de las rutas web**: solo las páginas públicas de `identidad` van
+  en inglés (`/register`, `/account/verify-email`, `/account/forgot-password`,
+  `/account/reset-password`). Todo lo demás va en español (`/escuelas`,
+  `/escuelas/nueva`, `/escuelas/:codigo/editar`).
 - **Nombres**: archivos `kebab-case` (`remote-host.ts`, `sesion.service.ts`),
   clases `PascalCase` sin sufijo `Component` en componentes de ruta/página
   (convención de Angular 20+: `Inicio`, `ShellLayout`), selector con
