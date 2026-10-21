@@ -44,7 +44,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: Inicio },
 
-      // Angular: Identidad (CU01, CU05, CU06), Escuela (CU07 a CU11), Pagos (CU25)
+      // Angular: Identidad (CU01, CU06), Escuela (CU05, CU07 a CU11), Pagos (CU25)
       {
         path: 'identidad',
         loadChildren: () => loadRemoteModule('identidad', './routes').then((m) => m.routes),
