@@ -1,5 +1,7 @@
 # UT-CU05-FE-07 — Rutas de gestión de escuelas expuestas por el remoto
 
+> **Reemplazada** por el piloto de `<dh-gestion>` (ver [README, decisión 4](./README.md)): la feature `escuelas` quedó como esquema + pantalla + ruta única. Se conserva como historia.
+
 | Campo | Valor |
 |-------|-------|
 | **Código** | `UT-CU05-FE-07` |

@@ -1,9 +1,9 @@
 # Unidades de trabajo — CU05-FE
 
 **Caso de uso:** Gestionar escuelas en la web (Super admin): listado con búsqueda y filtro, crear una escuela con su Administrador, editar el nombre, desactivar y reactivar, con un menú propio del Super admin.
-**Micro-frontend(s):** `escuela` (UT 03 a 07) y `shell` (UT 01, 02 y 08) — ver [MICROSERVICIOS.md](../../../../.claude/rules/MICROSERVICIOS.md)
+**Micro-frontend(s):** `escuela` (UT 03 a 07, reemplazadas por el piloto de `<dh-gestion>`, ver decisión 4) y el paquete `@drivehub/gestion` y `shell` (UT 01, 02 y 08) — ver [MICROSERVICIOS.md](../../../../.claude/rules/MICROSERVICIOS.md)
 **Fuente CU:** [`CU05 - Gestionar escuelas`](../../../CasosDeUso/CU05%20-%20Gestionar%20escuelas.md)
-**Recurso HTTP / contrato:** pantallas `/escuelas`, `/escuelas/nueva` y `/escuelas/:codigo/editar`; consume `GET`, `POST`, `PATCH`, `DELETE /api/v1/escuelas`, `POST /api/v1/escuelas/{codigo}/reactivar` y `GET /api/v1/escuelas/por-codigo/{codigo}` (ver [el contrato de backend](../UT-BACKEND/README.md#contrato-de-datos--recurso-http))
+**Recurso HTTP / contrato:** pantalla `/escuelas` (listado, crear y editar viven dentro de `<dh-gestion>`); consume `GET`, `POST`, `PATCH`, `DELETE /api/v1/escuelas`, `POST /api/v1/escuelas/{codigo}/reactivar` y `GET /api/v1/escuelas/por-codigo/{codigo}` (ver [el contrato de backend](../UT-BACKEND/README.md#contrato-de-datos--recurso-http))
 
 ## Antes de implementar cualquier UT
 
@@ -14,20 +14,18 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [ANGULAR_FRONTEND.md](..
 1. **Las pantallas viven en el remoto `escuela`** y el shell las monta en `/escuelas`, una ruta de primer nivel (el shell es dueño de ese nivel). Es un conjunto de rutas propio, `./routes-escuelas`, igual que `identidad` expone `./routes-publicas`: el remoto no carga las rutas del Administrador (`/escuela/...`) para este caso. Ambos prefijos son distintos a propósito: `/escuelas` es del Super admin, `/escuela` es del Administrador.
 2. **Menús por rol, sin mezclar.** `NavItem` lleva sus roles: el Super admin ve solo "Gestionar escuelas"; el Administrador de escuela ve los ítems de siempre. Ocultar el ítem no basta: la ruta `/escuelas` se protege con `rolGuard('SUPER_ADMIN')` y el backend vuelve a decidir por rol.
 3. **Rutas en español**, porque solo las páginas públicas de `identidad` van en inglés (`/register`, `/account/...`).
-4. **Una feature `escuelas`** con las carpetas de la convención común de React y Angular: `api/`, `screens/`, `schemas/`, `types/`, `tests/`.
-5. **Las reglas del Administrador se duplican** desde el registro del estudiante de `identidad` (contraseña de 9 caracteres, edad mínima de 18, longitudes): ninguna app importa código de otra y las reglas de un mismo campo tienen que coincidir con el backend y con las demás apps.
+4. **Una feature `escuelas`** con `schemas/`, `screens/` y `tests/`. **Cambio respecto al diseño inicial:** las UT 03 a 07 se pensaron como pantallas Angular a mano (tipos, servicio, tres pantallas, tres rutas). Se reemplazaron por el Web Component compartido `<dh-gestion>` ([GESTION_FRONTEND.md](../../../../.claude/rules/frontend/GESTION_FRONTEND.md)): la feature quedó como un **esquema** (`escuelas.esquema.ts`) + una pantalla delgada (`escuelas-gestion.ts`) + **una sola ruta**. No hay `api/` ni `types/` propios: el componente llama a la API.
+5. **Las reglas del Administrador viven en el esquema** (contraseña de 9 a 64, edad mínima de 18, longitudes): son las del registro del estudiante de `identidad` y tienen que coincidir con el backend y con mobile.
 6. **El slug se sugiere** a partir del nombre al crear y se puede ajustar; al editar solo se muestra, porque no se cambia.
 7. **Editar usa la consulta que ya existe** (`GET /escuelas/por-codigo/{codigo}`), que devuelve la escuela en cualquier estado: no hace falta un endpoint nuevo.
-8. **Desactivar se confirma en la misma fila**, sin librerías de diálogos; reactivar no se confirma porque es seguro y reversible.
-9. **El aviso de éxito viaja por el estado del `Router`** hacia el listado y se muestra una sola vez; no hace falta un store global.
+8. **Desactivar se confirma en la misma fila** (`confirmar` del esquema), sin librerías de diálogos; reactivar no se confirma porque es seguro y reversible.
+9. **El aviso de éxito** lo muestra `<dh-gestion>` por dentro al volver al listado.
 
 ## Rutas y pantallas
 
 | Ruta | Pantalla | Quién |
 |------|----------|-------|
-| `/escuelas` | Listado: búsqueda, filtro de estado, paginación, editar, desactivar, reactivar | `SUPER_ADMIN` |
-| `/escuelas/nueva` | Formulario de la escuela y de su Administrador | `SUPER_ADMIN` |
-| `/escuelas/:codigo/editar` | Nombre de la escuela (slug solo lectura) | `SUPER_ADMIN` |
+| `/escuelas` | `<dh-gestion>`: listado con búsqueda, filtro y paginación; crear; editar el nombre (slug solo lectura); desactivar y reactivar | `SUPER_ADMIN` |
 
 ## Orden de ejecución
 
@@ -41,6 +39,8 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [ANGULAR_FRONTEND.md](..
 | [UT-CU05-FE-06](./UT-CU05-FE-06.md) | Pantalla "Editar escuela" | `escuela` | 03 |
 | [UT-CU05-FE-07](./UT-CU05-FE-07.md) | Rutas de gestión de escuelas expuestas por el remoto | `escuela` | 04, 05, 06 |
 | [UT-CU05-FE-08](./UT-CU05-FE-08.md) | Montar `/escuelas` en el shell solo para el Super admin | `shell` | 01, 02, 07 |
+
+> Las UT 03 a 07 describen el diseño inicial a mano; lo construido es el esquema + pantalla + ruta única descritos arriba. Los archivos se conservan como historia (el número no se reutiliza).
 
 **Cadena:** `01 → 02`; `03 → 04, 05, 06 → 07`; `01 + 02 + 07 → 08`. Las dos cadenas (shell y remoto) son independientes hasta la 08.
 
@@ -68,8 +68,9 @@ CA07, CA09 (efecto en el login), CA14 y CA15 son de backend; el mensaje "escuela
 
 - El backend ([CU05-BE](../UT-BACKEND/README.md)) ni el mobile: el Super admin usa solo la web.
 - Cambios en `identidad`, `pagos` ni en los remotos React.
+- Nuevas capacidades del componente `<dh-gestion>` más allá de lo que CU05 usa: se amplían con el primer CU que las necesite.
 - Editar o cambiar al Administrador.
 
 ## Commits sugeridos
 
-Un commit `[FRONT]` por micro-frontend: `escuela` (UT 03 a 07) y `shell` (UT 01, 02 y 08). `docs/` es `[DOCS]`.
+Un commit `[FRONT]` por micro-frontend: `escuela`, `shell`, el paquete `gestion` y `design-tokens`. `docs/` es `[DOCS]`.
