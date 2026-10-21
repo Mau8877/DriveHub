@@ -19,7 +19,9 @@ import { navItemsDeRoles } from './nav-items'
       <aside
         class="bg-sidebar text-sidebar-foreground border-sidebar-border w-64 shrink-0 border-r p-4"
       >
-        <a routerLink="/" class="mb-6 block text-lg font-semibold">DriveHub</a>
+        <a routerLink="/" class="mb-6 block text-lg font-bold tracking-tight"
+          >Drive<span class="text-sidebar-primary">Hub</span></a
+        >
         <nav class="flex flex-col gap-1">
           @for (item of navItems(); track item.ruta) {
             <a
@@ -28,7 +30,7 @@ import { navItemsDeRoles } from './nav-items'
               class="hover:bg-sidebar-accent rounded-md px-3 py-2"
             >
               <span class="block text-sm font-medium">{{ item.etiqueta }}</span>
-              <span class="text-muted-foreground block text-xs">{{ item.descripcion }}</span>
+              <span class="text-sidebar-foreground/60 block text-xs">{{ item.descripcion }}</span>
             </a>
           }
         </nav>

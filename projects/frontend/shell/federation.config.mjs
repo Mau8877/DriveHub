@@ -27,6 +27,9 @@ export default withNativeFederation({
     // * El contrato con los remotos vive en globalThis: no necesita ser una
     // * instancia compartida (y su versión workspace:* no es semver).
     '@drivehub/mf-contract',
+    // * Idem @drivehub/gestion (Web Component <dh-gestion>): se incluye en el bundle del remoto que
+    // * lo usa; su versión workspace:* tampoco es semver.
+    '@drivehub/gestion',
     // Solo lo usa el shell para cargar los remotos React.
     '@module-federation/runtime',
   ],
