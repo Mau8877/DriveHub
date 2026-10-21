@@ -53,7 +53,7 @@ describe('Restablecer', () => {
     const html = fixture.nativeElement as HTMLElement
 
     expect(html.querySelector('[role="alert"]')?.textContent).toContain('no es válido o ya venció')
-    expect(html.querySelector('a')?.getAttribute('href')).toBe('/cuenta/recuperar')
+    expect(html.querySelector('a')?.getAttribute('href')).toBe('/account/forgot-password')
     expect(html.querySelector('form')).toBeNull()
     expect(servicio.restablecerContrasena).not.toHaveBeenCalled()
   })
@@ -107,7 +107,7 @@ describe('Restablecer', () => {
     const html = await enviar(fixture, 'contraseña-nueva-1', 'contraseña-nueva-1')
 
     expect(html.querySelector('[role="alert"]')?.textContent).toContain('no es válido o ya venció')
-    expect(html.querySelector('a')?.getAttribute('href')).toBe('/cuenta/recuperar')
+    expect(html.querySelector('a')?.getAttribute('href')).toBe('/account/forgot-password')
   })
 
   it('con ERR_SYS_01 muestra el mensaje del backend y conserva el formulario', async () => {

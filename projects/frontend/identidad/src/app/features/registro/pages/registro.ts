@@ -23,7 +23,7 @@ import { RegistroService } from '../registro.service'
  * pública: sin sesión y sin auto-login. Al terminar muestra que ingrese
  * desde la app móvil (los estudiantes no usan la web).
  *
- * * La escuela sale de la URL (/registro/:escuelaSlug); se consulta para
+ * * La escuela sale de la URL (/register/:escuelaSlug); se consulta para
  * * mostrar su nombre y, si no está disponible, no se muestra el formulario.
  */
 @Component({

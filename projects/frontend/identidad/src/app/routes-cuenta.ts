@@ -6,7 +6,7 @@ import { apiInterceptor } from './core/api/api.interceptor'
 /**
  * Páginas públicas de la cuenta (sin sesión): verificar el correo (CU04b) y recuperar la
  * contraseña (CU04). Es lo que expone el remoto por Native Federation como './routes-cuenta':
- * el shell las monta bajo /cuenta, fuera de su layout con menú, y los enlaces de los correos
+ * el shell las monta bajo /account, fuera de su layout con menú, y los enlaces de los correos
  * apuntan acá.
  *
  * * Registro es otra cosa y sigue en './routes-publicas'.
@@ -17,16 +17,16 @@ export const routes: Routes = [
     providers: [provideHttpClient(withInterceptors([apiInterceptor]))],
     children: [
       {
-        path: 'verificar-correo',
+        path: 'verify-email',
         loadComponent: () =>
           import('./features/cuenta/pages/verificar-correo').then((m) => m.VerificarCorreo),
       },
       {
-        path: 'recuperar',
+        path: 'forgot-password',
         loadComponent: () => import('./features/cuenta/pages/recuperar').then((m) => m.Recuperar),
       },
       {
-        path: 'restablecer',
+        path: 'reset-password',
         loadComponent: () =>
           import('./features/cuenta/pages/restablecer').then((m) => m.Restablecer),
       },

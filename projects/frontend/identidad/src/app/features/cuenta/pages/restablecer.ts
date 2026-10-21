@@ -53,7 +53,7 @@ function confirmacionIgual(grupo: AbstractControl): ValidationErrors | null {
             <p class="text-destructive mb-4 text-sm" role="alert">
               Este enlace no es válido o ya venció.
             </p>
-            <a routerLink="/cuenta/recuperar" class="text-sm font-medium underline">
+            <a routerLink="/account/forgot-password" class="text-sm font-medium underline">
               Pedir un enlace nuevo
             </a>
           }
