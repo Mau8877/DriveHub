@@ -37,7 +37,7 @@ el espejo de las rutas de
 | Servicio | Recursos (`/api/v1/...`) |
 | --- | --- |
 | `identidad` | `auth`, `usuarios`, `roles`, `permisos` |
-| `escuela` | `estudiantes`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
+| `escuela` | `escuelas`, `estudiantes`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
 | `pagos` | `planes-pago`, `inscripciones-plan`, `cuotas`, `pagos`, `comprobantes` |
 | `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
 | `contenido` | `manuales`, `tutoriales` |
@@ -86,8 +86,17 @@ resumen que importa entre servicios:
 | Servicio → servicios (algo pasó) | Evento en RabbitMQ, publicado con **outbox** (la tabla/colección `outbox_evento(s)` se escribe en la misma transacción que el cambio; un proceso aparte publica). |
 | Consumidor de eventos | **Idempotente**: el mismo evento puede llegar dos veces (ver `EventosProcesados` en Notificaciones). |
 
-Hoy no hay ninguna llamada entre servicios ni ningún evento implementado:
-se agregan con el primer caso de uso que los necesite, siguiendo esta tabla.
+Hoy no hay ningún evento implementado. Las llamadas REST entre servicios que ya
+existen son:
+
+| Desde → hacia | Para qué | Caso de uso |
+| --- | --- | --- |
+| Identidad → Escuela | Consultar la escuela por slug o por codigo y si está activa | CU01, CU02 |
+| Escuela → Identidad | Crear al Administrador de una escuela y, si algo falla, revertirlo | CU05 |
+
+Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
+Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque
+cada una consulta datos que son del otro servicio.
 
 ### Saga reserva-pago (CU44)
 
@@ -119,8 +128,8 @@ Detalle en [ARQUITECTURA_FRONTEND.md](ARQUITECTURA_FRONTEND.md). Mapa:
 | App | Framework | Tipo | Puerto | Casos de uso | Rule |
 | --- | --- | --- | --- | --- | --- |
 | `shell` | Angular 22 | Host (Native Federation) | 4200 | CU02 login, layout, menú por rol, avisos | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
-| `identidad` | Angular 22 | Remoto (Native Federation) | 4201 | CU01, CU05, CU06 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
-| `escuela` | Angular 22 | Remoto (Native Federation) | 4202 | CU07 a CU11 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
+| `identidad` | Angular 22 | Remoto (Native Federation) | 4201 | CU01, CU06 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
+| `escuela` | Angular 22 | Remoto (Native Federation) | 4202 | CU05, CU07 a CU11 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
 | `pagos` | Angular 22 | Remoto (Native Federation) | 4203 | CU25 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
 | `examenes` | React 19 | Remoto (Module Federation) | 4204 | CU19, CU20, CU22, CU23 | rules de `frontend/` (React) |
 | `contenido` | React 19 | Remoto (Module Federation) | 4205 | CU32 | rules de `frontend/` (React) |

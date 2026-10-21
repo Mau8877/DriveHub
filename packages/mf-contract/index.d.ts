@@ -8,6 +8,12 @@ export interface ContextoShell {
   obtenerToken(): string | null
   /** Navega a una ruta de primer nivel del shell (ej. '/escuela'). */
   navegar(ruta: string): void
+  /**
+   * Pide al shell renovar la sesión (una sola renovación a la vez, aunque la pidan varios
+   * remotos). Devuelve el access token nuevo, o null si no se pudo: en ese caso el shell ya
+   * llevó a la persona al inicio de sesión y el remoto solo debe dejar de reintentar.
+   */
+  renovarSesion(): Promise<string | null>
 }
 
 /**

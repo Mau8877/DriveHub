@@ -11,7 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * Permisos de cada rol (CU05).
+ * Permisos de cada rol (sin caso de uso asignado todavía).
  */
 @Getter
 @NoArgsConstructor

@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -29,6 +30,8 @@ import jakarta.servlet.http.HttpServletResponse;
  * ! No aplica a /health ni /prometheus -- ver shouldNotFilter.
  */
 @Component
+// * Antes de Spring Security (orden -100): así una IP también consume cupo con peticiones sin token
+@Order(-101)
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();

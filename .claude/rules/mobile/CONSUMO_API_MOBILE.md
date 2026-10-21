@@ -53,6 +53,24 @@ lib/features/usuarios/
 Un `service` recibe el `ApiClient` compartido (no crea su propia instancia
 de `Dio`), y solo conoce endpoints de **su** feature.
 
+## Modelos de datos (DTOs)
+
+Las clases que representan el JSON de la API viven en `models/` dentro de
+la feature (`lib/features/{feature}/models/`):
+
+- Una clase por DTO, nombre `{Recurso}Request` para lo que se envía y
+  `{Recurso}` (o `{Recurso}Response` si hace falta distinguir) para lo que
+  se recibe.
+- Clases inmutables: campos `final` y constructor `const`. `toJson()` en los
+  requests y `factory fromJson(Map<String, dynamic>)` en las respuestas,
+  escritos a mano (sin `json_serializable` ni generación de código mientras
+  no se decida lo contrario).
+- Los campos van en `camelCase`, igual que el JSON del backend.
+- Solo el `service` de la feature construye y parsea DTOs; los providers y
+  las pantallas reciben objetos ya tipados.
+- El parseo se prueba con un test unitario cuando el mapeo no es trivial
+  (ver [TESTING_MOBILE.md](TESTING_MOBILE.md)).
+
 ### Endpoints compartidos entre features
 
 Mismo criterio que en el frontend web (ver

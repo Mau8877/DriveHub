@@ -32,7 +32,7 @@ también se publican al host para acceder a cada pieza directo.
 
 | Grupo | Perfil | Servicios |
 | --- | --- | --- |
-| Infraestructura | (ninguno: siempre arranca) | `postgres`, `mongo`, `dynamodb`, `rabbitmq`, `minio`, `minio-init` |
+| Infraestructura | (ninguno: siempre arranca) | `postgres`, `mongo`, `dynamodb`, `rabbitmq`, `minio`, `minio-init`, `mailpit` |
 | Backend | `backend` | `gateway`, `identidad`, `escuela`, `pagos`, `academico`, `contenido`, `notificaciones`, `asistente-ia` |
 | Frontend | `frontend` | `frontend` (las 7 apps en un contenedor), `proxy` (nginx) |
 | Observabilidad | `observabilidad` | `prometheus`, `grafana` |
@@ -57,6 +57,7 @@ servicio local; los defaults de cada servicio apuntan a `localhost`.
 | `8000` | DynamoDB local | `aws dynamodb ... --endpoint-url http://localhost:8000` |
 | `5672` / `15672` | RabbitMQ | AMQP / consola web |
 | `9000` / `9001` | MinIO | API S3 / consola web |
+| `1025` / `8025` | Mailpit | SMTP de desarrollo / bandeja web de los correos |
 | `9090` / `3000` | Prometheus / Grafana | Métricas |
 
 ## 4. Bases de datos
@@ -112,7 +113,24 @@ buckets) ejecuta `infrastructure/minio/create-buckets.sh`:
 > imagen de Chainguard (`user: '0'` para escribir en el volumen, healthcheck
 > por `/dev/tcp` porque no trae curl) y el cliente la de `bitnamilegacy`.
 
-## 7. Servicios de backend en desarrollo
+## 7. Correo de desarrollo (`mailpit`)
+
+[Mailpit](https://mailpit.axllent.org) es un servidor SMTP de mentira: recibe
+los correos que envían los servicios y los muestra en una bandeja web, sin
+entregar nada a nadie. Lo usa Identidad para recuperar la contraseña y
+confirmar el correo (CU04).
+
+| Qué | Dónde |
+| --- | --- |
+| SMTP (los servicios envían acá) | `drivehub-mailpit:1025` dentro de Docker, `localhost:1025` desde el host |
+| Bandeja web | http://localhost:8025 |
+
+No necesita usuario ni clave y no guarda nada entre reinicios. Para mandar
+correos reales, el servicio solo cambia sus variables `SMTP_*` (host, puerto,
+usuario, clave y remitente) por las de un proveedor: el código no distingue
+entre uno y otro.
+
+## 8. Servicios de backend en desarrollo
 
 - **Spring** (`gateway`, `identidad`, `escuela`, `pagos`, `academico`):
   imagen `maven:3.9-eclipse-temurin-21-alpine` + `mvn spring-boot:run`
@@ -129,7 +147,7 @@ buckets) ejecuta `infrastructure/minio/create-buckets.sh`:
   `php artisan migrate` (colecciones e índices) y `php artisan serve`.
   `vendor/` en un volumen propio.
 
-## 8. Frontend en desarrollo
+## 9. Frontend en desarrollo
 
 Un único contenedor `frontend` (`node:24-alpine`) instala el workspace y
 corre los 7 dev servers en paralelo, cada uno en su puerto. El navegador
@@ -140,7 +158,7 @@ remoto desde su puerto según sus manifiestos
 al gateway (`API_GATEWAY_URL`). Cada app tiene su `node_modules` en un
 volumen nombrado (mismo motivo que en Notificaciones).
 
-## 9. Variables de entorno
+## 10. Variables de entorno
 
 | Archivo | Para qué |
 | --- | --- |
@@ -151,7 +169,7 @@ volumen nombrado (mismo motivo que en Notificaciones).
 
 Los `.env` reales no se commitean.
 
-## 10. Volúmenes
+## 11. Volúmenes
 
 Datos persistentes: `drivehub-postgres_data`, `drivehub-mongo_data`,
 `drivehub-dynamodb_data`, `drivehub-rabbitmq_data`, `drivehub-minio_data`.
@@ -159,7 +177,7 @@ Aislamiento de dependencias: `drivehub-contenido_vendor`,
 `drivehub-notificaciones-nm-*`, `drivehub-frontend-nm-*`. Para empezar de
 cero: `docker compose down -v`.
 
-## 11. Producción
+## 12. Producción
 
 Cada servicio tiene un `Dockerfile` de producción (multi-stage, sin root).
 `docker-compose.yml` es **solo de desarrollo**; el despliegue (CD) está

@@ -6,6 +6,12 @@ export default withNativeFederation({
   exposes: {
     // El shell monta estas rutas con loadChildren bajo /identidad.
     './routes': './src/app/app.routes.ts',
+    // Pantallas sin sesión (registro del estudiante): el shell las monta bajo
+    // /register, fuera de su layout.
+    './routes-publicas': './src/app/routes-publicas.ts',
+    // Páginas públicas de la cuenta (verificar el correo, CU04b): el shell las monta
+    // bajo /account, fuera de su layout. Los enlaces de los correos apuntan acá.
+    './routes-cuenta': './src/app/routes-cuenta.ts',
   },
 
   shared: fromPackageJson({
@@ -27,6 +33,9 @@ export default withNativeFederation({
     // * El contrato con el shell vive en globalThis: no necesita ser una
     // * instancia compartida (y su versión workspace:* no es semver).
     '@drivehub/mf-contract',
+    // * Idem @drivehub/gestion (Web Component <dh-gestion>): se incluye en el bundle del remoto que
+    // * lo usa; su versión workspace:* tampoco es semver.
+    '@drivehub/gestion',
   ],
 
   // Please read our FAQ about sharing libs:

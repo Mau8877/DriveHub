@@ -1,6 +1,8 @@
 package com.drivehub.identidad.infrastructure.adapter.out.persistence.model;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
 
 import com.drivehub.identidad.domain.model.EstadoUsuario;
 
@@ -46,6 +48,13 @@ public class UsuarioModel extends BaseModel {
     @Column(name = "telefono", length = 20)
     private String telefono;
 
+    @Column(name = "fecha_nacimiento", nullable = false)
+    private LocalDate fechaNacimiento;
+
+    // * Escuela (tenant) de la cuenta, sin FK física; null para el Super admin
+    @Column(name = "escuela_codigo")
+    private UUID escuelaCodigo;
+
     // * Clave del archivo en el bucket drivehub-identidad
     @Setter
     @Column(name = "foto_url", columnDefinition = "text")
@@ -64,4 +73,26 @@ public class UsuarioModel extends BaseModel {
     @Setter
     @Column(name = "ultimo_login")
     private Instant ultimoLogin;
+
+    // * Fin del bloqueo por intentos fallidos; null si la cuenta no está bloqueada
+    @Setter
+    @Column(name = "bloqueado_hasta")
+    private Instant bloqueadoHasta;
+
+    // * Se marca con el enlace de verificación (CU04b)
+    @Setter
+    @Column(name = "correo_verificado", nullable = false)
+    private boolean correoVerificado;
+
+    public UsuarioModel(String email, String passwordHash, String nombres, String apellidos, String telefono,
+            LocalDate fechaNacimiento, UUID escuelaCodigo, EstadoUsuario estado) {
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.nombres = nombres;
+        this.apellidos = apellidos;
+        this.telefono = telefono;
+        this.fechaNacimiento = fechaNacimiento;
+        this.escuelaCodigo = escuelaCodigo;
+        this.estado = estado;
+    }
 }

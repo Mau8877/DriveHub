@@ -56,6 +56,14 @@ public abstract class BaseModel {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    /**
+     * * Solo para datos con codigo fijo (los seeders de desarrollo): el resto
+     * * deja que @PrePersist genere el UUID v7.
+     */
+    protected void asignarCodigo(UUID codigoFijo) {
+        this.codigo = codigoFijo;
+    }
+
     @PrePersist
     protected void generarCodigoSiFalta() {
         if (codigo == null) {

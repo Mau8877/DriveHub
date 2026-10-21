@@ -8,6 +8,7 @@ const props = {
   apiBaseUrl: 'http://localhost:8080/api/v1',
   obtenerToken: () => null,
   navegar: () => undefined,
+  renovarSesion: async () => null,
 }
 
 function nuevoElemento() {

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Permiso fino (CU05).
+ * Permiso fino (sin caso de uso asignado todavía).
  */
 @Getter
 @NoArgsConstructor

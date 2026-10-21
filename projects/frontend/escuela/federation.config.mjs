@@ -6,6 +6,9 @@ export default withNativeFederation({
   exposes: {
     // El shell monta estas rutas con loadChildren bajo /escuela.
     './routes': './src/app/app.routes.ts',
+    // Gestión de escuelas del Super admin (CU05): el shell las monta bajo /escuelas, con el rol
+    // SUPER_ADMIN. Aparte de './routes' (las del Administrador, bajo /escuela).
+    './routes-escuelas': './src/app/routes-escuelas.ts',
   },
 
   shared: fromPackageJson({
@@ -27,6 +30,9 @@ export default withNativeFederation({
     // * El contrato con el shell vive en globalThis: no necesita ser una
     // * instancia compartida (y su versión workspace:* no es semver).
     '@drivehub/mf-contract',
+    // * Idem @drivehub/gestion (Web Component <dh-gestion>): se incluye en el bundle del remoto que
+    // * lo usa; su versión workspace:* tampoco es semver.
+    '@drivehub/gestion',
   ],
 
   // Please read our FAQ about sharing libs:

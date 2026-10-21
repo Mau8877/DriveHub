@@ -71,6 +71,7 @@ identidad escuela pagos           examenes contenido asistente-ia
 | Paquete | Qué es | Reglas |
 | --- | --- | --- |
 | `@drivehub/mf-contract` | Contrato shell ↔ remotos: `ContextoShell` (apiBaseUrl, obtenerToken, navegar), `MountProps`, `RemotoReact`, bus de eventos | JS plano + `.d.ts` (sin build). El contexto vive en `globalThis` porque Angular y React no comparten el mismo sistema de federación. Se excluye de la federación (`skip`) en las apps Angular. |
+| `@drivehub/gestion` | `<dh-gestion>`: Web Component (Lit) que dibuja las pantallas "Gestionar" (listado, crear, editar, acciones) a partir de un esquema | JS plano + `.d.ts`. Una pantalla de gestión CRUD pasa un esquema, no reimplementa la tabla ni el formulario. Detalle en [GESTION_FRONTEND.md](frontend/GESTION_FRONTEND.md). `skip` en las apps Angular. |
 | `@drivehub/design-tokens` | `tokens.css` (variables CSS) y `theme.css` (mapeo a Tailwind 4) | La ÚNICA fuente de colores, radios y tipografía de la web. |
 
 Se dependen con `"workspace:*"`. Un paquete nuevo en `packages/` se crea
@@ -112,15 +113,32 @@ src/features/preguntas/
 Los features se crean con su primer caso de uso; hoy cada remoto tiene
 solo su pantalla inicial (`routes/index.tsx`).
 
+### Mismas carpetas en React y Angular
+
+**Toda feature de la web, sea React o Angular, tiene las mismas carpetas con
+los mismos nombres.** Quien conoce una app conoce todas. Una carpeta se
+crea solo cuando tiene algo adentro (no se dejan vacías "por si acaso").
+
+| Carpeta | React | Angular |
+| --- | --- | --- |
+| `api/` | Queries/mutations de TanStack Query | Services con `HttpClient` (`cuenta.service.ts`) |
+| `screens/` | Pantallas que monta `routes/` | Componentes de ruta (lo que cargan los `loadComponent`) |
+| `components/` | UI propia de la feature | UI propia de la feature |
+| `schemas/` | Schemas de Zod | Reglas de validación: constantes, `Validators` y mapa de mensajes de error |
+| `types/` | Tipos TS propios | Interfaces/tipos de la feature (los DTO de request/response) |
+| `tests/` | Tests de la feature | `*.spec.ts` de la feature |
+| `index.ts` | Barrel | Barrel |
+
 ## Estructura de una app Angular
 
 Ver [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) (shell y remotos
-`identidad`, `escuela`, `pagos`).
+`identidad`, `escuela`, `pagos`): sus `features/` siguen la tabla de arriba.
 
 ## Tests: co-ubicados a nivel de app, centralizados a nivel de feature
 
 - Código transversal (`src/store/`, `src/lib/`, `src/components/ui/`,
-  `mount.ts`): el test vive **al lado** del archivo.
+  `mount.ts` en React; `core/` y `layout/` en Angular): el test vive **al
+  lado** del archivo.
 - Código de una feature: en la carpeta `tests/` de esa feature.
 
 Detalle en [TESTING_FRONTEND.md](frontend/TESTING_FRONTEND.md) (React) y
@@ -133,3 +151,6 @@ Detalle en [TESTING_FRONTEND.md](frontend/TESTING_FRONTEND.md) (React) y
 - Dentro de un remoto React: `features/{feature}/` puede importar de
   `store/`, `components/ui/`, `lib/` y `shared/` — nunca al revés. Una
   feature importa de otra solo por su `index.ts`.
+- Dentro de una app Angular: `features/{feature}/` puede importar de
+  `core/` — nunca al revés. Una feature importa de otra solo por su
+  `index.ts` (ej. `cuenta` reusa los límites de campo de `registro`).

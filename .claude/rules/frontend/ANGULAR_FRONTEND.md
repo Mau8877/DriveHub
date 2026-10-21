@@ -26,7 +26,7 @@ src/
     │   ├── api/                # apiInterceptor (Bearer + desempaquetado del sobre) y tipos
     │   └── federacion/         # RemoteHost (monta remotos React), carga de remotos React, matcher por prefijo
     ├── layout/                 # ShellLayout (menú lateral, cabecera, avisos) y NAV_ITEMS
-    └── pages/                  # Pantallas propias del shell (inicio, login, no encontrado)
+    └── features/               # Pantallas propias del shell, una carpeta por feature (inicio, login, no-encontrado)
 public/
 ├── federation.manifest.json    # URLs de los remotos Angular
 └── remotos-react.manifest.json # URLs de los remotos React
@@ -43,13 +43,26 @@ src/app/
 ├── core/api/           # apiInterceptor + apiBaseUrl()/tokenActual() desde el contexto del shell
 └── features/
     └── {feature}/      # Un feature de negocio (se crea con su primer caso de uso)
-        ├── pages/      # Componentes de ruta
+        ├── api/        # Services: llamadas a la API (HttpClient) y estado de la feature (signals)
+        ├── screens/    # Componentes de ruta (lo que cargan los loadComponent)
         ├── components/ # Componentes de UI de esta feature
-        ├── services/   # Llamadas a la API (HttpClient) y estado de la feature (signals)
-        ├── models/     # Tipos/interfaces de la feature
-        └── {feature}.routes.ts
+        ├── schemas/    # Reglas de validación: constantes, Validators y mensajes de error
+        ├── types/      # Tipos/interfaces de la feature (DTO de request/response)
+        ├── tests/      # Los *.spec.ts de esta feature
+        └── index.ts    # Barrel: lo único que otras features pueden importar
 ```
 
+Son las **mismas carpetas que en los remotos React** (ver
+[ARQUITECTURA_FRONTEND.md](../ARQUITECTURA_FRONTEND.md#mismas-carpetas-en-react-y-angular)).
+Una carpeta se crea solo cuando tiene algo adentro, y `index.ts` solo si
+otra feature necesita algo de esta. Un nombre de archivo lleva el de la
+feature o el del recurso (`registro.service.ts`, `registro.types.ts`), no el
+de la carpeta.
+
+- Las rutas de una feature van en un `routes-*.ts` en la raíz de `app/`
+  cuando el remoto las expone por federación (`routes-publicas.ts`,
+  `routes-cuenta.ts`), o como `{feature}.routes.ts` dentro de la feature si
+  son de la ruta con sesión.
 - Lo que el remoto necesita **también dentro del shell** (ej.
   `provideHttpClient` con su interceptor) se provee en la ruta raíz de
   `app.routes.ts`, no en `app.config.ts`: dentro del shell solo se cargan
@@ -89,6 +102,10 @@ src/app/
   `@drivehub/mf-contract` va en `skip`.
 - **Formato**: el `.prettierrc` de la raíz (sin punto y coma, comillas
   simples, parser `angular` para templates). `pnpm lint` = `prettier --check`.
+- **Idioma de las rutas web**: solo las páginas públicas de `identidad` van
+  en inglés (`/register`, `/account/verify-email`, `/account/forgot-password`,
+  `/account/reset-password`). Todo lo demás va en español (`/escuelas`,
+  `/escuelas/nueva`, `/escuelas/:codigo/editar`).
 - **Nombres**: archivos `kebab-case` (`remote-host.ts`, `sesion.service.ts`),
   clases `PascalCase` sin sufijo `Component` en componentes de ruta/página
   (convención de Angular 20+: `Inicio`, `ShellLayout`), selector con
@@ -97,8 +114,12 @@ src/app/
 ## Tests
 
 **Vitest** con el builder `@angular/build:unit-test` (`pnpm test` = `ng test
---watch=false`), archivos `*.spec.ts` al lado del archivo que prueban. Se
-testea lo que tiene lógica: services, interceptores, guards, matchers,
+--watch=false`), archivos `*.spec.ts`. Dónde viven: el código transversal
+(`core/`, `layout/`, rutas) tiene su spec **al lado** del archivo; el
+código de una feature, en la carpeta `tests/` de esa feature (mismo
+criterio que en React, ver
+[ARQUITECTURA_FRONTEND.md](../ARQUITECTURA_FRONTEND.md#tests-co-ubicados-a-nivel-de-app-centralizados-a-nivel-de-feature)).
+Se testea lo que tiene lógica: services, interceptores, guards, matchers,
 pipes; los componentes de presentación sin lógica no. Nombres de `it` en
 español, describiendo el comportamiento (mismo criterio que
 [TESTING_FRONTEND.md](TESTING_FRONTEND.md#convención-de-nombres)).

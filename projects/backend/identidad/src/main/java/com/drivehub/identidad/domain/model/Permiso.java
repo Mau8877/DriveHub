@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * Permiso fino (CU05).
+ * Permiso fino (sin caso de uso asignado todavía).
  *
  * * `clave` es el identificador legible del permiso (ej. "reserva.crear",
  * * "pago.revertir"); en el diseño original se llamaba "codigo", se renombró

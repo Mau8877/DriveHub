@@ -21,8 +21,8 @@ prefijo del código dice qué servicio lo produjo:
 | Prefijo | Servicio | Carpeta |
 | --- | --- | --- |
 | `SYS` | Todos (transversales) | [`system/`](system/ERRORES_SISTEMA.md) |
-| `IDE` | Identidad | `identidad/` (sin errores todavía) |
-| `ESC` | Escuela | `escuela/` (sin errores todavía) |
+| `IDE` | Identidad | [`identidad/`](identidad/ERRORES_IDENTIDAD.md) |
+| `ESC` | Escuela | [`escuela/`](escuela/ERRORES_ESCUELA.md) |
 | `PAG` | Pagos | `pagos/` (sin errores todavía) |
 | `ACA` | Académico | `academico/` (sin errores todavía) |
 | `CON` | Contenido | `contenido/` (sin errores todavía) |
@@ -37,6 +37,33 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_SYS_01`](system/ERRORES_SISTEMA.md#err_sys_01) — Validación de formato del request fallida (400)
 - [`ERR_SYS_02`](system/ERRORES_SISTEMA.md#err_sys_02) — Límite de requests por IP superado (429, gateway)
 - [`ERR_SYS_03`](system/ERRORES_SISTEMA.md#err_sys_03) — Ruta inexistente en el servicio (404)
+- [`ERR_SYS_04`](system/ERRORES_SISTEMA.md#err_sys_04) — No autenticado: token ausente, inválido o vencido (401)
+- [`ERR_SYS_05`](system/ERRORES_SISTEMA.md#err_sys_05) — Sin permiso para la acción (403)
+
+### Identidad (`IDE`)
+
+- [`ERR_IDE_01`](identidad/ERRORES_IDENTIDAD.md#err_ide_01) — El correo ya está registrado (409)
+- [`ERR_IDE_02`](identidad/ERRORES_IDENTIDAD.md#err_ide_02) — No alcanza la edad mínima para registrarse (400)
+- [`ERR_IDE_03`](identidad/ERRORES_IDENTIDAD.md#err_ide_03) — La escuela no existe o no está activa (404)
+- [`ERR_IDE_04`](identidad/ERRORES_IDENTIDAD.md#err_ide_04) — Credenciales de inicio de sesión incorrectas (401)
+- [`ERR_IDE_05`](identidad/ERRORES_IDENTIDAD.md#err_ide_05) — Cuenta bloqueada temporalmente (423)
+- [`ERR_IDE_06`](identidad/ERRORES_IDENTIDAD.md#err_ide_06) — Cuenta inactiva (403)
+- [`ERR_IDE_07`](identidad/ERRORES_IDENTIDAD.md#err_ide_07) — Escuela de la cuenta suspendida (403)
+- [`ERR_IDE_08`](identidad/ERRORES_IDENTIDAD.md#err_ide_08) — El rol no puede usar esta plataforma (403)
+- [`ERR_IDE_09`](identidad/ERRORES_IDENTIDAD.md#err_ide_09) — Sesión renovable inválida, vencida o ya usada (401)
+- [`ERR_IDE_10`](identidad/ERRORES_IDENTIDAD.md#err_ide_10) — El correo de la cuenta ya está verificado (409)
+- [`ERR_IDE_11`](identidad/ERRORES_IDENTIDAD.md#err_ide_11) — Enlace de verificación o recuperación inválido, vencido o ya usado (400)
+- [`ERR_IDE_12`](identidad/ERRORES_IDENTIDAD.md#err_ide_12) — La escuela ya tiene un Administrador (409)
+- [`ERR_IDE_13`](identidad/ERRORES_IDENTIDAD.md#err_ide_13) — El Administrador ya inició sesión y no se puede revertir (409)
+
+### Escuela (`ESC`)
+
+- [`ERR_ESC_01`](escuela/ERRORES_ESCUELA.md#err_esc_01) — La escuela no existe o está inactiva (404)
+- [`ERR_ESC_02`](escuela/ERRORES_ESCUELA.md#err_esc_02) — No existe la escuela con ese código (404)
+- [`ERR_ESC_03`](escuela/ERRORES_ESCUELA.md#err_esc_03) — Ya existe una escuela con ese slug (409)
+- [`ERR_ESC_04`](escuela/ERRORES_ESCUELA.md#err_esc_04) — La escuela ya estaba inactiva (409)
+- [`ERR_ESC_05`](escuela/ERRORES_ESCUELA.md#err_esc_05) — La escuela ya estaba activa (409)
+- [`ERR_ESC_06`](escuela/ERRORES_ESCUELA.md#err_esc_06) — La escuela está inactiva y no se puede editar (409)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su

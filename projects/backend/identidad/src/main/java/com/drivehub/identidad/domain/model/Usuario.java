@@ -1,6 +1,7 @@
 package com.drivehub.identidad.domain.model;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,7 +17,7 @@ import lombok.Getter;
  * * adaptador de persistencia y no existe en el dominio.
  */
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class Usuario {
 
     private final UUID codigo;
@@ -25,10 +26,17 @@ public class Usuario {
     private final String nombres;
     private final String apellidos;
     private final String telefono;
+    private final LocalDate fechaNacimiento;
+    // * Escuela (tenant) de la cuenta; null para el Super admin
+    private final UUID escuelaCodigo;
     private final String fotoUrl;
     private final EstadoUsuario estado;
     private final int intentosFallidos;
     private final Instant ultimoLogin;
+    // * Hasta cuándo está bloqueada la cuenta (login CU02); null si no lo está
+    private final Instant bloqueadoHasta;
+    // * El correo se verificó con el enlace enviado (CU04b); no bloquea el login, solo la recuperación (CU04)
+    private final boolean correoVerificado;
     private final Set<Rol> roles;
     private final Instant creadoEn;
     private final Instant actualizadoEn;

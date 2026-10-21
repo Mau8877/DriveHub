@@ -11,7 +11,11 @@ const raices = new WeakMap<HTMLElement, Root>()
 
 /** Monta el árbol de React del remoto. Lo llama mount.ts (nunca el shell directo). */
 export function montar(elemento: HTMLElement, props: MountProps) {
-  configurarApi({ apiBaseUrl: props.apiBaseUrl, obtenerToken: props.obtenerToken })
+  configurarApi({
+    apiBaseUrl: props.apiBaseUrl,
+    obtenerToken: props.obtenerToken,
+    renovarSesion: props.renovarSesion,
+  })
   const raiz = createRoot(elemento)
   raiz.render(
     <StrictMode>

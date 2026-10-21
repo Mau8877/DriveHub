@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Rol del sistema (CU05). Los nombres son datos, no un enum.
+ * Rol del sistema. Los nombres son datos, no un enum.
  */
 @Getter
 @NoArgsConstructor

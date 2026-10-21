@@ -1,18 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:mobile/core/routing/app_router.dart';
 import 'package:mobile/core/theme/app_theme.dart';
+import 'package:mobile/features/auth/providers/sesion_provider.dart';
 import 'package:mobile/layouts/usuario/usuario_shell.dart';
+
+import 'helpers/sesion_falsa.dart';
 
 // * No se testea `MyApp` completo -- `main()` depende de `dotenv.load()`
 // * (lee un archivo real), que no tiene sentido resolver en un widget test.
-// * `UsuarioShell` no depende de ningún router (core/routing/ todavía no
-// * existe, ver ARQUITECTURA_MOBILE.md), así que se monta directo en un
-// * MaterialApp para verificar que el shell de un rol renderiza bien.
+// * Se monta el router real con la sesión sustituida y el shell de usuario directo.
 void main() {
+  testWidgets('sin sesión la app arranca en el login', (tester) async {
+    final container = ProviderContainer(
+      overrides: [sesionFalsa(SesionFalsa(const EstadoSesion.sinSesion()))],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: container.read(routerProvider)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.text('Crear cuenta'), findsOneWidget);
+  });
+
   testWidgets('muestra la sección inicial del shell de usuario', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const UsuarioShell()),
+      ProviderScope(
+        overrides: [sesionFalsa(SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)))],
+        child: MaterialApp(theme: AppTheme.light, home: const UsuarioShell()),
+      ),
     );
 
     expect(find.text('Inicio'), findsWidgets);

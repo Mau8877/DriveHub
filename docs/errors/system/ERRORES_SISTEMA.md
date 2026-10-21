@@ -50,3 +50,22 @@ gateway), no ligados a ningún servicio de negocio puntual (ver
 - **Dónde se lanza:** handler global de cada servicio — Spring
   `GlobalExceptionHandler.handleNoResourceFound()`, NestJS
   `GlobalExceptionFilter.catch()`, FastAPI `_http`, Laravel `bootstrap/app.php`.
+
+## `ERR_SYS_04`
+
+- **HTTP:** 401
+- **Excepción:** ninguna de negocio — la rechaza la capa de seguridad antes de llegar al controller
+- **Significado:** No autenticado: falta el token de acceso, es inválido (mala
+  firma, otro emisor) o venció. El cliente debe renovar la sesión o iniciar sesión
+  de nuevo (CU02).
+- **Dónde se lanza:** el gateway (`SecurityConfig`) y el `AuthenticationEntryPoint`
+  de cada servicio Spring que valida JWT.
+
+## `ERR_SYS_05`
+
+- **HTTP:** 403
+- **Excepción:** ninguna de negocio — la rechaza la capa de seguridad o `@PreAuthorize`
+- **Significado:** Autenticado pero sin permiso para la acción (rol insuficiente).
+- **Dónde se lanza:** el gateway, el `AccessDeniedHandler` de cada servicio Spring
+  y `GlobalExceptionHandler.handleAccesoDenegado()` para `@PreAuthorize`.
+

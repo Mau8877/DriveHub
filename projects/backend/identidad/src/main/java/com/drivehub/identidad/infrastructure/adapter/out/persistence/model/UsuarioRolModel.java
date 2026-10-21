@@ -32,4 +32,10 @@ public class UsuarioRolModel extends BaseModel {
 
     @Column(name = "asignado_en", nullable = false)
     private Instant asignadoEn;
+
+    public UsuarioRolModel(UsuarioModel usuario, RolModel rol, Instant asignadoEn) {
+        this.usuario = usuario;
+        this.rol = rol;
+        this.asignadoEn = asignadoEn;
+    }
 }

@@ -28,7 +28,11 @@ export const appConfig: ApplicationConfig = {
         apiBaseUrl: API_BASE_URL,
         obtenerToken: () => sesion.obtenerToken(),
         navegar: (ruta) => void router.navigateByUrl(ruta),
+        // * Los remotos piden la renovación al shell: es el único dueño de la sesión
+        renovarSesion: () => sesion.renovar(),
       })
     }),
+    // * Antes de enrutar: intenta recuperar la sesión con la cookie, sin pedir la contraseña
+    provideAppInitializer(() => inject(SesionService).restaurar()),
   ],
 }

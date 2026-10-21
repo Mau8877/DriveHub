@@ -1,0 +1,27 @@
+{
+  "name": "@drivehub/gestion",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Pantalla de gestión (listado, crear, editar y acciones) como Web Component <dh-gestion> configurado por un esquema: una sola implementación para Angular y React",
+  "type": "module",
+  "sideEffects": [
+    "./src/index.js"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "dependencies": {
+    "@drivehub/mf-contract": "workspace:*",
+    "lit": "^3.3.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.0",
+    "vitest": "^5.0.0"
+  }
+}

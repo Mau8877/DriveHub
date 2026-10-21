@@ -39,7 +39,8 @@ com.drivehub.escuela
 ├── common/                       # Núcleo compartido: excepciones, ApiResponse, UuidV7
 ├── domain/
 │   ├── entity/                   # Entidades de negocio puras (Estudiante, Instructor, Vehiculo...) y sus enums
-│   └── repository/               # Interfaces de repositorio que necesita el negocio (EstudianteRepository)
+│   ├── repository/               # Interfaces de repositorio que necesita el negocio (EstudianteRepository)
+│   └── gateway/                  # Interfaces hacia OTROS servicios (AdministradorEscuelaGateway) y sus tipos
 ├── application/
 │   ├── usecase/                  # Un caso de uso por clase (RegistrarVehiculoUseCase, AsignarAutoAInstructorUseCase)
 │   └── dto/                      # Datos de entrada/salida de los casos de uso (no los DTO HTTP)
@@ -49,6 +50,7 @@ com.drivehub.escuela
     ├── persistence/
     │   ├── model/                # Models JPA (@Entity, sufijo Model) + BaseModel
     │   └── repository/           # Spring Data JPA + implementación de domain/repository
+    ├── client/                   # Clientes REST hacia otros servicios: implementan domain/gateway
     └── config/                   # SecurityConfig y beans de Spring
 ```
 
