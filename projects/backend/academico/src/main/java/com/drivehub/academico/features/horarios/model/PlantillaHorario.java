@@ -24,11 +24,15 @@ public class PlantillaHorario extends BaseDocument {
     @Indexed(unique = true)
     private UUID codigoPlantillaHorario;
 
+    // * = escuela.escuela.codigo_escuela, tomado del claim `escuela` del JWT al crear. Es el dato,
+    // * no el filtro por tenant (ese mecanismo está pendiente, ver DISENO_BASE_DE_DATOS.md)
+    private UUID escuelaCodigo;
+
     // * = codigo de persona de Identidad (instructor), sin FK
     @Indexed
     private UUID instructorCodigo;
 
-    // * = Escuela vehiculo.codigo_vehiculo, sin FK
+    // * = Escuela vehiculo.codigo_vehiculo, sin FK. Vacío hasta que CU10 asigne autos a instructores
     private UUID vehiculoCodigo;
 
     // * 1 (lunes) a 7 (domingo)
@@ -56,6 +60,22 @@ public class PlantillaHorario extends BaseDocument {
 
     @Setter
     private boolean activa;
+
+    /**
+     * Horario nuevo, activo. El vehículo no se asigna acá (CU10).
+     */
+    public PlantillaHorario(UUID escuelaCodigo, UUID instructorCodigo, int diaSemana, String horaInicio,
+            String horaFin, int duracionClaseMin, LocalDate vigenteDesde, LocalDate vigenteHasta) {
+        this.escuelaCodigo = escuelaCodigo;
+        this.instructorCodigo = instructorCodigo;
+        this.diaSemana = diaSemana;
+        this.horaInicio = horaInicio;
+        this.horaFin = horaFin;
+        this.duracionClaseMin = duracionClaseMin;
+        this.vigenteDesde = vigenteDesde;
+        this.vigenteHasta = vigenteHasta;
+        this.activa = true;
+    }
 
     @Override
     public void inicializarCodigo() {
