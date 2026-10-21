@@ -46,6 +46,15 @@ void main() {
     expect(bearerDe(adaptador, 0), isNull);
   });
 
+  test('agrega el Bearer a /auth/verificar-correo, que exige sesión', () async {
+    final adaptador = AdaptadorEnCola([RespuestaFalsa(200, exito({}))]);
+    ApiClient.instance.httpClientAdapter = adaptador;
+
+    await ApiClient.instance.post<dynamic>('/auth/verificar-correo');
+
+    expect(bearerDe(adaptador, 0), 'Bearer token-viejo');
+  });
+
   test('ante un 401 renueva una vez y repite con el token nuevo', () async {
     final adaptador = AdaptadorEnCola([
       RespuestaFalsa(401, fallo('ERR_SYS_04')),

@@ -97,9 +97,12 @@ class ApiClient {
 
   /// Agrega el Bearer y, ante un 401 de una petición de negocio, renueva la
   /// sesión UNA vez y repite la petición. Las rutas `/auth/` no llevan Bearer
-  /// ni se reintentan.
+  /// ni se reintentan, salvo `/auth/verificar-correo` (CU04b): pide el correo de la
+  /// cuenta con sesión, así que sin Bearer el backend la rechaza con 401.
   static Interceptor _interceptorDeSesion(Dio dio) {
-    bool esDeAuth(RequestOptions options) => options.path.startsWith('/auth/');
+    bool esDeAuth(RequestOptions options) =>
+        options.path.startsWith('/auth/') &&
+        options.path != '/auth/verificar-correo';
 
     return InterceptorsWrapper(
       onRequest: (options, handler) {
