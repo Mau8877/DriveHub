@@ -5,6 +5,8 @@
 **Fuente CU:** [`CU12 - Gestionar horarios del instructor`](../../../CasosDeUso/CU12%20-%20Gestionar%20horarios%20del%20instructor.md)
 **Recurso HTTP / contrato:** `/api/v1/plantillas-horario` y `/api/v1/franjas` (ver [el contrato de backend](../UT-BACKEND/README.md#contrato-de-datos--recurso-http))
 
+> **Refactor del CU12 (varios días, nombre, pausar y bloquear un día).** Las UT 01 a 07 ya se implementaron y quedan como historia del primer alcance. Las **UT 08 a 12** cambian esa feature al contrato nuevo y al diseño de la propuesta B ([`design.md`](../../../../projects/mobile/docs/design.md)). Donde una decisión de abajo contradice una anterior, vale la marcada como vigente.
+
 ## Antes de implementar cualquier UT
 
 Leer en [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_MOBILE.md](../../../../.claude/rules/ARQUITECTURA_MOBILE.md), [CONSUMO_API_MOBILE.md](../../../../.claude/rules/mobile/CONSUMO_API_MOBILE.md) (incluye la convención de `models/`), [ESTADO_GLOBAL_MOBILE.md](../../../../.claude/rules/mobile/ESTADO_GLOBAL_MOBILE.md), [FORMULARIOS_MOBILE.md](../../../../.claude/rules/mobile/FORMULARIOS_MOBILE.md), [NAVEGACION_MOBILE.md](../../../../.claude/rules/mobile/NAVEGACION_MOBILE.md), [WIDGETS_UI_MOBILE.md](../../../../.claude/rules/mobile/WIDGETS_UI_MOBILE.md), [TESTING_MOBILE.md](../../../../.claude/rules/mobile/TESTING_MOBILE.md). Estas fichas **no** sustituyen esas reglas: si hay conflicto, ganan las rules del proyecto. Tomar como modelo la feature `features/auth/` (models, service, provider, validators, screens y tests).
@@ -19,6 +21,10 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_MOBILE.md]
 6. **Mismas reglas de validación que el backend** (FORMULARIOS_MOBILE.md): hora fin posterior a la de inicio, duración 15–240 y ventana múltiplo exacto, vigencia no anterior a hoy. Los mensajes de error de negocio del backend (`ERR_ACA_*`) ya vienen en español y se muestran tal cual.
 7. **Fechas y horas:** el backend usa `yyyy-MM-dd` para fechas y `HH:mm` (24 horas) para horas; la app las manda y las lee en ese formato y las muestra igual. La hora "ahora" para ocultar acciones sobre franjas ya empezadas es la del teléfono (solo UX; el backend es quien rechaza con `ERR_ACA_10`).
 8. **Colores solo del tema** (`Theme.of(context).colorScheme` / `AppColors`): nada de `Color(0x...)` sueltos (ver WIDGETS_UI_MOBILE.md).
+9. **El formulario calcula la vista previa en el teléfono** (franjas por día y por semana). Es solo ayuda visual: el backend es quien genera las franjas y valida.
+10. **«Horarios» tiene dos pestañas (vigente desde el refactor):** Plantillas y Franjas, como en el mockup. Reemplaza a la decisión 3 en lo de `/schedules/slots`, que se elimina; queda `/schedules/new` para el formulario.
+11. **Duración con tres opciones (45, 60, 90 min)** en el formulario, como en el mockup. El backend sigue aceptando de 15 a 240, así que ampliar las opciones es solo un cambio de la app.
+12. **Las franjas se ven por semana y se piden con `pageSize` de 100** (una semana no pasa de unas decenas). Sustituye a «50 franjas por fecha» de la decisión 4.
 
 ## Prerrequisito para la prueba manual
 
@@ -35,8 +41,15 @@ Hace falta una cuenta con rol `INSTRUCTOR` para entrar a la app, y **hoy no exis
 | [UT-CU12-MOB-05](./UT-CU12-MOB-05.md) | Pantallas "Horarios" y "Nuevo horario" | 03, 04 |
 | [UT-CU12-MOB-06](./UT-CU12-MOB-06.md) | Pantalla "Franjas" | 04 |
 | [UT-CU12-MOB-07](./UT-CU12-MOB-07.md) | Sección "Horarios" en el shell y rutas | 05, 06 |
+| [UT-CU12-MOB-08](./UT-CU12-MOB-08.md) | Modelos con nombre, varios días y estado | — |
+| [UT-CU12-MOB-09](./UT-CU12-MOB-09.md) | `HorariosService`: estados, pausar, reanudar y día completo | 08 |
+| [UT-CU12-MOB-10](./UT-CU12-MOB-10.md) | Validadores, vista previa y providers | 08, 09 |
+| [UT-CU12-MOB-11](./UT-CU12-MOB-11.md) | Pantalla «Horarios» con pestañas y formulario «Nuevo horario» | 10 |
+| [UT-CU12-MOB-12](./UT-CU12-MOB-12.md) | Franjas de la semana, bloquear un día y rutas | 10, 11 |
 
-**Cadena:** `01 → 02 → 04 → 05, 06 → 07`; la 03 es independiente y la necesita la 05. Para probar de punta a punta hace falta el backend del CU12 (todas las UT de `UT-BACKEND`) y la cuenta de instructor.
+**Cadena:** `01 → 02 → 04 → 05, 06 → 07`; la 03 es independiente y la necesita la 05.
+
+**Cadena del refactor (UT 08 a 12):** `08 → 09 → 10 → 11 → 12`. Necesitan el backend de las UT 13 a 20. Para probar de punta a punta hace falta el backend del CU12 (todas las UT de `UT-BACKEND`) y la cuenta de instructor.
 
 ## Cobertura del caso de uso
 
@@ -49,7 +62,11 @@ Hace falta una cuenta con rol `INSTRUCTOR` para entrar a la app, y **hoy no exis
 | F5 | Desactivar un horario | 02, 04, 05 |
 | A5 a A11 (mensajes) | Mostrar el error de negocio del backend | 02, 05, 06 |
 | A13 | Solo Instructor | 07 |
-| A15 | Sin conexión: informar y permitir reintentar | 04, 05, 06 |
+| A15 | Sin conexión: informar y permitir reintentar | 04, 05, 06, 11, 12 |
+| F1 con varios días, A1 (refactor) | Nombre, días y vista previa | 08, 10, 11 |
+| F6, F7, A17, A18 | Pausar y reanudar | 08, 09, 10, 11 |
+| F8, A11 | Bloquear y desbloquear un día | 08, 09, 10, 12 |
+| F2 con rango, A19 | Ver la semana | 08, 09, 10, 12 |
 
 S1 (generación diaria) y las reglas de negocio son del backend.
 
@@ -57,7 +74,7 @@ S1 (generación diaria) y las reglas de negocio son del backend.
 
 - Editar un horario y reactivar uno desactivado (cuando existan en el backend).
 - Scroll infinito en las listas.
-- Vista de calendario semanal.
+- Ventanas distintas por día dentro de un mismo horario.
 - Mostrar el vehículo de la franja (CU10).
 - Notificar al instructor cuando se reserva una de sus franjas (CU36).
 

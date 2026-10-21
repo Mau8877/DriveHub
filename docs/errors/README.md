@@ -72,11 +72,14 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_03`](academico/ERRORES_ACADEMICO.md#err_aca_03) — Vigencia del horario inválida (400)
 - [`ERR_ACA_04`](academico/ERRORES_ACADEMICO.md#err_aca_04) — El horario se cruza con otro horario activo del instructor (409)
 - [`ERR_ACA_05`](academico/ERRORES_ACADEMICO.md#err_aca_05) — El horario no existe o no es del instructor (404)
-- [`ERR_ACA_06`](academico/ERRORES_ACADEMICO.md#err_aca_06) — El horario ya estaba inactivo (409)
+- [`ERR_ACA_06`](academico/ERRORES_ACADEMICO.md#err_aca_06) — El horario ya estaba inactivo y no se puede desactivar de nuevo (409)
 - [`ERR_ACA_07`](academico/ERRORES_ACADEMICO.md#err_aca_07) — La franja no existe o no es del instructor (404)
 - [`ERR_ACA_08`](academico/ERRORES_ACADEMICO.md#err_aca_08) — La franja no está libre y no se puede bloquear (409)
 - [`ERR_ACA_09`](academico/ERRORES_ACADEMICO.md#err_aca_09) — La franja no está bloqueada y no se puede desbloquear (409)
-- [`ERR_ACA_10`](academico/ERRORES_ACADEMICO.md#err_aca_10) — La franja ya empezó o ya pasó (409)
+- [`ERR_ACA_10`](academico/ERRORES_ACADEMICO.md#err_aca_10) — La franja o el día ya empezó o ya pasó (409)
+- [`ERR_ACA_11`](academico/ERRORES_ACADEMICO.md#err_aca_11) — El horario no está activo y no se puede pausar (409)
+- [`ERR_ACA_12`](academico/ERRORES_ACADEMICO.md#err_aca_12) — El horario no está pausado y no se puede reanudar (409)
+- [`ERR_ACA_13`](academico/ERRORES_ACADEMICO.md#err_aca_13) — Rango de fechas de franjas inválido (400)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su

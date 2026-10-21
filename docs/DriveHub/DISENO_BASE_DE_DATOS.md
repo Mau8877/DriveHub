@@ -570,14 +570,17 @@ Horario semanal base del instructor.
 | `escuelaCodigo` | UUID | → Escuela `escuela.codigo_escuela`. Se toma del claim `escuela` del JWT al crear (es el dato, no el filtro por tenant) |
 | `instructorCodigo` | UUID | → Identidad. Índice |
 | `vehiculoCodigo` | UUID | → Escuela `vehiculo.codigo_vehiculo`. **Vacío** hasta que CU10 asigne autos a instructores |
-| `diaSemana` | int | 1 (lunes) a 7 (domingo) |
+| `nombre` | string | Hasta 60 caracteres. No es único |
+| `diasSemana` | array de int | 1 (lunes) a 7 (domingo), sin repetir y ordenado. La ventana de horas es la misma para todos los días |
 | `horaInicio`, `horaFin` | string | `HH:mm` |
 | `duracionClaseMin` | int | Ej. 60 |
 | `vigenteDesde` | date | |
 | `vigenteHasta` | date | Opcional |
-| `activa` | boolean | `false` al desactivar el horario (definitivo, no se reactiva) |
+| `estado` | enum | `ACTIVA`, `PAUSADA`, `INACTIVA`. Pausar y reanudar son reversibles; desactivar (`INACTIVA`) es definitivo |
 
-Un horario no se edita: se crea y se desactiva. Dos horarios activos del mismo instructor no pueden cruzarse (mismo día, horas y vigencias que se solapan).
+Un horario no se edita: se crea, se pausa o reanuda y se desactiva. Dos horarios **activos** del mismo instructor no pueden cruzarse (algún día en común, horas y vigencias que se solapan); los pausados no cuentan.
+
+Los documentos creados antes del refactor (con `diaSemana` y `activa`) se convierten al arrancar el servicio (`HorariosMigracion`): `diasSemana = [diaSemana]`, `nombre` armado con el día y la ventana, y `estado` según `activa`.
 
 ### `franjas` (CU11, CU12, CU14, CU16)
 
@@ -596,7 +599,7 @@ Horario concreto reservable. Reservar es un `findOneAndUpdate` de `LIBRE` a `RES
 
 Índices únicos: `uq_franja_instructor_fecha_hora (instructorCodigo, fecha, horaInicio)` y `uq_franja_vehiculo_fecha_hora (vehiculoCodigo, fecha, horaInicio)`. Este último es **parcial** (`partialFilterExpression: { vehiculoCodigo: { $exists: true } }`): sin ese filtro, las franjas sin vehículo de dos instructores distintos en la misma fecha y hora chocarían entre sí. Si una base de desarrollo ya tenía el índice sin filtro, hay que borrarlo una vez (`db.franjas.dropIndex('uq_franja_vehiculo_fecha_hora')`) para que se cree el parcial.
 
-Las franjas se generan desde el horario para 28 días contando hoy, y una tarea diaria completa las que falten. Al desactivar un horario sus franjas futuras `LIBRE`/`BLOQUEADA` se **borran físicamente** (son datos derivados; un borrado lógico seguiría ocupando la clave única del instructor).
+Las franjas se generan desde el horario para 28 días contando hoy, y una tarea diaria completa las que falten. Al pausar o desactivar un horario sus franjas futuras `LIBRE`/`BLOQUEADA` se **borran físicamente** (son datos derivados; un borrado lógico seguiría ocupando la clave única del instructor).
 
 ### `solicitudes_clase` (CU13)
 

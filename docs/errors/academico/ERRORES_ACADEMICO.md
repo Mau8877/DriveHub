@@ -33,25 +33,27 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 
 - **HTTP:** 409
 - **Excepción:** `ConflictException`
-- **Significado:** El horario que se intenta crear se cruza con otro horario activo del mismo
-  instructor: mismo día de la semana, horas que se solapan y vigencias que se solapan. Que una
-  ventana termine a la hora en que empieza la otra no cuenta como cruce (CU12).
-- **Dónde se lanza:** `PlantillaHorarioService.crear()`
+- **Significado:** El horario que se intenta crear o reanudar se cruza con otro horario activo
+  del mismo instructor: algún día de la semana en común, horas que se solapan y vigencias que se
+  solapan. Que una ventana termine a la hora en que empieza la otra no cuenta como cruce (CU12).
+- **Dónde se lanza:** `PlantillaHorarioService.crear()` y `PlantillaHorarioService.reanudar()`
 
 ## `ERR_ACA_05`
 
 - **HTTP:** 404
 - **Excepción:** `NotFoundException`
-- **Significado:** El horario que se quiere desactivar no existe o no es del instructor que lo
+- **Significado:** El horario que se quiere pausar, reanudar o desactivar no existe o no es del instructor que lo
   pide. Se responde igual en ambos casos para no revelar que el horario de otro existe (CU12).
-- **Dónde se lanza:** `PlantillaHorarioService.desactivar()`
+- **Dónde se lanza:** `PlantillaHorarioService.pausar()`, `PlantillaHorarioService.reanudar()` y
+  `PlantillaHorarioService.desactivar()`
 
 ## `ERR_ACA_06`
 
 - **HTTP:** 409
 - **Excepción:** `ConflictException`
 - **Significado:** El horario que se quiere desactivar ya estaba inactivo. Desactivar es
-  definitivo: un horario no se reactiva, se crea otro (CU12).
+  definitivo: un horario no se reactiva, se crea otro. Se puede desactivar un horario activo
+  o pausado (CU12).
 - **Dónde se lanza:** `PlantillaHorarioService.desactivar()`
 
 ## `ERR_ACA_07`
@@ -82,5 +84,31 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 
 - **HTTP:** 409
 - **Excepción:** `ConflictException`
-- **Significado:** Se quiso bloquear o desbloquear una franja que ya empezó o ya pasó (CU12).
-- **Dónde se lanza:** `FranjaService.bloquear()` y `FranjaService.desbloquear()`
+- **Significado:** Se quiso bloquear o desbloquear una franja que ya empezó o ya pasó, o
+  bloquear o desbloquear un día completo cuya fecha ya pasó (CU12).
+- **Dónde se lanza:** `FranjaService.bloquear()`, `FranjaService.desbloquear()`,
+  `FranjaService.bloquearDia()` y `FranjaService.desbloquearDia()`
+
+## `ERR_ACA_11`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se quiso pausar un horario que no está activo (ya estaba pausado o está
+  inactivo) (CU12).
+- **Dónde se lanza:** `PlantillaHorarioService.pausar()`
+
+## `ERR_ACA_12`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se quiso reanudar un horario que no está pausado (está activo o inactivo)
+  (CU12).
+- **Dónde se lanza:** `PlantillaHorarioService.reanudar()`
+
+## `ERR_ACA_13`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** Al consultar las franjas por rango, la fecha inicial es posterior a la final,
+  el rango abarca más de 7 días, o se indicó solo una de las dos fechas (CU12).
+- **Dónde se lanza:** `FranjaService.listar()`
