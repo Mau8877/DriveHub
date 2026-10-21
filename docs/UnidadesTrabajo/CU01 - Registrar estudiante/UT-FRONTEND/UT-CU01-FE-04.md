@@ -38,7 +38,7 @@ Archivos esperados (crear/tocar):
 
 - `federation.config.mjs` de `shell`, `escuela` y `pagos`: no cambian (el manifiesto ya conoce a `identidad`).
 - El mount del shell (UT 05) y la ruta `/login`.
-- Rutas con sesión (`'./routes'`) y pantallas de CU05/CU06.
+- Rutas con sesión (`'./routes'`) y pantallas de CU06.
 
 ## Resultado esperado
 

@@ -112,7 +112,7 @@ CA02, CA03, CA05, CA12 a CA14 y CA18 son de frontend y mobile.
 
 ## Qué NO incluyen estas UT
 
-- Menú por rol, permisos finos (`PERM_`) y gestión de roles (CU05).
+- Menú por rol, permisos finos (`PERM_`) y gestión de roles (sin caso de uso asignado).
 - Cambios en el registro (CU01) más allá de reutilizar sus puertos.
 - Autorización por rol en los endpoints de negocio (cada CU la agrega con `@PreAuthorize`).
 

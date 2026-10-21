@@ -36,10 +36,10 @@ Archivos esperados (crear/tocar):
 
 ## Fuera de alcance (no tocar)
 
-- Un camino de API para crear al Super admin o al Administrador de escuela (CU01_1 y CU01_2).
+- Un camino de API para crear al Super admin o al Administrador de escuela (CU05 y CU01_2).
 - Seeds dentro de migraciones Flyway.
 - Instructores o estudiantes de ejemplo.
-- Permisos o `rol_permiso` (CU05).
+- Permisos o `rol_permiso` (sin caso de uso asignado).
 - Validar que la escuela exista en Escuela (el código fijo se comparte por convención).
 
 ## Resultado esperado

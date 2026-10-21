@@ -12,7 +12,7 @@
 **Descripción:**
 Una persona que quiere estudiar en una autoescuela abre el enlace de registro de esa escuela (web o app) y completa un formulario con sus datos personales y una contraseña. El sistema comprueba que la escuela existe y está activa, que la persona cumple la edad mínima y que el correo no está en uso. Si todo es válido, crea la cuenta con el rol `ESTUDIANTE`, asociada a esa escuela, y lleva a la persona a la pantalla de inicio de sesión. **No** inicia sesión automáticamente. Si algún dato es inválido, el sistema lo informa campo por campo sin crear la cuenta.
 
-Este CU cubre **solo** el auto-registro del estudiante. Los demás roles no se registran solos: el Super admin se crea con un seeder, el Administrador de escuela lo crea el Super admin y el Instructor lo crea el Administrador de escuela (CU01_1 y CU01_2, a definir).
+Este CU cubre **solo** el auto-registro del estudiante. Los demás roles no se registran solos: el Super admin se crea con un seeder, el Administrador de escuela lo crea el Super admin al crear la escuela ([CU05](CU05%20-%20Gestionar%20escuelas.md)) y el Instructor lo crea el Administrador de escuela (CU01_2, a definir).
 
 ---
 

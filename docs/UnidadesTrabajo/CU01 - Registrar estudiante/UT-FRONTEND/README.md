@@ -12,7 +12,7 @@ Leer en [`.claude/rules/`](../../../.claude/rules/): [ARQUITECTURA_FRONTEND.md](
 ## Decisiones de diseño
 
 1. **La escuela viene de la URL** (`/register/:escuelaSlug`). La pantalla consulta `GET /api/v1/escuelas/{slug}` para mostrar el nombre de la escuela; si responde 404 muestra "escuela no disponible" y no muestra el formulario.
-2. **La ruta es pública y vive fuera de `ShellLayout`** (sin menú ni cabecera): el shell monta en `/register` un módulo público que expone el remoto `identidad` (`'./routes-publicas'`), distinto de `'./routes'`, que seguirá siendo el de las pantallas con sesión (CU05, CU06).
+2. **La ruta es pública y vive fuera de `ShellLayout`** (sin menú ni cabecera): el shell monta en `/register` un módulo público que expone el remoto `identidad` (`'./routes-publicas'`), distinto de `'./routes'`, que seguirá siendo el de las pantallas con sesión (CU06).
 3. **Sin auto-login y sin ir al login** (CA02): en la web entran solo Super admin y Administrador de escuela ([CU02](../../../CasosDeUso/CU02%20-%20Iniciar%20sesi%C3%B3n.md)), así que el estudiante que se registra en la web no puede iniciar sesión ahí. Al terminar bien, la misma página de registro reemplaza el formulario por una confirmación: "Tu cuenta fue creada. Ingresa desde la app móvil de DriveHub". No navega a ninguna otra ruta y el shell no cambia.
 4. **Reglas de validación iguales a backend y mobile** (en un solo archivo, importadas por el formulario): nombres y apellidos obligatorios (máx. 80); fecha de nacimiento obligatoria, pasada y con al menos 18 años cumplidos (`EDAD_MINIMA_REGISTRO = 18`); correo obligatorio, con formato válido (máx. 120); contraseña de 9 a 64 caracteres; teléfono opcional (máx. 20).
 5. **Errores del backend en español, inline:** `ERR_IDE_01` bajo el campo correo, `ERR_IDE_02` bajo la fecha de nacimiento, `ERR_IDE_03` como estado "escuela no disponible"; un `ERR_SYS_01` con detalle por campo se muestra bajo cada campo.
@@ -56,13 +56,13 @@ CA10 y CA11 son de backend/gateway.
 ## Follow-ups (no se implementan en estas UT)
 
 - Pantalla de login real y guard de sesión del shell (CU02).
-- Pantallas para que el Administrador cree Administradores de escuela e Instructores (CU01_1, CU01_2).
+- Pantallas para crear Administradores de escuela (CU05) e Instructores (CU01_2).
 - Tests e2e entre shell y remoto.
 
 ## Qué NO incluyen estas UT
 
 - Login, sesión, token o menú por rol del shell.
-- Cualquier pantalla del remoto `identidad` distinta del registro (CU05, CU06).
+- Cualquier pantalla del remoto `identidad` distinta del registro (CU06).
 - Cambios de versiones o de `shared` en `federation.config.mjs` de las apps Angular: solo se agrega un `exposes` al remoto `identidad`.
 - Un componente de selección de escuela: la escuela siempre viene del enlace.
 

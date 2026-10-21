@@ -108,7 +108,7 @@ CA02 (ir al login tras registrarse) es de frontend y mobile.
 ## Follow-ups (no se implementan en estas UT)
 
 - Filtro automático por `escuela_codigo` en todos los servicios y diseño del claim `escuela` del JWT (antes de CU07 y CU08).
-- Crear/editar escuelas (CU del Super admin) y crear Administradores de escuela e Instructores (CU01_1, CU01_2).
+- Crear/editar escuelas y su Administrador (CU05) y crear Instructores (CU01_2).
 - Perfil `estudiante` en Escuela (CU08) y, si hace falta, el evento `UsuarioRegistrado` con outbox.
 - Verificación de correo junto con el SMTP (CU04).
 
@@ -117,7 +117,7 @@ CA02 (ir al login tras registrarse) es de frontend y mobile.
 - Login, JWT, refresh token ni cierre de sesión (CU02, CU03). El `SecurityConfig` solo abre las dos rutas públicas de este CU.
 - Un `escuela_codigo` en las tablas de Escuela u otros servicios.
 - Alta de usuarios con rol distinto de `ESTUDIANTE` por la API.
-- Las tablas `permiso`, `rol_permiso` y la gestión de roles (CU05).
+- Las tablas `permiso`, `rol_permiso` y la gestión de roles (sin caso de uso asignado).
 
 ## Commits sugeridos
 

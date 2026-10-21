@@ -159,7 +159,7 @@ Catálogo de roles. Sembrado por migración (los nombres son **datos**, no un en
 
 ### `permiso`
 
-Permisos finos (CU05). Todavía sin filas.
+Permisos finos (previstos, sin caso de uso asignado: el CU05 original, gestionar roles y permisos, se reasignó a Gestionar escuelas). Todavía sin filas.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |

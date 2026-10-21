@@ -37,7 +37,7 @@ Archivos esperados (crear/tocar):
 
 - Documentar `ERR_SYS_04` y `ERR_SYS_05`: se documentan una sola vez, en la UT del gateway (UT 13).
 - Crear endpoints privados nuevos.
-- Permisos finos (`PERM_`) y gestión de roles (CU05).
+- Permisos finos (`PERM_`) y gestión de roles (sin caso de uso asignado).
 
 ## Resultado esperado
 
