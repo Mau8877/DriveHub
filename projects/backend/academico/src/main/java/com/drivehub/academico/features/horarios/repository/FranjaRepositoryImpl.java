@@ -29,13 +29,15 @@ public class FranjaRepositoryImpl implements FranjaRepositoryCustom {
     private final MongoTemplate mongoTemplate;
 
     @Override
-    public Page<Franja> listar(UUID instructorCodigo, LocalDate fecha, LocalDate fechaDesde, EstadoFranja estado,
-            Pageable pageable) {
+    public Page<Franja> listar(UUID instructorCodigo, LocalDate fechaDesde, LocalDate fechaHasta,
+            EstadoFranja estado, Pageable pageable) {
         Criteria criterio = Criteria.where("instructorCodigo").is(instructorCodigo).and("deletedAt").is(null);
-        if (fecha != null) {
-            criterio = criterio.and("fecha").is(fecha);
+        if (fechaDesde != null && fechaHasta != null) {
+            criterio = criterio.and("fecha").gte(fechaDesde).lte(fechaHasta);
         } else if (fechaDesde != null) {
             criterio = criterio.and("fecha").gte(fechaDesde);
+        } else if (fechaHasta != null) {
+            criterio = criterio.and("fecha").lte(fechaHasta);
         }
         if (estado != null) {
             criterio = criterio.and("estado").is(estado);
@@ -56,6 +58,20 @@ public class FranjaRepositoryImpl implements FranjaRepositoryCustom {
         Franja actualizada = mongoTemplate.findAndModify(consulta, new Update().set("estado", nuevo),
             FindAndModifyOptions.options().returnNew(true), Franja.class);
         return Optional.ofNullable(actualizada);
+    }
+
+    @Override
+    public long cambiarEstadoDelDia(UUID instructorCodigo, LocalDate fecha, EstadoFranja esperado,
+            EstadoFranja nuevo, String horaMinima) {
+        Criteria criterio = Criteria.where("instructorCodigo").is(instructorCodigo)
+            .and("fecha").is(fecha)
+            .and("estado").is(esperado)
+            .and("deletedAt").is(null);
+        if (horaMinima != null) {
+            criterio = criterio.and("horaInicio").gt(horaMinima);
+        }
+        return mongoTemplate.updateMulti(Query.query(criterio), new Update().set("estado", nuevo), Franja.class)
+            .getModifiedCount();
     }
 
     @Override

@@ -21,7 +21,7 @@ class GeneradorFranjasTest {
     private final GeneradorFranjas generador = new GeneradorFranjas();
 
     private List<FranjaCalculada> lunesDeOchoADoce(LocalDate desde, LocalDate hasta, LocalDateTime ahora) {
-        return generador.calcular(1, LocalTime.of(8, 0), LocalTime.of(12, 0), 60, desde, hasta, ahora, HORIZONTE);
+        return generador.calcular(List.of(1), LocalTime.of(8, 0), LocalTime.of(12, 0), 60, desde, hasta, ahora, HORIZONTE);
     }
 
     @Test
@@ -37,6 +37,32 @@ class GeneradorFranjasTest {
     }
 
     @Test
+    void calcular_lunesYMiercoles_generaOchoFranjasPorSemanaSoloEnEsosDias() {
+        List<FranjaCalculada> franjas = generador.calcular(List.of(1, 3), LocalTime.of(8, 0), LocalTime.of(12, 0), 60,
+            LUNES, null, LUNES_A_MEDIANOCHE, HORIZONTE);
+
+        assertThat(franjas).hasSize(32);
+        assertThat(franjas).allSatisfy(f -> assertThat(f.fecha().getDayOfWeek())
+            .isIn(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY));
+        assertThat(franjas.subList(0, 8).stream().map(FranjaCalculada::fecha).distinct().toList())
+            .containsExactly(LUNES, LUNES.plusDays(2));
+    }
+
+    @Test
+    void calcular_variosDias_ordenaPorFechaAunqueLosDiasLleguenDesordenados() {
+        List<FranjaCalculada> franjas = generador.calcular(List.of(5, 1), LocalTime.of(8, 0), LocalTime.of(9, 0), 60,
+            LUNES, null, LUNES_A_MEDIANOCHE, HORIZONTE);
+
+        assertThat(franjas).extracting(FranjaCalculada::fecha).isSorted();
+    }
+
+    @Test
+    void calcular_sinDias_noGeneraNada() {
+        assertThat(generador.calcular(List.of(), LocalTime.of(8, 0), LocalTime.of(9, 0), 60, LUNES, null,
+            LUNES_A_MEDIANOCHE, HORIZONTE)).isEmpty();
+    }
+
+    @Test
     void calcular_ordenaPorFechaYLuegoPorHora() {
         List<FranjaCalculada> franjas = lunesDeOchoADoce(LUNES, null, LUNES_A_MEDIANOCHE);
 
@@ -48,7 +74,7 @@ class GeneradorFranjasTest {
 
     @Test
     void calcular_ventanaDeUnSoloBloque_generaUnaFranjaPorFecha() {
-        List<FranjaCalculada> franjas = generador.calcular(1, LocalTime.of(8, 0), LocalTime.of(9, 0), 60, LUNES,
+        List<FranjaCalculada> franjas = generador.calcular(List.of(1), LocalTime.of(8, 0), LocalTime.of(9, 0), 60, LUNES,
             null, LUNES_A_MEDIANOCHE, HORIZONTE);
 
         assertThat(franjas).hasSize(4);
@@ -115,7 +141,7 @@ class GeneradorFranjasTest {
     @Test
     void calcular_cadaDiaDeLaSemanaApareceExactamenteCuatroVecesEnLaVentanaDeVeintiochoDias() {
         for (DayOfWeek dia : DayOfWeek.values()) {
-            List<FranjaCalculada> franjas = generador.calcular(dia.getValue(), LocalTime.of(8, 0),
+            List<FranjaCalculada> franjas = generador.calcular(List.of(dia.getValue()), LocalTime.of(8, 0),
                 LocalTime.of(9, 0), 60, LUNES, null, LUNES_A_MEDIANOCHE, HORIZONTE);
 
             assertThat(franjas).as("día %s", dia).hasSize(4);
@@ -125,7 +151,7 @@ class GeneradorFranjasTest {
 
     @Test
     void calcular_laVentanaNoDaLaVueltaAMedianoche() {
-        List<FranjaCalculada> franjas = generador.calcular(1, LocalTime.of(22, 0), LocalTime.of(23, 59), 60, LUNES,
+        List<FranjaCalculada> franjas = generador.calcular(List.of(1), LocalTime.of(22, 0), LocalTime.of(23, 59), 60, LUNES,
             null, LUNES_A_MEDIANOCHE, HORIZONTE);
 
         // * 22:00 a 23:00 entra; 23:00 a 24:00 no cabe antes de las 23:59
@@ -135,7 +161,7 @@ class GeneradorFranjasTest {
 
     @Test
     void calcular_duracionNoPositiva_lanzaIllegalArgument() {
-        assertThatThrownBy(() -> generador.calcular(1, LocalTime.of(8, 0), LocalTime.of(12, 0), 0, LUNES, null,
+        assertThatThrownBy(() -> generador.calcular(List.of(1), LocalTime.of(8, 0), LocalTime.of(12, 0), 0, LUNES, null,
             LUNES_A_MEDIANOCHE, HORIZONTE)).isInstanceOf(IllegalArgumentException.class);
     }
 }

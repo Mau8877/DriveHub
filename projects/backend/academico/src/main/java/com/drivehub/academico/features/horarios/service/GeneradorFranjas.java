@@ -4,12 +4,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
 
 /**
- * Calcula qué franjas corresponden a un horario semanal en una ventana de fechas.
+ * Calcula qué franjas corresponden a un horario semanal (uno o varios días) en una ventana de fechas.
  *
  * * Es lógica pura: no toca la base ni valida el horario (eso lo hace PlantillaHorarioService).
  * * Asume una ventana de horas dentro del mismo día y múltiplo exacto de la duración.
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class GeneradorFranjas {
 
-    public List<FranjaCalculada> calcular(int diaSemana, LocalTime horaInicio, LocalTime horaFin,
+    public List<FranjaCalculada> calcular(Collection<Integer> diasSemana, LocalTime horaInicio, LocalTime horaFin,
             int duracionClaseMin, LocalDate vigenteDesde, LocalDate vigenteHasta, LocalDateTime ahora,
             int horizonteDias) {
         if (duracionClaseMin <= 0) {
@@ -36,7 +37,7 @@ public class GeneradorFranjas {
 
         List<FranjaCalculada> franjas = new ArrayList<>();
         for (LocalDate fecha = desde; !fecha.isAfter(hasta); fecha = fecha.plusDays(1)) {
-            if (fecha.getDayOfWeek().getValue() != diaSemana) {
+            if (!diasSemana.contains(fecha.getDayOfWeek().getValue())) {
                 continue;
             }
             for (int minuto = inicioMin; minuto + duracionClaseMin <= finMin; minuto += duracionClaseMin) {

@@ -14,7 +14,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,7 @@ import com.drivehub.academico.config.WebMvcConfig;
 import com.drivehub.academico.features.horarios.dto.CrearPlantillaHorarioRequest;
 import com.drivehub.academico.features.horarios.dto.PlantillaHorarioCreadaResponse;
 import com.drivehub.academico.features.horarios.dto.PlantillaHorarioResponse;
+import com.drivehub.academico.features.horarios.enums.EstadoPlantilla;
 import com.drivehub.academico.features.horarios.service.PlantillaHorarioService;
 
 @WebMvcTest(PlantillaHorarioController.class)
@@ -46,7 +49,7 @@ class PlantillaHorarioControllerTest {
 
     private static final String RUTA = "/api/v1/plantillas-horario";
     private static final String CUERPO_VALIDO = """
-        {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60}
+        {"nombre": "Mañanas", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60}
         """;
 
     @Autowired
@@ -64,25 +67,27 @@ class PlantillaHorarioControllerTest {
     }
 
     private PlantillaHorarioResponse horario() {
-        return new PlantillaHorarioResponse(UUID.randomUUID(), 1, "08:00", "12:00", 60, LocalDate.of(2026, 10, 26),
-            null, true);
+        return new PlantillaHorarioResponse(UUID.randomUUID(), "Mañanas", List.of(1, 3), "08:00", "12:00", 60,
+            LocalDate.of(2026, 10, 26), null, EstadoPlantilla.ACTIVA);
     }
 
     // ---------------------------------------------------------------- GET
 
     @Test
     void listar_responde200ConDataYMeta_yElServiceRecibeElSubDelToken() throws Exception {
-        when(service.listar(eq(instructor), eq(true), eq(1), eq(20)))
+        when(service.listar(eq(instructor), eq(EnumSet.of(EstadoPlantilla.ACTIVA)), eq(1), eq(20)))
             .thenReturn(new PageImpl<>(List.of(horario()), PageRequest.of(0, 20), 1));
 
-        mockMvc.perform(get(RUTA).param("filter[activa]", "true").with(comoInstructor()))
+        mockMvc.perform(get(RUTA).param("filter[estado]", "ACTIVA").with(comoInstructor()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("success"))
             .andExpect(jsonPath("$.message").value("Horarios obtenidos correctamente"))
             .andExpect(jsonPath("$.data[0].horaInicio").value("08:00"))
             .andExpect(jsonPath("$.data[0].duracionClaseMin").value(60))
             .andExpect(jsonPath("$.data[0].vigenteDesde").value("2026-10-26"))
-            .andExpect(jsonPath("$.data[0].activa").value(true))
+            .andExpect(jsonPath("$.data[0].nombre").value("Mañanas"))
+            .andExpect(jsonPath("$.data[0].diasSemana[1]").value(3))
+            .andExpect(jsonPath("$.data[0].estado").value("ACTIVA"))
             .andExpect(jsonPath("$.meta.page").value(1))
             .andExpect(jsonPath("$.meta.pageSize").value(20))
             .andExpect(jsonPath("$.meta.totalItems").value(1))
@@ -99,7 +104,7 @@ class PlantillaHorarioControllerTest {
             .andExpect(jsonPath("$.data").isEmpty())
             .andExpect(jsonPath("$.meta.totalItems").value(0));
 
-        verify(service).listar(instructor, null, 1, 20);
+        verify(service).listar(instructor, Set.of(), 1, 20);
     }
 
     @Test
@@ -110,12 +115,24 @@ class PlantillaHorarioControllerTest {
         mockMvc.perform(get(RUTA).param("page", "3").param("pageSize", "5").with(comoInstructor()))
             .andExpect(status().isOk());
 
-        verify(service).listar(instructor, null, 3, 5);
+        verify(service).listar(instructor, Set.of(), 3, 5);
     }
 
     @Test
-    void listar_filtroDeActivaQueNoEsBooleano_responde400ErrSys01() throws Exception {
-        mockMvc.perform(get(RUTA).param("filter[activa]", "quizas").with(comoInstructor()))
+    void listar_variosEstadosRepetidos_losPasaTodosAlService() throws Exception {
+        when(service.listar(any(), any(), any(Integer.class), any(Integer.class)))
+            .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        mockMvc.perform(get(RUTA).param("filter[estado]", "ACTIVA", "PAUSADA", "INACTIVA")
+                .with(comoInstructor()))
+            .andExpect(status().isOk());
+
+        verify(service).listar(instructor, EnumSet.allOf(EstadoPlantilla.class), 1, 20);
+    }
+
+    @Test
+    void listar_filtroDeEstadoDesconocido_responde400ErrSys01() throws Exception {
+        mockMvc.perform(get(RUTA).param("filter[estado]", "quizas").with(comoInstructor()))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.status").value("failed"))
             .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
@@ -142,8 +159,8 @@ class PlantillaHorarioControllerTest {
     void crear_datosValidos_responde201ConElHorarioYLasFranjasGeneradas() throws Exception {
         UUID codigo = UUID.randomUUID();
         when(service.crear(eq(instructor), eq(escuela), any(CrearPlantillaHorarioRequest.class)))
-            .thenReturn(new PlantillaHorarioCreadaResponse(codigo, 1, "08:00", "12:00", 60,
-                LocalDate.of(2026, 10, 26), null, true, 14));
+            .thenReturn(new PlantillaHorarioCreadaResponse(codigo, "Mañanas", List.of(1), "08:00", "12:00", 60,
+                LocalDate.of(2026, 10, 26), null, EstadoPlantilla.ACTIVA, 14));
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO)
                 .with(comoInstructor()))
@@ -152,21 +169,25 @@ class PlantillaHorarioControllerTest {
             .andExpect(jsonPath("$.message").value("Horario creado correctamente"))
             .andExpect(jsonPath("$.data.codigo").value(codigo.toString()))
             .andExpect(jsonPath("$.data.franjasGeneradas").value(14))
-            .andExpect(jsonPath("$.data.activa").value(true));
+            .andExpect(jsonPath("$.data.estado").value("ACTIVA"))
+            .andExpect(jsonPath("$.data.diasSemana[0]").value(1));
 
         ArgumentCaptor<CrearPlantillaHorarioRequest> pedido = ArgumentCaptor
             .forClass(CrearPlantillaHorarioRequest.class);
         verify(service).crear(eq(instructor), eq(escuela), pedido.capture());
+        org.assertj.core.api.Assertions.assertThat(pedido.getValue().nombre()).isEqualTo("Mañanas");
+        org.assertj.core.api.Assertions.assertThat(pedido.getValue().diasSemana()).containsExactly(1);
         org.assertj.core.api.Assertions.assertThat(pedido.getValue().horaFin()).isEqualTo("12:00");
         org.assertj.core.api.Assertions.assertThat(pedido.getValue().vigenteDesde()).isNull();
     }
 
     @Test
     void crear_conVigencias_laFechaViajaEnFormatoIso() throws Exception {
-        when(service.crear(any(), any(), any())).thenReturn(new PlantillaHorarioCreadaResponse(UUID.randomUUID(), 1,
-            "08:00", "12:00", 60, LocalDate.of(2026, 11, 2), LocalDate.of(2026, 12, 1), true, 4));
+        when(service.crear(any(), any(), any())).thenReturn(new PlantillaHorarioCreadaResponse(UUID.randomUUID(),
+            "Mañanas", List.of(1), "08:00", "12:00", 60, LocalDate.of(2026, 11, 2), LocalDate.of(2026, 12, 1),
+            EstadoPlantilla.ACTIVA, 4));
         String cuerpo = """
-            {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
+            {"nombre": "Mañanas", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
              "vigenteDesde": "2026-11-02", "vigenteHasta": "2026-12-01"}
             """;
 
@@ -183,8 +204,9 @@ class PlantillaHorarioControllerTest {
 
     @Test
     void crear_tokenSinClaimDeEscuela_elServiceRecibeNull() throws Exception {
-        when(service.crear(any(), any(), any())).thenReturn(new PlantillaHorarioCreadaResponse(UUID.randomUUID(), 1,
-            "08:00", "12:00", 60, LocalDate.of(2026, 10, 26), null, true, 0));
+        when(service.crear(any(), any(), any())).thenReturn(new PlantillaHorarioCreadaResponse(UUID.randomUUID(),
+            "Mañanas", List.of(1), "08:00", "12:00", 60, LocalDate.of(2026, 10, 26), null,
+            EstadoPlantilla.ACTIVA, 0));
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO)
                 .with(jwt().jwt(j -> j.subject(instructor.toString()))
@@ -196,7 +218,7 @@ class PlantillaHorarioControllerTest {
 
     @Test
     void crear_diaFueraDeRango_responde400ErrSys01SinLlamarAlService() throws Exception {
-        String cuerpo = CUERPO_VALIDO.replace("\"diaSemana\": 1", "\"diaSemana\": 9");
+        String cuerpo = CUERPO_VALIDO.replace("\"diasSemana\": [1]", "\"diasSemana\": [1, 9]");
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(cuerpo).with(comoInstructor()))
             .andExpect(status().isBadRequest())
@@ -205,6 +227,45 @@ class PlantillaHorarioControllerTest {
             .andExpect(jsonPath("$.message").value("El día de la semana debe estar entre 1 (lunes) y 7 (domingo)"));
 
         verify(service, never()).crear(any(), any(), any());
+    }
+
+    @Test
+    void crear_sinDias_responde400ErrSys01() throws Exception {
+        String cuerpo = CUERPO_VALIDO.replace("\"diasSemana\": [1]", "\"diasSemana\": []");
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(cuerpo).with(comoInstructor()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"))
+            .andExpect(jsonPath("$.message").value("Elige al menos un día de la semana"));
+
+        verify(service, never()).crear(any(), any(), any());
+    }
+
+    @Test
+    void crear_sinNombre_responde400ErrSys01() throws Exception {
+        String cuerpo = CUERPO_VALIDO.replace("\"nombre\": \"Mañanas\", ", "");
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(cuerpo).with(comoInstructor()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"))
+            .andExpect(jsonPath("$.message").value("El nombre es obligatorio"));
+    }
+
+    @Test
+    void crear_variosDias_viajanComoLista() throws Exception {
+        when(service.crear(any(), any(), any())).thenReturn(new PlantillaHorarioCreadaResponse(UUID.randomUUID(),
+            "Entre semana", List.of(1, 2, 3, 4, 5), "08:00", "12:00", 60, LocalDate.of(2026, 10, 26), null,
+            EstadoPlantilla.ACTIVA, 20));
+        String cuerpo = CUERPO_VALIDO.replace("[1]", "[1, 2, 3, 4, 5]");
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(cuerpo).with(comoInstructor()))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.data.diasSemana.length()").value(5));
+
+        ArgumentCaptor<CrearPlantillaHorarioRequest> pedido = ArgumentCaptor
+            .forClass(CrearPlantillaHorarioRequest.class);
+        verify(service).crear(any(), any(), pedido.capture());
+        org.assertj.core.api.Assertions.assertThat(pedido.getValue().diasSemana()).containsExactly(1, 2, 3, 4, 5);
     }
 
     @Test
@@ -219,7 +280,7 @@ class PlantillaHorarioControllerTest {
     @Test
     void crear_faltaLaDuracion_responde400ErrSys01() throws Exception {
         String cuerpo = """
-            {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00"}
+            {"nombre": "Mañanas", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00"}
             """;
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(cuerpo).with(comoInstructor()))
@@ -240,7 +301,7 @@ class PlantillaHorarioControllerTest {
     @Test
     void crear_fechaInvalidaEnElCuerpo_responde400ErrSys01() throws Exception {
         String cuerpo = """
-            {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
+            {"nombre": "Mañanas", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
              "vigenteDesde": "mañana"}
             """;
 
@@ -268,6 +329,85 @@ class PlantillaHorarioControllerTest {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error").value("ERR_SYS_04"));
+    }
+
+    // ---------------------------------------------------------------- POST pausar y reanudar
+
+    @Test
+    void pausar_responde200SinData() throws Exception {
+        UUID codigo = UUID.randomUUID();
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/pausar").with(comoInstructor()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.message").value("Horario pausado correctamente"))
+            .andExpect(jsonPath("$.data").doesNotExist());
+
+        verify(service).pausar(instructor, codigo);
+    }
+
+    @Test
+    void pausar_horarioNoActivo_responde409ErrAca11() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        doThrow(new ConflictException("ERR_ACA_11", "Solo se puede pausar un horario activo")).when(service)
+            .pausar(instructor, codigo);
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/pausar").with(comoInstructor()))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_11"));
+    }
+
+    @Test
+    void pausar_horarioInexistente_responde404ErrAca05() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        doThrow(new NotFoundException("ERR_ACA_05", "El horario no existe")).when(service)
+            .pausar(instructor, codigo);
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/pausar").with(comoInstructor()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_05"));
+    }
+
+    @Test
+    void reanudar_responde200SinData() throws Exception {
+        UUID codigo = UUID.randomUUID();
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reanudar").with(comoInstructor()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value("Horario reanudado correctamente"))
+            .andExpect(jsonPath("$.data").doesNotExist());
+
+        verify(service).reanudar(instructor, codigo);
+    }
+
+    @Test
+    void reanudar_horarioNoPausado_responde409ErrAca12() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        doThrow(new ConflictException("ERR_ACA_12", "Solo se puede reanudar un horario pausado")).when(service)
+            .reanudar(instructor, codigo);
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reanudar").with(comoInstructor()))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_12"));
+    }
+
+    @Test
+    void reanudar_conCruce_responde409ErrAca04() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        doThrow(new ConflictException("ERR_ACA_04", "El horario se cruza con otro horario activo tuyo"))
+            .when(service).reanudar(instructor, codigo);
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reanudar").with(comoInstructor()))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_04"));
+    }
+
+    @Test
+    void pausarYReanudar_sinToken_responden401() throws Exception {
+        UUID codigo = UUID.randomUUID();
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/pausar")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reanudar")).andExpect(status().isUnauthorized());
     }
 
     // ---------------------------------------------------------------- POST desactivar

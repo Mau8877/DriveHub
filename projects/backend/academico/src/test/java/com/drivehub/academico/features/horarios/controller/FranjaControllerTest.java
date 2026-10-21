@@ -29,8 +29,10 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import com.drivehub.academico.common.exception.ConflictException;
 import com.drivehub.academico.common.exception.GlobalExceptionHandler;
 import com.drivehub.academico.common.exception.NotFoundException;
+import com.drivehub.academico.common.exception.ValidationException;
 import com.drivehub.academico.config.SecurityConfig;
 import com.drivehub.academico.config.WebMvcConfig;
+import com.drivehub.academico.features.horarios.dto.DiaBloqueadoResponse;
 import com.drivehub.academico.features.horarios.dto.FranjaResponse;
 import com.drivehub.academico.features.horarios.enums.EstadoFranja;
 import com.drivehub.academico.features.horarios.service.FranjaService;
@@ -63,7 +65,7 @@ class FranjaControllerTest {
 
     @Test
     void listar_porFecha_responde200ConLasFranjasYMeta() throws Exception {
-        when(service.listar(eq(instructor), eq(FECHA), eq(null), eq(1), eq(20))).thenReturn(new PageImpl<>(
+        when(service.listar(eq(instructor), eq(FECHA), eq(FECHA), eq(null), eq(1), eq(20))).thenReturn(new PageImpl<>(
             List.of(franja("08:00", "09:00", EstadoFranja.LIBRE), franja("09:00", "10:00", EstadoFranja.BLOQUEADA)),
             PageRequest.of(0, 20), 2));
 
@@ -81,8 +83,55 @@ class FranjaControllerTest {
     }
 
     @Test
+    void listar_porRango_pasaLasDosFechasAlService() throws Exception {
+        when(service.listar(any(), any(), any(), any(), any(Integer.class), any(Integer.class)))
+            .thenReturn(new PageImpl<>(List.of(franja("08:00", "09:00", EstadoFranja.LIBRE)),
+                PageRequest.of(0, 100), 1));
+
+        mockMvc.perform(get(RUTA).param("filter[fechaDesde]", "2026-10-26").param("filter[fechaHasta]", "2026-11-01")
+                .param("pageSize", "100").with(comoInstructor()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.length()").value(1))
+            .andExpect(jsonPath("$.meta.pageSize").value(100));
+
+        verify(service).listar(instructor, LocalDate.of(2026, 10, 26), LocalDate.of(2026, 11, 1), null, 1, 100);
+    }
+
+    @Test
+    void listar_conFechaYRango_manda_laFechaExacta() throws Exception {
+        when(service.listar(any(), any(), any(), any(), any(Integer.class), any(Integer.class)))
+            .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        mockMvc.perform(get(RUTA).param("filter[fecha]", "2026-11-02").param("filter[fechaDesde]", "2026-10-26")
+                .param("filter[fechaHasta]", "2026-11-01").with(comoInstructor()))
+            .andExpect(status().isOk());
+
+        verify(service).listar(instructor, FECHA, FECHA, null, 1, 20);
+    }
+
+    @Test
+    void listar_rangoInvalido_responde400ErrAca13() throws Exception {
+        when(service.listar(any(), any(), any(), any(), any(Integer.class), any(Integer.class)))
+            .thenThrow(new ValidationException("ERR_ACA_13", "El rango no puede pasar de 7 días"));
+
+        mockMvc.perform(get(RUTA).param("filter[fechaDesde]", "2026-10-26").param("filter[fechaHasta]", "2026-11-30")
+                .with(comoInstructor()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value("failed"))
+            .andExpect(jsonPath("$.error").value("ERR_ACA_13"));
+    }
+
+    @Test
+    void listar_fechaDeRangoQueNoEsFecha_responde400ErrSys01() throws Exception {
+        mockMvc.perform(get(RUTA).param("filter[fechaDesde]", "abc").param("filter[fechaHasta]", "2026-11-01")
+                .with(comoInstructor()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+    }
+
+    @Test
     void listar_fechaSinFranjas_respondeListaVaciaNoError() throws Exception {
-        when(service.listar(any(), any(), any(), any(Integer.class), any(Integer.class)))
+        when(service.listar(any(), any(), any(), any(), any(Integer.class), any(Integer.class)))
             .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
         mockMvc.perform(get(RUTA).param("filter[fecha]", "2026-11-03").with(comoInstructor()))
@@ -94,24 +143,24 @@ class FranjaControllerTest {
 
     @Test
     void listar_conFiltroDeEstadoYPaginacion_losPasaAlService() throws Exception {
-        when(service.listar(any(), any(), any(), any(Integer.class), any(Integer.class)))
+        when(service.listar(any(), any(), any(), any(), any(Integer.class), any(Integer.class)))
             .thenReturn(new PageImpl<>(List.of(), PageRequest.of(1, 10), 0));
 
         mockMvc.perform(get(RUTA).param("filter[estado]", "LIBRE").param("page", "2").param("pageSize", "10")
                 .with(comoInstructor()))
             .andExpect(status().isOk());
 
-        verify(service).listar(instructor, null, EstadoFranja.LIBRE, 2, 10);
+        verify(service).listar(instructor, null, null, EstadoFranja.LIBRE, 2, 10);
     }
 
     @Test
     void listar_sinFiltros_usaLosDefaults() throws Exception {
-        when(service.listar(any(), any(), any(), any(Integer.class), any(Integer.class)))
+        when(service.listar(any(), any(), any(), any(), any(Integer.class), any(Integer.class)))
             .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
         mockMvc.perform(get(RUTA).with(comoInstructor())).andExpect(status().isOk());
 
-        verify(service).listar(instructor, null, null, 1, 20);
+        verify(service).listar(instructor, null, null, null, 1, 20);
     }
 
     @Test
@@ -121,7 +170,7 @@ class FranjaControllerTest {
             .andExpect(jsonPath("$.status").value("failed"))
             .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
 
-        verify(service, never()).listar(any(), any(), any(), any(Integer.class), any(Integer.class));
+        verify(service, never()).listar(any(), any(), any(), any(), any(Integer.class), any(Integer.class));
     }
 
     @Test
@@ -233,5 +282,62 @@ class FranjaControllerTest {
 
         mockMvc.perform(post(RUTA + "/" + codigo + "/bloquear")).andExpect(status().isUnauthorized());
         mockMvc.perform(post(RUTA + "/" + codigo + "/desbloquear")).andExpect(status().isUnauthorized());
+    }
+
+    // ---------------------------------------------------------------- bloquear y desbloquear un dia
+
+    @Test
+    void bloquearDia_responde200ConLaCantidadDeFranjas() throws Exception {
+        when(service.bloquearDia(instructor, FECHA)).thenReturn(new DiaBloqueadoResponse(FECHA, 4));
+
+        mockMvc.perform(post(RUTA + "/dias/2026-11-02/bloquear").with(comoInstructor()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.message").value("Día bloqueado correctamente"))
+            .andExpect(jsonPath("$.data.fecha").value("2026-11-02"))
+            .andExpect(jsonPath("$.data.franjasAfectadas").value(4));
+    }
+
+    @Test
+    void bloquearDia_sinFranjasLibres_respondeCeroNoError() throws Exception {
+        when(service.bloquearDia(instructor, FECHA)).thenReturn(new DiaBloqueadoResponse(FECHA, 0));
+
+        mockMvc.perform(post(RUTA + "/dias/2026-11-02/bloquear").with(comoInstructor()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.franjasAfectadas").value(0));
+    }
+
+    @Test
+    void bloquearDia_fechaPasada_responde409ErrAca10() throws Exception {
+        when(service.bloquearDia(instructor, FECHA)).thenThrow(new ConflictException("ERR_ACA_10", "El día ya pasó"));
+
+        mockMvc.perform(post(RUTA + "/dias/2026-11-02/bloquear").with(comoInstructor()))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_10"));
+    }
+
+    @Test
+    void bloquearDia_fechaQueNoEsFecha_responde400ErrSys01() throws Exception {
+        mockMvc.perform(post(RUTA + "/dias/mañana/bloquear").with(comoInstructor()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+
+        verify(service, never()).bloquearDia(any(), any());
+    }
+
+    @Test
+    void desbloquearDia_responde200ConLaCantidadDeFranjas() throws Exception {
+        when(service.desbloquearDia(instructor, FECHA)).thenReturn(new DiaBloqueadoResponse(FECHA, 3));
+
+        mockMvc.perform(post(RUTA + "/dias/2026-11-02/desbloquear").with(comoInstructor()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value("Día desbloqueado correctamente"))
+            .andExpect(jsonPath("$.data.franjasAfectadas").value(3));
+    }
+
+    @Test
+    void accionesDeDiaSinToken_responden401() throws Exception {
+        mockMvc.perform(post(RUTA + "/dias/2026-11-02/bloquear")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post(RUTA + "/dias/2026-11-02/desbloquear")).andExpect(status().isUnauthorized());
     }
 }

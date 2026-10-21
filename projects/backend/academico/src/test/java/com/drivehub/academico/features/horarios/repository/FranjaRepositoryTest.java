@@ -80,7 +80,7 @@ class FranjaRepositoryTest extends MongoIntegrationTestBase {
         libre(instructor, HOY.plusDays(1), "10:00");
         libre(otroInstructor, HOY, "10:00");
 
-        var resultado = repository.listar(instructor, HOY, null, null, pagina(0, 20));
+        var resultado = repository.listar(instructor, HOY, HOY, null, pagina(0, 20));
 
         assertThat(resultado.getContent()).extracting(Franja::getHoraInicio).containsExactly("10:00", "11:00");
         assertThat(resultado.getTotalElements()).isEqualTo(2);
@@ -92,19 +92,32 @@ class FranjaRepositoryTest extends MongoIntegrationTestBase {
         libre(instructor, HOY, "10:00");
         libre(instructor, HOY.plusDays(3), "10:00");
 
-        var resultado = repository.listar(instructor, null, HOY, null, pagina(0, 20));
+        var resultado = repository.listar(instructor, HOY, null, null, pagina(0, 20));
 
         assertThat(resultado.getContent()).extracting(Franja::getFecha).containsExactly(HOY, HOY.plusDays(3));
     }
 
     @Test
-    void listar_fechaExactaTienePrioridadSobreDesde() {
+    void listar_rangoDeFechas_incluyeAmbosExtremosYExcluyeLoDeAfuera() {
         libre(instructor, HOY.minusDays(1), "10:00");
         libre(instructor, HOY, "10:00");
+        libre(instructor, HOY.plusDays(2), "10:00");
+        libre(instructor, HOY.plusDays(3), "10:00");
 
-        var resultado = repository.listar(instructor, HOY.minusDays(1), HOY, null, pagina(0, 20));
+        var resultado = repository.listar(instructor, HOY, HOY.plusDays(2), null, pagina(0, 20));
 
-        assertThat(resultado.getContent()).extracting(Franja::getFecha).containsExactly(HOY.minusDays(1));
+        assertThat(resultado.getContent()).extracting(Franja::getFecha).containsExactly(HOY, HOY.plusDays(2));
+    }
+
+    @Test
+    void listar_soloHasta_noTieneTopeHaciaAtras() {
+        libre(instructor, HOY.minusDays(5), "10:00");
+        libre(instructor, HOY, "10:00");
+        libre(instructor, HOY.plusDays(1), "10:00");
+
+        var resultado = repository.listar(instructor, null, HOY, null, pagina(0, 20));
+
+        assertThat(resultado.getContent()).extracting(Franja::getFecha).containsExactly(HOY.minusDays(5), HOY);
     }
 
     @Test
@@ -113,7 +126,7 @@ class FranjaRepositoryTest extends MongoIntegrationTestBase {
         guardar(instructor, 1L, HOY, "11:00", EstadoFranja.BLOQUEADA);
         guardar(instructor, 1L, HOY, "12:00", EstadoFranja.RESERVADA);
 
-        var bloqueadas = repository.listar(instructor, HOY, null, EstadoFranja.BLOQUEADA, pagina(0, 20));
+        var bloqueadas = repository.listar(instructor, HOY, HOY, EstadoFranja.BLOQUEADA, pagina(0, 20));
 
         assertThat(bloqueadas.getContent()).extracting(Franja::getHoraInicio).containsExactly("11:00");
     }
@@ -138,7 +151,7 @@ class FranjaRepositoryTest extends MongoIntegrationTestBase {
     void listar_unaFechaSinFranjas_devuelveVacio() {
         libre(instructor, HOY, "10:00");
 
-        var resultado = repository.listar(instructor, HOY.plusDays(9), null, null, pagina(0, 20));
+        var resultado = repository.listar(instructor, HOY.plusDays(9), HOY.plusDays(9), null, pagina(0, 20));
 
         assertThat(resultado.getContent()).isEmpty();
         assertThat(resultado.getTotalElements()).isZero();
@@ -282,5 +295,77 @@ class FranjaRepositoryTest extends MongoIntegrationTestBase {
         assertThat(franja.getId()).isNotNull();
         assertThat(franja.getCodigoFranja().version()).isEqualTo(7);
         assertThat(franja.getEstado()).isEqualTo(EstadoFranja.LIBRE);
+    }
+
+    // ---------------------------------------------------------------- cambiarEstadoDelDia
+
+    @Test
+    void cambiarEstadoDelDia_soloCambiaLasDelEstadoEsperadoDeEseDia() {
+        libre(instructor, HOY, "08:00");
+        libre(instructor, HOY, "09:00");
+        guardar(instructor, 1L, HOY, "10:00", EstadoFranja.RESERVADA);
+        guardar(instructor, 1L, HOY, "11:00", EstadoFranja.BLOQUEADA);
+        libre(instructor, HOY.plusDays(1), "08:00");
+        libre(otroInstructor, HOY, "08:00");
+
+        long cambiadas = repository.cambiarEstadoDelDia(instructor, HOY, EstadoFranja.LIBRE,
+            EstadoFranja.BLOQUEADA, null);
+
+        assertThat(cambiadas).isEqualTo(2);
+        var delDia = repository.listar(instructor, HOY, HOY, null, pagina(0, 20)).getContent();
+        assertThat(delDia).extracting(Franja::getHoraInicio, Franja::getEstado).containsExactly(
+            org.assertj.core.api.Assertions.tuple("08:00", EstadoFranja.BLOQUEADA),
+            org.assertj.core.api.Assertions.tuple("09:00", EstadoFranja.BLOQUEADA),
+            org.assertj.core.api.Assertions.tuple("10:00", EstadoFranja.RESERVADA),
+            org.assertj.core.api.Assertions.tuple("11:00", EstadoFranja.BLOQUEADA));
+        assertThat(repository.listar(instructor, HOY.plusDays(1), HOY.plusDays(1), null, pagina(0, 20))
+            .getContent()).extracting(Franja::getEstado).containsExactly(EstadoFranja.LIBRE);
+        assertThat(repository.listar(otroInstructor, HOY, HOY, null, pagina(0, 20)).getContent())
+            .extracting(Franja::getEstado).containsExactly(EstadoFranja.LIBRE);
+    }
+
+    @Test
+    void cambiarEstadoDelDia_conHoraMinima_soloTocaLasQueEmpiezanDespues() {
+        libre(instructor, HOY, "08:00");
+        libre(instructor, HOY, "09:00");
+        libre(instructor, HOY, "10:00");
+
+        long cambiadas = repository.cambiarEstadoDelDia(instructor, HOY, EstadoFranja.LIBRE,
+            EstadoFranja.BLOQUEADA, "09:00");
+
+        assertThat(cambiadas).isEqualTo(1);
+        assertThat(repository.listar(instructor, HOY, HOY, EstadoFranja.LIBRE, pagina(0, 20)).getContent())
+            .extracting(Franja::getHoraInicio).containsExactly("08:00", "09:00");
+    }
+
+    @Test
+    void cambiarEstadoDelDia_sinFranjasDelEstadoEsperado_devuelveCero() {
+        guardar(instructor, 1L, HOY, "10:00", EstadoFranja.RESERVADA);
+
+        assertThat(repository.cambiarEstadoDelDia(instructor, HOY, EstadoFranja.LIBRE, EstadoFranja.BLOQUEADA, null))
+            .isZero();
+    }
+
+    @Test
+    void cambiarEstadoDelDia_repetirloNoCambiaNadaMas() {
+        libre(instructor, HOY, "08:00");
+
+        long primera = repository.cambiarEstadoDelDia(instructor, HOY, EstadoFranja.LIBRE,
+            EstadoFranja.BLOQUEADA, null);
+        long segunda = repository.cambiarEstadoDelDia(instructor, HOY, EstadoFranja.LIBRE,
+            EstadoFranja.BLOQUEADA, null);
+
+        assertThat(primera).isEqualTo(1);
+        assertThat(segunda).isZero();
+    }
+
+    @Test
+    void cambiarEstadoDelDia_noToca_lasBorradasLogicamente() {
+        Franja franja = libre(instructor, HOY, "08:00");
+        franja.setDeletedAt(Instant.now());
+        repository.save(franja);
+
+        assertThat(repository.cambiarEstadoDelDia(instructor, HOY, EstadoFranja.LIBRE, EstadoFranja.BLOQUEADA, null))
+            .isZero();
     }
 }

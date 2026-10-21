@@ -16,8 +16,10 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -28,13 +30,12 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 
 import com.drivehub.academico.common.exception.BusinessException;
 import com.drivehub.academico.features.horarios.dto.CrearPlantillaHorarioRequest;
 import com.drivehub.academico.features.horarios.dto.PlantillaHorarioCreadaResponse;
 import com.drivehub.academico.features.horarios.dto.PlantillaHorarioResponse;
+import com.drivehub.academico.features.horarios.enums.EstadoPlantilla;
 import com.drivehub.academico.features.horarios.model.PlantillaHorario;
 import com.drivehub.academico.features.horarios.repository.FranjaRepository;
 import com.drivehub.academico.features.horarios.repository.PlantillaHorarioRepository;
@@ -64,16 +65,40 @@ class PlantillaHorarioServiceTest {
         service = new PlantillaHorarioService(plantillaRepository, franjaRepository, generacion, reloj);
     }
 
-    private static CrearPlantillaHorarioRequest request(int dia, String inicio, String fin, int duracion,
+    private static CrearPlantillaHorarioRequest request(List<Integer> dias, String inicio, String fin, int duracion,
             LocalDate desde, LocalDate hasta) {
-        return new CrearPlantillaHorarioRequest(dia, inicio, fin, duracion, desde, hasta);
+        return new CrearPlantillaHorarioRequest("Mañanas", dias, inicio, fin, duracion, desde, hasta);
     }
 
-    private PlantillaHorario existente(int dia, String inicio, String fin, LocalDate desde, LocalDate hasta) {
-        PlantillaHorario horario = new PlantillaHorario(escuela, instructor, dia, inicio, fin, 60, desde, hasta);
+    private static CrearPlantillaHorarioRequest request(int dia, String inicio, String fin, int duracion,
+            LocalDate desde, LocalDate hasta) {
+        return request(List.of(dia), inicio, fin, duracion, desde, hasta);
+    }
+
+    private PlantillaHorario existente(List<Integer> dias, String inicio, String fin, LocalDate desde,
+            LocalDate hasta) {
+        PlantillaHorario horario = new PlantillaHorario(escuela, instructor, "Existente", dias, inicio, fin, 60,
+            desde, hasta);
         horario.inicializarCodigo();
         horario.setId(99L);
         return horario;
+    }
+
+    private PlantillaHorario existente(int dia, String inicio, String fin, LocalDate desde, LocalDate hasta) {
+        return existente(List.of(dia), inicio, fin, desde, hasta);
+    }
+
+    private PlantillaHorario conEstado(EstadoPlantilla estado) {
+        PlantillaHorario horario = existente(1, "08:00", "12:00", HOY, null);
+        horario.setEstado(estado);
+        when(plantillaRepository.findByCodigoPlantillaHorarioAndInstructorCodigoAndDeletedAtIsNull(
+            horario.getCodigoPlantillaHorario(), instructor)).thenReturn(Optional.of(horario));
+        return horario;
+    }
+
+    private void activos(PlantillaHorario... horarios) {
+        when(plantillaRepository.findByInstructorCodigoAndEstadoAndDeletedAtIsNull(instructor,
+            EstadoPlantilla.ACTIVA)).thenReturn(List.of(horarios));
     }
 
     private void guardarDevuelveElMismoConId() {
@@ -106,12 +131,28 @@ class PlantillaHorarioServiceTest {
         verify(plantillaRepository).save(guardado.capture());
         assertThat(guardado.getValue().getEscuelaCodigo()).isEqualTo(escuela);
         assertThat(guardado.getValue().getInstructorCodigo()).isEqualTo(instructor);
-        assertThat(guardado.getValue().isActiva()).isTrue();
+        assertThat(guardado.getValue().getEstado()).isEqualTo(EstadoPlantilla.ACTIVA);
         assertThat(guardado.getValue().getVigenteDesde()).isEqualTo(HOY);
         assertThat(respuesta.franjasGeneradas()).isEqualTo(14);
         assertThat(respuesta.codigo()).isNotNull();
         assertThat(respuesta.horaInicio()).isEqualTo("08:00");
-        assertThat(respuesta.activa()).isTrue();
+        assertThat(respuesta.estado()).isEqualTo(EstadoPlantilla.ACTIVA);
+    }
+
+    @Test
+    void crear_variosDias_losGuardaSinRepetirOrdenadosYConElNombreRecortado() {
+        guardarDevuelveElMismoConId();
+        var pedido = new CrearPlantillaHorarioRequest("  Entre semana  ", List.of(5, 1, 3, 1), "08:00", "12:00", 60,
+            null, null);
+
+        PlantillaHorarioCreadaResponse respuesta = service.crear(instructor, escuela, pedido);
+
+        ArgumentCaptor<PlantillaHorario> guardado = ArgumentCaptor.forClass(PlantillaHorario.class);
+        verify(plantillaRepository).save(guardado.capture());
+        assertThat(guardado.getValue().getDiasSemana()).containsExactly(1, 3, 5);
+        assertThat(guardado.getValue().getNombre()).isEqualTo("Entre semana");
+        assertThat(respuesta.diasSemana()).containsExactly(1, 3, 5);
+        assertThat(respuesta.nombre()).isEqualTo("Entre semana");
     }
 
     @Test
@@ -203,8 +244,7 @@ class PlantillaHorarioServiceTest {
 
     @Test
     void crear_seCruzaConOtroHorarioActivo_lanzaErrAca04() {
-        when(plantillaRepository.findByInstructorCodigoAndDiaSemanaAndActivaTrueAndDeletedAtIsNull(instructor, 1))
-            .thenReturn(List.of(existente(1, "11:00", "13:00", HOY, null)));
+        activos(existente(1, "11:00", "13:00", HOY, null));
 
         assertError(() -> service.crear(instructor, escuela, request(1, "08:00", "12:00", 60, null, null)),
             "ERR_ACA_04");
@@ -212,8 +252,7 @@ class PlantillaHorarioServiceTest {
 
     @Test
     void crear_unHorarioContenidoEnOtro_seCruza() {
-        when(plantillaRepository.findByInstructorCodigoAndDiaSemanaAndActivaTrueAndDeletedAtIsNull(instructor, 1))
-            .thenReturn(List.of(existente(1, "08:00", "18:00", HOY, null)));
+        activos(existente(1, "08:00", "18:00", HOY, null));
 
         assertError(() -> service.crear(instructor, escuela, request(1, "10:00", "11:00", 60, null, null)),
             "ERR_ACA_04");
@@ -222,8 +261,7 @@ class PlantillaHorarioServiceTest {
     @Test
     void crear_ventanaQueSoloComparteElBorde_noSeCruza() {
         guardarDevuelveElMismoConId();
-        when(plantillaRepository.findByInstructorCodigoAndDiaSemanaAndActivaTrueAndDeletedAtIsNull(instructor, 1))
-            .thenReturn(List.of(existente(1, "08:00", "12:00", HOY, null)));
+        activos(existente(1, "08:00", "12:00", HOY, null));
 
         service.crear(instructor, escuela, request(1, "12:00", "14:00", 60, null, null));
         service.crear(instructor, escuela, request(1, "06:00", "08:00", 60, null, null));
@@ -234,8 +272,7 @@ class PlantillaHorarioServiceTest {
     @Test
     void crear_mismasHorasPeroVigenciasDisjuntas_noSeCruza() {
         guardarDevuelveElMismoConId();
-        when(plantillaRepository.findByInstructorCodigoAndDiaSemanaAndActivaTrueAndDeletedAtIsNull(instructor, 1))
-            .thenReturn(List.of(existente(1, "08:00", "12:00", HOY, HOY.plusDays(6))));
+        activos(existente(1, "08:00", "12:00", HOY, HOY.plusDays(6)));
 
         service.crear(instructor, escuela, request(1, "08:00", "12:00", 60, HOY.plusDays(7), null));
 
@@ -245,74 +282,255 @@ class PlantillaHorarioServiceTest {
     @Test
     void crear_vigenciaAbiertaDelOtroSeSolapaConLaNueva_seCruza() {
         // * El otro no tiene fin: cubre cualquier fecha futura
-        when(plantillaRepository.findByInstructorCodigoAndDiaSemanaAndActivaTrueAndDeletedAtIsNull(instructor, 1))
-            .thenReturn(List.of(existente(1, "08:00", "12:00", HOY, null)));
+        activos(existente(1, "08:00", "12:00", HOY, null));
 
         assertError(() -> service.crear(instructor, escuela,
             request(1, "08:00", "12:00", 60, HOY.plusDays(100), HOY.plusDays(110))), "ERR_ACA_04");
     }
 
     @Test
-    void crear_consultaElCruceSoloDelMismoInstructorYDia() {
+    void crear_mismasHorasPeroSinNingunDiaEnComun_noSeCruza() {
+        guardarDevuelveElMismoConId();
+        activos(existente(List.of(1, 2, 3), "08:00", "12:00", HOY, null));
+
+        service.crear(instructor, escuela, request(List.of(4, 5, 6), "08:00", "12:00", 60, null, null));
+
+        verify(plantillaRepository).save(any());
+    }
+
+    @Test
+    void crear_compartiendoSoloUnDiaDeVarios_seCruza() {
+        activos(existente(List.of(1, 2, 3), "08:00", "12:00", HOY, null));
+
+        assertError(() -> service.crear(instructor, escuela,
+            request(List.of(3, 4, 5), "10:00", "12:00", 60, null, null)), "ERR_ACA_04");
+    }
+
+    @Test
+    void crear_consultaElCruceSoloContraLosActivosDelInstructor() {
         guardarDevuelveElMismoConId();
 
         service.crear(instructor, escuela, request(3, "08:00", "12:00", 60, null, null));
 
-        verify(plantillaRepository)
-            .findByInstructorCodigoAndDiaSemanaAndActivaTrueAndDeletedAtIsNull(instructor, 3);
+        verify(plantillaRepository).findByInstructorCodigoAndEstadoAndDeletedAtIsNull(instructor,
+            EstadoPlantilla.ACTIVA);
     }
 
     // ---------------------------------------------------------------- listar
 
-    @Test
-    void listar_sinFiltroDeActiva_pideTodosOrdenadosPorDiaYHora() {
-        when(plantillaRepository.findByInstructorCodigoAndDeletedAtIsNull(eq(instructor), any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of(existente(1, "08:00", "12:00", HOY, null))));
-
-        Page<PlantillaHorarioResponse> pagina = service.listar(instructor, null, 1, 20);
-
-        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
-        verify(plantillaRepository).findByInstructorCodigoAndDeletedAtIsNull(eq(instructor), pageable.capture());
-        assertThat(pageable.getValue().getPageNumber()).isZero();
-        assertThat(pageable.getValue().getPageSize()).isEqualTo(20);
-        assertThat(pageable.getValue().getSort().stream().map(o -> o.getProperty()).toList())
-            .containsExactly("diaSemana", "horaInicio");
-        assertThat(pagina.getContent()).hasSize(1);
-        assertThat(pagina.getContent().get(0).horaFin()).isEqualTo("12:00");
+    private PlantillaHorario conEstadoYDia(EstadoPlantilla estado, int dia, String inicio) {
+        PlantillaHorario horario = existente(dia, inicio, "12:00", HOY, null);
+        horario.setEstado(estado);
+        return horario;
     }
 
     @Test
-    void listar_conFiltroDeActiva_loPasaAlRepositorio() {
-        when(plantillaRepository.findByInstructorCodigoAndActivaAndDeletedAtIsNull(eq(instructor), eq(true),
-            any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+    void listar_sinEstados_pideActivosYPausados() {
+        when(plantillaRepository.findByInstructorCodigoAndEstadoInAndDeletedAtIsNull(eq(instructor), any()))
+            .thenReturn(List.of());
 
-        service.listar(instructor, true, 1, 20);
+        service.listar(instructor, Set.of(), 1, 20);
 
-        verify(plantillaRepository).findByInstructorCodigoAndActivaAndDeletedAtIsNull(eq(instructor), eq(true),
-            any(Pageable.class));
-        verify(plantillaRepository, never()).findByInstructorCodigoAndDeletedAtIsNull(any(), any());
+        verify(plantillaRepository).findByInstructorCodigoAndEstadoInAndDeletedAtIsNull(instructor,
+            EnumSet.of(EstadoPlantilla.ACTIVA, EstadoPlantilla.PAUSADA));
+    }
+
+    @Test
+    void listar_conEstados_lospasaAlRepositorio() {
+        when(plantillaRepository.findByInstructorCodigoAndEstadoInAndDeletedAtIsNull(eq(instructor), any()))
+            .thenReturn(List.of());
+
+        service.listar(instructor, EnumSet.of(EstadoPlantilla.INACTIVA), 1, 20);
+
+        verify(plantillaRepository).findByInstructorCodigoAndEstadoInAndDeletedAtIsNull(instructor,
+            EnumSet.of(EstadoPlantilla.INACTIVA));
+    }
+
+    @Test
+    void listar_ordenaPorEstadoLuegoPorPrimerDiaYHora() {
+        when(plantillaRepository.findByInstructorCodigoAndEstadoInAndDeletedAtIsNull(eq(instructor), any()))
+            .thenReturn(List.of(
+                conEstadoYDia(EstadoPlantilla.INACTIVA, 1, "08:00"),
+                conEstadoYDia(EstadoPlantilla.PAUSADA, 2, "08:00"),
+                conEstadoYDia(EstadoPlantilla.ACTIVA, 3, "08:00"),
+                conEstadoYDia(EstadoPlantilla.ACTIVA, 1, "14:00"),
+                conEstadoYDia(EstadoPlantilla.ACTIVA, 1, "08:00")));
+
+        Page<PlantillaHorarioResponse> pagina = service.listar(instructor, EnumSet.allOf(EstadoPlantilla.class),
+            1, 20);
+
+        assertThat(pagina.getContent()).extracting(PlantillaHorarioResponse::estado, r -> r.diasSemana().get(0),
+            PlantillaHorarioResponse::horaInicio).containsExactly(
+                org.assertj.core.api.Assertions.tuple(EstadoPlantilla.ACTIVA, 1, "08:00"),
+                org.assertj.core.api.Assertions.tuple(EstadoPlantilla.ACTIVA, 1, "14:00"),
+                org.assertj.core.api.Assertions.tuple(EstadoPlantilla.ACTIVA, 3, "08:00"),
+                org.assertj.core.api.Assertions.tuple(EstadoPlantilla.PAUSADA, 2, "08:00"),
+                org.assertj.core.api.Assertions.tuple(EstadoPlantilla.INACTIVA, 1, "08:00"));
+    }
+
+    @Test
+    void listar_paginaEnMemoriaYInformaElTotal() {
+        when(plantillaRepository.findByInstructorCodigoAndEstadoInAndDeletedAtIsNull(eq(instructor), any()))
+            .thenReturn(List.of(
+                conEstadoYDia(EstadoPlantilla.ACTIVA, 1, "08:00"),
+                conEstadoYDia(EstadoPlantilla.ACTIVA, 2, "08:00"),
+                conEstadoYDia(EstadoPlantilla.ACTIVA, 3, "08:00")));
+
+        Page<PlantillaHorarioResponse> segunda = service.listar(instructor, Set.of(), 2, 2);
+
+        assertThat(segunda.getTotalElements()).isEqualTo(3);
+        assertThat(segunda.getTotalPages()).isEqualTo(2);
+        assertThat(segunda.getNumber()).isEqualTo(1);
+        assertThat(segunda.getContent()).hasSize(1);
+    }
+
+    @Test
+    void listar_paginaFueraDeRango_devuelveVacioSinFallar() {
+        when(plantillaRepository.findByInstructorCodigoAndEstadoInAndDeletedAtIsNull(eq(instructor), any()))
+            .thenReturn(List.of(conEstadoYDia(EstadoPlantilla.ACTIVA, 1, "08:00")));
+
+        Page<PlantillaHorarioResponse> pagina = service.listar(instructor, Set.of(), 9, 20);
+
+        assertThat(pagina.getContent()).isEmpty();
+        assertThat(pagina.getTotalElements()).isEqualTo(1);
     }
 
     @Test
     void listar_normalizaLaPaginacion() {
-        when(plantillaRepository.findByInstructorCodigoAndDeletedAtIsNull(eq(instructor), any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of()));
+        when(plantillaRepository.findByInstructorCodigoAndEstadoInAndDeletedAtIsNull(eq(instructor), any()))
+            .thenReturn(List.of());
 
-        service.listar(instructor, null, 0, 5000);
+        Page<PlantillaHorarioResponse> pagina = service.listar(instructor, Set.of(), 0, 5000);
 
-        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
-        verify(plantillaRepository).findByInstructorCodigoAndDeletedAtIsNull(eq(instructor), pageable.capture());
-        assertThat(pageable.getValue().getPageNumber()).isZero();
-        assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
+        assertThat(pagina.getNumber()).isZero();
+        assertThat(pagina.getSize()).isEqualTo(100);
+    }
+
+    // ---------------------------------------------------------------- pausar
+
+    @Test
+    void pausar_eliminaLasFranjasFuturasYAlFinalMarcaPausada() {
+        PlantillaHorario horario = conEstado(EstadoPlantilla.ACTIVA);
+        when(franjaRepository.eliminarFuturasNoReservadas(anyLong(), any(), anyString())).thenReturn(9L);
+
+        service.pausar(instructor, horario.getCodigoPlantillaHorario());
+
+        InOrder orden = inOrder(franjaRepository, plantillaRepository);
+        orden.verify(franjaRepository).eliminarFuturasNoReservadas(99L, HOY, "09:30");
+        orden.verify(plantillaRepository).save(horario);
+        assertThat(horario.getEstado()).isEqualTo(EstadoPlantilla.PAUSADA);
+    }
+
+    @Test
+    void pausar_siElBorradoFalla_sigueActivo() {
+        PlantillaHorario horario = conEstado(EstadoPlantilla.ACTIVA);
+        when(franjaRepository.eliminarFuturasNoReservadas(anyLong(), any(), anyString()))
+            .thenThrow(new IllegalStateException("la base no responde"));
+
+        assertThatThrownBy(() -> service.pausar(instructor, horario.getCodigoPlantillaHorario()))
+            .isInstanceOf(IllegalStateException.class);
+
+        assertThat(horario.getEstado()).isEqualTo(EstadoPlantilla.ACTIVA);
+        verify(plantillaRepository, never()).save(any());
+    }
+
+    @Test
+    void pausar_horarioPausadoOInactivo_lanzaErrAca11SinTocarFranjas() {
+        for (EstadoPlantilla estado : List.of(EstadoPlantilla.PAUSADA, EstadoPlantilla.INACTIVA)) {
+            PlantillaHorario horario = conEstado(estado);
+
+            assertThatThrownBy(() -> service.pausar(instructor, horario.getCodigoPlantillaHorario()))
+                .isInstanceOfSatisfying(BusinessException.class,
+                    e -> assertThat(e.getErrorCode()).isEqualTo("ERR_ACA_11"));
+        }
+        verify(franjaRepository, never()).eliminarFuturasNoReservadas(anyLong(), any(), anyString());
+        verify(plantillaRepository, never()).save(any());
+    }
+
+    @Test
+    void pausar_horarioInexistenteODeOtroInstructor_lanzaErrAca05() {
+        UUID codigo = UUID.randomUUID();
+        when(plantillaRepository.findByCodigoPlantillaHorarioAndInstructorCodigoAndDeletedAtIsNull(codigo,
+            instructor)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.pausar(instructor, codigo)).isInstanceOfSatisfying(
+            BusinessException.class, e -> assertThat(e.getErrorCode()).isEqualTo("ERR_ACA_05"));
+    }
+
+    // ---------------------------------------------------------------- reanudar
+
+    @Test
+    void reanudar_horarioPausado_quedaActivoYGeneraLasFranjas() {
+        PlantillaHorario horario = conEstado(EstadoPlantilla.PAUSADA);
+        activos();
+        when(generacion.generar(horario)).thenReturn(16);
+
+        service.reanudar(instructor, horario.getCodigoPlantillaHorario());
+
+        InOrder orden = inOrder(plantillaRepository, generacion);
+        orden.verify(plantillaRepository).save(horario);
+        orden.verify(generacion).generar(horario);
+        assertThat(horario.getEstado()).isEqualTo(EstadoPlantilla.ACTIVA);
+    }
+
+    @Test
+    void reanudar_horarioActivoOInactivo_lanzaErrAca12() {
+        for (EstadoPlantilla estado : List.of(EstadoPlantilla.ACTIVA, EstadoPlantilla.INACTIVA)) {
+            PlantillaHorario horario = conEstado(estado);
+
+            assertThatThrownBy(() -> service.reanudar(instructor, horario.getCodigoPlantillaHorario()))
+                .isInstanceOfSatisfying(BusinessException.class,
+                    e -> assertThat(e.getErrorCode()).isEqualTo("ERR_ACA_12"));
+        }
+        verify(plantillaRepository, never()).save(any());
+        verify(generacion, never()).generar(any());
+    }
+
+    @Test
+    void reanudar_siAhoraSeCruzaConOtroActivo_lanzaErrAca04YSigueEnPausa() {
+        PlantillaHorario horario = conEstado(EstadoPlantilla.PAUSADA);
+        PlantillaHorario otro = existente(1, "10:00", "14:00", HOY, null);
+        otro.setId(5L);
+        activos(otro);
+
+        assertThatThrownBy(() -> service.reanudar(instructor, horario.getCodigoPlantillaHorario()))
+            .isInstanceOfSatisfying(BusinessException.class,
+                e -> assertThat(e.getErrorCode()).isEqualTo("ERR_ACA_04"));
+
+        assertThat(horario.getEstado()).isEqualTo(EstadoPlantilla.PAUSADA);
+        verify(plantillaRepository, never()).save(any());
+        verify(generacion, never()).generar(any());
+    }
+
+    @Test
+    void reanudar_siLaGeneracionFalla_elHorarioYaQuedoActivo() {
+        PlantillaHorario horario = conEstado(EstadoPlantilla.PAUSADA);
+        activos();
+        when(generacion.generar(horario)).thenThrow(new IllegalStateException("la base no responde"));
+
+        assertThatThrownBy(() -> service.reanudar(instructor, horario.getCodigoPlantillaHorario()))
+            .isInstanceOf(IllegalStateException.class);
+
+        // * La tarea diaria completa las franjas que falten
+        assertThat(horario.getEstado()).isEqualTo(EstadoPlantilla.ACTIVA);
+        verify(plantillaRepository).save(horario);
+    }
+
+    @Test
+    void reanudar_horarioInexistenteODeOtroInstructor_lanzaErrAca05() {
+        UUID codigo = UUID.randomUUID();
+        when(plantillaRepository.findByCodigoPlantillaHorarioAndInstructorCodigoAndDeletedAtIsNull(codigo,
+            instructor)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.reanudar(instructor, codigo)).isInstanceOfSatisfying(
+            BusinessException.class, e -> assertThat(e.getErrorCode()).isEqualTo("ERR_ACA_05"));
     }
 
     // ---------------------------------------------------------------- desactivar
 
     @Test
     void desactivar_eliminaLasFranjasFuturasYAlFinalMarcaInactivo() {
-        PlantillaHorario horario = existente(1, "08:00", "12:00", HOY, null);
-        when(plantillaRepository.findByCodigoPlantillaHorarioAndInstructorCodigoAndDeletedAtIsNull(
-            horario.getCodigoPlantillaHorario(), instructor)).thenReturn(Optional.of(horario));
+        PlantillaHorario horario = conEstado(EstadoPlantilla.ACTIVA);
         when(franjaRepository.eliminarFuturasNoReservadas(anyLong(), any(), anyString())).thenReturn(9L);
 
         service.desactivar(instructor, horario.getCodigoPlantillaHorario());
@@ -320,21 +538,29 @@ class PlantillaHorarioServiceTest {
         InOrder orden = inOrder(franjaRepository, plantillaRepository);
         orden.verify(franjaRepository).eliminarFuturasNoReservadas(99L, HOY, "09:30");
         orden.verify(plantillaRepository).save(horario);
-        assertThat(horario.isActiva()).isFalse();
+        assertThat(horario.getEstado()).isEqualTo(EstadoPlantilla.INACTIVA);
     }
 
     @Test
-    void desactivar_siElBorradoFalla_noMarcaInactivo() {
-        PlantillaHorario horario = existente(1, "08:00", "12:00", HOY, null);
-        when(plantillaRepository.findByCodigoPlantillaHorarioAndInstructorCodigoAndDeletedAtIsNull(
-            horario.getCodigoPlantillaHorario(), instructor)).thenReturn(Optional.of(horario));
+    void desactivar_desdePausado_tambienFunciona() {
+        PlantillaHorario horario = conEstado(EstadoPlantilla.PAUSADA);
+
+        service.desactivar(instructor, horario.getCodigoPlantillaHorario());
+
+        assertThat(horario.getEstado()).isEqualTo(EstadoPlantilla.INACTIVA);
+        verify(plantillaRepository).save(horario);
+    }
+
+    @Test
+    void desactivar_siElBorradoFalla_conservaSuEstado() {
+        PlantillaHorario horario = conEstado(EstadoPlantilla.ACTIVA);
         when(franjaRepository.eliminarFuturasNoReservadas(anyLong(), any(), anyString()))
             .thenThrow(new IllegalStateException("la base no responde"));
 
         assertThatThrownBy(() -> service.desactivar(instructor, horario.getCodigoPlantillaHorario()))
             .isInstanceOf(IllegalStateException.class);
 
-        assertThat(horario.isActiva()).isTrue();
+        assertThat(horario.getEstado()).isEqualTo(EstadoPlantilla.ACTIVA);
         verify(plantillaRepository, never()).save(any());
     }
 
@@ -351,10 +577,7 @@ class PlantillaHorarioServiceTest {
 
     @Test
     void desactivar_horarioYaInactivo_lanzaErrAca06SinTocarFranjas() {
-        PlantillaHorario horario = existente(1, "08:00", "12:00", HOY, null);
-        horario.setActiva(false);
-        when(plantillaRepository.findByCodigoPlantillaHorarioAndInstructorCodigoAndDeletedAtIsNull(
-            horario.getCodigoPlantillaHorario(), instructor)).thenReturn(Optional.of(horario));
+        PlantillaHorario horario = conEstado(EstadoPlantilla.INACTIVA);
 
         assertThatThrownBy(() -> service.desactivar(instructor, horario.getCodigoPlantillaHorario()))
             .isInstanceOfSatisfying(BusinessException.class,
@@ -365,9 +588,7 @@ class PlantillaHorarioServiceTest {
 
     @Test
     void desactivar_noGeneraFranjas() {
-        PlantillaHorario horario = existente(1, "08:00", "12:00", HOY, null);
-        when(plantillaRepository.findByCodigoPlantillaHorarioAndInstructorCodigoAndDeletedAtIsNull(
-            horario.getCodigoPlantillaHorario(), instructor)).thenReturn(Optional.of(horario));
+        PlantillaHorario horario = conEstado(EstadoPlantilla.ACTIVA);
 
         service.desactivar(instructor, horario.getCodigoPlantillaHorario());
 

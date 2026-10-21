@@ -16,9 +16,10 @@ import com.drivehub.academico.features.horarios.model.Franja;
 public interface FranjaRepositoryCustom {
 
     /**
-     * Las franjas del instructor, con filtros opcionales: `fecha` exacta, `fechaDesde` (inclusive) y `estado`.
+     * Las franjas del instructor, con filtros opcionales: `fechaDesde` y `fechaHasta` (ambas inclusivas; sin
+     * `fechaHasta` no hay tope) y `estado`. Una fecha exacta es `fechaDesde = fechaHasta`.
      */
-    Page<Franja> listar(UUID instructorCodigo, LocalDate fecha, LocalDate fechaDesde, EstadoFranja estado,
+    Page<Franja> listar(UUID instructorCodigo, LocalDate fechaDesde, LocalDate fechaHasta, EstadoFranja estado,
             Pageable pageable);
 
     /**
@@ -28,6 +29,15 @@ public interface FranjaRepositoryCustom {
      */
     Optional<Franja> cambiarEstado(UUID codigoFranja, UUID instructorCodigo, EstadoFranja esperado,
             EstadoFranja nuevo);
+
+    /**
+     * Cambia de estado todas las franjas del instructor de una fecha que estén en el estado `esperado`. Si
+     * `horaMinima` (`HH:mm`) no es nulo, solo las que empiezan después de esa hora. Devuelve cuántas cambió.
+     *
+     * * Un `updateMulti` es atómico por documento: no pisa una franja que cambió de estado en el medio.
+     */
+    long cambiarEstadoDelDia(UUID instructorCodigo, LocalDate fecha, EstadoFranja esperado, EstadoFranja nuevo,
+            String horaMinima);
 
     /**
      * Borra las franjas futuras `LIBRE` o `BLOQUEADA` de un horario: las de fecha posterior a `hoy`, o de hoy

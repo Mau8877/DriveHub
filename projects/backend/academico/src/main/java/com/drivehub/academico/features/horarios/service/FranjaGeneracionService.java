@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.drivehub.academico.config.HorariosProperties;
+import com.drivehub.academico.features.horarios.enums.EstadoPlantilla;
 import com.drivehub.academico.features.horarios.model.Franja;
 import com.drivehub.academico.features.horarios.model.PlantillaHorario;
 import com.drivehub.academico.features.horarios.repository.FranjaRepository;
@@ -51,7 +52,7 @@ public class FranjaGeneracionService {
      */
     public int generar(PlantillaHorario horario) {
         LocalDateTime ahora = LocalDateTime.now(clock);
-        List<FranjaCalculada> calculadas = generador.calcular(horario.getDiaSemana(),
+        List<FranjaCalculada> calculadas = generador.calcular(horario.getDiasSemana(),
             LocalTime.parse(horario.getHoraInicio()), LocalTime.parse(horario.getHoraFin()),
             horario.getDuracionClaseMin(), horario.getVigenteDesde(), horario.getVigenteHasta(), ahora,
             propiedades.horizonteDias());
@@ -78,8 +79,8 @@ public class FranjaGeneracionService {
         int conError = 0;
 
         // * Ordenado por _id para que las páginas sean estables mientras se recorre
-        Page<PlantillaHorario> pagina = plantillaRepository.findByActivaTrueAndDeletedAtIsNull(
-            Paginacion.de(1, LOTE_HORARIOS, Sort.by("id")));
+        Page<PlantillaHorario> pagina = plantillaRepository.findByEstadoAndDeletedAtIsNull(
+            EstadoPlantilla.ACTIVA, Paginacion.de(1, LOTE_HORARIOS, Sort.by("id")));
         int numero = 1;
         while (true) {
             for (PlantillaHorario horario : pagina.getContent()) {
@@ -99,8 +100,8 @@ public class FranjaGeneracionService {
                 break;
             }
             numero++;
-            pagina = plantillaRepository.findByActivaTrueAndDeletedAtIsNull(
-                Paginacion.de(numero, LOTE_HORARIOS, Sort.by("id")));
+            pagina = plantillaRepository.findByEstadoAndDeletedAtIsNull(
+                EstadoPlantilla.ACTIVA, Paginacion.de(numero, LOTE_HORARIOS, Sort.by("id")));
         }
 
         ResumenExtension resumen = new ResumenExtension(procesados, creadas, conError);

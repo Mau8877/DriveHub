@@ -3,6 +3,7 @@ package com.drivehub.academico.features.horarios.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -27,6 +28,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import com.drivehub.academico.config.HorariosProperties;
+import com.drivehub.academico.features.horarios.enums.EstadoPlantilla;
 import com.drivehub.academico.features.horarios.model.Franja;
 import com.drivehub.academico.features.horarios.model.PlantillaHorario;
 import com.drivehub.academico.features.horarios.repository.FranjaRepository;
@@ -55,8 +57,8 @@ class FranjaGeneracionServiceTest {
     }
 
     private PlantillaHorario lunesDeOchoADoce(LocalDate hasta) {
-        PlantillaHorario horario = new PlantillaHorario(UUID.randomUUID(), UUID.randomUUID(), 1, "08:00", "12:00",
-            60, HOY, hasta);
+        PlantillaHorario horario = new PlantillaHorario(UUID.randomUUID(), UUID.randomUUID(), "Lunes", List.of(1),
+            "08:00", "12:00", 60, HOY, hasta);
         horario.inicializarCodigo();
         horario.setId(7L);
         return horario;
@@ -95,6 +97,24 @@ class FranjaGeneracionServiceTest {
     }
 
     @Test
+    void generar_horarioDeLunesYMiercoles_guardaLasFranjasDeAmbosDias() {
+        PlantillaHorario horario = new PlantillaHorario(UUID.randomUUID(), UUID.randomUUID(), "Entre semana",
+            List.of(1, 3), "08:00", "12:00", 60, HOY, null);
+        horario.inicializarCodigo();
+        horario.setId(7L);
+        when(franjaRepository.insertarSiNoExiste(any())).thenReturn(true);
+
+        int insertadas = service.generar(horario);
+
+        // * 4 franjas por día, 2 días por semana, 4 semanas
+        assertThat(insertadas).isEqualTo(32);
+        ArgumentCaptor<Franja> guardadas = ArgumentCaptor.forClass(Franja.class);
+        verify(franjaRepository, times(32)).insertarSiNoExiste(guardadas.capture());
+        assertThat(guardadas.getAllValues()).extracting(f -> f.getFecha().getDayOfWeek().getValue())
+            .containsOnly(1, 3);
+    }
+
+    @Test
     void generar_horarioConVigenciaTerminada_noGuardaNada() {
         PlantillaHorario horario = lunesDeOchoADoce(HOY.minusDays(1));
 
@@ -105,7 +125,7 @@ class FranjaGeneracionServiceTest {
     // ---------------------------------------------------------------- extender
 
     private void unaPagina(PlantillaHorario... horarios) {
-        when(plantillaRepository.findByActivaTrueAndDeletedAtIsNull(any(Pageable.class)))
+        when(plantillaRepository.findByEstadoAndDeletedAtIsNull(eq(EstadoPlantilla.ACTIVA), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(horarios)));
     }
 
@@ -164,7 +184,7 @@ class FranjaGeneracionServiceTest {
 
     @Test
     void extender_sinHorariosActivos_devuelveTodoEnCero() {
-        when(plantillaRepository.findByActivaTrueAndDeletedAtIsNull(any(Pageable.class)))
+        when(plantillaRepository.findByEstadoAndDeletedAtIsNull(eq(EstadoPlantilla.ACTIVA), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of()));
 
         assertThat(service.extenderHorariosActivos()).isEqualTo(new ResumenExtension(0, 0, 0));
@@ -177,7 +197,7 @@ class FranjaGeneracionServiceTest {
         PlantillaHorario b = lunesDeOchoADoce(null);
         PlantillaHorario c = lunesDeOchoADoce(null);
         // * Tres horarios en páginas de dos: la primera dice que hay otra
-        when(plantillaRepository.findByActivaTrueAndDeletedAtIsNull(any(Pageable.class)))
+        when(plantillaRepository.findByEstadoAndDeletedAtIsNull(eq(EstadoPlantilla.ACTIVA), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(a, b), PageRequest.of(0, 2), 3))
             .thenReturn(new PageImpl<>(List.of(c), PageRequest.of(1, 2), 3));
         when(franjaRepository.insertarSiNoExiste(any())).thenReturn(true);
@@ -185,6 +205,7 @@ class FranjaGeneracionServiceTest {
         ResumenExtension resumen = service.extenderHorariosActivos();
 
         assertThat(resumen.horariosProcesados()).isEqualTo(3);
-        verify(plantillaRepository, times(2)).findByActivaTrueAndDeletedAtIsNull(any(Pageable.class));
+        verify(plantillaRepository, times(2)).findByEstadoAndDeletedAtIsNull(eq(EstadoPlantilla.ACTIVA),
+            any(Pageable.class));
     }
 }

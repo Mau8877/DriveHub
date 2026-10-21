@@ -20,6 +20,9 @@ public final class AcademicoErrorCodes {
     public static final String FRANJA_NO_ESTA_LIBRE = "ERR_ACA_08";
     public static final String FRANJA_NO_ESTA_BLOQUEADA = "ERR_ACA_09";
     public static final String FRANJA_YA_EMPEZO = "ERR_ACA_10";
+    public static final String HORARIO_NO_ESTA_ACTIVO = "ERR_ACA_11";
+    public static final String HORARIO_NO_ESTA_PAUSADO = "ERR_ACA_12";
+    public static final String RANGO_FECHAS_INVALIDO = "ERR_ACA_13";
 
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public static final String VALIDACION = "ERR_SYS_01";

@@ -62,7 +62,7 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
     private static final String RUTA_HORARIOS = "/api/v1/plantillas-horario";
     private static final String RUTA_FRANJAS = "/api/v1/franjas";
     private static final String LUNES_DE_OCHO_A_DOCE = """
-        {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60}
+        {"nombre": "Horario", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60}
         """;
 
     /** Reloj que se mueve a mano para probar el paso del tiempo. */
@@ -176,7 +176,7 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
             .andExpect(jsonPath("$.status").value("success"))
             .andExpect(jsonPath("$.message").value("Horario creado correctamente"))
             .andExpect(jsonPath("$.data.franjasGeneradas").value(14))
-            .andExpect(jsonPath("$.data.activa").value(true))
+            .andExpect(jsonPath("$.data.estado").value("ACTIVA"))
             .andExpect(jsonPath("$.data.vigenteDesde").value(HOY))
             .andExpect(jsonPath("$.data.codigo").exists());
 
@@ -227,13 +227,13 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
         mockMvc.perform(get(RUTA_HORARIOS).with(comoInstructor(instructorA)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.length()").value(1))
-            .andExpect(jsonPath("$.data[0].diaSemana").value(1))
+            .andExpect(jsonPath("$.data[0].diasSemana[0]").value(1))
             .andExpect(jsonPath("$.data[0].horaInicio").value("08:00"))
             .andExpect(jsonPath("$.meta.totalItems").value(1))
             .andExpect(jsonPath("$.meta.totalPages").value(1));
-        mockMvc.perform(get(RUTA_HORARIOS).param("filter[activa]", "true").with(comoInstructor(instructorA)))
+        mockMvc.perform(get(RUTA_HORARIOS).param("filter[estado]", "ACTIVA").with(comoInstructor(instructorA)))
             .andExpect(jsonPath("$.data.length()").value(1));
-        mockMvc.perform(get(RUTA_HORARIOS).param("filter[activa]", "false").with(comoInstructor(instructorA)))
+        mockMvc.perform(get(RUTA_HORARIOS).param("filter[estado]", "INACTIVA").with(comoInstructor(instructorA)))
             .andExpect(jsonPath("$.data.length()").value(0))
             .andExpect(jsonPath("$.meta.totalItems").value(0));
     }
@@ -241,20 +241,20 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
     @Test
     void listarHorarios_ordenaPorDiaYHora() throws Exception {
         crearHorario(instructorA, """
-            {"diaSemana": 3, "horaInicio": "08:00", "horaFin": "10:00", "duracionClaseMin": 60}""")
+            {"nombre": "Horario", "diasSemana": [3], "horaInicio": "08:00", "horaFin": "10:00", "duracionClaseMin": 60}""")
             .andExpect(status().isCreated());
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "14:00", "horaFin": "16:00", "duracionClaseMin": 60}""")
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "14:00", "horaFin": "16:00", "duracionClaseMin": 60}""")
             .andExpect(status().isCreated());
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "10:00", "duracionClaseMin": 60}""")
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "10:00", "duracionClaseMin": 60}""")
             .andExpect(status().isCreated());
 
         mockMvc.perform(get(RUTA_HORARIOS).with(comoInstructor(instructorA)))
-            .andExpect(jsonPath("$.data[0].diaSemana").value(1))
+            .andExpect(jsonPath("$.data[0].diasSemana[0]").value(1))
             .andExpect(jsonPath("$.data[0].horaInicio").value("08:00"))
             .andExpect(jsonPath("$.data[1].horaInicio").value("14:00"))
-            .andExpect(jsonPath("$.data[2].diaSemana").value(3));
+            .andExpect(jsonPath("$.data[2].diasSemana[0]").value(3));
     }
 
     @Test
@@ -281,23 +281,23 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
     @Test
     void crear_datosInvalidos_respondenConSuCodigoYNoCreanNada() throws Exception {
         crearHorario(instructorA, """
-            {"diaSemana": 9, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60}""")
+            {"nombre": "Horario", "diasSemana": [9], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60}""")
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_SYS_01"));
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "12:00", "horaFin": "12:00", "duracionClaseMin": 60}""")
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "12:00", "horaFin": "12:00", "duracionClaseMin": 60}""")
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ACA_01"));
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 90}""")
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 90}""")
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ACA_02"));
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 10}""")
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 10}""")
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ACA_02"));
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
              "vigenteDesde": "2026-11-10", "vigenteHasta": "2026-11-01"}""")
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ACA_03"));
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
              "vigenteDesde": "2026-10-25"}""")
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ACA_03"));
 
@@ -312,12 +312,12 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
         crearLunesDeOchoADoce(instructorA);
 
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "11:00", "horaFin": "13:00", "duracionClaseMin": 60}""")
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "11:00", "horaFin": "13:00", "duracionClaseMin": 60}""")
             .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ACA_04"));
         assertThat(mongoTemplate.count(new Query(), PlantillaHorario.class)).isEqualTo(1);
 
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "12:00", "horaFin": "14:00", "duracionClaseMin": 60}""")
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "12:00", "horaFin": "14:00", "duracionClaseMin": 60}""")
             .andExpect(status().isCreated());
         assertThat(mongoTemplate.count(new Query(), PlantillaHorario.class)).isEqualTo(2);
     }
@@ -399,7 +399,7 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
 
         // * Nada de A cambió
         listarFranjas(instructorA, LUNES_SIGUIENTE).andExpect(jsonPath("$.data[0].estado").value("LIBRE"));
-        mockMvc.perform(get(RUTA_HORARIOS).param("filter[activa]", "true").with(comoInstructor(instructorA)))
+        mockMvc.perform(get(RUTA_HORARIOS).param("filter[estado]", "ACTIVA").with(comoInstructor(instructorA)))
             .andExpect(jsonPath("$.data.length()").value(1));
     }
 
@@ -430,9 +430,9 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
         // * Solo queda la reservada: se borraron las libres y la bloqueada
         assertThat(mongoTemplate.findAll(Franja.class)).singleElement()
             .satisfies(f -> assertThat(f.getEstado()).isEqualTo(EstadoFranja.RESERVADA));
-        mockMvc.perform(get(RUTA_HORARIOS).param("filter[activa]", "false").with(comoInstructor(instructorA)))
+        mockMvc.perform(get(RUTA_HORARIOS).param("filter[estado]", "INACTIVA").with(comoInstructor(instructorA)))
             .andExpect(jsonPath("$.data.length()").value(1));
-        mockMvc.perform(get(RUTA_HORARIOS).param("filter[activa]", "true").with(comoInstructor(instructorA)))
+        mockMvc.perform(get(RUTA_HORARIOS).param("filter[estado]", "ACTIVA").with(comoInstructor(instructorA)))
             .andExpect(jsonPath("$.data.length()").value(0));
 
         accion(RUTA_HORARIOS + "/" + horario + "/desactivar", instructorA).andExpect(status().isConflict())
@@ -487,7 +487,7 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
     @Test
     void generacionDiaria_noGeneraParaUnHorarioConLaVigenciaTerminada() throws Exception {
         crearHorario(instructorA, """
-            {"diaSemana": 1, "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
+            {"nombre": "Horario", "diasSemana": [1], "horaInicio": "08:00", "horaFin": "12:00", "duracionClaseMin": 60,
              "vigenteDesde": "2026-10-26", "vigenteHasta": "2026-11-02"}""").andExpect(status().isCreated())
             .andExpect(jsonPath("$.data.franjasGeneradas").value(6));
         RELOJ.fijar(LocalDateTime.of(2026, 11, 16, 9, 30));
@@ -549,5 +549,237 @@ class HorariosIntegracionTest extends MongoIntegrationTestBase {
     void laFechaDeHoyDeLaPrueba_esUnLunes() {
         // * Si esto falla, los números de arriba (14 franjas, etc.) dejan de tener sentido
         assertThat(LocalDate.parse(HOY).getDayOfWeek().getValue()).isEqualTo(1);
+    }
+
+    // ---------------------------------------------------------------- varios dias, pausar y reanudar (refactor del CU12)
+
+    private static final String ENTRE_SEMANA = """
+        {"nombre": "Entre semana", "diasSemana": [1, 3, 5], "horaInicio": "08:00", "horaFin": "12:00",
+         "duracionClaseMin": 60}
+        """;
+
+    private String crearEntreSemana(UUID instructor) throws Exception {
+        String respuesta = crearHorario(instructor, ENTRE_SEMANA).andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsString();
+        return JsonPath.read(respuesta, "$.data.codigo");
+    }
+
+    private int contarFranjas() {
+        return (int) mongoTemplate.count(new Query(), Franja.class);
+    }
+
+    @Test
+    void crear_variosDias_generaLasFranjasDeTodosEllosYDevuelveNombreYDias() throws Exception {
+        crearHorario(instructorA, ENTRE_SEMANA)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.data.nombre").value("Entre semana"))
+            .andExpect(jsonPath("$.data.diasSemana.length()").value(3))
+            .andExpect(jsonPath("$.data.diasSemana[2]").value(5))
+            .andExpect(jsonPath("$.data.estado").value("ACTIVA"))
+            // * Lunes, miércoles y viernes durante 4 semanas = 12 días, 4 franjas por día, menos 2 de hoy
+            .andExpect(jsonPath("$.data.franjasGeneradas").value(46));
+
+        assertThat(mongoTemplate.findAll(Franja.class)).extracting(f -> f.getFecha().getDayOfWeek().getValue())
+            .containsOnly(1, 3, 5);
+    }
+
+    @Test
+    void crear_mismasHorasConOtrosDias_noSeCruza_peroCompartiendoUnDiaSi() throws Exception {
+        crearEntreSemana(instructorA);
+
+        crearHorario(instructorA, """
+            {"nombre": "Fines de semana", "diasSemana": [2, 4], "horaInicio": "08:00", "horaFin": "12:00",
+             "duracionClaseMin": 60}""").andExpect(status().isCreated());
+        crearHorario(instructorA, """
+            {"nombre": "Choca", "diasSemana": [5, 6], "horaInicio": "10:00", "horaFin": "12:00",
+             "duracionClaseMin": 60}""").andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_04"));
+    }
+
+    @Test
+    void pausar_quitaLasFranjasNoReservadas_conservaLasReservadas_yDejaElHorarioPausado() throws Exception {
+        String horario = crearEntreSemana(instructorA);
+        marcarReservada(codigoDeFranja(instructorA, LUNES_SIGUIENTE, 0));
+
+        accion(RUTA_HORARIOS + "/" + horario + "/pausar", instructorA).andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value("Horario pausado correctamente"));
+
+        assertThat(contarFranjas()).isEqualTo(1);
+        mockMvc.perform(get(RUTA_HORARIOS).with(comoInstructor(instructorA)))
+            .andExpect(jsonPath("$.data.length()").value(1))
+            .andExpect(jsonPath("$.data[0].estado").value("PAUSADA"));
+        accion(RUTA_HORARIOS + "/" + horario + "/pausar", instructorA).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_11"));
+    }
+
+    @Test
+    void reanudar_vuelveAGenerarLasFranjasSinDuplicarLasReservadas() throws Exception {
+        String horario = crearEntreSemana(instructorA);
+        marcarReservada(codigoDeFranja(instructorA, LUNES_SIGUIENTE, 0));
+        accion(RUTA_HORARIOS + "/" + horario + "/pausar", instructorA).andExpect(status().isOk());
+
+        accion(RUTA_HORARIOS + "/" + horario + "/reanudar", instructorA).andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value("Horario reanudado correctamente"));
+
+        assertThat(contarFranjas()).isEqualTo(46);
+        mockMvc.perform(get(RUTA_HORARIOS).with(comoInstructor(instructorA)))
+            .andExpect(jsonPath("$.data[0].estado").value("ACTIVA"));
+        accion(RUTA_HORARIOS + "/" + horario + "/reanudar", instructorA).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_12"));
+    }
+
+    @Test
+    void reanudar_siEnLaPausaSeCreoOtroQueChoca_responde409ErrAca04YSigueEnPausa() throws Exception {
+        String horario = crearLunesDeOchoADoce(instructorA);
+        accion(RUTA_HORARIOS + "/" + horario + "/pausar", instructorA).andExpect(status().isOk());
+        crearLunesDeOchoADoce(instructorA);
+
+        accion(RUTA_HORARIOS + "/" + horario + "/reanudar", instructorA).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_04"));
+
+        mockMvc.perform(get(RUTA_HORARIOS).param("filter[estado]", "PAUSADA").with(comoInstructor(instructorA)))
+            .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    void unHorarioPausado_noGeneraFranjasEnLaCorridaDiaria() throws Exception {
+        String horario = crearLunesDeOchoADoce(instructorA);
+        accion(RUTA_HORARIOS + "/" + horario + "/pausar", instructorA).andExpect(status().isOk());
+
+        generacion.extenderHorariosActivos();
+
+        assertThat(contarFranjas()).isZero();
+    }
+
+    @Test
+    void listarHorarios_activosYPausadosPorDefecto_ysumaLosInactivosSiSePiden() throws Exception {
+        String activo = crearLunesDeOchoADoce(instructorA);
+        String pausado = crearHorario(instructorA, """
+            {"nombre": "Martes", "diasSemana": [2], "horaInicio": "08:00", "horaFin": "12:00",
+             "duracionClaseMin": 60}""").andReturn().getResponse().getContentAsString();
+        String codigoPausado = JsonPath.read(pausado, "$.data.codigo");
+        String inactivo = crearHorario(instructorA, """
+            {"nombre": "Jueves", "diasSemana": [4], "horaInicio": "08:00", "horaFin": "12:00",
+             "duracionClaseMin": 60}""").andReturn().getResponse().getContentAsString();
+        String codigoInactivo = JsonPath.read(inactivo, "$.data.codigo");
+        accion(RUTA_HORARIOS + "/" + codigoPausado + "/pausar", instructorA).andExpect(status().isOk());
+        accion(RUTA_HORARIOS + "/" + codigoInactivo + "/desactivar", instructorA).andExpect(status().isOk());
+
+        mockMvc.perform(get(RUTA_HORARIOS).with(comoInstructor(instructorA)))
+            .andExpect(jsonPath("$.data.length()").value(2))
+            .andExpect(jsonPath("$.data[0].codigo").value(activo))
+            .andExpect(jsonPath("$.data[1].estado").value("PAUSADA"));
+        mockMvc.perform(get(RUTA_HORARIOS).param("filter[estado]", "ACTIVA").param("filter[estado]", "PAUSADA")
+                .param("filter[estado]", "INACTIVA").with(comoInstructor(instructorA)))
+            .andExpect(jsonPath("$.data.length()").value(3))
+            .andExpect(jsonPath("$.data[2].estado").value("INACTIVA"))
+            .andExpect(jsonPath("$.meta.totalItems").value(3));
+    }
+
+    @Test
+    void desactivar_unHorarioPausado_loDejaInactivo() throws Exception {
+        String horario = crearLunesDeOchoADoce(instructorA);
+        accion(RUTA_HORARIOS + "/" + horario + "/pausar", instructorA).andExpect(status().isOk());
+
+        accion(RUTA_HORARIOS + "/" + horario + "/desactivar", instructorA).andExpect(status().isOk());
+
+        mockMvc.perform(get(RUTA_HORARIOS).param("filter[estado]", "INACTIVA").with(comoInstructor(instructorA)))
+            .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    void otroInstructor_noPuedePausarNiReanudarUnHorarioAjeno() throws Exception {
+        String horario = crearLunesDeOchoADoce(instructorA);
+
+        accion(RUTA_HORARIOS + "/" + horario + "/pausar", instructorB).andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_05"));
+        accion(RUTA_HORARIOS + "/" + horario + "/reanudar", instructorB).andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_05"));
+    }
+
+    // ---------------------------------------------------------------- consulta por rango y bloqueo de un dia
+
+    @Test
+    void listarFranjas_porRangoDeUnaSemana_devuelveTodasOrdenadas() throws Exception {
+        crearEntreSemana(instructorA);
+
+        mockMvc.perform(get(RUTA_FRANJAS).param("filter[fechaDesde]", LUNES_SIGUIENTE)
+                .param("filter[fechaHasta]", "2026-11-08").param("pageSize", "100")
+                .with(comoInstructor(instructorA)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.length()").value(12))
+            .andExpect(jsonPath("$.data[0].fecha").value(LUNES_SIGUIENTE))
+            .andExpect(jsonPath("$.data[11].fecha").value("2026-11-06"))
+            .andExpect(jsonPath("$.meta.totalItems").value(12));
+    }
+
+    @Test
+    void listarFranjas_rangoInvalido_responde400ErrAca13() throws Exception {
+        mockMvc.perform(get(RUTA_FRANJAS).param("filter[fechaDesde]", HOY).param("filter[fechaHasta]", "2026-11-30")
+                .with(comoInstructor(instructorA)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_13"));
+        mockMvc.perform(get(RUTA_FRANJAS).param("filter[fechaDesde]", HOY).with(comoInstructor(instructorA)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_13"));
+    }
+
+    @Test
+    void bloquearDia_bloqueaLasLibres_dejaLasReservadas_yDesbloquearDiaLasVuelveALibres() throws Exception {
+        crearLunesDeOchoADoce(instructorA);
+        marcarReservada(codigoDeFranja(instructorA, LUNES_SIGUIENTE, 1));
+
+        accion(RUTA_FRANJAS + "/dias/" + LUNES_SIGUIENTE + "/bloquear", instructorA).andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.franjasAfectadas").value(3))
+            .andExpect(jsonPath("$.message").value("Día bloqueado correctamente"));
+
+        listarFranjas(instructorA, LUNES_SIGUIENTE)
+            .andExpect(jsonPath("$.data[0].estado").value("BLOQUEADA"))
+            .andExpect(jsonPath("$.data[1].estado").value("RESERVADA"))
+            .andExpect(jsonPath("$.data[2].estado").value("BLOQUEADA"));
+        // * Repetirlo no cambia nada más
+        accion(RUTA_FRANJAS + "/dias/" + LUNES_SIGUIENTE + "/bloquear", instructorA).andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.franjasAfectadas").value(0));
+
+        accion(RUTA_FRANJAS + "/dias/" + LUNES_SIGUIENTE + "/desbloquear", instructorA).andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.franjasAfectadas").value(3));
+        listarFranjas(instructorA, LUNES_SIGUIENTE)
+            .andExpect(jsonPath("$.data[0].estado").value("LIBRE"))
+            .andExpect(jsonPath("$.data[1].estado").value("RESERVADA"));
+    }
+
+    @Test
+    void bloquearDia_hoy_soloTocaLasQueTodaviaNoEmpezaron() throws Exception {
+        crearLunesDeOchoADoce(instructorA);
+
+        // * Son las 09:30: quedan las de las 10:00 y las 11:00
+        accion(RUTA_FRANJAS + "/dias/" + HOY + "/bloquear", instructorA).andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.franjasAfectadas").value(2));
+    }
+
+    @Test
+    void bloquearDia_unDiaPasado_responde409ErrAca10() throws Exception {
+        accion(RUTA_FRANJAS + "/dias/2026-10-25/bloquear", instructorA).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_10"));
+    }
+
+    @Test
+    void bloquearDia_noTocaLasFranjasDeOtroInstructor() throws Exception {
+        crearLunesDeOchoADoce(instructorA);
+        crearLunesDeOchoADoce(instructorB);
+
+        accion(RUTA_FRANJAS + "/dias/" + LUNES_SIGUIENTE + "/bloquear", instructorA).andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.franjasAfectadas").value(4));
+
+        listarFranjas(instructorB, LUNES_SIGUIENTE).andExpect(jsonPath("$.data[0].estado").value("LIBRE"));
+    }
+
+    @Test
+    void bloquearYDesbloquearDia_unEstudianteRecibe403() throws Exception {
+        mockMvc.perform(post(RUTA_FRANJAS + "/dias/" + LUNES_SIGUIENTE + "/bloquear").with(comoEstudiante()))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_05"));
+        mockMvc.perform(post(RUTA_FRANJAS + "/dias/" + LUNES_SIGUIENTE + "/desbloquear"))
+            .andExpect(status().isUnauthorized());
     }
 }
