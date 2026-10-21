@@ -33,7 +33,7 @@ Archivos esperados (crear/tocar):
 
 ## Fuera de alcance (no tocar)
 
-- La pantalla de login (`pages/login.ts`): es de CU02. Tras registrarse en la web el estudiante no va al login, ve la confirmación de la propia página de registro.
+- La pantalla de login (`features/login/screens/login.ts`): es de CU02. Tras registrarse en la web el estudiante no va al login, ve la confirmación de la propia página de registro.
 - El guard de sesión y la redirección a `/login` (CU02; sigue el `TODO` existente).
 - `public/federation.manifest.json` (ya tiene `identidad`) y la configuración de federación.
 - Menú, `NAV_ITEMS` y layout.

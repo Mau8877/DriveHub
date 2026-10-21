@@ -22,14 +22,14 @@ El login del shell enlaza a `/account/forgot-password`.
 
 ## Alcance
 
-- `pages/login.ts`: bajo el formulario, un `routerLink` "¿Olvidaste tu contraseña?" hacia `/account/forgot-password`, con las clases de tokens que ya usa la pantalla.
+- `features/login/screens/login.ts`: bajo el formulario, un `routerLink` "¿Olvidaste tu contraseña?" hacia `/account/forgot-password`, con las clases de tokens que ya usa la pantalla.
 - Test de la pantalla: el enlace existe y apunta a `/account/forgot-password`.
 - `login.spec.ts` pasa a usar `provideRouter([])` (el `routerLink` necesita el router real) y espía `navigateByUrl` para conservar las aserciones de navegación existentes.
 
 Archivos esperados (crear/tocar):
 
-- `projects/frontend/shell/src/app/pages/login.ts`
-- `projects/frontend/shell/src/app/pages/login.spec.ts`
+- `projects/frontend/shell/src/app/features/login/screens/login.ts`
+- `projects/frontend/shell/src/app/features/login/tests/login.spec.ts`
 
 ## Fuera de alcance (no tocar)
 

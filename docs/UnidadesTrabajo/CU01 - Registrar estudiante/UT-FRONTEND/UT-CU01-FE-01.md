@@ -22,16 +22,16 @@ Existen los tipos del registro y las funciones de validación puras, con sus tes
 
 ## Alcance
 
-- `src/app/features/registro/models/registro.models.ts`: `RegistroEstudianteRequest` (`nombres`, `apellidos`, `fechaNacimiento` como `yyyy-MM-dd`, `email`, `password`, `telefono?`, `escuelaSlug`), `UsuarioRegistrado` (`codigo`, `email`, `nombres`, `apellidos`) y `EscuelaPublica` (`codigo`, `slug`, `nombre`).
-- `src/app/features/registro/registro.reglas.ts`: constantes `EDAD_MINIMA_REGISTRO = 18`, `PASSWORD_MIN = 9`, `PASSWORD_MAX = 64`, longitudes máximas (80, 80, 120, 20), y validadores de Reactive Forms (`ValidatorFn`) más una función pura `edadEnAnios(fechaNacimiento, hoy)`:
+- `src/app/features/registro/types/registro.types.ts`: `RegistroEstudianteRequest` (`nombres`, `apellidos`, `fechaNacimiento` como `yyyy-MM-dd`, `email`, `password`, `telefono?`, `escuelaSlug`), `UsuarioRegistrado` (`codigo`, `email`, `nombres`, `apellidos`) y `EscuelaPublica` (`codigo`, `slug`, `nombre`).
+- `src/app/features/registro/schemas/registro.reglas.ts`: constantes `EDAD_MINIMA_REGISTRO = 18`, `PASSWORD_MIN = 9`, `PASSWORD_MAX = 64`, longitudes máximas (80, 80, 120, 20), y validadores de Reactive Forms (`ValidatorFn`) más una función pura `edadEnAnios(fechaNacimiento, hoy)`:
   - `fechaNoFutura` (la fecha debe estar en el pasado) y `edadMinima` (≥ 18 años cumplidos a la fecha de hoy; el día en que cumple 18 es válido).
-- `src/app/features/registro/registro.mensajes.ts`: mapa de claves de error a mensajes **en español** (obligatorio, formato de correo, longitud mínima/máxima de contraseña, fecha futura, menor de edad).
+- `src/app/features/registro/schemas/registro.mensajes.ts`: mapa de claves de error a mensajes **en español** (obligatorio, formato de correo, longitud mínima/máxima de contraseña, fecha futura, menor de edad).
 - Tests `registro.reglas.spec.ts`: 17 años y 364 días → inválido; exactamente 18 años hoy → válido; fecha futura → inválido; contraseña de 8 → inválida, de 9 → válida, de 65 → inválida.
 
 Archivos esperados (crear/tocar):
 
-- `projects/frontend/identidad/src/app/features/registro/models/registro.models.ts`
-- `projects/frontend/identidad/src/app/features/registro/registro.reglas.ts`, `registro.mensajes.ts`, `registro.reglas.spec.ts`
+- `projects/frontend/identidad/src/app/features/registro/types/registro.types.ts`
+- `projects/frontend/identidad/src/app/features/registro/schemas/registro.reglas.ts`, `registro.mensajes.ts`, `registro.reglas.spec.ts`
 
 ## Fuera de alcance (no tocar)
 

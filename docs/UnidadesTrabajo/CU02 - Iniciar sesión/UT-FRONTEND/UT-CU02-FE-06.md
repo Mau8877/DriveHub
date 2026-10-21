@@ -18,7 +18,7 @@ Es la puerta de entrada de la web: debe decir con claridad qué falló y a dónd
 
 ## Objetivo
 
-`pages/login.ts` es el formulario real de inicio de sesión.
+`features/login/screens/login.ts` es el formulario real de inicio de sesión.
 
 ## Alcance
 
@@ -32,7 +32,7 @@ Es la puerta de entrada de la web: debe decir con claridad qué falló y a dónd
 
 Archivos esperados (crear/tocar):
 
-- `projects/frontend/shell/src/app/pages/login.ts`, `login.spec.ts`
+- `projects/frontend/shell/src/app/features/login/screens/login.ts`, `login.spec.ts`
 
 ## Fuera de alcance (no tocar)
 

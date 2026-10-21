@@ -22,7 +22,7 @@ Un service de la feature expone las dos llamadas del registro, ya desempaquetada
 
 ## Alcance
 
-- `src/app/features/registro/registro.service.ts` (`@Injectable({ providedIn: 'root' })`, `inject(HttpClient)`):
+- `src/app/features/registro/api/registro.service.ts` (`@Injectable({ providedIn: 'root' })`, `inject(HttpClient)`):
   - `obtenerEscuela(slug: string): Observable<EscuelaPublica>` → `GET {apiBaseUrl}/escuelas/{slug}`.
   - `registrar(datos: RegistroEstudianteRequest): Observable<UsuarioRegistrado>` → `POST {apiBaseUrl}/usuarios`. La petición **nunca** incluye un campo de rol.
 - La URL base y el manejo del sobre/`ApiError` salen del `apiInterceptor` y de `core/api/` que ya existen en el remoto; no se escribe lógica de sobre acá.
@@ -30,8 +30,8 @@ Un service de la feature expone las dos llamadas del registro, ya desempaquetada
 
 Archivos esperados (crear/tocar):
 
-- `projects/frontend/identidad/src/app/features/registro/registro.service.ts`
-- `projects/frontend/identidad/src/app/features/registro/registro.service.spec.ts`
+- `projects/frontend/identidad/src/app/features/registro/api/registro.service.ts`
+- `projects/frontend/identidad/src/app/features/registro/tests/registro.service.spec.ts`
 
 ## Fuera de alcance (no tocar)
 

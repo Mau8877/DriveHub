@@ -22,7 +22,7 @@ Existe la página de registro con su formulario, estados y manejo de errores.
 
 ## Alcance
 
-- `src/app/features/registro/pages/registro.ts` (componente de ruta, selector `app-registro`) que:
+- `src/app/features/registro/screens/registro.ts` (componente de ruta, selector `app-registro`) que:
   - Lee `escuelaSlug` de la ruta (`input()` con `withComponentInputBinding` o `ActivatedRoute`) y llama a `RegistroService.obtenerEscuela`. Estados con signals: `cargandoEscuela`, `escuela`, `escuelaNoDisponible`, `enviando`, `errorGeneral`, `registrado`.
   - Si la escuela no está disponible (404) muestra el mensaje "Esta escuela no está disponible" y no el formulario.
   - Formulario reactivo tipado con los campos nombres, apellidos, fecha de nacimiento (`<input type="date">`), correo, contraseña y teléfono (opcional), validado con `registro.reglas.ts` y mensajes de `registro.mensajes.ts`, inline debajo de cada campo. El botón "Registrarme" se deshabilita mientras `enviando`.
@@ -34,8 +34,8 @@ Existe la página de registro con su formulario, estados y manejo de errores.
 
 Archivos esperados (crear/tocar):
 
-- `projects/frontend/identidad/src/app/features/registro/pages/registro.ts`
-- `projects/frontend/identidad/src/app/features/registro/pages/registro.spec.ts`
+- `projects/frontend/identidad/src/app/features/registro/screens/registro.ts`
+- `projects/frontend/identidad/src/app/features/registro/tests/registro.spec.ts`
 
 ## Fuera de alcance (no tocar)
 

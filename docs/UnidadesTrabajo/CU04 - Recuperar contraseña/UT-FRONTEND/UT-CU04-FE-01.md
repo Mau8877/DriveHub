@@ -22,17 +22,17 @@ Existe la página pública `/account/forgot-password`.
 
 ## Alcance
 
-- `features/cuenta/cuenta.service.ts`: `solicitarRecuperacion(email)` → `POST /auth/recuperar`.
-- `features/cuenta/pages/recuperar.ts`: Reactive Form tipado con un campo de correo (obligatorio y formato de correo, mensajes en español bajo el campo). Al enviar, deshabilita el botón y muestra siempre el mismo mensaje: "Si el correo está registrado y verificado, te enviamos un enlace. Revisa tu bandeja." Un texto fijo bajo el formulario aclara: "La recuperación solo funciona si verificaste tu correo desde la aplicación." y un enlace "Volver a iniciar sesión" a `/login`. Un error de red muestra "No pudimos procesar la solicitud. Intenta más tarde."
+- `features/cuenta/api/cuenta.service.ts`: `solicitarRecuperacion(email)` → `POST /auth/recuperar`.
+- `features/cuenta/screens/recuperar.ts`: Reactive Form tipado con un campo de correo (obligatorio y formato de correo, mensajes en español bajo el campo). Al enviar, deshabilita el botón y muestra siempre el mismo mensaje: "Si el correo está registrado y verificado, te enviamos un enlace. Revisa tu bandeja." Un texto fijo bajo el formulario aclara: "La recuperación solo funciona si verificaste tu correo desde la aplicación." y un enlace "Volver a iniciar sesión" a `/login`. Un error de red muestra "No pudimos procesar la solicitud. Intenta más tarde."
 - Ruta `recuperar` en `routes-cuenta.ts`.
 - Tests: el formulario no envía con el correo vacío o inválido; con uno válido llama al servicio y muestra el mensaje fijo; el mensaje es el mismo aunque el backend responda distinto (200 siempre); el error de red muestra el otro mensaje.
 
 Archivos esperados (crear/tocar):
 
-- `projects/frontend/identidad/src/app/features/cuenta/cuenta.service.ts`
-- `projects/frontend/identidad/src/app/features/cuenta/cuenta.service.spec.ts`
-- `projects/frontend/identidad/src/app/features/cuenta/pages/recuperar.ts`
-- `projects/frontend/identidad/src/app/features/cuenta/pages/recuperar.spec.ts`
+- `projects/frontend/identidad/src/app/features/cuenta/api/cuenta.service.ts`
+- `projects/frontend/identidad/src/app/features/cuenta/tests/cuenta.service.spec.ts`
+- `projects/frontend/identidad/src/app/features/cuenta/screens/recuperar.ts`
+- `projects/frontend/identidad/src/app/features/cuenta/tests/recuperar.spec.ts`
 - `projects/frontend/identidad/src/app/routes-cuenta.ts`
 
 ## Fuera de alcance (no tocar)
