@@ -211,7 +211,7 @@ Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b) y resta
 | `expira_en` | `TIMESTAMPTZ NOT NULL` | |
 | `usado` | `BOOLEAN NOT NULL DEFAULT FALSE` | |
 
-**Datos sembrados:** los 4 roles (migración). En el perfil `dev`, además, `superadmin@gmail.com` (`SUPER_ADMIN`, sin escuela) y `adminexample@gmail.com` (`ADMIN_ESCUELA` de `escuelaexample`), ambos con contraseña `123123123`.
+**Datos sembrados:** los 4 roles (migración). En el perfil `dev`, además, `superadmin@gmail.com` (`SUPER_ADMIN`, sin escuela) y `adminexample@gmail.com` (`ADMIN_ESCUELA` de `escuelaexample`) e `instructorexample@gmail.com` (`INSTRUCTOR` de `escuelaexample`), todos con contraseña `123123123`.
 
 ---
 

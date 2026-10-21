@@ -25,12 +25,12 @@ import com.drivehub.identidad.domain.port.out.UsuarioRepositoryPort;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Datos de ejemplo para desarrollo: el Super admin y el Administrador de la
- * escuela de ejemplo.
+ * Datos de ejemplo para desarrollo: el Super admin, el Administrador y un
+ * Instructor de la escuela de ejemplo.
  *
  * ! Solo con el perfil `dev`, con una contraseña conocida (123123123):
  * ! NUNCA se siembra en producción.
- * * El Super admin no tiene escuela. adminexample pertenece a la escuela
+ * * El Super admin no tiene escuela. adminexample e instructorexample pertenecen a la escuela
  * * `escuelaexample`, cuyo codigo fijo es el mismo que siembra el servicio
  * * Escuela (EscuelaSeeder): así quedan enlazados sin llamarse entre sí.
  */
@@ -42,6 +42,7 @@ public class IdentidadSeeder implements ApplicationRunner {
     public static final UUID CODIGO_ESCUELA_EXAMPLE = UUID.fromString("0198f0a0-0000-7000-8000-000000000001");
     public static final String EMAIL_SUPER_ADMIN = "superadmin@gmail.com";
     public static final String EMAIL_ADMIN_EXAMPLE = "adminexample@gmail.com";
+    public static final String EMAIL_INSTRUCTOR_EXAMPLE = "instructorexample@gmail.com";
 
     private static final Logger LOG = LoggerFactory.getLogger(IdentidadSeeder.class);
     private static final String PASSWORD_DEV = "123123123";
@@ -55,6 +56,7 @@ public class IdentidadSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         crearSiNoExiste(EMAIL_SUPER_ADMIN, "Super", "Admin", RolNombres.SUPER_ADMIN, null);
         crearSiNoExiste(EMAIL_ADMIN_EXAMPLE, "Admin", "Example", RolNombres.ADMIN_ESCUELA, CODIGO_ESCUELA_EXAMPLE);
+        crearSiNoExiste(EMAIL_INSTRUCTOR_EXAMPLE, "Instructor", "Example", RolNombres.INSTRUCTOR, CODIGO_ESCUELA_EXAMPLE);
     }
 
     private void crearSiNoExiste(String email, String nombres, String apellidos, String rolNombre, UUID escuelaCodigo) {

@@ -25,14 +25,27 @@ class IdentidadSeederTest extends PostgresIntegrationTestBase {
     private JdbcTemplate jdbc;
 
     @Test
-    void run_ejecutadoDosVeces_dejaExactamenteLosDosUsuariosDeEjemplo() {
+    void run_ejecutadoDosVeces_dejaExactamenteLosTresUsuariosDeEjemplo() {
         seeder.run(new DefaultApplicationArguments());
         seeder.run(new DefaultApplicationArguments());
 
         Integer total = jdbc.queryForObject(
-            "SELECT count(*) FROM usuario WHERE email IN (?, ?)", Integer.class,
-            IdentidadSeeder.EMAIL_SUPER_ADMIN, IdentidadSeeder.EMAIL_ADMIN_EXAMPLE);
-        assertThat(total).isEqualTo(2);
+            "SELECT count(*) FROM usuario WHERE email IN (?, ?, ?)", Integer.class,
+            IdentidadSeeder.EMAIL_SUPER_ADMIN, IdentidadSeeder.EMAIL_ADMIN_EXAMPLE,
+            IdentidadSeeder.EMAIL_INSTRUCTOR_EXAMPLE);
+        assertThat(total).isEqualTo(3);
+    }
+
+    @Test
+    void run_creaElInstructorConLaEscuelaDeEjemplo() {
+        seeder.run(new DefaultApplicationArguments());
+
+        String rol = jdbc.queryForObject(
+            "SELECT r.nombre FROM usuario u JOIN usuario_rol ur ON ur.usuario_id = u.id "
+                + "JOIN rol r ON r.id = ur.rol_id WHERE u.email = ? AND u.escuela_codigo = ?::uuid",
+            String.class, IdentidadSeeder.EMAIL_INSTRUCTOR_EXAMPLE, IdentidadSeeder.CODIGO_ESCUELA_EXAMPLE.toString());
+
+        assertThat(rol).isEqualTo("INSTRUCTOR");
     }
 
     @Test
