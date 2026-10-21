@@ -5,94 +5,107 @@
  *
  * * CSS puro (sin Tailwind): cualquier app puede consumirlo. El mapeo a
  * * clases de Tailwind (bg-primary, text-foreground...) vive en theme.css.
- * * Paleta neutra de placeholder (la default de shadcn): todavía no hay
- * * colores de marca definidos. Cuando existan se cambian SOLO acá, y en el
- * * mismo cambio en projects/mobile/lib/core/theme/app_theme.dart (espejo
- * * manual de esta paleta).
- * * Modo oscuro: clase .dark en <html> (la pone el shell).
+ * * Los tokens atraviesan el Shadow DOM: los Web Components (@drivehub/gestion) los usan igual.
+ * * Paleta de marca (ver la tabla de abajo). Un cambio de color se hace SOLO acá y, en el mismo
+ * * cambio, en projects/mobile/lib/core/theme/app_theme.dart (espejo manual de esta paleta).
+ * * Modo oscuro: clase .dark en <html>. Hoy ninguna app lo activa; sus valores son tonos
+ * * derivados de la misma familia y se ajustan cuando se decida soportarlo.
+ *
+ * Paleta de marca:
+ *   Gris Asfalto   #1E293B  estructura principal, navegación, tipografía
+ *   Ámbar / Vial   #F59E0B  botones de acción clave, resaltados, insignias
+ *   Azul Técnico   #0284C7  indicadores de estado, horas programadas
+ *   Gris Claro     #F1F5F9  fondo general de la plataforma
+ *   Blanco Puro    #FFFFFF  tarjetas y contenedores
+ *   Gris Medio     #475569  textos secundarios y bordes suaves
  */
 
 :root {
   --radius: 0.625rem;
   --font-sans: 'Inter Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Paleta de marca: los demás tokens se arman con estos. */
+  --gris-asfalto: #1e293b;
+  --ambar-vial: #f59e0b;
+  --azul-tecnico: #0284c7;
+  --gris-claro: #f1f5f9;
+  --blanco-puro: #ffffff;
+  --gris-medio: #475569;
 
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --background: var(--gris-claro);
+  --foreground: var(--gris-asfalto);
+  --card: var(--blanco-puro);
+  --card-foreground: var(--gris-asfalto);
+  --popover: var(--blanco-puro);
+  --popover-foreground: var(--gris-asfalto);
+  /* La acción clave es ámbar; el texto sobre ámbar va en asfalto (con blanco no hay contraste). */
+  --primary: var(--ambar-vial);
+  --primary-foreground: var(--gris-asfalto);
+  --secondary: #e2e8f0;
+  --secondary-foreground: var(--gris-asfalto);
+  --muted: #e2e8f0;
+  --muted-foreground: var(--gris-medio);
+  /* Resaltado suave (hover de filas, ítem activo): tinte de ámbar. */
+  --accent: #fef3c7;
+  --accent-foreground: var(--gris-asfalto);
+  --destructive: #dc2626;
+  --border: rgb(71 85 105 / 25%);
+  --input: rgb(71 85 105 / 25%);
+  --ring: var(--ambar-vial);
 
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --chart-1: var(--gris-asfalto);
+  --chart-2: var(--ambar-vial);
+  --chart-3: var(--azul-tecnico);
+  --chart-4: var(--gris-medio);
+  --chart-5: #fcd34d;
 
-  --success: oklch(0.72 0.17 145);
-  --success-foreground: oklch(0.985 0 0);
-  --warning: oklch(0.75 0.15 70);
-  --warning-foreground: oklch(0.205 0 0);
-  --info: oklch(0.62 0.17 250);
-  --info-foreground: oklch(0.985 0 0);
-  --header: var(--primary);
-  --header-foreground: var(--primary-foreground);
+  /* Navegación: superficie de asfalto con texto claro. */
+  --sidebar: var(--gris-asfalto);
+  --sidebar-foreground: var(--gris-claro);
+  --sidebar-primary: var(--ambar-vial);
+  --sidebar-primary-foreground: var(--gris-asfalto);
+  --sidebar-accent: rgb(255 255 255 / 10%);
+  --sidebar-accent-foreground: var(--blanco-puro);
+  --sidebar-border: rgb(255 255 255 / 12%);
+  --sidebar-ring: var(--ambar-vial);
+
+  --success: #16a34a;
+  --success-foreground: var(--blanco-puro);
+  --warning: var(--ambar-vial);
+  --warning-foreground: var(--gris-asfalto);
+  --info: var(--azul-tecnico);
+  --info-foreground: var(--blanco-puro);
+  --header: var(--gris-asfalto);
+  --header-foreground: var(--blanco-puro);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #0f172a;
+  --foreground: var(--gris-claro);
+  --card: var(--gris-asfalto);
+  --card-foreground: var(--gris-claro);
+  --popover: var(--gris-asfalto);
+  --popover-foreground: var(--gris-claro);
+  --primary: var(--ambar-vial);
+  --primary-foreground: var(--gris-asfalto);
+  --secondary: #334155;
+  --secondary-foreground: var(--gris-claro);
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #334155;
+  --accent-foreground: var(--gris-claro);
+  --destructive: #f87171;
+  --border: rgb(255 255 255 / 12%);
+  --input: rgb(255 255 255 / 15%);
+  --ring: var(--ambar-vial);
 
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: #0f172a;
+  --sidebar-accent: rgb(255 255 255 / 10%);
+  --sidebar-border: rgb(255 255 255 / 12%);
 
-  --success: oklch(0.77 0.15 145);
-  --success-foreground: oklch(0.205 0 0);
-  --warning: oklch(0.82 0.14 70);
-  --warning-foreground: oklch(0.205 0 0);
-  --info: oklch(0.72 0.14 250);
-  --info-foreground: oklch(0.205 0 0);
+  --success: #4ade80;
+  --success-foreground: var(--gris-asfalto);
+  --info: #38bdf8;
+  --info-foreground: var(--gris-asfalto);
+  --header: #0f172a;
 }
