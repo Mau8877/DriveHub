@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 
 import { SesionService } from '../core/sesion/sesion.service'
-import { NAV_ITEMS } from './nav-items'
+import { navItemsDeRoles } from './nav-items'
 
 /**
  * Layout de toda la web: menú lateral, cabecera (con la campana de avisos)
@@ -21,7 +21,7 @@ import { NAV_ITEMS } from './nav-items'
       >
         <a routerLink="/" class="mb-6 block text-lg font-semibold">DriveHub</a>
         <nav class="flex flex-col gap-1">
-          @for (item of navItems; track item.ruta) {
+          @for (item of navItems(); track item.ruta) {
             <a
               [routerLink]="item.ruta"
               routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground"
@@ -81,7 +81,8 @@ import { NAV_ITEMS } from './nav-items'
 export class ShellLayout {
   private readonly sesion = inject(SesionService)
 
-  protected readonly navItems = NAV_ITEMS
+  // * Cada rol ve solo su menú: el Super admin y el Administrador de escuela no se mezclan (CU05)
+  protected readonly navItems = computed(() => navItemsDeRoles(this.sesion.usuario()?.roles ?? []))
   protected readonly cerrando = signal(false)
   protected readonly verificando = signal(false)
   protected readonly aviso = signal<{ tipo: 'ok' | 'error'; texto: string } | null>(null)

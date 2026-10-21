@@ -18,6 +18,21 @@ describe('rutas del shell', () => {
     expect(layout?.children?.some((r) => r.path === 'account')).toBe(false)
   })
 
+  it('/escuelas está dentro del layout con sesión y exige el rol Super admin', () => {
+    const layout = routes.find((r) => r.path === '')
+    const escuelas = layout?.children?.find((r) => r.path === 'escuelas')
+
+    expect(escuelas?.loadChildren).toBeDefined()
+    expect(escuelas?.canActivate).toHaveLength(1)
+  })
+
+  it('las rutas de los demás remotos no llevan rolGuard', () => {
+    const layout = routes.find((r) => r.path === '')
+    const identidad = layout?.children?.find((r) => r.path === 'identidad')
+
+    expect(identidad?.canActivate).toBeUndefined()
+  })
+
   it('el layout con los remotos sigue exigiendo sesión', () => {
     const layout = routes.find((r) => r.path === '')
 

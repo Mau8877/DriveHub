@@ -40,6 +40,30 @@ describe('ShellLayout', () => {
     return { fixture, boton, html: fixture.nativeElement as HTMLElement }
   }
 
+  describe('Menú por rol', () => {
+    const etiquetas = (html: HTMLElement) =>
+      Array.from(html.querySelectorAll('nav a span.font-medium')).map((s) => s.textContent?.trim())
+
+    it('el Administrador de escuela ve sus seis ítems y no "Gestionar escuelas"', () => {
+      const { html } = crear(USUARIO)
+
+      expect(etiquetas(html)).toHaveLength(6)
+      expect(etiquetas(html)).not.toContain('Gestionar escuelas')
+    })
+
+    it('el Super admin ve solo "Gestionar escuelas"', () => {
+      const { html } = crear({ ...USUARIO, roles: ['SUPER_ADMIN'], escuelaCodigo: null })
+
+      expect(etiquetas(html)).toEqual(['Gestionar escuelas'])
+    })
+
+    it('sin sesión no muestra ningún ítem', () => {
+      const { html } = crear(null)
+
+      expect(etiquetas(html)).toEqual([])
+    })
+  })
+
   describe('Cerrar sesión', () => {
     it('cierra la sesión una vez y se deshabilita mientras dura', async () => {
       let terminar!: () => void

@@ -5,6 +5,8 @@ import { RemoteHost } from './core/federacion/remote-host'
 import { prefijo } from './core/federacion/prefijo.matcher'
 import { ShellLayout } from './layout/shell-layout'
 import { loginGuard, sesionGuard } from './core/sesion/sesion.guard'
+import { ROLES } from './core/sesion/roles'
+import { rolGuard } from './core/sesion/rol.guard'
 import { Inicio } from './features/inicio/screens/inicio'
 import { Login } from './features/login/screens/login'
 import { NoEncontrado } from './features/no-encontrado/screens/no-encontrado'
@@ -43,6 +45,15 @@ export const routes: Routes = [
     canActivate: [sesionGuard],
     children: [
       { path: '', component: Inicio },
+
+      // Gestión de escuelas del Super admin (CU05). Es de primer nivel porque el shell es dueño de
+      // ese nivel; las pantallas son del remoto `escuela`, que las expone aparte de './routes'
+      // (las del Administrador, bajo /escuela). El rolGuard protege la ruta, no solo el menú.
+      {
+        path: 'escuelas',
+        canActivate: [rolGuard(ROLES.SUPER_ADMIN)],
+        loadChildren: () => loadRemoteModule('escuela', './routes-escuelas').then((m) => m.routes),
+      },
 
       // Angular: Identidad (CU01, CU06), Escuela (CU05, CU07 a CU11), Pagos (CU25)
       {
