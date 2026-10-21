@@ -1,6 +1,6 @@
 # Identidad (web)
 
-Remoto Angular: usuarios, roles y perfil (CU01, CU05, CU06).
+Remoto Angular: usuarios, roles y perfil (CU01, CU06).
 
 | | |
 | --- | --- |

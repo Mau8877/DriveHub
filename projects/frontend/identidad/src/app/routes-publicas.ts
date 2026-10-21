@@ -8,7 +8,7 @@ import { apiInterceptor } from './core/api/api.interceptor'
  * Native Federation como './routes-publicas': el shell las monta bajo
  * /register, fuera de su layout con menú.
  *
- * * Las pantallas con sesión (CU05, CU06) siguen en app.routes.ts ('./routes').
+ * * Las pantallas con sesión (CU06) siguen en app.routes.ts ('./routes').
  */
 export const routes: Routes = [
   {
