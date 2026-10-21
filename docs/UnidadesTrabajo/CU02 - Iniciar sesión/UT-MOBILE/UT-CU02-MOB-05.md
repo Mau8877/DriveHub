@@ -22,11 +22,11 @@ El `GoRouter` redirige según el estado de la sesión y tiene una ruta de inicio
 
 ## Alcance
 
-- `core/routing/app_router.dart`: el router pasa a ser un `Provider<GoRouter>` que escucha `sesionProvider` (`refreshListenable`). `redirect`: mientras `cargando`, a `/cargando`; sin sesión, solo `/login` y `/registro` son accesibles (cualquier otra va a `/login`); con sesión, `/login`, `/registro` y `/cargando` van a `/inicio`.
+- `core/routing/app_router.dart`: el router pasa a ser un `Provider<GoRouter>` que escucha `sesionProvider` (`refreshListenable`). `redirect`: mientras `cargando`, a `/cargando`; sin sesión, solo `/login` y `/register` son accesibles (cualquier otra va a `/login`); con sesión, `/login`, `/register` y `/cargando` van a `/inicio`.
 - Rutas nuevas: `/cargando` (indicador de progreso, sin lógica) y `/inicio` → `UsuarioShell` (el shell por rol que ya existe). `AdminShell` no se conecta: la app es solo para estudiante e instructor.
 - El árbol de rutas se ensambla en `core/routing/` (NAVEGACION_MOBILE.md), como ya hace el router actual; el redirect lee el estado a través de `sesionProvider`, no de `flutter_secure_storage` directo.
 - `main.dart`: `MaterialApp.router` usa el router del provider.
-- Tests de widget con `sesionProvider` sustituido: sin sesión cualquier ruta termina en `/login`; con sesión `/login` termina en `/inicio`; en `cargando` se ve `/cargando`; `/registro` es accesible sin sesión.
+- Tests de widget con `sesionProvider` sustituido: sin sesión cualquier ruta termina en `/login`; con sesión `/login` termina en `/inicio`; en `cargando` se ve `/cargando`; `/register` es accesible sin sesión.
 
 Archivos esperados (crear/tocar):
 

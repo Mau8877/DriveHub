@@ -23,7 +23,7 @@ Hay una prueba de integración que recorre login → pedir correo → confirmar 
 ## Alcance
 
 - Nueva `VerificacionCorreoIntegrationTest` (Postgres real, patrón `assumeTrue` de Docker). Reemplaza `EnviadorCorreoPort` por un doble que guarda el enlace recibido.
-- Casos: login de una cuenta nueva → `correoVerificado = false`; pedir el correo con el access token → 200 y el doble recibe el enlace a `/cuenta/verificar-correo?token=…`; confirmar con ese token (sin `Authorization`) → 200; login otra vez → `true`; pedir de nuevo → `409 ERR_IDE_10`.
+- Casos: login de una cuenta nueva → `correoVerificado = false`; pedir el correo con el access token → 200 y el doble recibe el enlace a `/account/verify-email?token=…`; confirmar con ese token (sin `Authorization`) → 200; login otra vez → `true`; pedir de nuevo → `409 ERR_IDE_10`.
 - Casos de rechazo: reutilizar el token → `400 ERR_IDE_11`; pedir dos veces y usar el primer token → `ERR_IDE_11` y el segundo sirve; token inventado → `ERR_IDE_11`; pedir sin sesión → 401; una cuenta sin verificar puede iniciar sesión y renovar normalmente (CA08).
 - Verifica que el token no aparece en los registros (`OutputCaptureExtension`).
 

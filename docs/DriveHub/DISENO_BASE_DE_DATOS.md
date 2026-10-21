@@ -269,7 +269,7 @@ El **tenant** de la plataforma SaaS: cada autoescuela cliente es una fila. CU01,
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `codigo_escuela` | `UUID NOT NULL UNIQUE` | Es el `escuela_codigo` que guardan los demás servicios |
-| `slug` | `VARCHAR(60) NOT NULL UNIQUE` | Identificador legible del enlace de registro (`/registro/{slug}`) |
+| `slug` | `VARCHAR(60) NOT NULL UNIQUE` | Identificador legible del enlace de registro (`/register/{slug}`) |
 | `nombre` | `VARCHAR(120) NOT NULL` | |
 | `estado` | `VARCHAR(10) NOT NULL DEFAULT 'ACTIVA'` | `CHECK IN ('ACTIVA','INACTIVA')`. Una escuela inactiva no admite registros ni inicios de sesión |
 

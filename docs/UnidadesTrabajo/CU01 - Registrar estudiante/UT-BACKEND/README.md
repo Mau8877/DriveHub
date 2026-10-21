@@ -19,7 +19,7 @@ Estas fichas **no** sustituyen esas reglas: si hay conflicto, ganan las rules de
 ## Decisiones de diseño
 
 1. **`escuela` es la tabla tenant y vive en el servicio Escuela.** Identidad guarda `usuario.escuela_codigo` (UUID público, sin FK física). Una cuenta pertenece a una sola escuela; el Super admin tiene `escuela_codigo = NULL`.
-2. **El estudiante elige escuela por `slug`** (en la web, el enlace `/registro/{slug}`; en la app, un campo "código de escuela"). Identidad resuelve el `slug` llamando por REST interno a Escuela (`GET /api/v1/escuelas/{slug}`, URL de Docker, sin pasar por el gateway) y guarda el `codigo` que recibe. Si la escuela no existe o está inactiva, Escuela responde 404 y Identidad responde `ERR_IDE_03`.
+2. **El estudiante elige escuela por `slug`** (en la web, el enlace `/register/{slug}`; en la app, un campo "código de escuela"). Identidad resuelve el `slug` llamando por REST interno a Escuela (`GET /api/v1/escuelas/{slug}`, URL de Docker, sin pasar por el gateway) y guarda el `codigo` que recibe. Si la escuela no existe o está inactiva, Escuela responde 404 y Identidad responde `ERR_IDE_03`.
 3. **El endpoint de Escuela es público** (no hay sesión en el registro). Devuelve solo `codigo`, `slug` y `nombre`. Una escuela inactiva responde 404, igual que una inexistente (CA08).
 4. **Registro = `POST /api/v1/usuarios`** (ruta `usuarios` que ya enruta el gateway, público según SEGURIDAD_AUTH_BACKEND.md). La petición **no tiene campo de rol**: el servicio asigna siempre `ESTUDIANTE` (CA09).
 5. **Edad mínima y correo:** `app.registro.edad-minima=18` (configurable). El correo se normaliza (`trim` + minúsculas) antes de comprobar unicidad; el `UNIQUE` de la BD cubre la carrera entre dos registros simultáneos.

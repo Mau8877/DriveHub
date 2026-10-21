@@ -18,12 +18,12 @@ El enlace del correo debe llevar a una página donde elegir la contraseña nueva
 
 ## Objetivo
 
-Existe la página pública `/cuenta/restablecer?token=…`.
+Existe la página pública `/account/reset-password?token=…`.
 
 ## Alcance
 
 - `cuenta.service.ts`: `restablecer(token, password)` → `POST /auth/restablecer`.
-- `features/cuenta/pages/restablecer.ts`: lee `token` del query string (sin token, muestra directamente el estado de enlace inválido). Reactive Form con contraseña nueva (mínimo 9 caracteres, **la misma regla que `registro.reglas.ts`**; se reutiliza ese módulo del remoto si ya exporta la regla) y confirmación; si no coinciden, error bajo el campo sin enviar. Éxito: "Tu contraseña se actualizó. Ya puedes iniciar sesión." con enlace a `/login`. `ERR_IDE_11`: "Este enlace no es válido o ya venció." con enlace a `/cuenta/recuperar`. `ERR_SYS_01`: muestra el mensaje del campo.
+- `features/cuenta/pages/restablecer.ts`: lee `token` del query string (sin token, muestra directamente el estado de enlace inválido). Reactive Form con contraseña nueva (mínimo 9 caracteres, **la misma regla que `registro.reglas.ts`**; se reutiliza ese módulo del remoto si ya exporta la regla) y confirmación; si no coinciden, error bajo el campo sin enviar. Éxito: "Tu contraseña se actualizó. Ya puedes iniciar sesión." con enlace a `/login`. `ERR_IDE_11`: "Este enlace no es válido o ya venció." con enlace a `/account/forgot-password`. `ERR_SYS_01`: muestra el mensaje del campo.
 - Ruta `restablecer` en `routes-cuenta.ts`.
 - Tests: sin `token` muestra el error sin llamar al backend; contraseña corta y confirmación distinta no envían; envío correcto llama al servicio y muestra el éxito; `ERR_IDE_11` muestra el enlace a pedir otro; ni la contraseña ni el token se guardan en `localStorage` ni se escriben en la consola.
 
@@ -41,7 +41,7 @@ Archivos esperados (crear/tocar):
 
 ## Resultado esperado
 
-La página `/cuenta/restablecer` cambia la contraseña con un enlace válido y explica los demás casos.
+La página `/account/reset-password` cambia la contraseña con un enlace válido y explica los demás casos.
 
 ## Validación
 

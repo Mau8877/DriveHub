@@ -42,7 +42,7 @@ Archivos esperados (crear/tocar):
 
 ## Resultado esperado
 
-El remoto publica sus rutas públicas por federación y `/registro/:escuelaSlug` funciona al correr el remoto suelto.
+El remoto publica sus rutas públicas por federación y `/register/:escuelaSlug` funciona al correr el remoto suelto.
 
 ## Validación
 

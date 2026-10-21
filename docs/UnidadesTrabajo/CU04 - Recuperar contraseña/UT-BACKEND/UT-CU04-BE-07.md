@@ -23,7 +23,7 @@ Hay una prueba de integración de recuperar → restablecer → login.
 ## Alcance
 
 - Nueva `RecuperacionContrasenaIntegrationTest` (Postgres real, patrón `assumeTrue` de Docker). Reemplaza `EnviadorCorreoPort` por un doble que guarda el enlace recibido. Las cuentas de prueba se crean con `correoVerificado = true` o sin él según el caso.
-- Casos: cuenta verificada pide la recuperación → 200 y el doble recibe un enlace a `/cuenta/restablecer?token=…`; restablecer con ese token → 200; login con la contraseña nueva funciona y con la anterior → 401; una sesión abierta antes (web y móvil) ya no renueva (`ERR_IDE_09`); una cuenta bloqueada por 5 intentos queda desbloqueada.
+- Casos: cuenta verificada pide la recuperación → 200 y el doble recibe un enlace a `/account/reset-password?token=…`; restablecer con ese token → 200; login con la contraseña nueva funciona y con la anterior → 401; una sesión abierta antes (web y móvil) ya no renueva (`ERR_IDE_09`); una cuenta bloqueada por 5 intentos queda desbloqueada.
 - Respuesta idéntica (cuerpo y status) para correo inexistente, cuenta inactiva y cuenta sin verificar, y en esos casos el doble no recibe nada.
 - Rechazos: reutilizar el token → `ERR_IDE_11`; pedir dos veces y usar el primero → `ERR_IDE_11`; token de verificación usado en `restablecer` → `ERR_IDE_11`; contraseña corta → `ERR_SYS_01` y el enlace sigue sirviendo; ni la contraseña ni el token aparecen en los registros.
 

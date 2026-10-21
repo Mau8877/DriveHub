@@ -24,8 +24,8 @@ El shell recupera la sesión antes de enrutar, protege el layout y no muestra el
 
 - `app.config.ts`: un `provideAppInitializer` asíncrono (después del que registra el contexto) que espera `sesion.restaurar()` antes de que arranque el router.
 - `core/sesion/sesion.guard.ts`: `sesionGuard` (`CanActivateFn`): con sesión deja pasar; sin sesión devuelve `UrlTree` a `/login?redirect=<url pedida>`. `loginGuard`: con sesión devuelve `UrlTree` a `/` (A7).
-- `app.routes.ts`: `sesionGuard` en `canActivate` de la ruta con `ShellLayout` (todo lo que cuelga del layout, incluidos los remotos); `loginGuard` en `login`. `/registro` sigue público y fuera del layout. Quitar el `TODO` del guard de sesión.
-- Tests: sin sesión pedir `/escuela` redirige a `/login?redirect=%2Fescuela`; con sesión pasa y navegar entre remotos no vuelve a pedir login; con sesión `/login` redirige a `/`; `/registro/xyz` no exige sesión; el router no arranca hasta que termina `restaurar`.
+- `app.routes.ts`: `sesionGuard` en `canActivate` de la ruta con `ShellLayout` (todo lo que cuelga del layout, incluidos los remotos); `loginGuard` en `login`. `/register` sigue público y fuera del layout. Quitar el `TODO` del guard de sesión.
+- Tests: sin sesión pedir `/escuela` redirige a `/login?redirect=%2Fescuela`; con sesión pasa y navegar entre remotos no vuelve a pedir login; con sesión `/login` redirige a `/`; `/register/xyz` no exige sesión; el router no arranca hasta que termina `restaurar`.
 
 Archivos esperados (crear/tocar):
 

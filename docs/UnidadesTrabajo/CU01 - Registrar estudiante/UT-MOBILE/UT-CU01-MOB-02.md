@@ -18,13 +18,13 @@ Para llegar a la pantalla de registro y volver al login hace falta navegación; 
 
 ## Objetivo
 
-La app usa un `GoRouter` central con las rutas `/login` y `/registro`.
+La app usa un `GoRouter` central con las rutas `/login` y `/register`.
 
 ## Alcance
 
 - `lib/core/routing/app_router.dart`: `final appRouter = GoRouter(initialLocation: '/login', routes: [...])` con:
-  - `/login` → pantalla provisional `LoginPlaceholderScreen` (en `lib/features/auth/screens/`) con el texto "Iniciar sesión (pendiente de CU02)" y un botón "Crear cuenta" que navega a `/registro`.
-  - `/registro` → `RegistroScreen` (la implementa UT 06; hasta entonces, un marcador mínimo `Scaffold` en su lugar que UT 06 reemplaza).
+  - `/login` → pantalla provisional `LoginPlaceholderScreen` (en `lib/features/auth/screens/`) con el texto "Iniciar sesión (pendiente de CU02)" y un botón "Crear cuenta" que navega a `/register`.
+  - `/register` → `RegistroScreen` (la implementa UT 06; hasta entonces, un marcador mínimo `Scaffold` en su lugar que UT 06 reemplaza).
 - Sin `redirect` por sesión (llega con CU02; se deja el comentario `TODO`).
 - `lib/main.dart`: pasar a `MaterialApp.router(routerConfig: appRouter, ...)` conservando `title`, `theme` y `darkTheme`; se elimina el `_HomePlaceholder`.
 - Actualizar `test/widget_test.dart` para el nuevo punto de entrada (la app arranca en el login provisional).
@@ -44,9 +44,9 @@ Archivos esperados (crear/tocar):
 
 ## Resultado esperado
 
-La app arranca en `/login` (provisional) y permite ir a `/registro` y volver.
+La app arranca en `/login` (provisional) y permite ir a `/register` y volver.
 
 ## Validación
 
 1. `flutter analyze` y `flutter test` en `projects/mobile` pasan.
-2. `flutter run`: la app abre en el login provisional y "Crear cuenta" abre `/registro`.
+2. `flutter run`: la app abre en el login provisional y "Crear cuenta" abre `/register`.

@@ -3,15 +3,15 @@
 **Caso de uso:** Recuperar la contraseña en la web: enlace desde el login, página para pedir el correo y página para elegir la contraseña nueva.
 **Micro-frontend(s):** `identidad` (UT 01, 02) y `shell` (UT 03) — ver [MICROSERVICIOS.md](../../../../.claude/rules/MICROSERVICIOS.md)
 **Fuente CU:** [`CU04 - Recuperar contraseña`](../../../CasosDeUso/CU04%20-%20Recuperar%20contrase%C3%B1a.md)
-**Recurso HTTP / contrato:** páginas públicas `/cuenta/recuperar` y `/cuenta/restablecer?token=…`; consume `POST /api/v1/auth/recuperar` y `/restablecer` (ver [el contrato de backend](../UT-BACKEND/README.md#contrato-de-datos--recurso-http))
+**Recurso HTTP / contrato:** páginas públicas `/account/forgot-password` y `/account/reset-password?token=…`; consume `POST /api/v1/auth/recuperar` y `/restablecer` (ver [el contrato de backend](../UT-BACKEND/README.md#contrato-de-datos--recurso-http))
 
 ## Antes de implementar cualquier UT
 
-**Requiere [CU04b-FE](../../CU04b%20-%20Verificar%20correo/UT-FRONTEND/README.md) implementado** (`routes-cuenta`, `CuentaService` y el montaje de `/cuenta` en el shell). Leer en [`.claude/rules/`](../../../../.claude/rules/): [ANGULAR_FRONTEND.md](../../../../.claude/rules/frontend/ANGULAR_FRONTEND.md), [ARQUITECTURA_FRONTEND.md](../../../../.claude/rules/ARQUITECTURA_FRONTEND.md), [TAILWIND_STYLES_FRONTEND.md](../../../../.claude/rules/frontend/TAILWIND_STYLES_FRONTEND.md). Estas fichas **no** sustituyen esas reglas: si hay conflicto, ganan las rules del proyecto.
+**Requiere [CU04b-FE](../../CU04b%20-%20Verificar%20correo/UT-FRONTEND/README.md) implementado** (`routes-cuenta`, `CuentaService` y el montaje de `/account` en el shell). Leer en [`.claude/rules/`](../../../../.claude/rules/): [ANGULAR_FRONTEND.md](../../../../.claude/rules/frontend/ANGULAR_FRONTEND.md), [ARQUITECTURA_FRONTEND.md](../../../../.claude/rules/ARQUITECTURA_FRONTEND.md), [TAILWIND_STYLES_FRONTEND.md](../../../../.claude/rules/frontend/TAILWIND_STYLES_FRONTEND.md). Estas fichas **no** sustituyen esas reglas: si hay conflicto, ganan las rules del proyecto.
 
 ## Decisiones de diseño
 
-1. **Las dos páginas son públicas y viven en el remoto `identidad`,** bajo `/cuenta`, igual que la de verificar el correo. Funcionan con o sin sesión y también desde el navegador de un teléfono, que es como llegan quienes solo usan la app.
+1. **Las dos páginas son públicas y viven en el remoto `identidad`,** bajo `/account`, igual que la de verificar el correo. Funcionan con o sin sesión y también desde el navegador de un teléfono, que es como llegan quienes solo usan la app.
 2. **Mensaje fijo al pedir el enlace,** sin depender de lo que responda el backend, y con la advertencia permanente de que hace falta el correo verificado.
 3. **Misma regla de contraseña que el registro** (mínimo 9) y confirmación obligatoria; el backend sigue siendo la fuente de verdad.
 4. **Tras restablecer no se inicia sesión:** la página lleva a `/login`.

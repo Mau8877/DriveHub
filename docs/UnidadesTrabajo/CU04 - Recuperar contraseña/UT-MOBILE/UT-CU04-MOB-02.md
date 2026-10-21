@@ -1,9 +1,9 @@
-# UT-CU04-MOB-02 — Ruta pública `/recuperar` y enlace en el login
+# UT-CU04-MOB-02 — Ruta pública `/forgot-password` y enlace en el login
 
 | Campo | Valor |
 |-------|-------|
 | **Código** | `UT-CU04-MOB-02` |
-| **Nombre** | Ruta pública `/recuperar` y enlace en el login |
+| **Nombre** | Ruta pública `/forgot-password` y enlace en el login |
 | **Caso de uso** | CU04-MOB |
 | **Microservicio** | `mobile` (app) |
 | **Depende de** | UT-CU04-MOB-01 |
@@ -18,13 +18,13 @@ La persona llega a la recuperación desde el inicio de sesión de la app, sin te
 
 ## Objetivo
 
-El router tiene la ruta pública `/recuperar` y el login enlaza a ella.
+El router tiene la ruta pública `/forgot-password` y el login enlaza a ella.
 
 ## Alcance
 
-- `core/routing/app_router.dart`: agregar `/recuperar` a `_rutasPublicas` y su `GoRoute` hacia `RecuperarScreen`. Con sesión, entrar a `/recuperar` sigue redirigiendo a `/inicio` como las otras rutas públicas.
-- `features/auth/screens/login_screen.dart`: un `TextButton` "¿Olvidaste tu contraseña?" junto a "Crear cuenta" que hace `context.go('/recuperar')`.
-- Tests: sin sesión `/recuperar` es accesible y no redirige al login; con sesión redirige a `/inicio`; el botón del login navega a `/recuperar`.
+- `core/routing/app_router.dart`: agregar `/forgot-password` a `_rutasPublicas` y su `GoRoute` hacia `RecuperarScreen`. Con sesión, entrar a `/forgot-password` sigue redirigiendo a `/inicio` como las otras rutas públicas.
+- `features/auth/screens/login_screen.dart`: un `TextButton` "¿Olvidaste tu contraseña?" junto a "Crear cuenta" que hace `context.go('/forgot-password')`.
+- Tests: sin sesión `/forgot-password` es accesible y no redirige al login; con sesión redirige a `/inicio`; el botón del login navega a `/forgot-password`.
 
 Archivos esperados (crear/tocar):
 

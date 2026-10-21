@@ -28,7 +28,7 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_FRONTEND.m
 | Petición | `POST /api/v1/auth/login` con `dispositivo: 'WEB'` |
 | Éxito | guarda la sesión y navega a `redirect` o `/` |
 | Estados | enviando, error por código, motivo de sesión terminada |
-| Guard | `sesionGuard` en todas las rutas bajo `ShellLayout`; `/registro` queda público |
+| Guard | `sesionGuard` en todas las rutas bajo `ShellLayout`; `/register` queda público |
 
 ## Orden de ejecución
 

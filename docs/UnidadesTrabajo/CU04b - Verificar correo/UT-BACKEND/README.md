@@ -13,7 +13,7 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_HEXAGONAL_
 
 1. **La verificación no bloquea el login;** solo la exige la recuperación de contraseña (CU04). Todas las cuentas empiezan en `correo_verificado = false`, incluidas las existentes y las del seeder.
 2. **Una sola tabla de tokens:** `token_recuperacion` gana la columna `tipo` (`RECUPERACION` | `VERIFICACION`). Un token de un tipo no sirve para el otro.
-3. **Enlace, no código:** el correo lleva `${APP_WEB_URL}/cuenta/verificar-correo?token=…`, una página pública del shell (remoto `identidad`) que funciona también para quien solo usa la app. 24 horas de vigencia; solo se guarda el hash.
+3. **Enlace, no código:** el correo lleva `${APP_WEB_URL}/account/verify-email?token=…`, una página pública del shell (remoto `identidad`) que funciona también para quien solo usa la app. 24 horas de vigencia; solo se guarda el hash.
 4. **Pedir exige sesión; confirmar es público.** El correo se envía siempre a la dirección de la cuenta (el cliente no la manda).
 5. **SMTP por variables:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `APP_WEB_URL`. En desarrollo apuntan a Mailpit; en producción, a un proveedor, sin tocar código. El envío vive tras `EnviadorCorreoPort`.
 6. **Si el envío falla al verificar, el error se ve** (500 genérico) y el token se revierte, porque la persona está presente y puede reintentar. En CU04 se silencia, por otra razón (no revelar cuentas).

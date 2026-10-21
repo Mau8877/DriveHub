@@ -10,7 +10,7 @@
 
 ## Antes de implementar
 
-[ARQUITECTURA_HEXAGONAL_BACKEND.md](../../../../.claude/rules/backend/ARQUITECTURA_HEXAGONAL_BACKEND.md), [LOGGING_BACKEND.md](../../../../.claude/rules/backend/LOGGING_BACKEND.md), [TESTING_BACKEND.md](../../../../.claude/rules/backend/TESTING_BACKEND.md). Este CU se apoya en lo que construye [CU04b](../../CU04b%20-%20Verificar%20correo/UT-BACKEND/README.md) (`EnviadorCorreoPort`, tokens con `tipo`, `correo_verificado`, `ERR_IDE_11`, rutas `/cuenta`): debe estar implementado antes de empezar.
+[ARQUITECTURA_HEXAGONAL_BACKEND.md](../../../../.claude/rules/backend/ARQUITECTURA_HEXAGONAL_BACKEND.md), [LOGGING_BACKEND.md](../../../../.claude/rules/backend/LOGGING_BACKEND.md), [TESTING_BACKEND.md](../../../../.claude/rules/backend/TESTING_BACKEND.md). Este CU se apoya en lo que construye [CU04b](../../CU04b%20-%20Verificar%20correo/UT-BACKEND/README.md) (`EnviadorCorreoPort`, tokens con `tipo`, `correo_verificado`, `ERR_IDE_11`, rutas `/account`): debe estar implementado antes de empezar.
 
 ## Solicitud de negocio
 

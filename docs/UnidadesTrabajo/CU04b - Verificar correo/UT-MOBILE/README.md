@@ -11,7 +11,7 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_MOBILE.md]
 
 ## Decisiones de diseño
 
-1. **El enlace se abre en el navegador del teléfono,** en la página pública de la web (`/cuenta/verificar-correo`); la app no necesita deep links ni pantalla de confirmación.
+1. **El enlace se abre en el navegador del teléfono,** en la página pública de la web (`/account/verify-email`); la app no necesita deep links ni pantalla de confirmación.
 2. **La app se entera al volver:** al pasar a `resumed` con el correo sin verificar, renueva la sesión y el backend devuelve `correoVerificado = true`.
 3. **Sesiones ya guardadas:** el campo nuevo se lee con valor por defecto `false`, así que no hace falta cerrar la sesión de quienes ya la tenían.
 

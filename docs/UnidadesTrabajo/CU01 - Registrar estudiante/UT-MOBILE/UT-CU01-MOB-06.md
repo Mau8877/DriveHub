@@ -26,7 +26,7 @@ Existe `RegistroScreen` conectada al provider, a las reglas de validación y a l
 - Botón "Registrarme" que valida el formulario, arma `RegistroEstudianteRequest` (con el código de escuela en minúsculas y sin espacios) y llama a `registroProvider.registrar`; se deshabilita y muestra progreso mientras `AsyncLoading`.
 - Errores del backend mapeados con `errorDeRegistro`: `correoEnUso` bajo el correo ("Este correo ya está registrado"), `menorDeEdad` bajo la fecha ("Debes tener al menos 18 años"), `escuelaNoDisponible` bajo el código de escuela ("La escuela no existe o no está disponible"), los demás en un aviso general (`SnackBar`) sin texto técnico.
 - Éxito (CA02): `context.go('/login?registrado=1')` y `LoginPlaceholderScreen` muestra un `SnackBar`/aviso "Tu cuenta fue creada. Inicia sesión para continuar." cuando recibe ese parámetro.
-- Reemplaza el marcador temporal de `/registro` de UT 02 por esta pantalla.
+- Reemplaza el marcador temporal de `/register` de UT 02 por esta pantalla.
 - Test de widget (opcional según TESTING_MOBILE.md, pero se hace uno para el flujo crítico): con el service sustituido, un formulario válido llama a `registrar` y navega al login; con correo en uso aparece el mensaje bajo el campo.
 
 Archivos esperados (crear/tocar):

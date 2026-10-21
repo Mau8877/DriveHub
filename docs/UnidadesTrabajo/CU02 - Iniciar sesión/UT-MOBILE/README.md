@@ -15,7 +15,7 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_MOBILE.md]
 2. **Quién entra:** solo Estudiante e Instructor. La app no valida roles por su cuenta: si un administrador intenta entrar, el backend responde `ERR_IDE_08` y la pantalla muestra el mensaje de usar la web.
 3. **Estado de sesión único:** `sesionProvider` (Riverpod) es el único lugar que sabe si hay sesión; el router y el interceptor de Dio lo leen. `core/network` recibe dos callbacks (token y renovar) para no importar `features/`.
 4. **Renovación:** proactiva al 80 % de la vida del token y reactiva ante un 401 (una vez, con una sola renovación en curso). Cada renovación rota el refresh token, así que se guarda el nuevo.
-5. **Redirect global:** mientras se recupera la sesión, `/cargando`; sin sesión, solo `/login` y `/registro`; con sesión, `/inicio` (`UsuarioShell`). La pantalla de login no navega a mano: el redirect lo hace al cambiar el estado.
+5. **Redirect global:** mientras se recupera la sesión, `/cargando`; sin sesión, solo `/login` y `/register`; con sesión, `/inicio` (`UsuarioShell`). La pantalla de login no navega a mano: el redirect lo hace al cambiar el estado.
 6. **Compatibilidad con CU01:** el registro sigue volviendo a `/login?registrado=1` con el aviso de cuenta creada.
 
 ## Orden de ejecución

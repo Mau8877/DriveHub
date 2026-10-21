@@ -13,14 +13,14 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_MOBILE.md]
 
 1. **La app solo pide el enlace;** elegir la contraseña nueva ocurre en la página web a la que lleva el enlace del correo (se abre en el navegador del teléfono). No hay pantalla de nueva contraseña ni deep links.
 2. **Mismo mensaje fijo que la web,** con la advertencia permanente de que hace falta el correo verificado.
-3. **Ruta pública:** `/recuperar` se suma a las rutas que el redirect global deja pasar sin sesión.
+3. **Ruta pública:** `/forgot-password` se suma a las rutas que el redirect global deja pasar sin sesión.
 
 ## Orden de ejecución
 
 | Código | Nombre | Depende de |
 |--------|--------|------------|
 | [UT-CU04-MOB-01](./UT-CU04-MOB-01.md) | Pantalla "Recuperar contraseña" y su servicio | — |
-| [UT-CU04-MOB-02](./UT-CU04-MOB-02.md) | Ruta pública `/recuperar` y enlace en el login | 01 |
+| [UT-CU04-MOB-02](./UT-CU04-MOB-02.md) | Ruta pública `/forgot-password` y enlace en el login | 01 |
 
 **Cadena:** `01 → 02`. Necesita el backend de CU04 solo para la validación manual.
 

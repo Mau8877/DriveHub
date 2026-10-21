@@ -18,12 +18,12 @@ La persona llega a la recuperación desde la pantalla donde se dio cuenta de que
 
 ## Objetivo
 
-El login del shell enlaza a `/cuenta/recuperar`.
+El login del shell enlaza a `/account/forgot-password`.
 
 ## Alcance
 
-- `pages/login.ts`: bajo el formulario, un `routerLink` "¿Olvidaste tu contraseña?" hacia `/cuenta/recuperar`, con las clases de tokens que ya usa la pantalla.
-- Test de la pantalla: el enlace existe y apunta a `/cuenta/recuperar`.
+- `pages/login.ts`: bajo el formulario, un `routerLink` "¿Olvidaste tu contraseña?" hacia `/account/forgot-password`, con las clases de tokens que ya usa la pantalla.
+- Test de la pantalla: el enlace existe y apunta a `/account/forgot-password`.
 - `login.spec.ts` pasa a usar `provideRouter([])` (el `routerLink` necesita el router real) y espía `navigateByUrl` para conservar las aserciones de navegación existentes.
 
 Archivos esperados (crear/tocar):
@@ -33,7 +33,7 @@ Archivos esperados (crear/tocar):
 
 ## Fuera de alcance (no tocar)
 
-- Las páginas de recuperación (UT 01 y 02) y el montaje de `/cuenta` (CU04b-FE-04, ya existente).
+- Las páginas de recuperación (UT 01 y 02) y el montaje de `/account` (CU04b-FE-04, ya existente).
 - Cambios en el flujo de inicio de sesión.
 
 ## Resultado esperado

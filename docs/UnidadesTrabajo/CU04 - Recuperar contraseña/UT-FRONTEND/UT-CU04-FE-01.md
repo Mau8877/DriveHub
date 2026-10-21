@@ -18,7 +18,7 @@ La persona que olvidó su contraseña necesita un lugar para pedir el enlace, co
 
 ## Objetivo
 
-Existe la página pública `/cuenta/recuperar`.
+Existe la página pública `/account/forgot-password`.
 
 ## Alcance
 
@@ -42,7 +42,7 @@ Archivos esperados (crear/tocar):
 
 ## Resultado esperado
 
-La página `/cuenta/recuperar` pide el correo y siempre responde lo mismo.
+La página `/account/forgot-password` pide el correo y siempre responde lo mismo.
 
 ## Validación
 

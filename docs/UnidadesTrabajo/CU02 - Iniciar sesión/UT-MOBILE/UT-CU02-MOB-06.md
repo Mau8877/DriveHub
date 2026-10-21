@@ -22,7 +22,7 @@ Es la puerta de entrada de la app: debe decir con claridad qué falló y llevar 
 
 ## Alcance
 
-- `features/auth/screens/login_screen.dart` (`ConsumerStatefulWidget`): `Form` con correo y contraseña (con botón de mostrar), validadores de `registro_validators.dart` para correo y contraseña obligatorios, mensajes en español; botón con progreso mientras envía; botón secundario "Crear cuenta" hacia `/registro`.
+- `features/auth/screens/login_screen.dart` (`ConsumerStatefulWidget`): `Form` con correo y contraseña (con botón de mostrar), validadores de `registro_validators.dart` para correo y contraseña obligatorios, mensajes en español; botón con progreso mientras envía; botón secundario "Crear cuenta" hacia `/register`.
 - Al enviar llama a `sesionProvider.notifier.iniciarSesion`. Éxito → el redirect del router lleva a `/inicio` (la pantalla no navega a mano). Errores por código: `ERR_IDE_04` → "Correo o contraseña incorrectos"; `ERR_IDE_05` → el mensaje del servidor (cuándo reintentar); `ERR_IDE_06` → "Tu cuenta está inactiva. Contacta a tu administrador"; `ERR_IDE_07` → "La escuela de tu cuenta está suspendida"; `ERR_IDE_08` → el mensaje del servidor (indica la plataforma correcta); otros → aviso general sin texto técnico.
 - Conserva el aviso "Tu cuenta fue creada. Inicia sesión para continuar." cuando llega con `?registrado=1` (CU01) y muestra el `motivo` de una sesión perdida si lo hay.
 - Borrar `login_placeholder_screen.dart` y actualizar el router y `registro_screen_test.dart` para usar `LoginScreen`.

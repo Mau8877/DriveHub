@@ -1,9 +1,9 @@
-# UT-CU04b-FE-04 — Montar `/cuenta` público en el shell
+# UT-CU04b-FE-04 — Montar `/account` público en el shell
 
 | Campo | Valor |
 |-------|-------|
 | **Código** | `UT-CU04b-FE-04` |
-| **Nombre** | Montar `/cuenta` público en el shell |
+| **Nombre** | Montar `/account` público en el shell |
 | **Caso de uso** | CU04b-FE |
 | **Microservicio** | `shell` |
 | **Depende de** | UT-CU04b-FE-03 |
@@ -14,16 +14,16 @@
 
 ## Solicitud de negocio
 
-El enlace del correo apunta a `/cuenta/verificar-correo`, que debe abrirse sin sesión y fuera del layout.
+El enlace del correo apunta a `/account/verify-email`, que debe abrirse sin sesión y fuera del layout.
 
 ## Objetivo
 
-El shell monta las rutas públicas del remoto `identidad` bajo `/cuenta`.
+El shell monta las rutas públicas del remoto `identidad` bajo `/account`.
 
 ## Alcance
 
 - `app.routes.ts`: nueva ruta `cuenta` (como `registro`, fuera de `ShellLayout` y sin `sesionGuard`) con `loadChildren: () => loadRemoteModule('identidad', './routes-cuenta').then((m) => m.routes)`. No usa `loginGuard`: se puede abrir con o sin sesión.
-- Test de rutas: `/cuenta/…` no pide sesión y no pasa por el layout; el resto de las rutas conserva su guard.
+- Test de rutas: `/account/…` no pide sesión y no pasa por el layout; el resto de las rutas conserva su guard.
 
 Archivos esperados (crear/tocar):
 
@@ -37,7 +37,7 @@ Archivos esperados (crear/tocar):
 
 ## Resultado esperado
 
-Abrir `/cuenta/verificar-correo?token=…` muestra la página sin pedir sesión.
+Abrir `/account/verify-email?token=…` muestra la página sin pedir sesión.
 
 ## Validación
 

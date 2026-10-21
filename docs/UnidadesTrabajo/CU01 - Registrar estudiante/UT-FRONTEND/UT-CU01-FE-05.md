@@ -1,9 +1,9 @@
-# UT-CU01-FE-05 — Ruta pública `/registro`
+# UT-CU01-FE-05 — Ruta pública `/register`
 
 | Campo | Valor |
 |-------|-------|
 | **Código** | `UT-CU01-FE-05` |
-| **Nombre** | Ruta pública `/registro` |
+| **Nombre** | Ruta pública `/register` |
 | **Caso de uso** | CU01-FE |
 | **Microservicio** | `shell` (micro-frontend Angular) |
 | **Depende de** | UT-CU01-FE-04 |
@@ -18,7 +18,7 @@ El enlace de registro de una escuela debe abrirse sin iniciar sesión y sin el m
 
 ## Objetivo
 
-`/registro/:escuelaSlug` muestra la página de registro del remoto `identidad` fuera del layout.
+`/register/:escuelaSlug` muestra la página de registro del remoto `identidad` fuera del layout.
 
 ## Alcance
 
@@ -45,6 +45,6 @@ Abrir `http://localhost:4200/registro/escuelaexample` muestra el registro a pant
 ## Validación
 
 1. `pnpm --dir projects/frontend/shell test`, `lint` y `build` pasan.
-2. Con el stack levantado y las UT de backend aplicadas: abrir `/registro/escuelaexample`, completar con datos válidos → la página muestra "Tu cuenta fue creada. Ingresa desde la app móvil", y en la base existe el usuario con rol `ESTUDIANTE`.
+2. Con el stack levantado y las UT de backend aplicadas: abrir `/register/escuelaexample`, completar con datos válidos → la página muestra "Tu cuenta fue creada. Ingresa desde la app móvil", y en la base existe el usuario con rol `ESTUDIANTE`.
 3. Con un `slug` inexistente, la página muestra "Esta escuela no está disponible".
-4. Abrir `/registro/escuelaexample` sin sesión no redirige a `/login`.
+4. Abrir `/register/escuelaexample` sin sesión no redirige a `/login`.
