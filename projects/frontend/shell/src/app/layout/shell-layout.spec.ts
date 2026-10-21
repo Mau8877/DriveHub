@@ -2,7 +2,7 @@ import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 
-import type { UsuarioSesion } from '../core/sesion/sesion.models'
+import type { UsuarioSesion } from '../core/sesion/sesion.types'
 import { SesionService } from '../core/sesion/sesion.service'
 import { ShellLayout } from './shell-layout'
 

@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, Router, provideRouter } from '@angular/router'
 
-import { ApiError } from '../core/api/api.types'
-import { SesionService } from '../core/sesion/sesion.service'
-import { Login } from './login'
+import { ApiError } from '../../../core/api/api.types'
+import { SesionService } from '../../../core/sesion/sesion.service'
+import { Login } from '../screens/login'
 
 describe('Login', () => {
   const sesion = { iniciarSesion: vi.fn() }

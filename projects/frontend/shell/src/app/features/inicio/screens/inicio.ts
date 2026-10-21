@@ -1,7 +1,7 @@
 import { Component } from '@angular/core'
 import { RouterLink } from '@angular/router'
 
-import { NAV_ITEMS } from '../layout/nav-items'
+import { NAV_ITEMS } from '../../../layout/nav-items'
 
 /**
  * Pantalla de bienvenida del panel de la escuela.

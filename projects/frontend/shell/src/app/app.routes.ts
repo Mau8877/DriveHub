@@ -5,9 +5,9 @@ import { RemoteHost } from './core/federacion/remote-host'
 import { prefijo } from './core/federacion/prefijo.matcher'
 import { ShellLayout } from './layout/shell-layout'
 import { loginGuard, sesionGuard } from './core/sesion/sesion.guard'
-import { Inicio } from './pages/inicio'
-import { Login } from './pages/login'
-import { NoEncontrado } from './pages/no-encontrado'
+import { Inicio } from './features/inicio/screens/inicio'
+import { Login } from './features/login/screens/login'
+import { NoEncontrado } from './features/no-encontrado/screens/no-encontrado'
 
 /**
  * Rutas de primer nivel. El shell es dueño solo de este nivel: cada remoto

@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core'
 import type { Observable } from 'rxjs'
 
 import { API_BASE_URL } from '../config'
-import type { LoginRequest, SesionRespuesta } from './sesion.models'
+import type { LoginRequest, SesionRespuesta } from './sesion.types'
 
 /**
  * Llamadas HTTP de la sesión web. Las respuestas ya vienen desempaquetadas

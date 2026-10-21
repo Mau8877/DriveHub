@@ -2,9 +2,9 @@ import { Component, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 
-import { ApiError } from '../core/api/api.types'
-import { destinoSeguro } from '../core/sesion/redireccion'
-import { SesionService } from '../core/sesion/sesion.service'
+import { ApiError } from '../../../core/api/api.types'
+import { destinoSeguro } from '../../../core/sesion/redireccion'
+import { SesionService } from '../../../core/sesion/sesion.service'
 
 /** Por qué se llegó al login sin que la persona lo pidiera (viene en `?motivo=`). */
 const MENSAJES_DE_MOTIVO: Record<string, string> = {

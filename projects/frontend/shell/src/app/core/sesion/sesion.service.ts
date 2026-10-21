@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs'
 
 import { ApiError } from '../api/api.types'
 import { AuthApiService } from './auth-api.service'
-import type { SesionRespuesta, UsuarioSesion } from './sesion.models'
+import type { SesionRespuesta, UsuarioSesion } from './sesion.types'
 
 /** Se renueva cuando pasó esta fracción de la vida del token de acceso. */
 const FRACCION_DE_VIDA_PARA_RENOVAR = 0.8
