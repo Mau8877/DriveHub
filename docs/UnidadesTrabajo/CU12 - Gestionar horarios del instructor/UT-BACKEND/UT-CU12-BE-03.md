@@ -37,7 +37,7 @@ Los 10 códigos del CU12 existen como constantes del servicio y están documenta
   | `FRANJA_NO_ESTA_BLOQUEADA` | `ERR_ACA_09` |
   | `FRANJA_YA_EMPEZO` | `ERR_ACA_10` |
 
-  Más `VALIDACION = "ERR_SYS_01"`, igual que en Escuela, para las validaciones de negocio que no cubren las anotaciones del DTO.
+  Más `VALIDACION = "ERR_SYS_01"` y `SESION_INVALIDA = "ERR_SYS_04"` (la usa `@CurrentUserId` de la UT 01), igual que los códigos transversales de Escuela e Identidad.
 - `docs/errors/academico/ERRORES_ACADEMICO.md` con una sección por código (HTTP, Excepción, Significado, Dónde se lanza) según la tabla de contrato del [README](./README.md#errores-nuevos-err_aca_). En **Dónde se lanza**: `PlantillaHorarioService.crear()` (01 a 04), `PlantillaHorarioService.desactivar()` (05, 06), `FranjaService.bloquear()` / `desbloquear()` (07 a 10). El 05 también aplica a `desactivar()`; el 07 a ambos métodos de la franja.
 - `docs/errors/README.md`: pasar la fila `ACA` de la tabla de prefijos de "(sin errores todavía)" a un link a la carpeta, y agregar la sección `### Académico (ACA)` con los 10 links a su ancla (`academico/ERRORES_ACADEMICO.md#err_aca_01`...).
 - Sin test: son constantes y documentación.

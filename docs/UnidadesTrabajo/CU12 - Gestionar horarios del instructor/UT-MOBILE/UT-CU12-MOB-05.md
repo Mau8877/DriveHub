@@ -30,7 +30,7 @@ Existen la pantalla con el listado de horarios (cuerpo de la sección "Horarios"
   - Dos botones arriba de la lista: "Nuevo horario" (`context.push('/schedules/new')`) y "Ver franjas" (`context.push('/schedules/slots')`).
 - `lib/features/horarios/screens/horario_form_screen.dart`: `HorarioFormScreen` con `Scaffold` y `AppBar` "Nuevo horario", `Form` + `GlobalKey<FormState>`:
   - Día de la semana (`DropdownButtonFormField`, lunes a domingo, valores 1 a 7).
-  - Hora de inicio y hora de fin (campos de solo lectura que abren `showTimePicker` en formato de 24 horas y guardan `HH:mm`).
+  - Hora de inicio y hora de fin (campos de solo lectura que abren `showTimePicker` en formato de 24 horas y guardan `HH:mm`). El selector de la hora de fin propone la de inicio más una clase (así, con los valores por defecto, queda un horario de una sola franja).
   - Duración de cada clase en minutos (`TextFormField` numérico, `60` por defecto).
   - Vigente desde (`showDatePicker`, hoy por defecto, sin fechas anteriores a hoy) y vigente hasta (opcional, con botón para limpiarlo).
   - Cada campo con su `validator` de `horarios_validators.dart` (UT 03); mensajes inline bajo el campo, en español. La ventana múltiplo de la duración se muestra bajo la hora de fin o la duración.

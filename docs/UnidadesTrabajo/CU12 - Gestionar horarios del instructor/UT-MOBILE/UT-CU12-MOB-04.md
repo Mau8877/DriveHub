@@ -40,7 +40,7 @@ En `lib/features/horarios/providers/`:
 Archivos esperados (crear/tocar):
 
 - `projects/mobile/lib/features/horarios/providers/horarios_service_provider.dart`, `horarios_provider.dart`, `franjas_provider.dart`
-- `projects/mobile/test/features/horarios/providers/horarios_provider_test.dart`, `franjas_provider_test.dart`
+- `projects/mobile/test/features/horarios/horarios_provider_test.dart` (cubre también `franjas_provider.dart`)
 
 ## Fuera de alcance (no tocar)
 

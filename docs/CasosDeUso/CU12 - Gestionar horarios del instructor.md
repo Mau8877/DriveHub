@@ -2,7 +2,7 @@
 
 | Id   | Nombre                            | Paquete                       | Prioridad | Estado    |
 | ---- | --------------------------------- | ----------------------------- | --------- | --------- |
-| CU12 | Gestionar horarios del instructor | P3. Clases y horarios         | Alta      | Pendiente |
+| CU12 | Gestionar horarios del instructor | P3. Clases y horarios         | Alta      | Hecho     |
 
 **Actor principal:** Instructor
 **Actores secundarios:** Sistema (genera cada día las franjas que faltan)

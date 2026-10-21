@@ -34,7 +34,7 @@ La app tiene que hablar con el backend para listar, crear y desactivar horarios 
 Archivos esperados (crear/tocar):
 
 - `projects/mobile/lib/features/horarios/services/horarios_service.dart`
-- `projects/mobile/test/features/horarios/services/horarios_service_test.dart`
+- `projects/mobile/test/features/horarios/horarios_service_test.dart` (los tests de mobile van en una carpeta plana por feature, como `test/features/auth/`)
 
 ## Fuera de alcance (no tocar)
 

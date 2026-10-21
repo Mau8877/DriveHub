@@ -35,7 +35,7 @@ Existen las funciones de validación del formulario de horario, con las mismas r
 Archivos esperados (crear/tocar):
 
 - `projects/mobile/lib/features/horarios/validators/horarios_validators.dart`
-- `projects/mobile/test/features/horarios/validators/horarios_validators_test.dart`
+- `projects/mobile/test/features/horarios/horarios_validators_test.dart`
 
 ## Fuera de alcance (no tocar)
 

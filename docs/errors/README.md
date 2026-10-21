@@ -24,7 +24,7 @@ prefijo del código dice qué servicio lo produjo:
 | `IDE` | Identidad | [`identidad/`](identidad/ERRORES_IDENTIDAD.md) |
 | `ESC` | Escuela | [`escuela/`](escuela/ERRORES_ESCUELA.md) |
 | `PAG` | Pagos | `pagos/` (sin errores todavía) |
-| `ACA` | Académico | `academico/` (sin errores todavía) |
+| `ACA` | Académico | [`academico/`](academico/ERRORES_ACADEMICO.md) |
 | `CON` | Contenido | `contenido/` (sin errores todavía) |
 | `NOT` | Notificaciones | `notificaciones/` (sin errores todavía) |
 | `IA` | Asistente IA | `asistente-ia/` (sin errores todavía) |
@@ -64,6 +64,19 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_04`](escuela/ERRORES_ESCUELA.md#err_esc_04) — La escuela ya estaba inactiva (409)
 - [`ERR_ESC_05`](escuela/ERRORES_ESCUELA.md#err_esc_05) — La escuela ya estaba activa (409)
 - [`ERR_ESC_06`](escuela/ERRORES_ESCUELA.md#err_esc_06) — La escuela está inactiva y no se puede editar (409)
+
+### Académico (`ACA`)
+
+- [`ERR_ACA_01`](academico/ERRORES_ACADEMICO.md#err_aca_01) — La hora de fin no es posterior a la de inicio (400)
+- [`ERR_ACA_02`](academico/ERRORES_ACADEMICO.md#err_aca_02) — Duración de la clase inválida o tramo que no es múltiplo (400)
+- [`ERR_ACA_03`](academico/ERRORES_ACADEMICO.md#err_aca_03) — Vigencia del horario inválida (400)
+- [`ERR_ACA_04`](academico/ERRORES_ACADEMICO.md#err_aca_04) — El horario se cruza con otro horario activo del instructor (409)
+- [`ERR_ACA_05`](academico/ERRORES_ACADEMICO.md#err_aca_05) — El horario no existe o no es del instructor (404)
+- [`ERR_ACA_06`](academico/ERRORES_ACADEMICO.md#err_aca_06) — El horario ya estaba inactivo (409)
+- [`ERR_ACA_07`](academico/ERRORES_ACADEMICO.md#err_aca_07) — La franja no existe o no es del instructor (404)
+- [`ERR_ACA_08`](academico/ERRORES_ACADEMICO.md#err_aca_08) — La franja no está libre y no se puede bloquear (409)
+- [`ERR_ACA_09`](academico/ERRORES_ACADEMICO.md#err_aca_09) — La franja no está bloqueada y no se puede desbloquear (409)
+- [`ERR_ACA_10`](academico/ERRORES_ACADEMICO.md#err_aca_10) — La franja ya empezó o ya pasó (409)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su
