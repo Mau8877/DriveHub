@@ -40,7 +40,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
           // * Los horarios son del Instructor (CU12): otro rol vuelve al inicio
           final roles = ref.read(sesionProvider).usuario?.roles ?? const [];
-          if (ubicacion.startsWith('/schedules') && !roles.contains('INSTRUCTOR')) {
+          if (ubicacion.startsWith('/schedules') &&
+              !roles.contains('INSTRUCTOR')) {
             return '/inicio';
           }
           return null;

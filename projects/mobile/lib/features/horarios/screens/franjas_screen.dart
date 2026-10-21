@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/fechas.dart';
 import '../models/franja.dart';
 import '../providers/franjas_provider.dart';
+import '../../../core/theme/app_theme.dart';
 import '../widgets/errores.dart';
+import '../widgets/status_chip.dart';
 
 /// Las franjas del instructor en una fecha: verlas, bloquear las libres y desbloquear las
 /// bloqueadas (CU12).
@@ -29,10 +31,14 @@ class _FranjasScreenState extends ConsumerState<FranjasScreen> {
       final notifier = ref.read(franjasProvider.notifier);
       if (accion == AccionFranja.bloquear) {
         await notifier.bloquear(franja.codigo);
-        mensajes.showSnackBar(const SnackBar(content: Text('Franja bloqueada')));
+        mensajes.showSnackBar(
+          const SnackBar(content: Text('Franja bloqueada')),
+        );
       } else {
         await notifier.desbloquear(franja.codigo);
-        mensajes.showSnackBar(const SnackBar(content: Text('Franja desbloqueada')));
+        mensajes.showSnackBar(
+          const SnackBar(content: Text('Franja desbloqueada')),
+        );
       }
     } catch (e) {
       mensajes.showSnackBar(SnackBar(content: Text(mensajeDeError(e))));
@@ -51,7 +57,9 @@ class _FranjasScreenState extends ConsumerState<FranjasScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
       helpText: 'Ver franjas del día',
     );
-    if (elegida != null) ref.read(franjasFechaUiProvider.notifier).fijar(elegida);
+    if (elegida != null) {
+      ref.read(franjasFechaUiProvider.notifier).fijar(elegida);
+    }
   }
 
   @override
@@ -72,35 +80,47 @@ class _FranjasScreenState extends ConsumerState<FranjasScreen> {
                 IconButton(
                   tooltip: 'Día anterior',
                   icon: const Icon(Icons.chevron_left),
-                  onPressed: () => notifierFecha.fijar(fecha.subtract(const Duration(days: 1))),
+                  onPressed: () => notifierFecha.fijar(
+                    fecha.subtract(const Duration(days: 1)),
+                  ),
                 ),
                 TextButton.icon(
                   key: const Key('botonElegirFecha'),
                   onPressed: () => _elegirFecha(fecha),
                   icon: const Icon(Icons.calendar_today_outlined),
-                  label: Text('${fechaParaMostrar(fecha)} · ${nombreDeDia(fecha.weekday)}'),
+                  label: Text(
+                    '${fechaParaMostrar(fecha)} · ${nombreDeDia(fecha.weekday)}',
+                  ),
                 ),
                 IconButton(
                   tooltip: 'Día siguiente',
                   icon: const Icon(Icons.chevron_right),
-                  onPressed: () => notifierFecha.fijar(fecha.add(const Duration(days: 1))),
+                  onPressed: () =>
+                      notifierFecha.fijar(fecha.add(const Duration(days: 1))),
                 ),
               ],
             ),
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => ref.refresh(franjasListProvider(fecha).future),
+              onRefresh: () async =>
+                  ref.refresh(franjasListProvider(fecha).future),
               child: franjas.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => ListView(
                   children: [
                     const SizedBox(height: 48),
-                    Center(child: Text(mensajeDeError(error), textAlign: TextAlign.center)),
+                    Center(
+                      child: Text(
+                        mensajeDeError(error),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Center(
                       child: OutlinedButton(
-                        onPressed: () => ref.invalidate(franjasListProvider(fecha)),
+                        onPressed: () =>
+                            ref.invalidate(franjasListProvider(fecha)),
                         child: const Text('Reintentar'),
                       ),
                     ),
@@ -117,9 +137,15 @@ class _FranjasScreenState extends ConsumerState<FranjasScreen> {
                   }
                   final ahora = DateTime.now();
                   return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpace.lg,
+                      0,
+                      AppSpace.lg,
+                      AppSpace.lg,
+                    ),
                     itemCount: lista.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppSpace.sm),
                     itemBuilder: (_, i) => _FilaFranja(
                       franja: lista[i],
                       accion: lista[i].accionDisponible(ahora),
@@ -152,18 +178,55 @@ class _FilaFranja extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        title: Text('${franja.horaInicio} – ${franja.horaFin}'),
-        subtitle: Align(alignment: Alignment.centerLeft, child: _EtiquetaEstado(estado: franja.estado)),
-        trailing: ocupada
-            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-            : accion == null
-            ? null
-            : TextButton(
-                onPressed: () => alAccionar(accion!),
-                child: Text(accion == AccionFranja.bloquear ? 'Bloquear' : 'Desbloquear'),
+    final tema = Theme.of(context);
+    final bloqueada = franja.estado == EstadoFranja.bloqueada;
+
+    // * Mosaico: libre y reservada con sombra; bloqueada gris suave y sin sombra (design.md 3.6)
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpace.md,
+        horizontal: AppSpace.lg,
+      ),
+      decoration: BoxDecoration(
+        color: switch (franja.estado) {
+          EstadoFranja.libre => tema.colorScheme.surface,
+          EstadoFranja.reservada => tema.colorScheme.tertiaryContainer,
+          EstadoFranja.bloqueada => context.semantica.neutralContainer,
+        },
+        borderRadius: BorderRadius.circular(AppRadius.tile),
+        boxShadow: bloqueada ? null : context.semantica.cardShadow,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${franja.horaInicio} – ${franja.horaFin}',
+                  style: tema.textTheme.titleMedium?.copyWith(
+                    color: context.semantica.blueText,
+                  ),
+                ),
+                const SizedBox(height: AppSpace.xs),
+                _EtiquetaEstado(estado: franja.estado),
+              ],
+            ),
+          ),
+          if (ocupada)
+            const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else if (accion != null)
+            TextButton(
+              onPressed: () => alAccionar(accion!),
+              child: Text(
+                accion == AccionFranja.bloquear ? 'Bloquear' : 'Desbloquear',
               ),
+            ),
+        ],
       ),
     );
   }
@@ -176,16 +239,23 @@ class _EtiquetaEstado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final esquema = Theme.of(context).colorScheme;
-    final (texto, fondo, letra) = switch (estado) {
-      EstadoFranja.libre => ('Libre', esquema.primaryContainer, esquema.onPrimaryContainer),
-      EstadoFranja.reservada => ('Reservada', esquema.secondaryContainer, esquema.onSecondaryContainer),
-      EstadoFranja.bloqueada => ('Bloqueada', esquema.surfaceContainerHighest, esquema.onSurfaceVariant),
+    return switch (estado) {
+      EstadoFranja.libre => StatusChip.neutro(
+        context,
+        'Libre',
+        Icons.radio_button_unchecked,
+      ),
+      EstadoFranja.reservada => StatusChip.azul(
+        context,
+        'Reservada',
+        Icons.check,
+      ),
+      EstadoFranja.bloqueada => StatusChip.neutro(
+        context,
+        'Bloqueada',
+        Icons.block,
+        atenuado: true,
+      ),
     };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: fondo, borderRadius: BorderRadius.circular(8)),
-      child: Text(texto, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: letra)),
-    );
   }
 }

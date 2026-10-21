@@ -27,12 +27,7 @@ const _verificado = UsuarioSesion(
 const _secciones = [
   SeccionShell('Inicio', Icons.home_outlined, 'resumen'),
   SeccionShell('Clases', Icons.event_note_outlined, 'CU13 a CU16'),
-  SeccionShell(
-    'Propia',
-    Icons.star_outline,
-    'CU99',
-    builder: _construirPropia,
-  ),
+  SeccionShell('Propia', Icons.star_outline, 'CU99', builder: _construirPropia),
 ];
 
 Widget _construirPropia(BuildContext context) => const Text('cuerpo propio');
@@ -87,22 +82,23 @@ void main() {
       expect(find.textContaining('(CU13 a CU16)'), findsOneWidget);
     });
 
-    testWidgets('con pantalla propia la muestra en lugar del cuerpo de prueba', (
-      tester,
-    ) async {
-      await _montar(tester, _verificado);
+    testWidgets(
+      'con pantalla propia la muestra en lugar del cuerpo de prueba',
+      (tester) async {
+        await _montar(tester, _verificado);
 
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavigationBar),
-          matching: find.text('Propia'),
-        ),
-      );
-      await tester.pump();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.text('Propia'),
+          ),
+        );
+        await tester.pump();
 
-      expect(find.text('cuerpo propio'), findsOneWidget);
-      expect(find.textContaining('Pantalla de prueba'), findsNothing);
-    });
+        expect(find.text('cuerpo propio'), findsOneWidget);
+        expect(find.textContaining('Pantalla de prueba'), findsNothing);
+      },
+    );
   });
 
   group('Verificar correo', () {

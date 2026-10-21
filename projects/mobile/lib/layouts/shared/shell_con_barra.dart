@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../features/auth/providers/sesion_provider.dart';
 
 /// Una sección de la barra inferior de un shell.
@@ -97,33 +98,135 @@ class _ShellConBarraState extends ConsumerState<ShellConBarra>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('App'),
+        title: Text(seccionActual.label),
+        titleSpacing: AppSpace.lg,
         actions: [
-          if (correoSinVerificar)
-            TextButton(
-              onPressed: _verificando ? null : _verificarCorreo,
-              child: const Text('Verificar correo'),
-            ),
-          IconButton(
-            icon: const Icon(Icons.logout),
+          _BotonIconoCircular(
+            icon: Icons.logout,
             tooltip: 'Cerrar sesión',
             onPressed: () => ref.read(sesionProvider.notifier).cerrarSesion(),
           ),
+          const SizedBox(width: AppSpace.lg),
         ],
+        // * Solo mientras el correo no está verificado; es secundario, nunca ámbar
+        bottom: correoSinVerificar
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(60),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpace.lg,
+                    0,
+                    AppSpace.lg,
+                    AppSpace.sm,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _verificando ? null : _verificarCorreo,
+                      icon: const Icon(Icons.mail_outline),
+                      label: const Text('Verificar correo'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpace.lg,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : null,
       ),
       body:
           seccionActual.builder?.call(context) ??
           _CuerpoDePrueba(seccion: seccionActual),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selected,
-        onDestinationSelected: (index) => setState(() => _selected = index),
-        destinations: [
-          for (final seccion in widget.secciones)
-            NavigationDestination(
-              icon: Icon(seccion.icon),
-              label: seccion.label,
+      bottomNavigationBar: _BarraInferior(
+        secciones: widget.secciones,
+        seleccionada: _selected,
+        alElegir: (index) => setState(() => _selected = index),
+      ),
+    );
+  }
+}
+
+/// Botón de ícono circular de 44 dp con la sombra suave de las tarjetas (design.md 3.8).
+class _BotonIconoCircular extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _BotonIconoCircular({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          shape: BoxShape.circle,
+          boxShadow: context.semantica.cardShadow,
+        ),
+        child: IconButton(
+          icon: Icon(icon),
+          tooltip: tooltip,
+          onPressed: onPressed,
+          constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+        ),
+      ),
+    );
+  }
+}
+
+/// `NavigationBar` sobre una superficie con esquinas superiores de 28 dp y sombra.
+class _BarraInferior extends StatelessWidget {
+  final List<SeccionShell> secciones;
+  final int seleccionada;
+  final ValueChanged<int> alElegir;
+
+  const _BarraInferior({
+    required this.secciones,
+    required this.seleccionada,
+    required this.alElegir,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final esquema = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: esquema.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.asfalto.withValues(
+              alpha: esquema.brightness == Brightness.light ? .07 : 0,
             ),
+            blurRadius: 14,
+            offset: const Offset(0, -4),
+          ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
+        child: NavigationBar(
+          selectedIndex: seleccionada,
+          onDestinationSelected: alElegir,
+          destinations: [
+            for (final seccion in secciones)
+              NavigationDestination(
+                icon: Icon(seccion.icon),
+                label: seccion.label,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -141,10 +244,7 @@ class _CuerpoDePrueba extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            seccion.label,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
+          Text(seccion.label, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
             'Pantalla de prueba del layout -- acá va el contenido real de "${seccion.label}" (${seccion.casosDeUso}) cuando exista esa feature.',

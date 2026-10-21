@@ -12,12 +12,12 @@ final seccionesInstructor = [
   const SeccionShell('Inicio', Icons.home_outlined, 'resumen'),
   SeccionShell(
     'Horarios',
-    Icons.calendar_month_outlined,
+    Icons.schedule_outlined,
     'CU12',
     builder: (_) => const HorariosScreen(),
   ),
-  const SeccionShell('Clases', Icons.directions_car_outlined, 'CU16 a CU18'),
-  const SeccionShell('Pagos', Icons.payments_outlined, 'CU29'),
+  const SeccionShell('Clases', Icons.assignment_outlined, 'CU16 a CU18'),
+  const SeccionShell('Pagos', Icons.account_balance_wallet_outlined, 'CU29'),
   const SeccionShell('Perfil', Icons.person_outline, 'CU06'),
 ];
 

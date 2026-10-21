@@ -10,9 +10,9 @@ import '../shared/shell_con_barra.dart';
 /// * propia: la barra admite 5 destinos y van como acceso aparte cuando existan.
 const seccionesEstudiante = [
   SeccionShell('Inicio', Icons.home_outlined, 'resumen'),
-  SeccionShell('Clases', Icons.event_note_outlined, 'CU13 a CU16'),
-  SeccionShell('Estudio', Icons.school_outlined, 'CU21, CU34 y CU35'),
-  SeccionShell('Pagos', Icons.payments_outlined, 'CU26 y CU28'),
+  SeccionShell('Clases', Icons.calendar_month_outlined, 'CU13 a CU16'),
+  SeccionShell('Estudio', Icons.menu_book_outlined, 'CU21, CU34 y CU35'),
+  SeccionShell('Pagos', Icons.account_balance_wallet_outlined, 'CU26 y CU28'),
   SeccionShell('Perfil', Icons.person_outline, 'CU06'),
 ];
 

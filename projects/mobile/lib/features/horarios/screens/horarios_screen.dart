@@ -5,33 +5,49 @@ import 'package:go_router/go_router.dart';
 import '../models/fechas.dart';
 import '../models/plantilla_horario.dart';
 import '../providers/horarios_provider.dart';
+import '../../../core/theme/app_theme.dart';
 import '../widgets/errores.dart';
+import '../widgets/status_chip.dart';
 
 /// Los horarios semanales del instructor (CU12).
 ///
 /// * Es un widget de cuerpo, sin `Scaffold`: se muestra dentro de la sección "Horarios" del
-/// * `UsuarioShell`. El formulario y las franjas son pantallas aparte (`/schedules/new` y
+/// * `InstructorShell`. El formulario y las franjas son pantallas aparte (`/schedules/new` y
 /// * `/schedules/slots`).
 class HorariosScreen extends ConsumerWidget {
   const HorariosScreen({super.key});
 
-  Future<void> _desactivar(BuildContext context, WidgetRef ref, PlantillaHorario horario) async {
+  Future<void> _desactivar(
+    BuildContext context,
+    WidgetRef ref,
+    PlantillaHorario horario,
+  ) async {
     final mensajes = ScaffoldMessenger.of(context);
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (dialogo) => AlertDialog(
         title: const Text('Desactivar horario'),
-        content: const Text('Se quitarán las franjas futuras que nadie reservó. Las reservadas se conservan.'),
+        content: const Text(
+          'Se quitarán las franjas futuras que nadie reservó. Las reservadas se conservan.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogo, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(dialogo, true), child: const Text('Desactivar')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogo, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogo, true),
+            child: const Text('Desactivar'),
+          ),
         ],
       ),
     );
     if (confirmado != true) return;
     try {
       await ref.read(horariosProvider.notifier).desactivar(horario.codigo);
-      mensajes.showSnackBar(const SnackBar(content: Text('Horario desactivado')));
+      mensajes.showSnackBar(
+        const SnackBar(content: Text('Horario desactivado')),
+      );
     } catch (e) {
       mensajes.showSnackBar(SnackBar(content: Text(mensajeDeError(e))));
     }
@@ -46,7 +62,12 @@ class HorariosScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpace.lg,
+            AppSpace.md,
+            AppSpace.lg,
+            0,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -73,7 +94,9 @@ class HorariosScreen extends ConsumerWidget {
           key: const Key('interruptorInactivos'),
           title: const Text('Ver inactivos'),
           value: incluirInactivos,
-          onChanged: (valor) => ref.read(horariosIncluirInactivosUiProvider.notifier).fijar(valor),
+          onChanged: (valor) => ref
+              .read(horariosIncluirInactivosUiProvider.notifier)
+              .fijar(valor),
         ),
         Expanded(
           child: horarios.when(
@@ -93,12 +116,19 @@ class HorariosScreen extends ConsumerWidget {
             ),
             data: (lista) {
               if (lista.isEmpty) {
-                return const Center(child: Text('Todavía no tienes horarios. Crea el primero.'));
+                return const Center(
+                  child: Text('Todavía no tienes horarios. Crea el primero.'),
+                );
               }
               return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpace.lg,
+                  0,
+                  AppSpace.lg,
+                  AppSpace.lg,
+                ),
                 itemCount: lista.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: AppSpace.md),
                 itemBuilder: (_, i) => _FilaHorario(
                   horario: lista[i],
                   alDesactivar: () => _desactivar(context, ref, lista[i]),
@@ -120,29 +150,63 @@ class _FilaHorario extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final esquema = Theme.of(context).colorScheme;
+    final tema = Theme.of(context);
     final dia = nombreDeDia(horario.diaSemana);
     final vigencia = horario.vigenteHasta == null
         ? 'desde ${fechaParaMostrar(horario.vigenteDesde)}'
         : 'del ${fechaParaMostrar(horario.vigenteDesde)} al ${fechaParaMostrar(horario.vigenteHasta!)}';
 
-    return Card(
-      child: ListTile(
-        title: Text('${dia[0].toUpperCase()}${dia.substring(1)} · ${horario.horaInicio} – ${horario.horaFin}'),
-        subtitle: Text('Clases de ${horario.duracionClaseMin} min · $vigencia'),
-        leading: horario.activa
-            ? Icon(Icons.event_available_outlined, color: esquema.primary)
-            : Icon(Icons.event_busy_outlined, color: esquema.outline),
-        trailing: horario.activa
-            ? PopupMenuButton<String>(
-                tooltip: 'Opciones del horario',
-                onSelected: (_) => alDesactivar(),
-                itemBuilder: (_) => const [PopupMenuItem(value: 'desactivar', child: Text('Desactivar'))],
-              )
-            : Chip(
-                label: const Text('Inactivo'),
-                backgroundColor: esquema.surfaceContainerHighest,
-              ),
+    // * Una plantilla inactiva se ve como tarjeta vacía: borde punteado sin sombra (design.md 3.3)
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: 18,
+        horizontal: AppSpace.xl,
+      ),
+      decoration: BoxDecoration(
+        color: horario.activa ? tema.colorScheme.surface : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: horario.activa
+            ? null
+            : Border.all(color: tema.colorScheme.outline, width: 2),
+        boxShadow: horario.activa ? context.semantica.cardShadow : null,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${dia[0].toUpperCase()}${dia.substring(1)} · ${horario.horaInicio} – ${horario.horaFin}',
+                  style: tema.textTheme.titleLarge,
+                ),
+                const SizedBox(height: AppSpace.xs),
+                Text(
+                  'Clases de ${horario.duracionClaseMin} min · $vigencia',
+                  style: tema.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: AppSpace.sm),
+                horario.activa
+                    ? StatusChip.exito(context, 'Activa')
+                    : StatusChip.neutro(
+                        context,
+                        'Inactivo',
+                        Icons.block,
+                        atenuado: true,
+                      ),
+              ],
+            ),
+          ),
+          if (horario.activa)
+            PopupMenuButton<String>(
+              tooltip: 'Opciones del horario',
+              onSelected: (_) => alDesactivar(),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'desactivar', child: Text('Desactivar')),
+              ],
+            ),
+        ],
       ),
     );
   }

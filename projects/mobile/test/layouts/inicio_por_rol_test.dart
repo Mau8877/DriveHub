@@ -34,10 +34,8 @@ Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
   return sesion;
 }
 
-Finder _enLaBarra(String texto) => find.descendant(
-  of: find.byType(NavigationBar),
-  matching: find.text(texto),
-);
+Finder _enLaBarra(String texto) =>
+    find.descendant(of: find.byType(NavigationBar), matching: find.text(texto));
 
 void main() {
   group('InicioPorRol', () {
@@ -69,42 +67,57 @@ void main() {
   });
 
   group('Menú del Estudiante', () {
-    testWidgets('tiene las secciones de sus casos de uso y no las del Instructor', (
-      tester,
-    ) async {
-      await _montar(tester, usuarioDePrueba);
+    testWidgets(
+      'tiene las secciones de sus casos de uso y no las del Instructor',
+      (tester) async {
+        await _montar(tester, usuarioDePrueba);
 
-      for (final label in ['Inicio', 'Clases', 'Estudio', 'Pagos', 'Perfil']) {
-        expect(_enLaBarra(label), findsOneWidget);
-      }
-      expect(find.byType(NavigationDestination), findsNWidgets(5));
-      expect(find.text('Horarios'), findsNothing);
-    });
+        for (final label in [
+          'Inicio',
+          'Clases',
+          'Estudio',
+          'Pagos',
+          'Perfil',
+        ]) {
+          expect(_enLaBarra(label), findsOneWidget);
+        }
+        expect(find.byType(NavigationDestination), findsNWidgets(5));
+        expect(find.text('Horarios'), findsNothing);
+      },
+    );
   });
 
   group('Menú del Instructor (Horarios, CU12)', () {
-    testWidgets('tiene las secciones de sus casos de uso y no las del Estudiante', (
-      tester,
-    ) async {
-      await _montar(tester, _instructor);
+    testWidgets(
+      'tiene las secciones de sus casos de uso y no las del Estudiante',
+      (tester) async {
+        await _montar(tester, _instructor);
 
-      for (final label in ['Inicio', 'Horarios', 'Clases', 'Pagos', 'Perfil']) {
-        expect(_enLaBarra(label), findsOneWidget);
-      }
-      expect(find.byType(NavigationDestination), findsNWidgets(5));
-      expect(_enLaBarra('Estudio'), findsNothing);
-    });
+        for (final label in [
+          'Inicio',
+          'Horarios',
+          'Clases',
+          'Pagos',
+          'Perfil',
+        ]) {
+          expect(_enLaBarra(label), findsOneWidget);
+        }
+        expect(find.byType(NavigationDestination), findsNWidgets(5));
+        expect(_enLaBarra('Estudio'), findsNothing);
+      },
+    );
 
-    testWidgets('al elegir Horarios muestra los botones de la pantalla de horarios', (
-      tester,
-    ) async {
-      await _montar(tester, _instructor);
+    testWidgets(
+      'al elegir Horarios muestra los botones de la pantalla de horarios',
+      (tester) async {
+        await _montar(tester, _instructor);
 
-      await tester.tap(_enLaBarra('Horarios'));
-      await tester.pumpAndSettle();
+        await tester.tap(_enLaBarra('Horarios'));
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('botonNuevoHorario')), findsOneWidget);
-      expect(find.byKey(const Key('botonVerFranjas')), findsOneWidget);
-    });
+        expect(find.byKey(const Key('botonNuevoHorario')), findsOneWidget);
+        expect(find.byKey(const Key('botonVerFranjas')), findsOneWidget);
+      },
+    );
   });
 }
