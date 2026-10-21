@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/providers/sesion_provider.dart';
+import '../../features/horarios/screens/horarios_screen.dart';
 
 /// Shell del rol Usuario -- AppBar + `NavigationBar` (Material 3) inferior,
 /// tres secciones. Equivalente mobile de `UsuarioLayout` en el frontend
@@ -29,6 +30,9 @@ const _secciones = [
   _UsuarioSeccion('Pedidos', Icons.list_alt_outlined),
   _UsuarioSeccion('Perfil', Icons.person_outline),
 ];
+
+// * Solo la ve el Instructor (CU12): la app es una sola para estudiante e instructor
+const _seccionHorarios = _UsuarioSeccion('Horarios', Icons.calendar_month_outlined);
 
 class _UsuarioShellState extends ConsumerState<UsuarioShell>
     with WidgetsBindingObserver {
@@ -87,9 +91,13 @@ class _UsuarioShellState extends ConsumerState<UsuarioShell>
 
   @override
   Widget build(BuildContext context) {
-    final seccionActual = _secciones[_selected];
-    final correoSinVerificar =
-        ref.watch(sesionProvider).usuario?.correoVerificado == false;
+    final usuario = ref.watch(sesionProvider).usuario;
+    final esInstructor = usuario?.roles.contains('INSTRUCTOR') ?? false;
+    final secciones = [..._secciones, if (esInstructor) _seccionHorarios];
+    // * Si los roles cambian al renovarse la sesión, el índice elegido sigue siendo válido
+    final indice = _selected.clamp(0, secciones.length - 1);
+    final seccionActual = secciones[indice];
+    final correoSinVerificar = usuario?.correoVerificado == false;
 
     return Scaffold(
       appBar: AppBar(
@@ -107,28 +115,30 @@ class _UsuarioShellState extends ConsumerState<UsuarioShell>
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              seccionActual.label,
-              style: Theme.of(context).textTheme.headlineSmall,
+      body: seccionActual == _seccionHorarios
+          ? const HorariosScreen()
+          : Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    seccionActual.label,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Pantalla de prueba del layout -- acá va el contenido real de "${seccionActual.label}" cuando exista esa feature.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Pantalla de prueba del layout -- acá va el contenido real de "${seccionActual.label}" cuando exista esa feature.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selected,
+        selectedIndex: indice,
         onDestinationSelected: (index) => setState(() => _selected = index),
         destinations: [
-          for (final seccion in _secciones)
+          for (final seccion in secciones)
             NavigationDestination(
               icon: Icon(seccion.icon),
               label: seccion.label,

@@ -7,6 +7,7 @@ import 'package:mobile/features/auth/models/usuario_sesion.dart';
 import 'package:mobile/features/auth/providers/sesion_provider.dart';
 import 'package:mobile/layouts/usuario/usuario_shell.dart';
 
+import '../../helpers/horarios_falsos.dart';
 import '../../helpers/sesion_falsa.dart';
 
 const _sinVerificar = UsuarioSesion(
@@ -24,11 +25,20 @@ const _verificado = UsuarioSesion(
   correoVerificado: true,
 );
 
+const _instructor = UsuarioSesion(
+  codigo: 'i1',
+  nombres: 'Luis',
+  apellidos: 'Rojas',
+  roles: ['INSTRUCTOR'],
+  correoVerificado: true,
+);
+
 Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
   final sesion = SesionFalsa(EstadoSesion.conSesion(usuario));
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sesionFalsa(sesion)],
+      // * El servicio de horarios es falso: la sección del instructor lo consulta al mostrarse
+      overrides: [sesionFalsa(sesion), horariosServiceFalso(HorariosServiceFalso())],
       child: const MaterialApp(home: UsuarioShell()),
     ),
   );
@@ -135,6 +145,52 @@ void main() {
       await tester.pump();
 
       expect(sesion.renovaciones, 0);
+    });
+  });
+
+  group('Horarios (CU12)', () {
+    testWidgets('el Instructor ve la sección Horarios en la barra inferior', (tester) async {
+      await _montar(tester, _instructor);
+
+      expect(find.descendant(of: find.byType(NavigationBar), matching: find.text('Horarios')), findsOneWidget);
+    });
+
+    testWidgets('el Estudiante no la ve', (tester) async {
+      await _montar(tester, _verificado);
+
+      expect(find.text('Horarios'), findsNothing);
+      expect(find.byType(NavigationDestination), findsNWidgets(3));
+    });
+
+    testWidgets('el Instructor conserva las secciones que ya existían y suma una', (tester) async {
+      await _montar(tester, _instructor);
+
+      expect(find.byType(NavigationDestination), findsNWidgets(4));
+      expect(find.text('Inicio'), findsWidgets);
+      expect(find.text('Perfil'), findsOneWidget);
+    });
+
+    testWidgets('al elegir Horarios muestra los botones de la pantalla de horarios', (tester) async {
+      await _montar(tester, _instructor);
+
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Horarios')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('botonNuevoHorario')), findsOneWidget);
+      expect(find.byKey(const Key('botonVerFranjas')), findsOneWidget);
+    });
+
+    testWidgets('si pierde el rol de Instructor estando en Horarios, el índice sigue siendo válido', (tester) async {
+      final sesion = await _montar(tester, _instructor);
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Horarios')));
+      await tester.pumpAndSettle();
+
+      sesion.cambiar(const EstadoSesion.conSesion(_verificado));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Horarios'), findsNothing);
+      expect(find.byType(NavigationDestination), findsNWidgets(3));
     });
   });
 }

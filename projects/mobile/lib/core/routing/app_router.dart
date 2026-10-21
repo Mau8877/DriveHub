@@ -7,6 +7,8 @@ import '../../features/auth/screens/cargando_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/recuperar_screen.dart';
 import '../../features/auth/screens/registro_screen.dart';
+import '../../features/horarios/screens/franjas_screen.dart';
+import '../../features/horarios/screens/horario_form_screen.dart';
 import '../../layouts/usuario/usuario_shell.dart';
 
 const _rutasPublicas = {'/login', '/register', '/forgot-password'};
@@ -33,10 +35,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         case FaseSesion.sinSesion:
           return _rutasPublicas.contains(ubicacion) ? null : '/login';
         case FaseSesion.conSesion:
-          return (_rutasPublicas.contains(ubicacion) ||
-                  ubicacion == '/cargando')
-              ? '/inicio'
-              : null;
+          if (_rutasPublicas.contains(ubicacion) || ubicacion == '/cargando') {
+            return '/inicio';
+          }
+          // * Los horarios son del Instructor (CU12): otro rol vuelve al inicio
+          final roles = ref.read(sesionProvider).usuario?.roles ?? const [];
+          if (ubicacion.startsWith('/schedules') && !roles.contains('INSTRUCTOR')) {
+            return '/inicio';
+          }
+          return null;
       }
     },
     routes: [
@@ -61,6 +68,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/inicio',
         builder: (context, state) => const UsuarioShell(),
+      ),
+      GoRoute(
+        path: '/schedules/new',
+        builder: (context, state) => const HorarioFormScreen(),
+      ),
+      GoRoute(
+        path: '/schedules/slots',
+        builder: (context, state) => const FranjasScreen(),
       ),
     ],
   );
