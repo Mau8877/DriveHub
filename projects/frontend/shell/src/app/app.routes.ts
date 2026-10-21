@@ -18,23 +18,23 @@ import { NoEncontrado } from './pages/no-encontrado'
  * * Remotos React (Module Federation): RemoteHost los monta con mount/unmount,
  * * URL en public/remotos-react.manifest.json.
  * * El layout con todos los remotos exige sesión (sesionGuard); /login solo se
- * * muestra sin sesión (loginGuard); /registro es público.
+ * * muestra sin sesión (loginGuard); /register es público.
  */
 export const routes: Routes = [
   { path: 'login', component: Login, canActivate: [loginGuard] },
 
   // Público y fuera del layout (sin menú ni sesión): registro del estudiante
-  // en el enlace de su escuela, /registro/:escuelaSlug (CU01, remoto identidad).
+  // en el enlace de su escuela, /register/:escuelaSlug (CU01, remoto identidad).
   {
-    path: 'registro',
+    path: 'register',
     loadChildren: () => loadRemoteModule('identidad', './routes-publicas').then((m) => m.routes),
   },
 
   // Público y fuera del layout: páginas de la cuenta a las que llevan los enlaces de los
-  // correos, /cuenta/verificar-correo (CU04b, remoto identidad). Sin sesionGuard ni loginGuard:
+  // correos, /account/verify-email (CU04b, remoto identidad). Sin sesionGuard ni loginGuard:
   // se abren con o sin sesión, también desde el navegador de un teléfono.
   {
-    path: 'cuenta',
+    path: 'account',
     loadChildren: () => loadRemoteModule('identidad', './routes-cuenta').then((m) => m.routes),
   },
   {

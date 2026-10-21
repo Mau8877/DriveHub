@@ -148,6 +148,6 @@ describe('Login', () => {
     const enlace = (fixture.nativeElement as HTMLElement).querySelector('a')
 
     expect(enlace?.textContent).toContain('¿Olvidaste tu contraseña?')
-    expect(enlace?.getAttribute('href')).toBe('/cuenta/recuperar')
+    expect(enlace?.getAttribute('href')).toBe('/account/forgot-password')
   })
 })

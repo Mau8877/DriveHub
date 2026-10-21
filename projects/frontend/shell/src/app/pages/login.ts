@@ -82,7 +82,7 @@ const MENSAJES_DE_MOTIVO: Record<string, string> = {
         </form>
 
         <a
-          routerLink="/cuenta/recuperar"
+          routerLink="/account/forgot-password"
           class="mt-4 block text-center text-sm font-medium underline"
         >
           ¿Olvidaste tu contraseña?
