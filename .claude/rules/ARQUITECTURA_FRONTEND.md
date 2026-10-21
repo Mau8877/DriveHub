@@ -71,6 +71,7 @@ identidad escuela pagos           examenes contenido asistente-ia
 | Paquete | Qué es | Reglas |
 | --- | --- | --- |
 | `@drivehub/mf-contract` | Contrato shell ↔ remotos: `ContextoShell` (apiBaseUrl, obtenerToken, navegar), `MountProps`, `RemotoReact`, bus de eventos | JS plano + `.d.ts` (sin build). El contexto vive en `globalThis` porque Angular y React no comparten el mismo sistema de federación. Se excluye de la federación (`skip`) en las apps Angular. |
+| `@drivehub/gestion` | `<dh-gestion>`: Web Component (Lit) que dibuja las pantallas "Gestionar" (listado, crear, editar, acciones) a partir de un esquema | JS plano + `.d.ts`. Una pantalla de gestión CRUD pasa un esquema, no reimplementa la tabla ni el formulario. Detalle en [GESTION_FRONTEND.md](frontend/GESTION_FRONTEND.md). `skip` en las apps Angular. |
 | `@drivehub/design-tokens` | `tokens.css` (variables CSS) y `theme.css` (mapeo a Tailwind 4) | La ÚNICA fuente de colores, radios y tipografía de la web. |
 
 Se dependen con `"workspace:*"`. Un paquete nuevo en `packages/` se crea

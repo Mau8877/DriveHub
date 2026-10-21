@@ -37,6 +37,7 @@ solo para CI:
 | `asistente-ia` | — | `pip install -r requirements-dev.txt` → `ruff check` + `ruff format --check` → `pytest` |
 | `contenido` | — | `composer install` → `pint --test` → `php artisan test` |
 | `frontend` | `shell`, `identidad`, `escuela`, `pagos`, `examenes`, `contenido`, `asistente-ia` | `pnpm install --frozen-lockfile` → `lint` → `test` → `build` |
+| `gestion` | — | `pnpm install --frozen-lockfile --filter ./packages/gestion` → `test` (vitest, jsdom); corre si cambia `packages/gestion/**`, `packages/mf-contract/**` o el lockfile |
 | `mobile` | — | `flutter pub get` → `flutter analyze` → `flutter test` |
 
 - El job `spring` levanta `postgres:18-alpine` y `mongo:8` como

@@ -21,7 +21,7 @@ lib/
 ├── core/
 │   ├── network/     # ApiClient (Dio + interceptor de sobre), ya implementado (ver CONSUMO_API_MOBILE.md)
 │   ├── routing/     # GoRouter único, con el redirect global -- todavía vacío (ver NAVEGACION_MOBILE.md)
-│   └── theme/       # AppColors/AppTheme, ya implementado con paleta neutra de placeholder
+│   └── theme/       # AppColors/AppTheme, ya implementado con la paleta de marca (espejo de design-tokens)
 ├── layouts/
 │   └── {rol}/       # Shell por rol (AdminShell, UsuarioShell, ya scaffoldeados como ejemplo)
 ├── shared/

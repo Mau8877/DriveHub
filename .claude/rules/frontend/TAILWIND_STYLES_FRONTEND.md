@@ -40,11 +40,22 @@ Cada app los importa en su CSS de entrada, después de `@import 'tailwindcss'`.
 **Nunca** se define un color en el CSS de una app: si falta un token, se
 agrega en `tokens.css` y su mapeo en `theme.css`.
 
-Hoy la paleta es la **neutra default de shadcn** (`baseColor: "neutral"`):
-no hay colores de marca definidos. Cuando existan, se cambian solo en
-`tokens.css` y en el mismo cambio en
-`projects/mobile/lib/core/theme/app_theme.dart` (espejo manual de la misma
-paleta). No se inventan colores de marca mientras tanto.
+La paleta de marca está definida:
+
+| Color | Hex | Uso |
+| --- | --- | --- |
+| Gris Asfalto (primario) | `#1E293B` | Estructura principal, navegación (sidebar, cabecera), tipografía |
+| Ámbar Vial (acento) | `#F59E0B` | Botones de acción clave, resaltados, insignias |
+| Azul Técnico (soporte) | `#0284C7` | Indicadores de estado, horas programadas |
+| Gris Claro Neutral | `#F1F5F9` | Fondo |
+| Blanco Puro | `#FFFFFF` | Tarjetas y contenedores |
+| Gris Medio | `#475569` | Textos secundarios y bordes suaves |
+
+Se declaran como variables y se asignan a los tokens semánticos
+(`--primary` = ámbar con texto asfalto, `--sidebar` = asfalto, `--info` =
+azul técnico...) solo en `tokens.css`. Un cambio de paleta se hace ahí y en
+el mismo cambio en `projects/mobile/lib/core/theme/app_theme.dart` (espejo
+manual de la misma paleta). No se agregan colores fuera de esta paleta.
 
 ## Agregar componentes vía CLI de shadcn
 

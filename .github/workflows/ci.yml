@@ -19,6 +19,7 @@ jobs:
       spring: ${{ steps.spring.outputs.changes }}
       frontend: ${{ steps.frontend.outputs.changes }}
       notificaciones: ${{ steps.otros.outputs.notificaciones }}
+      gestion: ${{ steps.otros.outputs.gestion }}
       asistente-ia: ${{ steps.otros.outputs.asistente-ia }}
       contenido: ${{ steps.otros.outputs.contenido }}
       mobile: ${{ steps.otros.outputs.mobile }}
@@ -50,6 +51,7 @@ jobs:
         with:
           filters: |
             notificaciones: ['projects/backend/notificaciones/**', 'pnpm-lock.yaml']
+            gestion: ['packages/gestion/**', 'packages/mf-contract/**', 'pnpm-lock.yaml']
             asistente-ia: 'projects/backend/asistente-ia/**'
             contenido: 'projects/backend/contenido/**'
             mobile: 'projects/mobile/**'
@@ -198,6 +200,23 @@ jobs:
       - run: pnpm --dir projects/frontend/${{ matrix.app }} run lint
       - run: pnpm --dir projects/frontend/${{ matrix.app }} run test
       - run: pnpm --dir projects/frontend/${{ matrix.app }} run build
+
+  # ---------------------------------------------------------------
+  # Paquete @drivehub/gestion (<dh-gestion>): sus propios tests, aparte de las apps
+  # ---------------------------------------------------------------
+  gestion:
+    needs: changes
+    if: needs.changes.outputs.gestion == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter ./packages/gestion
+      - run: pnpm --dir packages/gestion run test
 
   # ---------------------------------------------------------------
   # Mobile (Flutter)
