@@ -307,9 +307,9 @@ services:
   frontend:
     image: node:24-alpine
     container_name: drivehub-frontend
-    # * Solo shell + identidad (los 2 dev servers que hoy hacen falta). Para sumar un remoto: agregar
+    # * Solo shell + identidad + escuela (los 3 dev servers que hoy hacen falta; escuela es CU05). Para sumar un remoto: agregar
     # * `--filter <app>` a los dos comandos de abajo (y su puerto ya esta publicado).
-    mem_limit: 1792m
+    mem_limit: 2432m
     profiles: ['frontend']
     working_dir: /app
     volumes:
@@ -324,8 +324,8 @@ services:
       - frontend_nm_asistente_ia:/app/projects/frontend/asistente-ia/node_modules
     command: >
       sh -c "corepack enable pnpm &&
-      pnpm install --filter shell --filter identidad &&
-      pnpm --filter shell --filter identidad --parallel run dev"
+      pnpm install --filter shell --filter identidad --filter escuela &&
+      pnpm --filter shell --filter identidad --filter escuela --parallel run dev"
     ports:
       - '4200:4200'
       - '4201:4201'

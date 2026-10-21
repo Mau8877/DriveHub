@@ -6,6 +6,9 @@ export default withNativeFederation({
   exposes: {
     // El shell monta estas rutas con loadChildren bajo /escuela.
     './routes': './src/app/app.routes.ts',
+    // Gestión de escuelas del Super admin (CU05): el shell las monta bajo /escuelas, con el rol
+    // SUPER_ADMIN. Aparte de './routes' (las del Administrador, bajo /escuela).
+    './routes-escuelas': './src/app/routes-escuelas.ts',
   },
 
   shared: fromPackageJson({
