@@ -62,7 +62,10 @@ jobs:
   spring:
     needs: changes
     if: needs.changes.outputs.spring != '[]'
-    runs-on: ubuntu-latest
+    # ! Fijado a 22.04, no ubuntu-latest: MongoDB 8 no arranca con el kernel Linux 6.19 o más nuevo
+    # ! (SERVER-121912) y ubuntu-latest pasó a traerlo (rompió academico en el merge a main).
+    # ! Volver a ubuntu-latest cuando MongoDB publique un fix.
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
