@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/core/routing/app_router.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/features/auth/providers/sesion_provider.dart';
-import 'package:mobile/layouts/usuario/usuario_shell.dart';
+import 'package:mobile/layouts/estudiante/estudiante_shell.dart';
 
 import 'helpers/sesion_falsa.dart';
 
@@ -31,11 +31,11 @@ void main() {
     expect(find.text('Crear cuenta'), findsOneWidget);
   });
 
-  testWidgets('muestra la sección inicial del shell de usuario', (tester) async {
+  testWidgets('muestra la sección inicial del shell de estudiante', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [sesionFalsa(SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)))],
-        child: MaterialApp(theme: AppTheme.light, home: const UsuarioShell()),
+        child: MaterialApp(theme: AppTheme.light, home: const EstudianteShell()),
       ),
     );
 

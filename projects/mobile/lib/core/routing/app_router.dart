@@ -9,7 +9,7 @@ import '../../features/auth/screens/recuperar_screen.dart';
 import '../../features/auth/screens/registro_screen.dart';
 import '../../features/horarios/screens/franjas_screen.dart';
 import '../../features/horarios/screens/horario_form_screen.dart';
-import '../../layouts/usuario/usuario_shell.dart';
+import '../../layouts/inicio_por_rol.dart';
 
 const _rutasPublicas = {'/login', '/register', '/forgot-password'};
 
@@ -67,7 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/inicio',
-        builder: (context, state) => const UsuarioShell(),
+        builder: (context, state) => const InicioPorRol(),
       ),
       GoRoute(
         path: '/schedules/new',

@@ -4,37 +4,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/providers/sesion_provider.dart';
-import '../../features/horarios/screens/horarios_screen.dart';
 
-/// Shell del rol Usuario -- AppBar + `NavigationBar` (Material 3) inferior,
-/// tres secciones. Equivalente mobile de `UsuarioLayout` en el frontend
-/// web (ver ARQUITECTURA_FRONTEND.md#layouts-por-rol): una barra inferior es
-/// el patrón mobile estándar para navegación de nivel superior con pocas
-/// secciones, a diferencia del sidebar que usa el rol Admin.
-class UsuarioShell extends ConsumerStatefulWidget {
-  const UsuarioShell({super.key});
-
-  @override
-  ConsumerState<UsuarioShell> createState() => _UsuarioShellState();
-}
-
-class _UsuarioSeccion {
+/// Una sección de la barra inferior de un shell.
+class SeccionShell {
   final String label;
   final IconData icon;
 
-  const _UsuarioSeccion(this.label, this.icon);
+  /// Casos de uso que va a mostrar la sección (ej. `CU13 a CU16`). Solo se ve en el
+  /// cuerpo de prueba, hasta que la sección tenga su pantalla real.
+  final String casosDeUso;
+
+  /// Pantalla real de la sección. Sin ella se muestra el cuerpo de prueba.
+  final WidgetBuilder? builder;
+
+  const SeccionShell(this.label, this.icon, this.casosDeUso, {this.builder});
 }
 
-const _secciones = [
-  _UsuarioSeccion('Inicio', Icons.home_outlined),
-  _UsuarioSeccion('Pedidos', Icons.list_alt_outlined),
-  _UsuarioSeccion('Perfil', Icons.person_outline),
-];
+/// Estructura común de los shells de la app móvil: `AppBar` con "Verificar correo" y
+/// "Cerrar sesión", y `NavigationBar` (Material 3) inferior con las secciones del rol.
+///
+/// * Cada rol (`EstudianteShell`, `InstructorShell`) solo declara sus secciones.
+/// * ! No conoce lógica de negocio: el cuerpo de cada sección lo pone su feature.
+class ShellConBarra extends ConsumerStatefulWidget {
+  final List<SeccionShell> secciones;
 
-// * Solo la ve el Instructor (CU12): la app es una sola para estudiante e instructor
-const _seccionHorarios = _UsuarioSeccion('Horarios', Icons.calendar_month_outlined);
+  const ShellConBarra({super.key, required this.secciones});
 
-class _UsuarioShellState extends ConsumerState<UsuarioShell>
+  @override
+  ConsumerState<ShellConBarra> createState() => _ShellConBarraState();
+}
+
+class _ShellConBarraState extends ConsumerState<ShellConBarra>
     with WidgetsBindingObserver {
   int _selected = 0;
   bool _verificando = false;
@@ -91,13 +91,9 @@ class _UsuarioShellState extends ConsumerState<UsuarioShell>
 
   @override
   Widget build(BuildContext context) {
-    final usuario = ref.watch(sesionProvider).usuario;
-    final esInstructor = usuario?.roles.contains('INSTRUCTOR') ?? false;
-    final secciones = [..._secciones, if (esInstructor) _seccionHorarios];
-    // * Si los roles cambian al renovarse la sesión, el índice elegido sigue siendo válido
-    final indice = _selected.clamp(0, secciones.length - 1);
-    final seccionActual = secciones[indice];
-    final correoSinVerificar = usuario?.correoVerificado == false;
+    final correoSinVerificar =
+        ref.watch(sesionProvider).usuario?.correoVerificado == false;
+    final seccionActual = widget.secciones[_selected];
 
     return Scaffold(
       appBar: AppBar(
@@ -115,34 +111,45 @@ class _UsuarioShellState extends ConsumerState<UsuarioShell>
           ),
         ],
       ),
-      body: seccionActual == _seccionHorarios
-          ? const HorariosScreen()
-          : Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    seccionActual.label,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Pantalla de prueba del layout -- acá va el contenido real de "${seccionActual.label}" cuando exista esa feature.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
+      body:
+          seccionActual.builder?.call(context) ??
+          _CuerpoDePrueba(seccion: seccionActual),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: indice,
+        selectedIndex: _selected,
         onDestinationSelected: (index) => setState(() => _selected = index),
         destinations: [
-          for (final seccion in secciones)
+          for (final seccion in widget.secciones)
             NavigationDestination(
               icon: Icon(seccion.icon),
               label: seccion.label,
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CuerpoDePrueba extends StatelessWidget {
+  final SeccionShell seccion;
+
+  const _CuerpoDePrueba({required this.seccion});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            seccion.label,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Pantalla de prueba del layout -- acá va el contenido real de "${seccion.label}" (${seccion.casosDeUso}) cuando exista esa feature.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ],
       ),
     );
