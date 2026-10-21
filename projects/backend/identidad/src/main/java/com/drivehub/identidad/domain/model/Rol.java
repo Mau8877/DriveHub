@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * Rol del sistema (CU05). Los nombres conocidos (ver {@link RolNombres})
+ * Rol del sistema. Los nombres conocidos (ver {@link RolNombres})
  * son datos de la tabla rol, no un enum cerrado.
  */
 @Getter
