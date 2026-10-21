@@ -41,6 +41,7 @@ GET /api/v1/usuarios?page=1&pageSize=20&search=texto&filter[rol]=admin
 | `search` | No | — | Búsqueda de texto libre (campos definidos por cada endpoint) |
 | `filter[campo]` | No | — | Filtro exacto por campo (`filter[rol]=admin`, se pueden repetir varios `filter[...]`) |
 
+- Los corchetes de `filter[campo]` tienen que viajar **codificados** (`filter%5Bcampo%5D=valor`): Tomcat rechaza con 400 los corchetes sin codificar en la query. `HttpClient` de Angular y `Dio` los codifican solos; con `curl` hay que escribirlos así.
 - **Ningún endpoint de listado puede omitir la paginación**, ni siquiera si
   hoy tiene pocos registros — se pagina desde el primer día.
 - El response correspondiente sigue el contrato de

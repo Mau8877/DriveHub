@@ -86,8 +86,17 @@ resumen que importa entre servicios:
 | Servicio → servicios (algo pasó) | Evento en RabbitMQ, publicado con **outbox** (la tabla/colección `outbox_evento(s)` se escribe en la misma transacción que el cambio; un proceso aparte publica). |
 | Consumidor de eventos | **Idempotente**: el mismo evento puede llegar dos veces (ver `EventosProcesados` en Notificaciones). |
 
-Hoy no hay ninguna llamada entre servicios ni ningún evento implementado:
-se agregan con el primer caso de uso que los necesite, siguiendo esta tabla.
+Hoy no hay ningún evento implementado. Las llamadas REST entre servicios que ya
+existen son:
+
+| Desde → hacia | Para qué | Caso de uso |
+| --- | --- | --- |
+| Identidad → Escuela | Consultar la escuela por slug o por codigo y si está activa | CU01, CU02 |
+| Escuela → Identidad | Crear al Administrador de una escuela y, si algo falla, revertirlo | CU05 |
+
+Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
+Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque
+cada una consulta datos que son del otro servicio.
 
 ### Saga reserva-pago (CU44)
 
