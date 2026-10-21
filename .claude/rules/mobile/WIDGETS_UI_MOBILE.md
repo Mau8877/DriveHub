@@ -27,14 +27,19 @@ igual que el criterio de `shared/api/` del lado del consumo de API (ver
 
 ## Tema (`ThemeData`)
 
-`lib/core/theme/app_theme.dart` ya define `AppColors`/`AppTheme.light`/`AppTheme.dark`
-y `lib/main.dart` los referencia vía `MaterialApp(theme:, darkTheme:)` — pero
-con una **paleta neutra de placeholder**, no la identidad de marca real del
-proyecto. Mismo criterio que
-[TAILWIND_STYLES_FRONTEND.md](../frontend/TAILWIND_STYLES_FRONTEND.md) del
-lado web (que define la misma estructura de tokens con valores neutros):
-hasta que exista la paleta final del proyecto, no se inventan colores de
-marca acá — cuando se defina, se reemplazan los `Color(0x...)` de
-`AppColors` por los reales, en el mismo cambio que actualiza `index.css`
-del lado web (ambos son espejo manual de la misma paleta, ver el
-comentario en `app_theme.dart`).
+`lib/core/theme/app_theme.dart` define `AppColors`, `AppSpace`, `AppRadius`,
+`AppMotion`, `AppSemantic` (tokens sin equivalente en `ColorScheme`, se leen con
+`context.semantica`) y `AppTheme.light`/`AppTheme.dark`, que `lib/main.dart`
+referencia vía `MaterialApp(theme:, darkTheme:)`. La guía visual completa es
+[`projects/mobile/docs/design.md`](../../../projects/mobile/docs/design.md) (propuesta B):
+ante una duda de diseño manda ese documento.
+
+- **Ningún color ni medida literal en un widget**: sale del tema o de los tokens.
+- **El ámbar es `secondary`, no `primary`**: el botón relleno ya sale ámbar del tema y
+  se usa **una sola vez por pantalla**.
+- **Cambio de paleta**: se hace en `AppColors` y en el mismo cambio en
+  `packages/design-tokens` de la web (espejo manual de la misma paleta, ver el
+  comentario en `app_theme.dart`).
+- **Tipografía**: Nunito, empaquetada como fuente variable en `assets/fonts/` (licencia
+  SIL OFL en el mismo directorio). El peso se fija con el eje `wght`: para cambiar el
+  peso de un estilo se usa `AppTheme.conPeso`, no `copyWith(fontWeight: ...)`.
