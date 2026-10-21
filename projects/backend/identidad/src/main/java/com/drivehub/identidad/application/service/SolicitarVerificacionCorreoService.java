@@ -83,7 +83,7 @@ public class SolicitarVerificacionCorreoService implements SolicitarVerificacion
             .build());
 
         enviadorCorreo.enviarVerificacionCorreo(
-            usuario.getEmail(), usuario.getNombres(), urlWeb + "/cuenta/verificar-correo?token=" + token);
+            usuario.getEmail(), usuario.getNombres(), urlWeb + "/account/verify-email?token=" + token);
         LOG.info("Correo de verificacion enviado", kv("module", MODULO), kv("usuarioCodigo", usuario.getCodigo()));
     }
 }

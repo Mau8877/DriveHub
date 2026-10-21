@@ -123,7 +123,7 @@ class VerificacionCorreoIntegrationTest extends PostgresIntegrationTestBase {
 
         verify(correo).enviarVerificacionCorreo(eq(email), eq("Ana"), any());
         String enlace = enlacesEnviados().get(0);
-        assertThat(enlace).contains("/cuenta/verificar-correo?token=");
+        assertThat(enlace).contains("/account/verify-email?token=");
         String token = tokenDe(enlace);
 
         // * Confirmar es público: sin Authorization

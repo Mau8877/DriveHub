@@ -141,7 +141,7 @@ class RecuperacionContrasenaIntegrationTest extends PostgresIntegrationTestBase 
 
         verify(correo).enviarRecuperacionContrasena(eq(cuenta.getEmail()), eq("Ana"), any());
         String enlace = enlacesDeRecuperacion().get(0);
-        assertThat(enlace).contains("/cuenta/restablecer?token=");
+        assertThat(enlace).contains("/account/reset-password?token=");
         String token = tokenDe(enlace);
 
         restablecer(token, PASSWORD_NUEVA).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("success"));

@@ -27,7 +27,7 @@ import jakarta.mail.internet.MimeMessage;
 @ExtendWith(MockitoExtension.class)
 class SmtpCorreoAdapterTest {
 
-    private static final String ENLACE = "http://localhost:4200/cuenta/verificar-correo?token=abc123";
+    private static final String ENLACE = "http://localhost:4200/account/verify-email?token=abc123";
 
     @Mock
     private JavaMailSender sender;
@@ -78,7 +78,7 @@ class SmtpCorreoAdapterTest {
 
     @Test
     void enviarRecuperacionContrasena_armaElMensajeConDestinatarioAsuntoYEnlace() throws Exception {
-        String enlace = "http://localhost:4200/cuenta/restablecer?token=xyz789";
+        String enlace = "http://localhost:4200/account/reset-password?token=xyz789";
 
         adaptador.enviarRecuperacionContrasena("ana@gmail.com", "Ana", enlace);
 

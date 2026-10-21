@@ -80,7 +80,7 @@ class SolicitarRecuperacionServiceTest {
         ArgumentCaptor<TokenRecuperacion> guardado = ArgumentCaptor.forClass(TokenRecuperacion.class);
         orden.verify(tokenRepository).guardar(guardado.capture());
         orden.verify(enviadorCorreo).enviarRecuperacionContrasena("ana@gmail.com", "Ana",
-            "http://localhost:4200/cuenta/restablecer?token=token-en-claro");
+            "http://localhost:4200/account/reset-password?token=token-en-claro");
         assertThat(guardado.getValue().getTokenHash()).isEqualTo("hash-del-token");
         assertThat(guardado.getValue().getTipo()).isEqualTo(TipoTokenCorreo.RECUPERACION);
         assertThat(guardado.getValue().getExpiraEn()).isEqualTo(AHORA.plusSeconds(30 * 60));

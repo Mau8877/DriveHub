@@ -86,7 +86,7 @@ public class SolicitarRecuperacionService implements SolicitarRecuperacionUseCas
 
         try {
             enviadorCorreo.enviarRecuperacionContrasena(
-                usuario.getEmail(), usuario.getNombres(), urlWeb + "/cuenta/restablecer?token=" + token);
+                usuario.getEmail(), usuario.getNombres(), urlWeb + "/account/reset-password?token=" + token);
             LOG.info("Correo de recuperacion enviado", kv("module", MODULO), kv("usuarioCodigo", usuario.getCodigo()));
         } catch (RuntimeException e) {
             // * No se relanza: quien lo pidió no debe enterarse (no revelar cuentas)

@@ -77,7 +77,7 @@ class SolicitarVerificacionCorreoServiceTest {
         ArgumentCaptor<TokenRecuperacion> guardado = ArgumentCaptor.forClass(TokenRecuperacion.class);
         orden.verify(tokenRepository).guardar(guardado.capture());
         orden.verify(enviadorCorreo).enviarVerificacionCorreo("ana@gmail.com", "Ana",
-            "http://localhost:4200/cuenta/verificar-correo?token=token-en-claro");
+            "http://localhost:4200/account/verify-email?token=token-en-claro");
         assertThat(guardado.getValue().getTokenHash()).isEqualTo("hash-del-token");
         assertThat(guardado.getValue().getTipo()).isEqualTo(TipoTokenCorreo.VERIFICACION);
         assertThat(guardado.getValue().getUsuarioCodigo()).isEqualTo(usuario.getCodigo());
