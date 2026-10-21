@@ -196,7 +196,10 @@ jobs:
           node-version: 24
           cache: pnpm
       # El lockfile vive en la raíz del workspace pnpm, no dentro de cada app.
-      - run: pnpm install --frozen-lockfile --filter ./projects/frontend/${{ matrix.app }}
+      # `{ruta}...` instala también los paquetes del workspace de los que depende la app
+      # (design-tokens, mf-contract, gestion) con sus propias dependencias (ej. lit). Sin las
+      # llaves, pnpm no interpreta el `...` sobre una ruta.
+      - run: pnpm install --frozen-lockfile --filter "{./projects/frontend/${{ matrix.app }}}..."
       - run: pnpm --dir projects/frontend/${{ matrix.app }} run lint
       - run: pnpm --dir projects/frontend/${{ matrix.app }} run test
       - run: pnpm --dir projects/frontend/${{ matrix.app }} run build

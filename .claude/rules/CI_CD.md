@@ -49,6 +49,10 @@ solo para CI:
   corren de verdad (en Windows local quedan `SKIPPED`, ver
   [TESTING_BACKEND.md](backend/TESTING_BACKEND.md)). Si uno falla en CI pero
   pasaba "SKIPPED" en local, es información real, no un falso positivo.
+- El job `frontend` instala con `--filter "{./projects/frontend/<app>}..."` (con llaves y
+  `...`): así entran también los paquetes del workspace de los que depende la app y sus
+  propias dependencias (`lit` de `@drivehub/gestion`). Con `--filter ./projects/frontend/<app>`
+  a secas, falta `lit` y fallan los tests que importan el paquete.
 - `pnpm install --frozen-lockfile`: si `pnpm-lock.yaml` no refleja
   exactamente los `package.json`, el job falla en vez de instalar otras
   versiones. La versión de pnpm sale de `packageManager` del `package.json`
