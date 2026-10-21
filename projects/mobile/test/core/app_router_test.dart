@@ -38,20 +38,20 @@ void main() {
     expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
-  testWidgets('sin sesión /registro es accesible', (tester) async {
+  testWidgets('sin sesión /register es accesible', (tester) async {
     final container = await montar(tester, SesionFalsa(const EstadoSesion.sinSesion()));
 
-    container.read(routerProvider).go('/registro');
+    container.read(routerProvider).go('/register');
     await tester.pumpAndSettle();
 
     expect(find.text('Crear cuenta'), findsWidgets);
     expect(find.text('Registrarme'), findsOneWidget);
   });
 
-  testWidgets('sin sesión /recuperar es accesible', (tester) async {
+  testWidgets('sin sesión /forgot-password es accesible', (tester) async {
     final container = await montar(tester, SesionFalsa(const EstadoSesion.sinSesion()));
 
-    container.read(routerProvider).go('/recuperar');
+    container.read(routerProvider).go('/forgot-password');
     await tester.pumpAndSettle();
 
     expect(find.text('Recuperar contraseña'), findsOneWidget);
@@ -70,10 +70,10 @@ void main() {
     expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
-  testWidgets('con sesión /recuperar redirige al inicio', (tester) async {
+  testWidgets('con sesión /forgot-password redirige al inicio', (tester) async {
     final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)));
 
-    container.read(routerProvider).go('/recuperar');
+    container.read(routerProvider).go('/forgot-password');
     await tester.pumpAndSettle();
 
     expect(find.text('Recuperar contraseña'), findsNothing);
@@ -90,7 +90,7 @@ void main() {
     expect(find.text('Iniciar sesión'), findsNothing);
     expect(find.text('Inicio'), findsWidgets);
 
-    container.read(routerProvider).go('/registro');
+    container.read(routerProvider).go('/register');
     await tester.pumpAndSettle();
     expect(find.text('Registrarme'), findsNothing);
   });

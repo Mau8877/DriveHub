@@ -32,9 +32,9 @@ Future<void> _montar(WidgetTester tester, _ServicioFalso servicio) async {
   addTearDown(tester.view.reset);
 
   final router = GoRouter(
-    initialLocation: '/registro',
+    initialLocation: '/register',
     routes: [
-      GoRoute(path: '/registro', builder: (_, _) => const RegistroScreen()),
+      GoRoute(path: '/register', builder: (_, _) => const RegistroScreen()),
       GoRoute(
         path: '/login',
         builder: (_, state) => LoginScreen(
