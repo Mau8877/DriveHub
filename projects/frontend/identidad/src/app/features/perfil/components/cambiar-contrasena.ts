@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core'
+import { CUSTOM_ELEMENTS_SCHEMA, Component, inject, signal } from '@angular/core'
 import {
   type AbstractControl,
   FormBuilder,
@@ -6,6 +6,7 @@ import {
   type ValidationErrors,
   Validators,
 } from '@angular/forms'
+import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
 import { PASSWORD_MAX, PASSWORD_MIN } from '../../registro'
@@ -37,67 +38,78 @@ function coherencia(grupo: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-cambiar-contrasena',
   imports: [ReactiveFormsModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <details class="bg-card border-border rounded-lg border p-4">
-      <summary class="cursor-pointer text-base font-semibold">Cambiar contraseña</summary>
+    <details class="dh-card dh-acordeon">
+      <summary>
+        <span class="dh-acordeon-ico"><dh-icono nombre="lock" [tam]="18" /></span>
+        <span class="dh-acordeon-texto">
+          <b>Cambiar contraseña</b>
+          <small>Cerraremos tus otras sesiones</small>
+        </span>
+        <dh-icono nombre="chevron-down" [tam]="18" />
+      </summary>
 
-      <form [formGroup]="form" (ngSubmit)="enviar()" class="mt-4 flex flex-col gap-4" novalidate>
-        <div class="flex flex-col gap-1">
-          <label for="passwordActual" class="text-sm font-medium">Contraseña actual</label>
+      <form [formGroup]="form" (ngSubmit)="enviar()" class="dh-acordeon-cuerpo" novalidate>
+        <div class="dh-field">
+          <label for="passwordActual" class="dh-label">Contraseña actual</label>
           <input
             id="passwordActual"
             type="password"
             formControlName="passwordActual"
             autocomplete="current-password"
-            class="border-border bg-background rounded-md border px-3 py-2 text-sm"
+            class="dh-input"
           />
           @if (error('passwordActual'); as mensaje) {
-            <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
+            <p class="dh-error" role="alert">{{ mensaje }}</p>
           }
         </div>
 
-        <div class="flex flex-col gap-1">
-          <label for="passwordNueva" class="text-sm font-medium">Contraseña nueva</label>
-          <input
-            id="passwordNueva"
-            type="password"
-            formControlName="passwordNueva"
-            autocomplete="new-password"
-            class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-          />
-          @if (error('passwordNueva'); as mensaje) {
-            <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-          }
-        </div>
+        <div class="dh-grid-2">
+          <div class="dh-field">
+            <label for="passwordNueva" class="dh-label">Contraseña nueva</label>
+            <input
+              id="passwordNueva"
+              type="password"
+              formControlName="passwordNueva"
+              autocomplete="new-password"
+              class="dh-input"
+            />
+            @if (error('passwordNueva'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
 
-        <div class="flex flex-col gap-1">
-          <label for="confirmacion" class="text-sm font-medium">Confirma la contraseña nueva</label>
-          <input
-            id="confirmacion"
-            type="password"
-            formControlName="confirmacion"
-            autocomplete="new-password"
-            class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-          />
-          @if (error('confirmacion'); as mensaje) {
-            <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-          }
+          <div class="dh-field">
+            <label for="confirmacion" class="dh-label">Confirma la nueva</label>
+            <input
+              id="confirmacion"
+              type="password"
+              formControlName="confirmacion"
+              autocomplete="new-password"
+              class="dh-input"
+            />
+            @if (error('confirmacion'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
         </div>
 
         @if (errorGeneral(); as mensaje) {
-          <p class="text-destructive text-sm" role="alert">{{ mensaje }}</p>
+          <p class="dh-notice dh-notice-error" role="alert">{{ mensaje }}</p>
         }
         @if (aviso(); as mensaje) {
-          <p class="text-sm" role="status">{{ mensaje }}</p>
+          <p class="dh-notice dh-notice-ok" role="status">
+            <dh-icono nombre="check-circle" [tam]="18" />
+            <span>{{ mensaje }}</span>
+          </p>
         }
 
-        <button
-          type="submit"
-          [disabled]="enviando()"
-          class="bg-primary text-primary-foreground self-start rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-        >
-          {{ enviando() ? 'Guardando…' : 'Cambiar contraseña' }}
-        </button>
+        <div class="dh-form-foot">
+          <button type="submit" [disabled]="enviando()" class="dh-btn">
+            {{ enviando() ? 'Guardando…' : 'Cambiar contraseña' }}
+          </button>
+        </div>
       </form>
     </details>
   `,

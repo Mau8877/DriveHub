@@ -183,7 +183,7 @@ describe('Perfil', () => {
   it('agrega las secciones de foto, contraseña y correo', async () => {
     await crear()
 
-    const secciones = html().querySelector('[data-testid="secciones"]')!
+    const secciones = html()
     expect(secciones.querySelector('app-foto-perfil')).not.toBeNull()
     expect(secciones.querySelector('app-cambiar-contrasena')).not.toBeNull()
     expect(secciones.querySelector('app-cambiar-correo')).not.toBeNull()

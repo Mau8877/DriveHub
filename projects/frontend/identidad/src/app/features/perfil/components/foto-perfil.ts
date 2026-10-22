@@ -1,4 +1,14 @@
-import { Component, OnDestroy, computed, inject, input, output, signal } from '@angular/core'
+import {
+  CUSTOM_ELEMENTS_SCHEMA,
+  Component,
+  OnDestroy,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core'
+import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
 import { avisarPerfilActualizado } from '../api/perfil.eventos'
@@ -16,110 +26,91 @@ import type { Perfil } from '../types/perfil.types'
  */
 @Component({
   selector: 'app-foto-perfil',
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <div class="bg-card border-border flex flex-col gap-3 rounded-lg border p-4">
-      <h2 class="text-base font-semibold">Foto</h2>
+    <div class="dh-foto-bloque">
+      <div class="dh-foto">
+        @if (imagenMostrada(); as url) {
+          <img [src]="url" alt="Tu foto de perfil" (error)="urlRota.set(url)" />
+        } @else {
+          <span aria-hidden="true">{{ iniciales() }}</span>
+        }
+      </div>
+      <h2>{{ perfil().nombres }} {{ perfil().apellidos }}</h2>
+      <p class="dh-muted">{{ rol() }}</p>
 
-      <div class="flex items-center gap-4">
-        <div
-          class="bg-primary text-primary-foreground flex size-20 items-center justify-center overflow-hidden rounded-full text-xl font-semibold"
-        >
-          @if (imagenMostrada(); as url) {
-            <img
-              [src]="url"
-              alt="Tu foto de perfil"
-              class="size-full object-cover"
-              (error)="urlRota.set(url)"
-            />
-          } @else {
-            <span aria-hidden="true">{{ iniciales() }}</span>
-          }
-        </div>
-
-        <div class="flex flex-wrap gap-2">
-          <input
-            #selector
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            class="hidden"
-            data-testid="selector-foto"
-            (change)="alElegir($event)"
-          />
-          @if (!seleccionada()) {
+      <div class="dh-foto-acciones">
+        <input
+          #selector
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          hidden
+          data-testid="selector-foto"
+          (change)="alElegir($event)"
+        />
+        @if (!seleccionada()) {
+          <button
+            type="button"
+            class="dh-btn dh-btn-soft dh-btn-sm"
+            [disabled]="ocupado()"
+            (click)="selector.click()"
+          >
+            <dh-icono nombre="camera" [tam]="16" />
+            {{ perfil().fotoUrl ? 'Cambiar foto' : 'Subir foto' }}
+          </button>
+          @if (perfil().fotoUrl && !confirmandoQuitar()) {
             <button
               type="button"
-              class="border-border rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+              class="dh-btn dh-btn-ghost dh-btn-sm"
               [disabled]="ocupado()"
-              (click)="selector.click()"
+              (click)="confirmandoQuitar.set(true)"
             >
-              {{ perfil().fotoUrl ? 'Cambiar foto' : 'Subir foto' }}
-            </button>
-            @if (perfil().fotoUrl && !confirmandoQuitar()) {
-              <button
-                type="button"
-                class="border-border rounded-md border px-3 py-1 text-sm disabled:opacity-50"
-                [disabled]="ocupado()"
-                (click)="confirmandoQuitar.set(true)"
-              >
-                Quitar foto
-              </button>
-            }
-          } @else {
-            <button
-              type="button"
-              class="bg-primary text-primary-foreground rounded-md px-3 py-1 text-sm disabled:opacity-50"
-              [disabled]="ocupado()"
-              (click)="guardar()"
-            >
-              {{ ocupado() ? 'Subiendo…' : 'Guardar foto' }}
-            </button>
-            <button
-              type="button"
-              class="border-border rounded-md border px-3 py-1 text-sm disabled:opacity-50"
-              [disabled]="ocupado()"
-              (click)="cancelar()"
-            >
-              Cancelar
+              <dh-icono nombre="trash" [tam]="16" />
+              Quitar
             </button>
           }
-        </div>
+        } @else {
+          <button type="button" class="dh-btn dh-btn-sm" [disabled]="ocupado()" (click)="guardar()">
+            {{ ocupado() ? 'Subiendo…' : 'Guardar foto' }}
+          </button>
+          <button
+            type="button"
+            class="dh-btn dh-btn-ghost dh-btn-sm"
+            [disabled]="ocupado()"
+            (click)="cancelar()"
+          >
+            Cancelar
+          </button>
+        }
       </div>
 
-      @if (confirmandoQuitar()) {
-        <div class="flex items-center gap-2 text-sm" role="alertdialog" aria-label="Quitar foto">
-          <span>¿Quitar tu foto?</span>
-          <button
-            type="button"
-            class="bg-destructive text-destructive-foreground rounded-md px-3 py-1 text-sm disabled:opacity-50"
-            [disabled]="ocupado()"
-            (click)="quitar()"
-          >
-            Sí, quitar
-          </button>
-          <button
-            type="button"
-            class="border-border rounded-md border px-3 py-1 text-sm"
-            [disabled]="ocupado()"
-            (click)="confirmandoQuitar.set(false)"
-          >
-            No
-          </button>
-        </div>
-      }
-
       @if (error(); as mensaje) {
-        <p class="text-destructive text-sm" role="alert">{{ mensaje }}</p>
+        <p class="dh-error" role="alert">{{ mensaje }}</p>
       }
       @if (aviso(); as mensaje) {
-        <p class="text-sm" role="status">{{ mensaje }}</p>
+        <p class="dh-notice dh-notice-ok" role="status">{{ mensaje }}</p>
       }
+      <p class="dh-hint">JPG, PNG o WebP · hasta 5 MB · máx. 4000×4000 px</p>
     </div>
+
+    <dh-dialogo
+      [abierto]="confirmandoQuitar()"
+      titulo="¿Quitar tu foto?"
+      texto="Tu cuenta volverá a mostrar tus iniciales."
+      aceptar="Quitar"
+      [peligro]="true"
+      [ocupado]="ocupado()"
+      (dh-aceptar)="quitar()"
+      (dh-cancelar)="confirmandoQuitar.set(false)"
+    />
   `,
 })
 export class FotoPerfil implements OnDestroy {
   private readonly api = inject(PerfilService)
 
   readonly perfil = input.required<Perfil>()
+  /** Etiqueta legible del rol, que se muestra bajo el nombre. */
+  readonly rol = input<string>('')
   readonly perfilCambiado = output<Perfil>()
 
   protected readonly seleccionada = signal<File | null>(null)

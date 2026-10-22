@@ -1,6 +1,14 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
+import {
+  CUSTOM_ELEMENTS_SCHEMA,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
+import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
 import {
@@ -48,131 +56,145 @@ function hoyComoTexto(): string {
 @Component({
   selector: 'app-perfil',
   imports: [ReactiveFormsModule, FotoPerfil, CambiarContrasena, CambiarCorreo],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <section class="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <h1 class="text-xl font-semibold">Mi perfil</h1>
+    <section class="dh-page">
+      <div class="dh-page-head">
+        <div>
+          <h1>Mi perfil</h1>
+          <p>Tus datos, tu foto y la seguridad de tu cuenta.</p>
+        </div>
+      </div>
 
       @if (cargando()) {
-        <p class="text-muted-foreground text-sm" role="status">Cargando tu perfil…</p>
+        <p class="dh-muted dh-texto-sm" role="status">Cargando tu perfil…</p>
       } @else if (perfil(); as p) {
-        <div class="bg-card border-border flex flex-col gap-2 rounded-lg border p-4">
-          <div class="flex items-center gap-2 text-sm">
-            <span class="text-muted-foreground w-24">Correo</span>
-            <span data-testid="email">{{ p.email }}</span>
-            @if (p.correoVerificado) {
-              <span class="bg-accent text-accent-foreground rounded-full px-2 text-xs"
-                >Verificado</span
-              >
-            } @else {
-              <span class="text-muted-foreground border-border rounded-full border px-2 text-xs"
-                >Sin verificar</span
-              >
-            }
-          </div>
-          <div class="flex gap-2 text-sm">
-            <span class="text-muted-foreground w-24">Rol</span>
-            <span data-testid="rol">{{ rolesLegibles(p) }}</span>
-          </div>
-          @if (p.escuelaNombre) {
-            <div class="flex gap-2 text-sm">
-              <span class="text-muted-foreground w-24">Escuela</span>
-              <span data-testid="escuela">{{ p.escuelaNombre }}</span>
-            </div>
-          }
-        </div>
-
-        <form
-          [formGroup]="form"
-          (ngSubmit)="guardar()"
-          class="bg-card border-border flex flex-col gap-4 rounded-lg border p-4"
-          novalidate
-        >
-          <h2 class="text-base font-semibold">Datos personales</h2>
-
-          <div class="flex flex-col gap-1">
-            <label for="nombres" class="text-sm font-medium">Nombres</label>
-            <input
-              id="nombres"
-              formControlName="nombres"
-              autocomplete="given-name"
-              class="border-border bg-background rounded-md border px-3 py-2 text-sm"
+        <div class="dh-perfil-grid">
+          <aside class="dh-card dh-perfil-card">
+            <app-foto-perfil
+              [perfil]="p"
+              [rol]="rolesLegibles(p)"
+              (perfilCambiado)="reemplazar($event)"
             />
-            @if (error('nombres'); as mensaje) {
-              <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-            }
+            <dl class="dh-ro">
+              <div>
+                <dt>Correo</dt>
+                <dd>
+                  <span data-testid="email">{{ p.email }}</span>
+                  @if (p.correoVerificado) {
+                    <span class="dh-badge dh-badge-ok">Verificado</span>
+                  } @else {
+                    <span class="dh-badge">Sin verificar</span>
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>Rol</dt>
+                <dd data-testid="rol">{{ rolesLegibles(p) }}</dd>
+              </div>
+              @if (p.escuelaNombre) {
+                <div>
+                  <dt>Escuela</dt>
+                  <dd data-testid="escuela">{{ p.escuelaNombre }}</dd>
+                </div>
+              }
+            </dl>
+          </aside>
+
+          <div class="dh-perfil-main">
+            <form [formGroup]="form" (ngSubmit)="guardar()" class="dh-card" novalidate>
+              <div class="dh-card-head"><h2>Datos personales</h2></div>
+
+              <div class="dh-grid-2">
+                <div class="dh-field">
+                  <label for="nombres" class="dh-label">Nombres</label>
+                  <input
+                    id="nombres"
+                    formControlName="nombres"
+                    autocomplete="given-name"
+                    class="dh-input"
+                  />
+                  @if (error('nombres'); as mensaje) {
+                    <p class="dh-error" role="alert">{{ mensaje }}</p>
+                  }
+                </div>
+
+                <div class="dh-field">
+                  <label for="apellidos" class="dh-label">Apellidos</label>
+                  <input
+                    id="apellidos"
+                    formControlName="apellidos"
+                    autocomplete="family-name"
+                    class="dh-input"
+                  />
+                  @if (error('apellidos'); as mensaje) {
+                    <p class="dh-error" role="alert">{{ mensaje }}</p>
+                  }
+                </div>
+              </div>
+
+              <div class="dh-grid-2">
+                <div class="dh-field">
+                  <label for="telefono" class="dh-label"
+                    >Teléfono <span class="dh-opt">(opcional)</span></label
+                  >
+                  <input
+                    id="telefono"
+                    type="tel"
+                    formControlName="telefono"
+                    autocomplete="tel"
+                    class="dh-input"
+                  />
+                  @if (error('telefono'); as mensaje) {
+                    <p class="dh-error" role="alert">{{ mensaje }}</p>
+                  }
+                </div>
+
+                <div class="dh-field">
+                  <label for="fechaNacimiento" class="dh-label">Fecha de nacimiento</label>
+                  <input
+                    id="fechaNacimiento"
+                    type="date"
+                    formControlName="fechaNacimiento"
+                    [max]="hoy"
+                    autocomplete="bday"
+                    class="dh-input"
+                  />
+                  @if (error('fechaNacimiento'); as mensaje) {
+                    <p class="dh-error" role="alert">{{ mensaje }}</p>
+                  }
+                </div>
+              </div>
+
+              @if (errorGeneral(); as mensaje) {
+                <p class="dh-notice dh-notice-error" role="alert">{{ mensaje }}</p>
+              }
+              @if (aviso(); as mensaje) {
+                <p class="dh-notice dh-notice-ok" role="status">
+                  <dh-icono nombre="check-circle" [tam]="18" />
+                  <span>{{ mensaje }}</span>
+                </p>
+              }
+
+              <div class="dh-form-foot">
+                <button
+                  type="submit"
+                  [disabled]="guardando() || form.invalid || !hayCambios()"
+                  class="dh-btn"
+                >
+                  {{ guardando() ? 'Guardando…' : 'Guardar cambios' }}
+                </button>
+              </div>
+            </form>
+
+            <app-cambiar-contrasena />
+            <app-cambiar-correo [perfil]="p" (perfilCambiado)="reemplazar($event)" />
           </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="apellidos" class="text-sm font-medium">Apellidos</label>
-            <input
-              id="apellidos"
-              formControlName="apellidos"
-              autocomplete="family-name"
-              class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-            />
-            @if (error('apellidos'); as mensaje) {
-              <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-            }
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="telefono" class="text-sm font-medium">Teléfono (opcional)</label>
-            <input
-              id="telefono"
-              type="tel"
-              formControlName="telefono"
-              autocomplete="tel"
-              class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-            />
-            @if (error('telefono'); as mensaje) {
-              <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-            }
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="fechaNacimiento" class="text-sm font-medium">Fecha de nacimiento</label>
-            <input
-              id="fechaNacimiento"
-              type="date"
-              formControlName="fechaNacimiento"
-              [max]="hoy"
-              autocomplete="bday"
-              class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-            />
-            @if (error('fechaNacimiento'); as mensaje) {
-              <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-            }
-          </div>
-
-          @if (errorGeneral(); as mensaje) {
-            <p class="text-destructive text-sm" role="alert">{{ mensaje }}</p>
-          }
-          @if (aviso(); as mensaje) {
-            <p class="text-sm" role="status">{{ mensaje }}</p>
-          }
-
-          <button
-            type="submit"
-            [disabled]="guardando() || form.invalid || !hayCambios()"
-            class="bg-primary text-primary-foreground self-start rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
-            {{ guardando() ? 'Guardando…' : 'Guardar cambios' }}
-          </button>
-        </form>
-
-        <div class="flex flex-col gap-4" data-testid="secciones">
-          <app-foto-perfil [perfil]="p" (perfilCambiado)="reemplazar($event)" />
-          <app-cambiar-contrasena />
-          <app-cambiar-correo [perfil]="p" (perfilCambiado)="reemplazar($event)" />
         </div>
       } @else {
-        <div class="flex flex-col items-start gap-2">
-          <p class="text-destructive text-sm" role="alert">No pudimos cargar tu perfil.</p>
-          <button
-            type="button"
-            class="border-border rounded-md border px-3 py-1 text-sm"
-            (click)="cargar()"
-          >
+        <div class="dh-pila">
+          <p class="dh-notice dh-notice-error" role="alert">No pudimos cargar tu perfil.</p>
+          <button type="button" class="dh-btn dh-btn-ghost dh-btn-sm" (click)="cargar()">
             Reintentar
           </button>
         </div>

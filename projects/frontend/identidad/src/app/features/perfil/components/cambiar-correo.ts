@@ -1,5 +1,14 @@
-import { Component, DestroyRef, inject, input, output, signal } from '@angular/core'
+import {
+  CUSTOM_ELEMENTS_SCHEMA,
+  Component,
+  DestroyRef,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
+import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
 import { ApiError } from '../../../core/api/api.types'
@@ -21,73 +30,83 @@ type Campo = 'passwordActual' | 'correoNuevo'
 @Component({
   selector: 'app-cambiar-correo',
   imports: [ReactiveFormsModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <details class="bg-card border-border rounded-lg border p-4">
-      <summary class="cursor-pointer text-base font-semibold">Cambiar correo</summary>
+    <details class="dh-card dh-acordeon">
+      <summary>
+        <span class="dh-acordeon-ico"><dh-icono nombre="mail" [tam]="18" /></span>
+        <span class="dh-acordeon-texto">
+          <b>Cambiar correo</b>
+          <small>Lo confirmas con un enlace en el correo nuevo</small>
+        </span>
+        <dh-icono nombre="chevron-down" [tam]="18" />
+      </summary>
 
-      <p class="text-muted-foreground mt-4 text-sm">
-        Tu correo actual es <span data-testid="correo-actual">{{ perfil().email }}</span>
-      </p>
-
-      @if (aviso(); as mensaje) {
-        <p class="mt-2 text-sm" role="status">{{ mensaje }}</p>
-      }
-
-      @if (pendiente(); as correo) {
-        <p class="mt-2 text-sm" role="status" data-testid="pendiente">
-          Te enviamos un correo a {{ correo }}. Tu correo no cambia hasta que abras el enlace (vale
-          24 horas).
+      <div class="dh-acordeon-cuerpo">
+        <p class="dh-muted dh-texto-sm dh-mb">
+          Tu correo actual es <b data-testid="correo-actual">{{ perfil().email }}</b>
         </p>
-        <button
-          type="button"
-          class="border-border mt-2 rounded-md border px-3 py-1 text-sm"
-          (click)="pendiente.set(null)"
-        >
-          Pedir otro enlace
-        </button>
-      } @else {
-        <form [formGroup]="form" (ngSubmit)="enviar()" class="mt-4 flex flex-col gap-4" novalidate>
-          <div class="flex flex-col gap-1">
-            <label for="correoPasswordActual" class="text-sm font-medium">Contraseña actual</label>
-            <input
-              id="correoPasswordActual"
-              type="password"
-              formControlName="passwordActual"
-              autocomplete="current-password"
-              class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-            />
-            @if (error('passwordActual'); as mensaje) {
-              <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-            }
-          </div>
 
-          <div class="flex flex-col gap-1">
-            <label for="correoNuevo" class="text-sm font-medium">Correo nuevo</label>
-            <input
-              id="correoNuevo"
-              type="email"
-              formControlName="correoNuevo"
-              autocomplete="email"
-              class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-            />
-            @if (error('correoNuevo'); as mensaje) {
-              <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-            }
-          </div>
+        @if (aviso(); as mensaje) {
+          <p class="dh-notice dh-notice-ok" role="status">
+            <dh-icono nombre="check-circle" [tam]="18" />
+            <span>{{ mensaje }}</span>
+          </p>
+        }
 
-          @if (errorGeneral(); as mensaje) {
-            <p class="text-destructive text-sm" role="alert">{{ mensaje }}</p>
-          }
-
-          <button
-            type="submit"
-            [disabled]="enviando()"
-            class="bg-primary text-primary-foreground self-start rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
-            {{ enviando() ? 'Enviando…' : 'Enviar enlace' }}
+        @if (pendiente(); as correo) {
+          <p class="dh-notice dh-notice-info" role="status" data-testid="pendiente">
+            <dh-icono nombre="mail" [tam]="18" />
+            <span>
+              Te enviamos un correo a {{ correo }}. Tu correo no cambia hasta que abras el enlace
+              (vale 24 horas).
+            </span>
+          </p>
+          <button type="button" class="dh-btn dh-btn-ghost dh-btn-sm" (click)="pendiente.set(null)">
+            Pedir otro enlace
           </button>
-        </form>
-      }
+        } @else {
+          <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+            <div class="dh-field">
+              <label for="correoPasswordActual" class="dh-label">Contraseña actual</label>
+              <input
+                id="correoPasswordActual"
+                type="password"
+                formControlName="passwordActual"
+                autocomplete="current-password"
+                class="dh-input"
+              />
+              @if (error('passwordActual'); as mensaje) {
+                <p class="dh-error" role="alert">{{ mensaje }}</p>
+              }
+            </div>
+
+            <div class="dh-field">
+              <label for="correoNuevo" class="dh-label">Correo nuevo</label>
+              <input
+                id="correoNuevo"
+                type="email"
+                formControlName="correoNuevo"
+                autocomplete="email"
+                class="dh-input"
+              />
+              @if (error('correoNuevo'); as mensaje) {
+                <p class="dh-error" role="alert">{{ mensaje }}</p>
+              }
+            </div>
+
+            @if (errorGeneral(); as mensaje) {
+              <p class="dh-notice dh-notice-error" role="alert">{{ mensaje }}</p>
+            }
+
+            <div class="dh-form-foot">
+              <button type="submit" [disabled]="enviando()" class="dh-btn">
+                {{ enviando() ? 'Enviando…' : 'Enviar enlace' }}
+              </button>
+            </div>
+          </form>
+        }
+      </div>
     </details>
   `,
 })

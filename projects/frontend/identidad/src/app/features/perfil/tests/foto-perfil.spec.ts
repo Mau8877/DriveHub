@@ -70,20 +70,20 @@ describe('FotoPerfil', () => {
     vi.unstubAllGlobals()
   })
 
-  it('sin foto muestra iniciales y "Subir foto", sin "Quitar foto"', async () => {
+  it('sin foto muestra iniciales y "Subir foto", sin "Quitar"', async () => {
     await crear(PERFIL)
 
     expect(html().textContent).toContain('AP')
     expect(boton('Subir foto')).toBeDefined()
-    expect(boton('Quitar foto')).toBeUndefined()
+    expect(boton('Quitar')).toBeUndefined()
   })
 
-  it('con foto ofrece "Cambiar foto" y "Quitar foto"', async () => {
+  it('con foto ofrece "Cambiar foto" y "Quitar"', async () => {
     await crear({ ...PERFIL, fotoUrl: 'http://minio/f.png' })
 
     expect(html().querySelector('img')?.getAttribute('src')).toBe('http://minio/f.png')
     expect(boton('Cambiar foto')).toBeDefined()
-    expect(boton('Quitar foto')).toBeDefined()
+    expect(boton('Quitar')).toBeDefined()
   })
 
   it('un archivo inválido no llama a la API y muestra su mensaje', async () => {
@@ -134,16 +134,21 @@ describe('FotoPerfil', () => {
     expect(eventos).toEqual([])
   })
 
-  it('quitar pide confirmación, llama a quitarFoto y emite el evento con fotoUrl null', async () => {
+  it('quitar pide confirmación en un diálogo, llama a quitarFoto y emite el evento con fotoUrl null', async () => {
     api.quitarFoto.mockReturnValue(of({ ...PERFIL, fotoUrl: null }))
     await crear({ ...PERFIL, fotoUrl: 'http://minio/f.png' })
 
-    boton('Quitar foto')!.click()
+    boton('Quitar')!.click()
     fixture.detectChanges()
-    expect(html().textContent).toContain('¿Quitar tu foto?')
+    const dialogo = html().querySelector('dh-dialogo') as HTMLElement & {
+      abierto: boolean
+      titulo: string
+    }
+    expect(dialogo.abierto).toBe(true)
+    expect(dialogo.titulo).toBe('¿Quitar tu foto?')
     expect(api.quitarFoto).not.toHaveBeenCalled()
 
-    boton('Sí, quitar')!.click()
+    dialogo.dispatchEvent(new CustomEvent('dh-aceptar'))
     await fixture.whenStable()
     fixture.detectChanges()
 

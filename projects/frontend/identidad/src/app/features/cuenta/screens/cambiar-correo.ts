@@ -1,5 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { CUSTOM_ELEMENTS_SCHEMA, Component, OnInit, inject, signal } from '@angular/core'
 import { ActivatedRoute, RouterLink } from '@angular/router'
+import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
 import { ApiError } from '../../../core/api/api.types'
@@ -17,40 +18,50 @@ type Estado = 'confirmando' | 'cambiado' | 'invalido' | 'error'
 @Component({
   selector: 'app-cambiar-correo-confirmacion',
   imports: [RouterLink],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <section class="flex min-h-svh items-center justify-center p-6">
-      <div class="bg-card border-border w-full max-w-md rounded-lg border p-6">
-        @switch (estado()) {
-          @case ('confirmando') {
-            <h1 class="mb-1 text-xl font-semibold">Confirmando tu correo…</h1>
-            <p class="text-muted-foreground text-sm" role="status">Un momento, por favor.</p>
-          }
-          @case ('cambiado') {
-            <h1 class="mb-1 text-xl font-semibold">Tu correo se cambió correctamente</h1>
-            <p class="text-muted-foreground mb-4 text-sm" role="status">
-              Desde ahora inicias sesión con tu correo nuevo.
-            </p>
-            <a routerLink="/" class="text-sm font-medium underline">Ir a la aplicación</a>
-          }
-          @case ('invalido') {
-            <h1 class="mb-1 text-xl font-semibold">Enlace no válido</h1>
-            <p class="text-destructive mb-4 text-sm" role="alert">
+    <dh-auth-layout
+      titulo="Cambio de correo"
+      mensaje="Confirma la dirección nueva de tu cuenta de DriveHub."
+    >
+      @switch (estado()) {
+        @case ('confirmando') {
+          <div class="dh-state">
+            <div class="dh-icono-grande"><dh-icono nombre="mail" [tam]="34" /></div>
+            <h1 class="dh-titulo-auth">Confirmando tu correo…</h1>
+            <p class="dh-sub-auth" role="status">Un momento, por favor.</p>
+          </div>
+        }
+        @case ('cambiado') {
+          <div class="dh-state">
+            <div class="dh-icono-grande dh-ok"><dh-icono nombre="check-circle" [tam]="34" /></div>
+            <h1 class="dh-titulo-auth">Tu correo se cambió correctamente</h1>
+            <p class="dh-sub-auth" role="status">Desde ahora inicias sesión con tu correo nuevo.</p>
+            <a routerLink="/" class="dh-btn dh-btn-block">Ir a la aplicación</a>
+          </div>
+        }
+        @case ('invalido') {
+          <div class="dh-state">
+            <div class="dh-icono-grande dh-mal"><dh-icono nombre="alert" [tam]="34" /></div>
+            <h1 class="dh-titulo-auth">Enlace no válido</h1>
+            <p class="dh-sub-auth" role="alert">
               El enlace no es válido, venció o ya se usó. Pide uno nuevo desde tu perfil.
             </p>
-            <a routerLink="/perfil" class="text-sm font-medium underline">Ir a mi perfil</a>
-          }
-          @case ('error') {
-            <h1 class="mb-1 text-xl font-semibold">No pudimos confirmar el cambio</h1>
-            <p class="text-destructive mb-4 text-sm" role="alert">
-              Ocurrió un error. Intenta de nuevo.
-            </p>
-            <button type="button" class="text-sm font-medium underline" (click)="confirmar()">
+            <a routerLink="/perfil" class="dh-btn dh-btn-soft dh-btn-block">Ir a mi perfil</a>
+          </div>
+        }
+        @case ('error') {
+          <div class="dh-state">
+            <div class="dh-icono-grande dh-mal"><dh-icono nombre="alert" [tam]="34" /></div>
+            <h1 class="dh-titulo-auth">No pudimos confirmar el cambio</h1>
+            <p class="dh-sub-auth" role="alert">Ocurrió un error. Intenta de nuevo.</p>
+            <button type="button" class="dh-btn dh-btn-soft dh-btn-block" (click)="confirmar()">
               Reintentar
             </button>
-          }
+          </div>
         }
-      </div>
-    </section>
+      }
+    </dh-auth-layout>
   `,
 })
 export class CambiarCorreoConfirmacion implements OnInit {
