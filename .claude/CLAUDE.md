@@ -27,6 +27,7 @@ projects/
 └── mobile/                  # Flutter (estudiante e instructor)
 packages/
 ├── design-tokens/           # Variables CSS + tema Tailwind comunes a toda la web
+├── ui/                      # <dh-shell>, <dh-sidebar>, <dh-header>, <dh-auth-layout> y clases base: el diseño Asfalto
 └── mf-contract/             # Contrato shell <-> remotos (sesión, mount/unmount, eventos)
 infrastructure/              # nginx, postgres (init), minio, prometheus, grafana
 ```

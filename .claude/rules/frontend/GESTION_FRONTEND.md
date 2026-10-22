@@ -28,15 +28,31 @@ hecha a mano "solo esta vez".
 
 ## Una ruta por pantalla de gestión
 
-`<dh-gestion>` maneja por dentro las vistas lista / crear / editar. El
+`<dh-gestion>` maneja por dentro el listado y el **panel lateral (drawer)** de crear / editar. El
 remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
 `/:codigo/editar` aparte). Ver `escuela/src/app/routes-escuelas.ts`.
+
+## Anatomía (la del diseño Asfalto)
+
+- **Cabecera** con título, descripción y el botón de crear (con icono).
+- **Barra**: buscador con icono y filtros como **control segmentado** (`Todas` + las opciones del
+  filtro; con más de 4 opciones pasa a lista desplegable).
+- **Tabla** con esqueleto mientras carga, estado vacío con icono, columna principal con ficha de
+  icono, slug como código, insignias con punto, fechas `04 may 2026` y **acciones con icono**.
+  En móvil la tabla pasa a tarjetas.
+- **Paginación** con "Mostrando a–b de N" y botones numerados.
+- **Crear y editar** se abren en un **drawer** a la derecha (desde abajo en móvil) sobre el listado,
+  que sigue visible; secciones numeradas, campos `mitad` en dos columnas, contraseña con ojo,
+  pie fijo con Cancelar y Guardar. Se cierra con la X, Escape o un clic en el fondo.
+- **Confirmar** una acción (`confirmar` en el esquema) abre un **diálogo**, no una fila inline.
+- **Avisos** de éxito o error como toast abajo a la derecha, que se va solo.
 
 ## El esquema
 
 Un archivo por pantalla, `features/{feature}/schemas/{recurso}.esquema.ts`
 (`.ts` en Angular, igual en React), tipado con `EsquemaGestion` de
-`@drivehub/gestion`. Es **datos, no código**: columnas, búsqueda, filtros,
+`@drivehub/gestion`. Es **datos, no código** (iconos por nombre de `@drivehub/ui`: `icono` en acciones y columnas,
+`principal`/`codigo` en columnas, `mitad` en campos, `confirmarTexto` en acciones): columnas, búsqueda, filtros,
 secciones y campos del formulario, acciones por fila y mapeo de errores
 del backend a campos (`erroresDeCampo`). El componente llama a la API a
 través del contexto del shell (token, URL base, renovación de sesión), así
