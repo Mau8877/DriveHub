@@ -22,8 +22,13 @@ describe('esquema de escuelas', () => {
   it('las acciones coinciden con los endpoints: DELETE {id} confirma y POST {id}/reactivar no', () => {
     const [desactivar, reactivar] = ESQUEMA_ESCUELAS.acciones!
 
-    expect(desactivar).toMatchObject({ metodo: 'DELETE', ruta: '{id}', confirmar: '¿Desactivar?' })
-    expect(reactivar).toMatchObject({ metodo: 'POST', ruta: '{id}/reactivar' })
+    expect(desactivar).toMatchObject({
+      metodo: 'DELETE',
+      ruta: '{id}',
+      confirmar: '¿Desactivar la escuela?',
+      icono: 'power',
+    })
+    expect(reactivar).toMatchObject({ metodo: 'POST', ruta: '{id}/reactivar', icono: 'refresh' })
     expect(reactivar.confirmar).toBeUndefined()
   })
 

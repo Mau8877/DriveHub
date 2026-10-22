@@ -23,6 +23,7 @@
     "@drivehub/design-tokens": "workspace:*",
     "@drivehub/gestion": "workspace:*",
     "@drivehub/mf-contract": "workspace:*",
+    "@drivehub/ui": "workspace:*",
     "es-module-shims": "^2.8.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"

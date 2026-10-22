@@ -15,8 +15,8 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
   descripcion: 'Escuelas activas e inactivas de la plataforma.',
   nombreSingular: 'escuela',
   columnas: [
-    { campo: 'nombre', titulo: 'Nombre' },
-    { campo: 'slug', titulo: 'Slug', secundaria: true },
+    { campo: 'nombre', titulo: 'Nombre', principal: true, icono: 'school' },
+    { campo: 'slug', titulo: 'Slug', secundaria: true, codigo: true },
     {
       campo: 'estado',
       titulo: 'Estado',
@@ -78,6 +78,7 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
             titulo: 'Nombres',
             requerido: true,
             max: 80,
+            mitad: true,
             mensajes: { requerido: 'Los nombres son obligatorios' },
           },
           {
@@ -85,6 +86,7 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
             titulo: 'Apellidos',
             requerido: true,
             max: 80,
+            mitad: true,
             mensajes: { requerido: 'Los apellidos son obligatorios' },
           },
           {
@@ -93,11 +95,19 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
             tipo: 'fecha',
             requerido: true,
             validaciones: ['fechaNoFutura', 'edadMinima:18'],
+            mitad: true,
             mensajes: {
               requerido: 'La fecha de nacimiento es obligatoria',
               fechaNoFutura: 'La fecha de nacimiento debe estar en el pasado',
               edadMinima: 'El administrador debe tener al menos 18 años',
             },
+          },
+          {
+            campo: 'administrador.telefono',
+            titulo: 'Teléfono',
+            tipo: 'telefono',
+            max: 20,
+            mitad: true,
           },
           {
             campo: 'administrador.email',
@@ -119,8 +129,8 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
               min: 'La contraseña debe tener entre 9 y 64 caracteres',
               max: 'La contraseña debe tener entre 9 y 64 caracteres',
             },
+            ayuda: 'Entre 9 y 64 caracteres.',
           },
-          { campo: 'administrador.telefono', titulo: 'Teléfono', tipo: 'telefono', max: 20 },
         ],
       },
     ],
@@ -164,7 +174,9 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
       etiqueta: 'Desactivar',
       metodo: 'DELETE',
       ruta: '{id}',
-      confirmar: '¿Desactivar?',
+      icono: 'power',
+      confirmar: '¿Desactivar la escuela?',
+      confirmarTexto: 'Sus cuentas no podrán iniciar sesión hasta que la reactives.',
       mensajeExito: 'Escuela desactivada correctamente.',
       visibleSi: { campo: 'estado', igual: 'ACTIVA' },
       tono: 'peligro',
@@ -172,6 +184,7 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
     {
       id: 'reactivar',
       etiqueta: 'Reactivar',
+      icono: 'refresh',
       metodo: 'POST',
       ruta: '{id}/reactivar',
       mensajeExito: 'Escuela reactivada correctamente.',
