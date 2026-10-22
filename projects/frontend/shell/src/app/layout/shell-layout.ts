@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 
 import { SesionService } from '../core/sesion/sesion.service'
+import { AvatarMenu } from './avatar-menu'
 import { navItemsDeRoles } from './nav-items'
 
 /**
@@ -13,7 +14,7 @@ import { navItemsDeRoles } from './nav-items'
  */
 @Component({
   selector: 'app-shell-layout',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [AvatarMenu, RouterLink, RouterLinkActive, RouterOutlet],
   template: `
     <div class="flex min-h-svh">
       <aside
@@ -63,6 +64,9 @@ import { navItemsDeRoles } from './nav-items'
           >
             Cerrar sesión
           </button>
+          @if (sesion.usuario()) {
+            <app-avatar-menu />
+          }
         </header>
         @if (aviso(); as mensaje) {
           <p
@@ -81,7 +85,7 @@ import { navItemsDeRoles } from './nav-items'
   `,
 })
 export class ShellLayout {
-  private readonly sesion = inject(SesionService)
+  protected readonly sesion = inject(SesionService)
 
   // * Cada rol ve solo su menú: el Super admin y el Administrador de escuela no se mezclan (CU05)
   protected readonly navItems = computed(() => navItemsDeRoles(this.sesion.usuario()?.roles ?? []))

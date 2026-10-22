@@ -55,6 +55,14 @@ export const routes: Routes = [
         loadChildren: () => loadRemoteModule('escuela', './routes-escuelas').then((m) => m.routes),
       },
 
+      // Perfil de la cuenta propia (CU06). De primer nivel porque el shell es dueño de ese nivel; las
+      // pantallas son del remoto `identidad`, que las expone aparte de './routes'. La ven los cuatro
+      // roles, así que no lleva rolGuard; se llega desde el menú del avatar, no desde el menú lateral.
+      {
+        path: 'perfil',
+        loadChildren: () => loadRemoteModule('identidad', './routes-perfil').then((m) => m.routes),
+      },
+
       // Angular: Identidad (CU01, CU06), Escuela (CU05, CU07 a CU11), Pagos (CU25)
       {
         path: 'identidad',

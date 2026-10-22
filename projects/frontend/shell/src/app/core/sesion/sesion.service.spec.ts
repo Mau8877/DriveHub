@@ -5,6 +5,9 @@ import { Router } from '@angular/router'
 
 import { apiInterceptor } from '../api/api.interceptor'
 import { API_BASE_URL } from '../config'
+import { emitirEvento } from '@drivehub/mf-contract'
+
+import { EVENTO_PERFIL_ACTUALIZADO } from './eventos'
 import { SesionService } from './sesion.service'
 
 const USUARIO = {
@@ -286,6 +289,63 @@ describe('SesionService', () => {
       await volverAVerLaPestania('visible')
 
       backend.expectNone(`${API_BASE_URL}/auth/refresh`)
+    })
+  })
+
+  describe('Perfil (CU06)', () => {
+    it('la fotoUrl de login y de renovación queda en usuario(); sin foto es null', async () => {
+      await login()
+      expect(servicio.usuario()?.fotoUrl).toBeNull()
+
+      const promesa = servicio.renovar()
+      const conFoto = sesion('jwt-2')
+      conFoto.data.usuario = { ...USUARIO, fotoUrl: 'http://minio/foto.png' } as typeof USUARIO
+      backend.expectOne(`${API_BASE_URL}/auth/refresh`).flush(conFoto)
+      await promesa
+
+      expect(servicio.usuario()?.fotoUrl).toBe('http://minio/foto.png')
+    })
+
+    it('actualizarPerfil cambia solo los campos pasados', async () => {
+      await login()
+
+      servicio.actualizarPerfil({ fotoUrl: 'http://minio/nueva.png' })
+      expect(servicio.usuario()).toMatchObject({
+        nombres: 'Ana',
+        apellidos: 'Pérez',
+        fotoUrl: 'http://minio/nueva.png',
+      })
+
+      servicio.actualizarPerfil({ nombres: 'Luisa' })
+      expect(servicio.usuario()).toMatchObject({
+        nombres: 'Luisa',
+        fotoUrl: 'http://minio/nueva.png',
+      })
+
+      servicio.actualizarPerfil({ fotoUrl: null })
+      expect(servicio.usuario()?.fotoUrl).toBeNull()
+    })
+
+    it('un evento perfil-actualizado actualiza el usuario', async () => {
+      await login()
+
+      emitirEvento(EVENTO_PERFIL_ACTUALIZADO, {
+        nombres: 'María',
+        apellidos: 'Gómez',
+        fotoUrl: null,
+      })
+
+      expect(servicio.usuario()).toMatchObject({
+        nombres: 'María',
+        apellidos: 'Gómez',
+        fotoUrl: null,
+      })
+    })
+
+    it('sin sesión, el evento no hace nada', () => {
+      emitirEvento(EVENTO_PERFIL_ACTUALIZADO, { nombres: 'María' })
+
+      expect(servicio.usuario()).toBeNull()
     })
   })
 })

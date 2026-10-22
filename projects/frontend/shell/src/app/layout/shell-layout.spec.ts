@@ -13,6 +13,7 @@ const USUARIO: UsuarioSesion = {
   roles: ['ADMIN_ESCUELA'],
   escuelaCodigo: 'e1',
   correoVerificado: false,
+  fotoUrl: null,
 }
 
 describe('ShellLayout', () => {
@@ -39,6 +40,20 @@ describe('ShellLayout', () => {
       )
     return { fixture, boton, html: fixture.nativeElement as HTMLElement }
   }
+
+  describe('Avatar (CU06)', () => {
+    it('con usuario muestra el menú del avatar', () => {
+      const { html } = crear(USUARIO)
+
+      expect(html.querySelector('app-avatar-menu')).not.toBeNull()
+    })
+
+    it('sin usuario no lo muestra', () => {
+      const { html } = crear(null)
+
+      expect(html.querySelector('app-avatar-menu')).toBeNull()
+    })
+  })
 
   describe('Menú por rol', () => {
     const etiquetas = (html: HTMLElement) =>

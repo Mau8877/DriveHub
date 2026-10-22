@@ -26,6 +26,15 @@ describe('rutas del shell', () => {
     expect(escuelas?.canActivate).toHaveLength(1)
   })
 
+  it('/perfil está dentro del layout con sesión y sin rolGuard (CU06)', () => {
+    const layout = routes.find((r) => r.path === '')
+    const perfil = layout?.children?.find((r) => r.path === 'perfil')
+
+    expect(perfil?.loadChildren).toBeDefined()
+    expect(perfil?.canActivate).toBeUndefined()
+    expect(layout?.canActivate).toBeDefined()
+  })
+
   it('las rutas de los demás remotos no llevan rolGuard', () => {
     const layout = routes.find((r) => r.path === '')
     const identidad = layout?.children?.find((r) => r.path === 'identidad')
