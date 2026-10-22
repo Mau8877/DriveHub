@@ -326,9 +326,11 @@ services:
       - frontend_nm_asistente_ia:/app/projects/frontend/asistente-ia/node_modules
       # * El paquete compartido @drivehub/gestion (lit): su node_modules también va aislado, por lo mismo.
       - frontend_nm_gestion:/app/packages/gestion/node_modules
+      # * Idem @drivehub/ui (armazón, menú, cabecera): también lit, también aislado.
+      - frontend_nm_ui:/app/packages/ui/node_modules
     command: >
       sh -c "corepack enable pnpm &&
-      pnpm install --filter shell --filter identidad --filter escuela --filter @drivehub/gestion &&
+      pnpm install --filter shell --filter identidad --filter escuela --filter @drivehub/gestion --filter @drivehub/ui &&
       pnpm --filter shell --filter identidad --filter escuela --parallel run dev"
     ports:
       - '4200:4200'
@@ -572,3 +574,5 @@ volumes:
     name: drivehub-frontend-nm-asistente-ia
   frontend_nm_gestion:
     name: drivehub-frontend-nm-gestion
+  frontend_nm_ui:
+    name: drivehub-frontend-nm-ui
