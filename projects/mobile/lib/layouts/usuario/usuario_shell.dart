@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/providers/sesion_provider.dart';
+import '../../features/perfil/screens/perfil_screen.dart';
+import '../../shared/widgets/avatar_usuario.dart';
 
 /// Shell del rol Usuario -- AppBar + `NavigationBar` (Material 3) inferior,
 /// tres secciones. Equivalente mobile de `UsuarioLayout` en el frontend
@@ -88,8 +90,9 @@ class _UsuarioShellState extends ConsumerState<UsuarioShell>
   @override
   Widget build(BuildContext context) {
     final seccionActual = _secciones[_selected];
-    final correoSinVerificar =
-        ref.watch(sesionProvider).usuario?.correoVerificado == false;
+    final usuario = ref.watch(sesionProvider).usuario;
+    final correoSinVerificar = usuario?.correoVerificado == false;
+    const indicePerfil = 2;
 
     return Scaffold(
       appBar: AppBar(
@@ -100,6 +103,17 @@ class _UsuarioShellState extends ConsumerState<UsuarioShell>
               onPressed: _verificando ? null : _verificarCorreo,
               child: const Text('Verificar correo'),
             ),
+          if (usuario != null)
+            IconButton(
+              tooltip: 'Perfil',
+              icon: AvatarUsuario(
+                nombres: usuario.nombres,
+                apellidos: usuario.apellidos,
+                fotoUrl: usuario.fotoUrl,
+                radio: 16,
+              ),
+              onPressed: () => setState(() => _selected = indicePerfil),
+            ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar sesión',
@@ -107,23 +121,25 @@ class _UsuarioShellState extends ConsumerState<UsuarioShell>
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              seccionActual.label,
-              style: Theme.of(context).textTheme.headlineSmall,
+      body: _selected == indicePerfil
+          ? const PerfilScreen()
+          : Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    seccionActual.label,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Pantalla de prueba del layout -- acá va el contenido real de "${seccionActual.label}" cuando exista esa feature.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Pantalla de prueba del layout -- acá va el contenido real de "${seccionActual.label}" cuando exista esa feature.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selected,
         onDestinationSelected: (index) => setState(() => _selected = index),

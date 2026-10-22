@@ -246,6 +246,41 @@ void main() {
     expect(storage.guardada, isNotNull);
   });
 
+  group('actualizarUsuario (CU06)', () {
+    test('cambia solo lo indicado, lo guarda y no toca los tokens', () async {
+      await notifier().iniciarSesion('a@gmail.com', 'clave');
+
+      await notifier().actualizarUsuario(nombres: 'Luisa', fotoUrl: 'http://minio/f.png');
+
+      expect(estado().usuario!.nombres, 'Luisa');
+      expect(estado().usuario!.apellidos, 'Pérez');
+      expect(estado().usuario!.fotoUrl, 'http://minio/f.png');
+      expect(estado().usuario!.roles, ['ESTUDIANTE']);
+      expect(storage.guardada!.usuario.nombres, 'Luisa');
+      expect(storage.guardada!.refreshToken, 'refresh-1');
+      expect(notifier().obtenerToken(), 'access-1');
+      expect(servicio.llamadasRenovar, 0);
+    });
+
+    test('puede quitar la foto', () async {
+      await notifier().iniciarSesion('a@gmail.com', 'clave');
+      await notifier().actualizarUsuario(fotoUrl: 'http://minio/f.png');
+
+      await notifier().actualizarUsuario(quitarFoto: true);
+
+      expect(estado().usuario!.fotoUrl, isNull);
+      expect(estado().usuario!.nombres, 'Ana');
+    });
+
+    test('sin sesión no hace nada', () async {
+      await notifier().actualizarUsuario(nombres: 'Luisa');
+
+      expect(estado().fase, FaseSesion.cargando);
+      expect(estado().usuario, isNull);
+      expect(storage.guardada, isNull);
+    });
+  });
+
   testWidgets('renueva sola al 80 % de la vida del token', (tester) async {
     await notifier().iniciarSesion('a@gmail.com', 'clave');
     expect(servicio.llamadasRenovar, 0);

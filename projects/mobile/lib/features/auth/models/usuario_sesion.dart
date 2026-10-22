@@ -10,6 +10,10 @@ class UsuarioSesion {
   /// solo condiciona la recuperación de contraseña.
   final bool correoVerificado;
 
+  /// URL prefirmada de la foto de perfil (CU06), o null si no tiene. Se renueva con cada
+  /// renovación de la sesión.
+  final String? fotoUrl;
+
   const UsuarioSesion({
     required this.codigo,
     required this.nombres,
@@ -17,6 +21,7 @@ class UsuarioSesion {
     required this.roles,
     this.escuelaCodigo,
     this.correoVerificado = false,
+    this.fotoUrl,
   });
 
   factory UsuarioSesion.fromJson(Map<String, dynamic> json) {
@@ -28,6 +33,8 @@ class UsuarioSesion {
       escuelaCodigo: json['escuelaCodigo'] as String?,
       // * Las sesiones que ya estaban guardadas en el teléfono no traen el campo
       correoVerificado: json['correoVerificado'] as bool? ?? false,
+      // * Idem: las sesiones guardadas antes de CU06 no traen la foto
+      fotoUrl: json['fotoUrl'] as String?,
     );
   }
 
@@ -38,5 +45,6 @@ class UsuarioSesion {
     'roles': roles,
     'escuelaCodigo': escuelaCodigo,
     'correoVerificado': correoVerificado,
+    'fotoUrl': fotoUrl,
   };
 }

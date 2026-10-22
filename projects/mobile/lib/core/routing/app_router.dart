@@ -7,6 +7,8 @@ import '../../features/auth/screens/cargando_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/recuperar_screen.dart';
 import '../../features/auth/screens/registro_screen.dart';
+import '../../features/perfil/screens/cambiar_contrasena_screen.dart';
+import '../../features/perfil/screens/cambiar_correo_screen.dart';
 import '../../layouts/usuario/usuario_shell.dart';
 
 const _rutasPublicas = {'/login', '/register', '/forgot-password'};
@@ -61,6 +63,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/inicio',
         builder: (context, state) => const UsuarioShell(),
+      ),
+      // * Perfil (CU06): no son públicas, las cubre el redirect global por sesión
+      GoRoute(
+        path: '/perfil/contrasena',
+        builder: (context, state) => const CambiarContrasenaScreen(),
+      ),
+      GoRoute(
+        path: '/perfil/correo',
+        builder: (context, state) => const CambiarCorreoScreen(),
       ),
     ],
   );
