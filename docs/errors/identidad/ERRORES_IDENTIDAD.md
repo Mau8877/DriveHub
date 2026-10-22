@@ -12,7 +12,8 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
   El correo es único en toda la plataforma, no solo dentro de una escuela
   (CU01, registro del estudiante). También se devuelve si dos registros con
   el mismo correo llegan a la vez y la base rechaza el segundo.
-- **Dónde se lanza:** `RegistrarEstudianteService.registrar()` y
+- **Dónde se lanza:** `RegistrarEstudianteService.registrar()`,
+  `SolicitarCambioCorreoService.solicitar()` (CU06, el correo nuevo ya lo usa otra cuenta) y
   `UsuarioPersistenceAdapter.guardar()` (carrera entre dos registros)
 
 ## `ERR_IDE_02`
@@ -22,7 +23,8 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
 - **Significado:** La persona no alcanza la edad mínima para registrarse
   (18 años cumplidos a la fecha del registro, configurable con
   `app.registro.edad-minima`).
-- **Dónde se lanza:** `RegistrarEstudianteService.registrar()`
+- **Dónde se lanza:** `RegistrarEstudianteService.registrar()` y, al cambiar la fecha de
+  nacimiento del perfil (CU06), `EditarPerfilService.editar()`
 
 ## `ERR_IDE_03`
 
@@ -87,8 +89,10 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
 - **Excepción:** `UnauthorizedException`
 - **Significado:** La sesión renovable no sirve: falta, no existe, venció, ya fue
   revocada o ya se usó (la renovación rota el token), o es de otro dispositivo.
-  El cliente debe llevar a la persona al inicio de sesión (CU02).
-- **Dónde se lanza:** `RenovarSesionService.renovar()`
+  El cliente debe llevar a la persona al inicio de sesión (CU02). También se devuelve en los
+  endpoints de perfil (CU06) si la cuenta de la sesión ya no existe.
+- **Dónde se lanza:** `RenovarSesionService.renovar()`, y en CU06 los servicios de perfil, foto,
+  contraseña y cambio de correo
 
 ## `ERR_IDE_10`
 
@@ -105,10 +109,10 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
 - **Excepción:** `ValidationException`
 - **Significado:** El enlace recibido por correo no sirve: no existe, ya se usó, venció,
   fue reemplazado por uno más nuevo o es de otro tipo (un enlace de verificación no
-  sirve para restablecer la contraseña ni al revés). Se responde igual en todos los
+  sirve para restablecer la contraseña ni al revés; tampoco uno de cambio de correo sirve para los otros). Se responde igual en todos los
   casos para no revelar cuál fue (CU04b, CU04).
 - **Dónde se lanza:** `ConfirmarCorreoService.confirmar()` (CU04 lo reutiliza en
-  `RestablecerContrasenaService`)
+  `RestablecerContrasenaService` y CU06 en `ConfirmarCambioCorreoService`)
 
 ## `ERR_IDE_12`
 
@@ -127,3 +131,48 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
   inició sesión alguna vez y se considera en uso: no se borra (CU05). Solo se puede
   revertir una cuenta que nunca se usó.
 - **Dónde se lanza:** `RevertirAdministradorEscuelaService.revertir()`
+
+## `ERR_IDE_14`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** La contraseña actual que mandó la persona no es la de su cuenta, al cambiar
+  la contraseña o al pedir el cambio de correo (CU06). Es 400 y no 401 a propósito: un 401
+  haría que el cliente intente renovar la sesión. No suma intentos fallidos ni bloquea la cuenta.
+- **Dónde se lanza:** `CambiarContrasenaService.cambiar()`, `SolicitarCambioCorreoService.solicitar()`
+
+## `ERR_IDE_15`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** La contraseña nueva es igual a la actual (CU06). Se comprueba contra el hash
+  guardado.
+- **Dónde se lanza:** `CambiarContrasenaService.cambiar()`
+
+## `ERR_IDE_16`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** La foto de perfil no pasó la revisión básica (CU06): el archivo está vacío, su
+  contenido no es una imagen JPG, PNG o WebP (se mira el contenido, no la extensión), no se puede
+  leer completa, tiene datos extra después del final de la imagen o supera 4000×4000 píxeles. No
+  se guarda nada.
+- **Dónde se lanza:** `ActualizarFotoPerfilService.actualizar()`
+
+## `ERR_IDE_17`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException` (en el `GlobalExceptionHandler` cuando Spring corta la
+  petición antes del controller)
+- **Significado:** La foto de perfil pesa más de 5 MB (CU06). Lo corta Spring al recibir el
+  multipart (`spring.servlet.multipart.max-file-size`) y el servicio lo vuelve a comprobar.
+- **Dónde se lanza:** `ActualizarFotoPerfilService.actualizar()`,
+  `GlobalExceptionHandler.handleArchivoDemasiadoGrande()`
+
+## `ERR_IDE_18`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El correo nuevo que la persona pidió es igual al correo actual de su cuenta
+  (CU06). Si lo usa otra cuenta, la respuesta es `ERR_IDE_01`.
+- **Dónde se lanza:** `SolicitarCambioCorreoService.solicitar()`

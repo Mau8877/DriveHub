@@ -109,6 +109,20 @@ buckets) ejecuta `infrastructure/minio/create-buckets.sh`:
 | `drivehub-contenido` | Contenido | Manuales (PDF) y tutoriales (video) | Lectura pública |
 | `drivehub-asistente-ia` | Asistente IA | Fotos del tablero | Privado |
 
+**`drivehub-identidad` y las URLs prefirmadas (CU06).** El bucket queda privado: la
+foto de perfil se guarda con su clave (`usuarios/{codigo}/{uuid}.{ext}`) y Identidad
+firma una URL de lectura (60 minutos) al responder. La firma incluye el host, así que
+se hace con `MINIO_PUBLIC_URL` (el que alcanza el navegador o el teléfono), distinto de
+`MINIO_URL` (`drivehub-minio:9000`, solo dentro de Docker, para escribir y borrar).
+
+| Variable | Valor en desarrollo | Para qué |
+| --- | --- | --- |
+| `MINIO_URL` | `http://drivehub-minio:9000` | Subir y borrar objetos (red de Docker) |
+| `MINIO_PUBLIC_URL` | `http://localhost:9000` | Firmar las URLs de lectura. Para el emulador o un teléfono real: la IP de la PC en la red (`http://192.168.1.50:9000`) |
+
+nginx deja pasar cuerpos de hasta 6 MB hacia `/api/` (`client_max_body_size`) para que
+quepa la foto de 5 MB.
+
 > `minio/minio` y `minio/mc` ya no existen en Docker Hub: el servidor usa la
 > imagen de Chainguard (`user: '0'` para escribir en el volumen, healthcheck
 > por `/dev/tcp` porque no trae curl) y el cliente la de `bitnamilegacy`.

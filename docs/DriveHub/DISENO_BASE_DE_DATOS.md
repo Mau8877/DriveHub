@@ -83,7 +83,7 @@ Las líneas punteadas son **referencias por código, sin FK**: se validan al esc
 
 ## 2. Identidad — PostgreSQL
 
-Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02), `V20261020120000__correo_verificado_y_tipo_token.sql` (CU04b).
+Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02), `V20261020120000__correo_verificado_y_tipo_token.sql` (CU04b), `V20261021120000__cambio_de_correo.sql` (CU06).
 
 ```mermaid
 erDiagram
@@ -139,7 +139,7 @@ Cuenta de acceso. `codigo_usuario` es la **persona única** en toda la plataform
 | `nombres` | `VARCHAR(80) NOT NULL` | |
 | `apellidos` | `VARCHAR(80) NOT NULL` | |
 | `telefono` | `VARCHAR(20)` | |
-| `foto_url` | `TEXT` | Clave del archivo en el bucket `drivehub-identidad` |
+| `foto_url` | `TEXT` | **Clave** del objeto en el bucket privado `drivehub-identidad` (`usuarios/{codigo_usuario}/{uuid v7}.{ext}`), no una URL: la URL de lectura se firma al responder. `NULL` si no tiene foto. *CU06* |
 | `fecha_nacimiento` | `DATE NOT NULL` | Para validar la edad mínima (18) al registrarse. *CU01* |
 | `escuela_codigo` | `UUID` | Escuela (tenant) de la cuenta, **sin FK** → `escuela.codigo_escuela`. `NULL` para el Super admin. Índice `idx_usuario_escuela_codigo`. *CU01* |
 | `estado` | `VARCHAR(12) NOT NULL DEFAULT 'ACTIVO'` | `CHECK IN ('ACTIVO','INACTIVO','BLOQUEADO')` |
@@ -201,12 +201,13 @@ Sesiones renovables (CU02, CU03). **Solo el hash SHA-256**: el valor en claro lo
 
 ### `token_recuperacion`
 
-Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b) y restablecer la contraseña (CU04). Solo se guarda el hash.
+Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b), restablecer la contraseña (CU04) y confirmar el cambio de correo (CU06). Solo se guarda el hash.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `usuario_id` | `BIGINT NOT NULL REFERENCES usuario(id)` | Índice `idx_token_recuperacion_usuario_id` |
-| `tipo` | `VARCHAR(20) NOT NULL DEFAULT 'RECUPERACION'` | `CHECK IN ('RECUPERACION','VERIFICACION')`. Un enlace de un tipo no sirve para el otro. *CU04b* |
+| `tipo` | `VARCHAR(20) NOT NULL DEFAULT 'RECUPERACION'` | `CHECK IN ('RECUPERACION','VERIFICACION','CAMBIO_CORREO')`. Un enlace de un tipo no sirve para los otros. *CU04b, CU06* |
+| `correo_nuevo` | `VARCHAR(120)` | Dirección a la que pasará la cuenta al confirmar el enlace. Solo en `CAMBIO_CORREO` (`CHECK (tipo = 'CAMBIO_CORREO') = (correo_nuevo IS NOT NULL)`). El correo de la cuenta no cambia hasta confirmar. *CU06* |
 | `token_hash` | `VARCHAR(64) NOT NULL UNIQUE` | |
 | `expira_en` | `TIMESTAMPTZ NOT NULL` | |
 | `usado` | `BOOLEAN NOT NULL DEFAULT FALSE` | |
@@ -946,6 +947,7 @@ Todas por **código público**, sin FK física.
 | `fecha_nacimiento`, `escuela_codigo` | `identidad.usuario` | Edad mínima del registro (CU01) y escuela de la cuenta |
 | `bloqueado_hasta` | `identidad.usuario` | Bloqueo temporal de 15 minutos (CU02) |
 | `correo_verificado`; `token_recuperacion.tipo` | `identidad.usuario`, `identidad.token_recuperacion` | Verificar el correo (CU04b) y distinguir esos enlaces de los de recuperación |
+| `token_recuperacion.correo_nuevo` y tipo `CAMBIO_CORREO` | `identidad.token_recuperacion` | Guardar la dirección nueva mientras se espera la confirmación del cambio de correo (CU06) |
 | `permiso.clave` y `categoria_licencia.sigla` | `identidad`, `escuela` | Evitar chocar con el `codigo` UUID público |
 | `created_at`/`updated_at`/`deleted_at` en vez de `creado_en`/`actualizado_en` | todas las tablas | Se unificó con `BaseModel` |
 | Código público UUID v7 (no ULID) en DynamoDB | `notificaciones`, `asistente-ia` | Igual de ordenable por tiempo |
