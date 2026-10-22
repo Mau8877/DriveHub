@@ -20,6 +20,7 @@ jobs:
       frontend: ${{ steps.frontend.outputs.changes }}
       notificaciones: ${{ steps.otros.outputs.notificaciones }}
       gestion: ${{ steps.otros.outputs.gestion }}
+      ui: ${{ steps.otros.outputs.ui }}
       asistente-ia: ${{ steps.otros.outputs.asistente-ia }}
       contenido: ${{ steps.otros.outputs.contenido }}
       mobile: ${{ steps.otros.outputs.mobile }}
@@ -51,7 +52,8 @@ jobs:
         with:
           filters: |
             notificaciones: ['projects/backend/notificaciones/**', 'pnpm-lock.yaml']
-            gestion: ['packages/gestion/**', 'packages/mf-contract/**', 'pnpm-lock.yaml']
+            gestion: ['packages/gestion/**', 'packages/mf-contract/**', 'packages/ui/**', 'packages/design-tokens/**', 'pnpm-lock.yaml']
+            ui: ['packages/ui/**', 'pnpm-lock.yaml']
             asistente-ia: 'projects/backend/asistente-ia/**'
             contenido: 'projects/backend/contenido/**'
             mobile: 'projects/mobile/**'
@@ -200,7 +202,7 @@ jobs:
           cache: pnpm
       # El lockfile vive en la raíz del workspace pnpm, no dentro de cada app.
       # `{ruta}...` instala también los paquetes del workspace de los que depende la app
-      # (design-tokens, mf-contract, gestion) con sus propias dependencias (ej. lit). Sin las
+      # (design-tokens, mf-contract, gestion, ui) con sus propias dependencias (ej. lit). Sin las
       # llaves, pnpm no interpreta el `...` sobre una ruta.
       - run: pnpm install --frozen-lockfile --filter "{./projects/frontend/${{ matrix.app }}}..."
       - run: pnpm --dir projects/frontend/${{ matrix.app }} run lint
@@ -221,8 +223,25 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --filter ./packages/gestion
+      - run: pnpm install --frozen-lockfile --filter "{./packages/gestion}..."
       - run: pnpm --dir packages/gestion run test
+
+  # ---------------------------------------------------------------
+  # Paquete @drivehub/ui (<dh-shell>, <dh-sidebar>, <dh-header>...): sus propios tests
+  # ---------------------------------------------------------------
+  ui:
+    needs: changes
+    if: needs.changes.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter ./packages/ui
+      - run: pnpm --dir packages/ui run test
 
   # ---------------------------------------------------------------
   # Mobile (Flutter)
