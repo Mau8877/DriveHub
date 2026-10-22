@@ -88,6 +88,8 @@ services:
       - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
       - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
       - MINIO_URL=http://drivehub-minio:9000
+      # Host con el que se firman las URLs de lectura de las fotos (CU06): el que alcanza el navegador o el teléfono.
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:-http://localhost:9000}
       # URL interna de Escuela: el registro (CU01) resuelve el slug de la escuela sin pasar por el gateway.
       - ESCUELA_URL=http://drivehub-escuela:8082
       # Correo (CU04b, CU04): en desarrollo va a Mailpit; con un SMTP real solo cambian estos valores.
