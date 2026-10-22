@@ -27,7 +27,8 @@ import lombok.Setter;
 @AttributeOverride(name = "codigo", column = @Column(name = "codigo_usuario"))
 public class UsuarioModel extends BaseModel {
 
-    // * Login
+    // * Login; solo cambia al confirmar el enlace de cambio de correo (CU06)
+    @Setter
     @Column(name = "email", nullable = false, unique = true, length = 120)
     private String email;
 
@@ -48,6 +49,7 @@ public class UsuarioModel extends BaseModel {
     @Column(name = "telefono", length = 20)
     private String telefono;
 
+    @Setter
     @Column(name = "fecha_nacimiento", nullable = false)
     private LocalDate fechaNacimiento;
 

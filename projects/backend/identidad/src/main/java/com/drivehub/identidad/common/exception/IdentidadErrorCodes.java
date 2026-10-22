@@ -21,6 +21,11 @@ public final class IdentidadErrorCodes {
     public static final String ENLACE_INVALIDO = "ERR_IDE_11";
     public static final String ADMIN_YA_EXISTE_EN_ESCUELA = "ERR_IDE_12";
     public static final String ADMIN_EN_USO = "ERR_IDE_13";
+    public static final String PASSWORD_ACTUAL_INCORRECTA = "ERR_IDE_14";
+    public static final String PASSWORD_NUEVA_IGUAL_A_ACTUAL = "ERR_IDE_15";
+    public static final String FOTO_INVALIDA = "ERR_IDE_16";
+    public static final String FOTO_DEMASIADO_GRANDE = "ERR_IDE_17";
+    public static final String CORREO_IGUAL_AL_ACTUAL = "ERR_IDE_18";
 
     private IdentidadErrorCodes() {
     }

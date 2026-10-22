@@ -31,6 +31,7 @@ import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.in.RenovarSesionComando;
 import com.drivehub.identidad.domain.port.in.SesionEmitida;
+import com.drivehub.identidad.domain.port.out.AlmacenFotosPort;
 import com.drivehub.identidad.domain.port.out.EmisorTokenAccesoPort;
 import com.drivehub.identidad.domain.port.out.EscuelaConsultaPort;
 import com.drivehub.identidad.domain.port.out.EscuelaRef;
@@ -54,13 +55,16 @@ class RenovarSesionServiceTest {
     private EmisorTokenAccesoPort emisorToken;
     @Mock
     private GeneradorTokenOpacoPort generadorToken;
+    @Mock
+    private AlmacenFotosPort almacenFotos;
 
     private RenovarSesionService servicio;
 
     @BeforeEach
     void crearServicio() {
         Clock reloj = Clock.fixed(AHORA, ZoneOffset.UTC);
-        SesionEmisora emisora = new SesionEmisora(escuelaConsulta, refreshTokenRepository, emisorToken, generadorToken, 15, 7);
+        SesionEmisora emisora = new SesionEmisora(escuelaConsulta, refreshTokenRepository, emisorToken, generadorToken,
+            new PerfilArmador(almacenFotos, escuelaConsulta), 15, 7);
         servicio = new RenovarSesionService(usuarioRepository, refreshTokenRepository, generadorToken, emisora, reloj);
     }
 
@@ -118,6 +122,35 @@ class RenovarSesionServiceTest {
         verify(refreshTokenRepository).guardar(nuevo.capture());
         assertThat(nuevo.getValue().getTokenHash()).isEqualTo("hash-nuevo");
         assertThat(nuevo.getValue().getExpiraEn()).isEqualTo(AHORA.plusSeconds(7 * 24 * 3600));
+    }
+
+    @Test
+    void renovar_conFoto_devuelveUnaUrlFirmadaFresca() {
+        Usuario usuario = cuenta(RolNombres.ESTUDIANTE, EstadoUsuario.ACTIVO, null).toBuilder()
+            .fotoUrl("usuarios/u/a.png").build();
+        tokenGuardado(token(usuario.getCodigo(), Dispositivo.MOVIL, false, AHORA.plusSeconds(3600)));
+        when(usuarioRepository.buscarPorCodigo(usuario.getCodigo())).thenReturn(Optional.of(usuario));
+        escuela(true);
+        emisionDisponible();
+        when(almacenFotos.urlDeLectura("usuarios/u/a.png")).thenReturn("http://minio/firmada");
+
+        assertThat(servicio.renovar(renovar(Dispositivo.MOVIL)).fotoUrl()).isEqualTo("http://minio/firmada");
+    }
+
+    @Test
+    void renovar_siElAlmacenamientoFalla_renuevaSinLaUrlDeLaFoto() {
+        Usuario usuario = cuenta(RolNombres.ESTUDIANTE, EstadoUsuario.ACTIVO, null).toBuilder()
+            .fotoUrl("usuarios/u/a.png").build();
+        tokenGuardado(token(usuario.getCodigo(), Dispositivo.MOVIL, false, AHORA.plusSeconds(3600)));
+        when(usuarioRepository.buscarPorCodigo(usuario.getCodigo())).thenReturn(Optional.of(usuario));
+        escuela(true);
+        emisionDisponible();
+        when(almacenFotos.urlDeLectura("usuarios/u/a.png")).thenThrow(new IllegalStateException("MinIO caído"));
+
+        SesionEmitida sesion = servicio.renovar(renovar(Dispositivo.MOVIL));
+
+        assertThat(sesion.accessToken()).isEqualTo("jwt-nuevo");
+        assertThat(sesion.fotoUrl()).isNull();
     }
 
     @Test

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.drivehub.identidad.PostgresIntegrationTestBase;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
@@ -38,6 +39,9 @@ class TokenRecuperacionPersistenceAdapterTest extends PostgresIntegrationTestBas
 
     @Autowired
     private RolRepositoryPort roles;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     private Usuario usuario(String email) {
         Rol rol = roles.buscarPorNombre(RolNombres.ESTUDIANTE).orElseThrow();
@@ -97,5 +101,38 @@ class TokenRecuperacionPersistenceAdapterTest extends PostgresIntegrationTestBas
 
         assertThatThrownBy(() -> token(u, "f".repeat(64), TipoTokenCorreo.VERIFICACION))
             .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void guardarYBuscarPorHash_conCambioDeCorreo_conservaElCorreoNuevo() {
+        Usuario u = usuario("token6@gmail.com");
+        tokens.guardar(TokenRecuperacion.builder().usuarioCodigo(u.getCodigo()).tipo(TipoTokenCorreo.CAMBIO_CORREO)
+            .tokenHash("g".repeat(64)).expiraEn(Instant.now().plusSeconds(3600)).correoNuevo("nuevo@gmail.com").build());
+
+        TokenRecuperacion leido = tokens.buscarPorHash("g".repeat(64)).orElseThrow();
+
+        assertThat(leido.getTipo()).isEqualTo(TipoTokenCorreo.CAMBIO_CORREO);
+        assertThat(leido.getCorreoNuevo()).isEqualTo("nuevo@gmail.com");
+        assertThat(token(u, "h".repeat(64), TipoTokenCorreo.VERIFICACION).getCorreoNuevo()).isNull();
+    }
+
+    @Test
+    void guardar_conCambioDeCorreoSinCorreoNuevo_laBaseLoRechaza() {
+        Usuario u = usuario("token7@gmail.com");
+
+        assertThatThrownBy(() -> token(u, "i".repeat(64), TipoTokenCorreo.CAMBIO_CORREO))
+            .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void guardar_conVerificacionYCorreoNuevo_laBaseLoRechaza() {
+        Usuario u = usuario("token8@gmail.com");
+
+        assertThatThrownBy(() -> tokens.guardar(TokenRecuperacion.builder().usuarioCodigo(u.getCodigo())
+            .tipo(TipoTokenCorreo.VERIFICACION).tokenHash("j".repeat(64)).expiraEn(Instant.now().plusSeconds(3600))
+            .correoNuevo("nuevo@gmail.com").build()))
+            .isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM token_recuperacion WHERE token_hash = ?", Integer.class,
+            "j".repeat(64))).isZero();
     }
 }

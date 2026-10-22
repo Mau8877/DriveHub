@@ -55,6 +55,32 @@ public class SmtpCorreoAdapter implements EnviadorCorreoPort {
         enviar(destinatario, "Recupera tu contraseña de DriveHub", texto, html);
     }
 
+    @Override
+    public void enviarCambioCorreo(String correoNuevo, String nombres, String enlace) {
+        String texto = "Hola " + nombres + ",\n\n"
+            + "Alguien pidió cambiar el correo de tu cuenta de DriveHub a esta dirección. "
+            + "Para confirmarlo abre este enlace (sirve una sola vez y vence en 24 horas):\n\n"
+            + enlace + "\n\n"
+            + "Si no lo pediste, puedes ignorar este mensaje: el correo de tu cuenta no cambia.\n";
+        String html = "<p>Hola " + HtmlUtils.htmlEscape(nombres) + ",</p>"
+            + "<p>Alguien pidió cambiar el correo de tu cuenta de DriveHub a esta dirección. "
+            + "Para confirmarlo abre este enlace (sirve una sola vez y vence en 24 horas):</p>"
+            + "<p><a href=\"" + HtmlUtils.htmlEscape(enlace) + "\">Confirmar mi nuevo correo</a></p>"
+            + "<p>Si no lo pediste, puedes ignorar este mensaje: el correo de tu cuenta no cambia.</p>";
+        enviar(correoNuevo, "Confirma tu nuevo correo en DriveHub", texto, html);
+    }
+
+    @Override
+    public void enviarAvisoCambioCorreo(String correoAnterior, String nombres, String correoNuevo) {
+        String texto = "Hola " + nombres + ",\n\n"
+            + "El correo de tu cuenta de DriveHub cambió a " + correoNuevo + ".\n\n"
+            + "Si no fuiste tú, contacta a tu escuela.\n";
+        String html = "<p>Hola " + HtmlUtils.htmlEscape(nombres) + ",</p>"
+            + "<p>El correo de tu cuenta de DriveHub cambió a " + HtmlUtils.htmlEscape(correoNuevo) + ".</p>"
+            + "<p>Si no fuiste tú, contacta a tu escuela.</p>";
+        enviar(correoAnterior, "El correo de tu cuenta de DriveHub cambió", texto, html);
+    }
+
     private void enviar(String destinatario, String asunto, String texto, String html) {
         try {
             MimeMessage mensaje = sender.createMimeMessage();

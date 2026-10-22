@@ -29,6 +29,10 @@ public interface UsuarioRepositoryPort {
      */
     void eliminarDefinitivamente(UUID usuarioCodigo);
 
-    /** Persiste el estado de acceso: intentos fallidos, estado, bloqueo y último ingreso. */
+    /**
+     * Persiste los datos de la cuenta que cambian después de crearla: estado de acceso (intentos,
+     * estado, bloqueo, último ingreso), contraseña, correo y su verificación, y los datos del
+     * perfil (nombres, apellidos, teléfono, fecha de nacimiento y foto). Los roles y la escuela no.
+     */
     Usuario actualizar(Usuario usuario);
 }
