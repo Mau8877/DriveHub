@@ -75,6 +75,7 @@ const ESQUEMA = {
       metodo: 'DELETE',
       ruta: '{id}',
       confirmar: '¿Desactivar?',
+      icono: 'power',
       mensajeExito: 'Escuela desactivada correctamente.',
       visibleSi: { campo: 'estado', igual: 'ACTIVA' },
       tono: 'peligro',
@@ -194,14 +195,14 @@ describe('<dh-gestion>', () => {
   it('el filtro de estado consulta con filter[estado] codificado y vuelve a la página 1', async () => {
     await montar()
     fetch.mockResolvedValueOnce(lista([MUERTA]))
-    const select = el.shadowRoot.querySelector('select')
 
-    select.value = 'INACTIVA'
-    select.dispatchEvent(new Event('change'))
+    boton('Inactivas').click()
     await asentar(el)
 
     expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/escuelas?page=1&pageSize=20&filter%5Bestado%5D=INACTIVA')
     expect(el.shadowRoot.querySelectorAll('tbody tr')).toHaveLength(1)
+    expect(boton('Inactivas').getAttribute('aria-pressed')).toBe('true')
+    expect(boton('Todas').getAttribute('aria-pressed')).toBe('false')
   })
 
   it('la búsqueda espera 300 ms de calma antes de consultar', async () => {
@@ -222,16 +223,16 @@ describe('<dh-gestion>', () => {
     expect(fetch.mock.calls[1][0]).toContain('search=sur')
   })
 
-  it('desactivar pide confirmación en la fila y no llama hasta confirmar; luego recarga y avisa', async () => {
+  it('desactivar pide confirmación en un diálogo y no llama hasta confirmar; luego recarga y avisa', async () => {
     await montar()
     boton('Desactivar').click()
     await asentar(el)
 
-    expect(texto()).toContain('¿Desactivar?')
+    expect(el.shadowRoot.querySelector('.dialogo').textContent).toContain('¿Desactivar?')
     expect(fetch).toHaveBeenCalledTimes(1)
 
     fetch.mockResolvedValueOnce(sobre(null)).mockResolvedValueOnce(lista([MUERTA]))
-    boton('Confirmar').click()
+    el.shadowRoot.querySelector('.dialogo .boton.peligro').click()
     await asentar(el)
 
     expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/escuelas/c1')
@@ -244,10 +245,10 @@ describe('<dh-gestion>', () => {
     boton('Desactivar').click()
     await asentar(el)
 
-    boton('Cancelar').click()
+    el.shadowRoot.querySelector('.dialogo .boton.secundario').click()
     await asentar(el)
 
-    expect(texto()).not.toContain('¿Desactivar?')
+    expect(el.shadowRoot.querySelector('.dialogo')).toBeNull()
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
@@ -269,15 +270,15 @@ describe('<dh-gestion>', () => {
     await asentar(el)
     fetch.mockResolvedValueOnce(falla(409, 'ERR_ESC_04', 'La escuela ya estaba inactiva')).mockResolvedValueOnce(lista([MUERTA]))
 
-    boton('Confirmar').click()
+    el.shadowRoot.querySelector('.dialogo .boton.peligro').click()
     await asentar(el)
 
-    expect(el.shadowRoot.querySelector('.aviso.error').textContent).toContain('ya estaba inactiva')
+    expect(el.shadowRoot.querySelector('.toast.error').textContent).toContain('ya estaba inactiva')
   })
 
   it('estados vacío, sin resultados y error con reintento', async () => {
     await montar(lista([]))
-    expect(texto()).toContain('Todavía no hay registros.')
+    expect(texto()).toContain('Todavía no hay registros')
 
     el.remove()
     await montar(falla(500, 'ERR_SYS_00', 'Ocurrió un error inesperado'))
@@ -292,13 +293,22 @@ describe('<dh-gestion>', () => {
   it('la paginación usa meta: deshabilita Anterior en la primera y pide la siguiente', async () => {
     await montar(sobre([VIVA], { page: 1, pageSize: 20, totalItems: 25, totalPages: 2 }))
 
-    expect(texto()).toContain('Página 1 de 2')
-    expect(boton('Anterior').disabled).toBe(true)
+    expect(texto()).toContain('Mostrando 1–20 de 25')
+    const anterior = el.shadowRoot.querySelector('[aria-label="Página anterior"]')
+    expect(anterior.disabled).toBe(true)
     fetch.mockResolvedValueOnce(lista([MUERTA]))
-    boton('Siguiente').click()
+    el.shadowRoot.querySelector('[aria-label="Página siguiente"]').click()
     await asentar(el)
 
     expect(fetch.mock.calls[1][0]).toContain('page=2')
+  })
+
+  it('las acciones y el botón de crear llevan su icono', async () => {
+    await montar()
+    const raiz = el.shadowRoot
+    expect(raiz.querySelector('.cabecera .boton svg')).not.toBeNull()
+    expect(boton('Editar').querySelector('svg')).not.toBeNull()
+    expect(boton('Desactivar').querySelector('svg')).not.toBeNull()
   })
 
   // ------------------------------------------------------------------ crear
@@ -391,19 +401,44 @@ describe('<dh-gestion>', () => {
     const campo = el.shadowRoot.querySelector('#campo-administrador-password')
     expect(campo.type).toBe('password')
 
-    boton('Mostrar').click()
+    el.shadowRoot.querySelector('[aria-label="Mostrar contraseña"]').click()
     await asentar(el)
 
     expect(el.shadowRoot.querySelector('#campo-administrador-password').type).toBe('text')
   })
 
+  it('crear y editar se abren en un panel lateral sobre el listado, que sigue visible', async () => {
+    await abrirCrear()
+
+    const drawer = el.shadowRoot.querySelector('aside.drawer')
+    expect(drawer).not.toBeNull()
+    expect(drawer.getAttribute('role')).toBe('dialog')
+    expect(drawer.querySelector('form')).not.toBeNull()
+    expect(el.shadowRoot.querySelectorAll('tbody tr')).toHaveLength(2)
+    expect(drawer.querySelectorAll('.paso')).toHaveLength(2)
+  })
+
+  it('Escape y el clic en el fondo cierran el panel', async () => {
+    await abrirCrear()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+
+    boton('Nueva escuela').click()
+    await asentar(el)
+    const fondo = el.shadowRoot.querySelector('.fondo')
+    fondo.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+  })
+
   it('Cancelar vuelve al listado sin guardar', async () => {
     await abrirCrear()
 
-    fetch.mockResolvedValueOnce(lista([VIVA]))
     boton('Cancelar').click()
     await asentar(el)
 
+    expect(fetch).toHaveBeenCalledTimes(1)
     expect(el.shadowRoot.querySelector('form')).toBeNull()
     expect(texto()).toContain('Gestionar escuelas')
   })

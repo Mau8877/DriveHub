@@ -20,6 +20,12 @@ export interface Columna {
   insignias?: Record<string, Insignia>
   /** Texto atenuado (datos de apoyo como el slug). */
   secundaria?: boolean
+  /** Columna principal: el texto va en negrita y, si hay `icono`, con su ficha de icono a la izquierda. */
+  principal?: boolean
+  /** Nombre de un icono de `@drivehub/ui` (ej. `school`); solo con `principal`. */
+  icono?: string
+  /** Muestra el valor como código (ej. el slug). */
+  codigo?: boolean
   /** Ancho CSS de la columna (ej. '10rem'). Por defecto, corto para insignias y fechas; el resto reparte lo que sobra. */
   ancho?: string
 }
@@ -28,6 +34,8 @@ export interface Filtro {
   /** Parámetro de la API, tal cual (ej. `filter[estado]`). */
   clave: string
   titulo: string
+  /** Texto de la opción que quita el filtro (por defecto `Todas`). */
+  todas?: string
   opciones: { valor: string; etiqueta: string }[]
 }
 
@@ -60,6 +68,8 @@ export interface Campo {
   /** Se muestra pero no se edita ni se envía. */
   soloLectura?: boolean
   ayuda?: string
+  /** Con otro campo `mitad` a continuación, los dos comparten fila. */
+  mitad?: boolean
 }
 
 export interface Seccion {
@@ -73,8 +83,12 @@ export interface Accion {
   metodo: 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   /** Relativa al recurso; `{id}` se reemplaza por el identificador (ej. `{id}/reactivar`). */
   ruta: string
-  /** Si existe, pide confirmación en la misma fila con ese texto (ej. "¿Desactivar?"). */
+  /** Si existe, pide confirmación en un diálogo con ese título (ej. "¿Desactivar la escuela?"). */
   confirmar?: string
+  /** Texto de apoyo del diálogo de confirmación. */
+  confirmarTexto?: string
+  /** Nombre de un icono de `@drivehub/ui` que se muestra junto a la etiqueta. */
+  icono?: string
   mensajeExito: string
   visibleSi?: Condicion
   tono?: 'peligro'
@@ -101,6 +115,8 @@ export interface Editar {
   metodo?: 'PATCH' | 'PUT'
   secciones: Seccion[]
   mensajeExito: string
+  /** Icono del botón "Editar" (por defecto `edit`). */
+  icono?: string
   /** El botón "Editar" solo aparece en las filas que cumplen esto. */
   visibleSi?: Condicion
   /** Si el registro cargado cumple esto, no se muestra el formulario sino el mensaje. */
