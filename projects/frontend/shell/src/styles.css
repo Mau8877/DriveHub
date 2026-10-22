@@ -2,3 +2,4 @@
 @import 'tailwindcss';
 @import '@drivehub/design-tokens/tokens.css';
 @import '@drivehub/design-tokens/theme.css';
+@import '@drivehub/ui/componentes.css';

@@ -30,6 +30,8 @@ export default withNativeFederation({
     // * Idem @drivehub/gestion (Web Component <dh-gestion>): se incluye en el bundle del remoto que
     // * lo usa; su versión workspace:* tampoco es semver.
     '@drivehub/gestion',
+    // * Idem @drivehub/ui (armazón, menú, cabecera): Web Components que se incluyen en cada bundle.
+    '@drivehub/ui',
     // Solo lo usa el shell para cargar los remotos React.
     '@module-federation/runtime',
   ],

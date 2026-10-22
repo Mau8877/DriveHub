@@ -1,6 +1,7 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { provideRouter } from '@angular/router'
+import { Router, provideRouter } from '@angular/router'
+import type { DhShell } from '@drivehub/ui'
 
 import type { UsuarioSesion } from '../core/sesion/sesion.types'
 import { SesionService } from '../core/sesion/sesion.service'
@@ -34,68 +35,97 @@ describe('ShellLayout', () => {
     })
     const fixture = TestBed.createComponent(ShellLayout)
     fixture.detectChanges()
+    const html = fixture.nativeElement as HTMLElement
+    const shell = html.querySelector('dh-shell') as DhShell
     const boton = (texto: string) =>
-      Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find(
+      Array.from(html.querySelectorAll<HTMLButtonElement>('button[slot="header-acciones"]')).find(
         (b) => b.textContent?.trim() === texto
       )
-    return { fixture, boton, html: fixture.nativeElement as HTMLElement }
+    return { fixture, boton, html, shell }
   }
 
-  describe('Avatar (CU06)', () => {
-    it('con usuario muestra el menú del avatar', () => {
-      const { html } = crear(USUARIO)
+  describe('Armazón compartido', () => {
+    it('usa el <dh-shell> de @drivehub/ui con el menú, el usuario y las acciones de la cuenta', () => {
+      const { shell } = crear(USUARIO)
 
-      expect(html.querySelector('app-avatar-menu')).not.toBeNull()
+      expect(shell.usuario).toMatchObject({
+        nombres: 'Ana',
+        apellidos: 'Pérez',
+        rol: 'Administrador de escuela',
+      })
+      expect(shell.accionesUsuario.map((a) => a.id)).toEqual(['perfil', 'cerrar-sesion'])
+      expect(shell.accionesUsuario[0].ruta).toBe('/perfil')
+      expect(shell.avisos).toBe(true)
     })
 
-    it('sin usuario no lo muestra', () => {
-      const { html } = crear(null)
+    it('sin sesión no hay usuario', () => {
+      expect(crear(null).shell.usuario).toBeNull()
+    })
 
-      expect(html.querySelector('app-avatar-menu')).toBeNull()
+    it('la foto de la sesión llega al usuario del armazón', () => {
+      const { shell } = crear({ ...USUARIO, fotoUrl: 'http://minio/f.png' })
+
+      expect(shell.usuario?.fotoUrl).toBe('http://minio/f.png')
+    })
+
+    it('un dh-navegar lleva al router a esa ruta', () => {
+      const { shell } = crear(USUARIO)
+      const navegar = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
+
+      shell.dispatchEvent(new CustomEvent('dh-navegar', { detail: { ruta: '/perfil' } }))
+
+      expect(navegar).toHaveBeenCalledWith('/perfil')
     })
   })
 
   describe('Menú por rol', () => {
-    const etiquetas = (html: HTMLElement) =>
-      Array.from(html.querySelectorAll('nav a span.font-medium')).map((s) => s.textContent?.trim())
+    const etiquetas = (shell: DhShell) => shell.items.map((i) => i.etiqueta)
 
-    it('el Administrador de escuela ve sus seis ítems y no "Gestionar escuelas"', () => {
-      const { html } = crear(USUARIO)
+    it('el Administrador de escuela ve Inicio y sus seis módulos, y no "Gestionar escuelas"', () => {
+      const { shell } = crear(USUARIO)
 
-      expect(etiquetas(html)).toHaveLength(6)
-      expect(etiquetas(html)).not.toContain('Gestionar escuelas')
+      expect(etiquetas(shell)).toHaveLength(7)
+      expect(etiquetas(shell)).toContain('Inicio')
+      expect(etiquetas(shell)).not.toContain('Gestionar escuelas')
+      expect(shell.etiquetaGrupo).toBe('Tu escuela')
     })
 
-    it('el Super admin ve solo "Gestionar escuelas"', () => {
-      const { html } = crear({ ...USUARIO, roles: ['SUPER_ADMIN'], escuelaCodigo: null })
+    it('el Super admin ve Inicio y "Gestionar escuelas"', () => {
+      const { shell } = crear({ ...USUARIO, roles: ['SUPER_ADMIN'], escuelaCodigo: null })
 
-      expect(etiquetas(html)).toEqual(['Gestionar escuelas'])
+      expect(etiquetas(shell)).toEqual(['Inicio', 'Gestionar escuelas'])
+      expect(shell.etiquetaGrupo).toBe('Plataforma')
     })
 
     it('sin sesión no muestra ningún ítem', () => {
-      const { html } = crear(null)
+      expect(crear(null).shell.items).toEqual([])
+    })
 
-      expect(etiquetas(html)).toEqual([])
+    it('cada ítem lleva un icono', () => {
+      const { shell } = crear(USUARIO)
+
+      expect(shell.items.every((i) => !!i.icono)).toBe(true)
     })
   })
 
   describe('Cerrar sesión', () => {
-    it('cierra la sesión una vez y se deshabilita mientras dura', async () => {
-      let terminar!: () => void
-      const cerrarSesion = vi.fn(() => new Promise<void>((resolver) => (terminar = resolver)))
-      const { fixture, boton } = crear(USUARIO, { cerrarSesion })
-      const cerrar = boton('Cerrar sesión')!
+    it('la acción "cerrar-sesion" cierra la sesión una vez', async () => {
+      const cerrarSesion = vi.fn().mockResolvedValue(undefined)
+      const { shell } = crear(USUARIO, { cerrarSesion })
 
-      cerrar.click()
-      fixture.detectChanges()
+      shell.dispatchEvent(new CustomEvent('dh-accion', { detail: { id: 'cerrar-sesion' } }))
+      await Promise.resolve()
 
       expect(cerrarSesion).toHaveBeenCalledTimes(1)
-      expect(cerrar.disabled).toBe(true)
+    })
 
-      terminar()
-      await fixture.whenStable()
-      fixture.detectChanges()
-      expect(cerrar.disabled).toBe(false)
+    it('otra acción no cierra la sesión', () => {
+      const cerrarSesion = vi.fn()
+      const { shell } = crear(USUARIO, { cerrarSesion })
+
+      shell.dispatchEvent(new CustomEvent('dh-accion', { detail: { id: 'otra' } }))
+
+      expect(cerrarSesion).not.toHaveBeenCalled()
     })
   })
 
