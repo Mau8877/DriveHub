@@ -12,6 +12,8 @@ export default withNativeFederation({
     // Páginas públicas de la cuenta (verificar el correo, CU04b): el shell las monta
     // bajo /account, fuera de su layout. Los enlaces de los correos apuntan acá.
     './routes-cuenta': './src/app/routes-cuenta.ts',
+    // Perfil de la cuenta propia (CU06): el shell lo monta bajo /perfil, dentro de su layout.
+    './routes-perfil': './src/app/routes-perfil.ts',
   },
 
   shared: fromPackageJson({
