@@ -16,9 +16,9 @@ Mismo criterio que `common/` en el backend
   tiene todavía una subcarpeta `widgets/` — se agrega cuando una feature
   concreta la necesita: `lib/features/{feature}/widgets/`.
 - Un widget que usan **dos o más features** va en
-  `lib/shared/widgets/` (carpeta nueva, no existe todavía en el scaffold —
-  se crea recién cuando aparece el primer widget realmente compartido, no
-  de forma anticipada "por si hace falta").
+  `lib/shared/widgets/` (se crea con el primer widget realmente compartido,
+  no de forma anticipada "por si hace falta"; el primero fue `AvatarUsuario`,
+  de CU06, que usan el `UsuarioShell` y el perfil).
 
 No se mueve un widget a `shared/widgets/` apenas "parece que podría
 reusarse" — se mueve cuando una segunda feature efectivamente lo necesita,
