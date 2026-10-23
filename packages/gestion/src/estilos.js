@@ -466,6 +466,7 @@ export const estilos = css`
     inset: 0;
     z-index: 100;
     display: grid;
+    grid-template-rows: minmax(0, 1fr);
     place-items: stretch end;
     background: rgb(15 23 42 / 50%);
     backdrop-filter: blur(5px);
@@ -478,6 +479,7 @@ export const estilos = css`
   .drawer {
     width: min(32rem, 100%);
     height: 100%;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     background: var(--card);
@@ -499,6 +501,7 @@ export const estilos = css`
   }
   .drawer-cuerpo {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 1.25rem 1.5rem 0;
     display: flex;
