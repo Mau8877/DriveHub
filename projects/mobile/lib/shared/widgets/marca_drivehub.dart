@@ -78,17 +78,24 @@ class LogoDriveHub extends StatelessWidget {
       children: [
         MarcaDriveHub(tamano: tamano),
         SizedBox(width: tamano * 0.3),
-        Text.rich(
-          TextSpan(
-            text: 'Drive',
-            children: [
-              TextSpan(
-                text: 'Hub',
-                style: TextStyle(color: context.cockpit.acento),
-              ),
-            ],
+        // * Flexible: en un ancho muy chico (ventana de Chrome angosta, pantalla partida) el nombre
+        // * se recorta en vez de desbordar la fila
+        Flexible(
+          child: Text.rich(
+            TextSpan(
+              text: 'Drive',
+              children: [
+                TextSpan(
+                  text: 'Hub',
+                  style: TextStyle(color: context.cockpit.acento),
+                ),
+              ],
+            ),
+            style: estilo,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
           ),
-          style: estilo,
         ),
       ],
     );
