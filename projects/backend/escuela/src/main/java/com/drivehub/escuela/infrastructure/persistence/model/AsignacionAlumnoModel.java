@@ -1,6 +1,7 @@
 package com.drivehub.escuela.infrastructure.persistence.model;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Instructor titular de cada estudiante (CU08, CU29).
+ * Instructor titular de cada estudiante (CU11, CU29). El estudiante es la persona de Identidad (CU08a).
  * * Índice único parcial: un estudiante tiene un solo instructor vigente (fecha_fin NULL).
  */
 @Getter
@@ -28,9 +29,9 @@ public class AsignacionAlumnoModel extends BaseModel {
     @JoinColumn(name = "instructor_id", nullable = false)
     private InstructorModel instructor;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "estudiante_id", nullable = false)
-    private EstudianteModel estudiante;
+    // * = Identidad usuario.codigo_usuario de la persona (sin FK física, otro servicio)
+    @Column(name = "estudiante_codigo", nullable = false)
+    private UUID estudianteCodigo;
 
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDate fechaInicio;

@@ -84,7 +84,8 @@ class EscuelaGestionControllerTest {
               "slug": "autos-sur",
               "administrador": {
                 "nombres": "Marta", "apellidos": "Gómez", "fechaNacimiento": "1985-05-05",
-                "email": "marta@gmail.com", "password": "123456789", "telefono": "70000000"
+                "email": "marta@gmail.com", "password": "123456789", "telefono": "70000000",
+                "ci": "MG98765", "sexo": "FEMENINO", "latitud": -16.4897, "longitud": -68.1193
               }
             }
             """;
@@ -141,6 +142,11 @@ class EscuelaGestionControllerTest {
         verify(crearEscuela).ejecutar(input.capture());
         assertThat(input.getValue().slug()).isEqualTo("autos-sur");
         assertThat(input.getValue().administrador().email()).isEqualTo("marta@gmail.com");
+        // * CU08a: CI, sexo y ubicación del Administrador llegan al caso de uso
+        assertThat(input.getValue().administrador().ci()).isEqualTo("MG98765");
+        assertThat(input.getValue().administrador().sexo()).isEqualTo("FEMENINO");
+        assertThat(input.getValue().administrador().latitud()).isEqualByComparingTo("-16.4897");
+        assertThat(input.getValue().administrador().longitud()).isEqualByComparingTo("-68.1193");
     }
 
     @Test
@@ -153,6 +159,13 @@ class EscuelaGestionControllerTest {
             {"\"password\": \"123456789\"", "\"password\": \"12345678\""},
             {"marta@gmail.com", "no-es-correo"},
             {"1985-05-05", "2999-01-01"},
+            {"\"ci\": \"MG98765\", ", ""},
+            {"\"ci\": \"MG98765\"", "\"ci\": \"MG98\""},
+            {"\"ci\": \"MG98765\"", "\"ci\": \"MG 987#\""},
+            {"\"sexo\": \"FEMENINO\"", "\"sexo\": \"OTRO\""},
+            {"\"latitud\": -16.4897, ", ""},
+            {"\"latitud\": -16.4897", "\"latitud\": -91"},
+            {"\"longitud\": -68.1193", "\"longitud\": 181"},
         };
         for (String[] cambio : cambios) {
             crear(cuerpoCrear().replace(cambio[0], cambio[1]))

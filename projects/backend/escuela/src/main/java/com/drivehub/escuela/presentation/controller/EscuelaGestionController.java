@@ -53,7 +53,7 @@ public class EscuelaGestionController {
         CrearEscuelaRequest.AdministradorRequest admin = request.administrador();
         EscuelaCreadaOutput creada = crearEscuela.ejecutar(new CrearEscuelaInput(request.nombre(), request.slug(),
             new DatosAdministrador(admin.nombres(), admin.apellidos(), admin.fechaNacimiento(), admin.email(),
-                admin.password(), admin.telefono())));
+                admin.password(), admin.telefono(), admin.ci(), admin.sexo(), admin.latitud(), admin.longitud())));
         EscuelaCreadaResponse response = new EscuelaCreadaResponse(creada.codigo(), creada.slug(), creada.nombre(),
             creada.estado(), creada.creadoEn(), new EscuelaCreadaResponse.AdministradorResponse(
                 creada.administrador().codigo(), creada.administrador().email(),

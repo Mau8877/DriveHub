@@ -97,7 +97,8 @@ class GestionEscuelasIntegrationTest {
     private static String cuerpoCrear(String slug, String correo) {
         return """
             {"nombre":"Escuela %s","slug":"%s","administrador":{"nombres":"Marta","apellidos":"Gómez",
-             "fechaNacimiento":"1985-05-05","email":"%s","password":"123456789"}}
+             "fechaNacimiento":"1985-05-05","email":"%s","password":"123456789",
+             "ci":"MG98765","sexo":"FEMENINO","latitud":-16.4897,"longitud":-68.1193}}
             """.formatted(slug, slug, correo);
     }
 
