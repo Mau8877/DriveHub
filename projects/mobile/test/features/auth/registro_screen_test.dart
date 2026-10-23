@@ -11,6 +11,9 @@ import 'package:mobile/features/auth/providers/registro_provider.dart';
 import 'package:mobile/features/auth/screens/login_screen.dart';
 import 'package:mobile/features/auth/screens/registro_screen.dart';
 import 'package:mobile/features/auth/services/registro_service.dart';
+import 'package:mobile/shared/widgets/selector_ubicacion.dart';
+
+import '../../helpers/teselas_falsas.dart';
 
 class _ServicioFalso extends RegistroService {
   final Object? error;
@@ -46,7 +49,10 @@ Future<void> _montar(WidgetTester tester, _ServicioFalso servicio) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [registroServiceProvider.overrideWithValue(servicio)],
+      overrides: [
+        registroServiceProvider.overrideWithValue(servicio),
+        proveedorTeselasProvider.overrideWithValue(TeselasFalsas()),
+      ],
       child: MaterialApp.router(routerConfig: router),
     ),
   );
@@ -61,9 +67,30 @@ Future<void> _llenarYEnviar(WidgetTester tester) async {
   // * El selector abre en "hoy menos 18 años": confirmarlo es exactamente 18 años cumplidos
   await tester.tap(find.text('OK'));
   await tester.pumpAndSettle();
+  await _elegirSexo(tester);
+  await tester.enterText(find.byKey(const Key('campoCi')), 'AB12345');
   await tester.enterText(find.byKey(const Key('campoEmail')), 'ana@gmail.com');
   await tester.enterText(find.byKey(const Key('campoPassword')), '123456789');
+  await _tocarElMapa(tester);
+  await tester.ensureVisible(find.byKey(const Key('botonRegistrar')));
   await tester.tap(find.byKey(const Key('botonRegistrar')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _elegirSexo(WidgetTester tester) async {
+  await tester.ensureVisible(find.byKey(const Key('campoSexo')));
+  await tester.tap(find.byKey(const Key('campoSexo')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Femenino').last);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _tocarElMapa(WidgetTester tester) async {
+  await tester.ensureVisible(find.byKey(const Key('mapaUbicacion')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('mapaUbicacion')));
+  // * flutter_map espera un instante por si el toque es el primero de un doble toque
+  await tester.pump(const Duration(milliseconds: 500));
   await tester.pumpAndSettle();
 }
 
@@ -88,6 +115,10 @@ void main() {
 
     expect(servicio.recibido, isNotNull);
     expect(servicio.recibido!.escuelaSlug, 'escuelaexample');
+    expect(servicio.recibido!.ci, 'AB12345');
+    expect(servicio.recibido!.sexo, 'FEMENINO');
+    expect(servicio.recibido!.latitud, closeTo(-16.4897, 0.01));
+    expect(servicio.recibido!.longitud, closeTo(-68.1193, 0.01));
     expect(servicio.recibido!.toJson().containsKey('rol'), isFalse);
     expect(find.text('Tu cuenta fue creada. Inicia sesión para continuar.'), findsOneWidget);
   });
@@ -109,5 +140,42 @@ void main() {
     await _llenarYEnviar(tester);
 
     expect(find.text('La escuela no existe o no está disponible'), findsOneWidget);
+  });
+
+  testWidgets('sin sexo, sin CI y sin punto en el mapa no registra y pide cada dato', (tester) async {
+    final servicio = _ServicioFalso();
+    await _montar(tester, servicio);
+
+    await tester.ensureVisible(find.byKey(const Key('botonRegistrar')));
+    await tester.tap(find.byKey(const Key('botonRegistrar')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Elige tu sexo'), findsOneWidget);
+    expect(find.text('El CI es obligatorio'), findsOneWidget);
+    expect(find.text('Elige tu ubicación en el mapa'), findsOneWidget);
+    expect(servicio.recibido, isNull);
+  });
+
+  testWidgets('un CI con símbolos no registra', (tester) async {
+    final servicio = _ServicioFalso();
+    await _montar(tester, servicio);
+
+    await tester.enterText(find.byKey(const Key('campoCi')), 'AB 12#');
+    await tester.ensureVisible(find.byKey(const Key('botonRegistrar')));
+    await tester.tap(find.byKey(const Key('botonRegistrar')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('El CI debe tener entre 5 y 15 caracteres: letras, números y guion'), findsOneWidget);
+    expect(servicio.recibido, isNull);
+  });
+
+  testWidgets('un CI repetido se muestra bajo el campo CI', (tester) async {
+    final servicio = _ServicioFalso(error: ApiException(code: 'ERR_IDE_19', message: 'CI en uso'));
+    await _montar(tester, servicio);
+
+    await _llenarYEnviar(tester);
+
+    expect(find.text('Este CI ya está registrado'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsNothing);
   });
 }

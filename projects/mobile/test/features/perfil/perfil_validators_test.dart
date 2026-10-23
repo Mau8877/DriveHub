@@ -104,4 +104,28 @@ void main() {
       expect(mensajeDeCodigo(null), mensajeGenerico);
     });
   });
+
+  group('CI, sexo y ubicación (mismas reglas del registro)', () {
+    test('CI: de 5 a 15 caracteres con letras, números y guion', () {
+      expect(validarCi('AB-12345'), isNull);
+      expect(validarCi(''), 'El CI es obligatorio');
+      expect(validarCi('1234'), contains('entre 5 y 15'));
+      expect(validarCi('AB 1234'), contains('entre 5 y 15'));
+    });
+
+    test('sexo obligatorio', () {
+      expect(validarSexo(''), 'Elige tu sexo');
+      expect(validarSexo('MASCULINO'), isNull);
+    });
+
+    test('ubicación: dos coordenadas y en rango', () {
+      expect(validarUbicacion(null, null), 'Elige tu ubicación en el mapa');
+      expect(validarUbicacion(-16.5, -68.1), isNull);
+      expect(validarUbicacion(95, 0), 'La ubicación no es válida');
+    });
+
+    test('el CI repetido tiene su mensaje en español', () {
+      expect(mensajeDeCodigo('ERR_IDE_19'), 'Este CI ya está registrado');
+    });
+  });
 }

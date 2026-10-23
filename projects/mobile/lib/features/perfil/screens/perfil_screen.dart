@@ -7,6 +7,7 @@ import '../../../core/theme/tema_provider.dart';
 import '../../../shared/widgets/fila_accion.dart';
 import '../../../shared/widgets/indicador_boton.dart';
 import '../../../shared/widgets/insignia.dart';
+import '../../../shared/widgets/selector_ubicacion.dart';
 import '../../auth/providers/sesion_provider.dart';
 import '../models/editar_perfil_request.dart';
 import '../models/perfil.dart';
@@ -21,9 +22,12 @@ const _roles = {
   'SUPER_ADMIN': 'Super admin',
 };
 
-/// Perfil de la cuenta propia (CU06): datos de solo lectura, foto, edición de los datos
-/// personales, accesos a cambiar la contraseña y el correo, apariencia y cerrar sesión.
+/// Perfil de la cuenta propia (CU06, CU08a): datos de solo lectura, foto, edición de los datos
+/// personales (con CI, sexo y ubicación en el mapa), accesos a cambiar la contraseña y el correo,
+/// apariencia y cerrar sesión.
 ///
+/// * La categoría del estudiante se muestra pero no se edita: la asigna la escuela.
+/// * El mapa solo elige el punto; la dirección la recalcula el servidor al guardar.
 /// * Es el cuerpo de la pestaña "Perfil" del `UsuarioShell`.
 class PerfilScreen extends ConsumerWidget {
   const PerfilScreen({super.key});
@@ -68,9 +72,14 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
   late final TextEditingController _nombres;
   late final TextEditingController _apellidos;
   late final TextEditingController _telefono;
+  late final TextEditingController _ci;
   late DateTime _fecha;
+  late String _sexo;
+  double? _latitud;
+  double? _longitud;
   bool _guardando = false;
   String? _errorFecha;
+  String? _errorCi;
 
   @override
   void initState() {
@@ -81,7 +90,11 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
       ..addListener(_cambio);
     _telefono = TextEditingController(text: widget.perfil.telefono ?? '')
       ..addListener(_cambio);
+    _ci = TextEditingController(text: widget.perfil.ci)..addListener(_cambio);
     _fecha = widget.perfil.fechaNacimiento;
+    _sexo = widget.perfil.sexo;
+    _latitud = widget.perfil.latitud;
+    _longitud = widget.perfil.longitud;
   }
 
   @override
@@ -89,10 +102,17 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
     _nombres.dispose();
     _apellidos.dispose();
     _telefono.dispose();
+    _ci.dispose();
     super.dispose();
   }
 
-  void _cambio() => setState(() => _errorFecha = null);
+  void _cambio() => setState(() {
+    _errorFecha = null;
+    _errorCi = null;
+  });
+
+  /// El Super admin no tiene ubicación: solo se muestra el mapa a quien la tiene o puede tenerla.
+  bool _conUbicacion(Perfil p) => p.latitud != null || !p.roles.contains('SUPER_ADMIN');
 
   /// Solo los campos que difieren del perfil cargado; un teléfono vaciado se manda como `null`.
   EditarPerfilRequest _cambios() {
@@ -108,8 +128,16 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
           : null,
       borrarTelefono: telefono.isEmpty && (p.telefono ?? '').isNotEmpty,
       fechaNacimiento: _fecha != p.fechaNacimiento ? _fecha : null,
+      ci: _ci.text.trim().toUpperCase() != p.ci ? _ci.text.trim() : null,
+      sexo: _sexo != p.sexo ? _sexo : null,
+      // * La ubicación va como par y solo si el punto cambió; si no, el servidor no recalcula la dirección
+      latitud: _ubicacionCambio(p) ? _latitud : null,
+      longitud: _ubicacionCambio(p) ? _longitud : null,
     );
   }
+
+  bool _ubicacionCambio(Perfil p) =>
+      _latitud != null && _longitud != null && (_latitud != p.latitud || _longitud != p.longitud);
 
   Future<void> _elegirFecha() async {
     final hoy = DateTime.now();
@@ -146,6 +174,12 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
     } on ApiException catch (e) {
       if (e.code == 'ERR_IDE_02') {
         if (mounted) setState(() => _errorFecha = mensajeDeCodigo(e.code));
+      } else if (e.code == 'ERR_IDE_19') {
+        if (mounted) {
+          setState(() => _errorCi = mensajeDeCodigo(e.code));
+          // * El mensaje del servidor sale por el validator del campo: hay que volver a validar
+          _formKey.currentState?.validate();
+        }
       } else {
         mensajes.showSnackBar(SnackBar(content: Text(mensajeDeCodigo(e.code))));
       }
@@ -217,6 +251,15 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
                     valor: p.escuelaNombre!,
                   ),
                 ],
+                if (p.categoriaSigla != null) ...[
+                  const SizedBox(height: 14),
+                  _FilaSoloLectura(
+                    key: const Key('filaCategoria'),
+                    etiqueta: 'Categoría',
+                    valor: p.categoriaSigla!,
+                    ayuda: 'La asigna tu escuela',
+                  ),
+                ],
               ],
             ),
           ),
@@ -280,6 +323,63 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
                       child: Text(_comoFecha(_fecha)),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    key: const Key('campoSexo'),
+                    initialValue: _sexo,
+                    decoration: const InputDecoration(labelText: 'Sexo'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'MASCULINO',
+                        child: Text('Masculino'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'FEMENINO',
+                        child: Text('Femenino'),
+                      ),
+                    ],
+                    onChanged: _guardando
+                        ? null
+                        : (valor) => setState(() => _sexo = valor ?? _sexo),
+                    validator: validarSexo,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    key: const Key('campoCi'),
+                    controller: _ci,
+                    decoration: const InputDecoration(labelText: 'CI'),
+                    autocorrect: false,
+                    textCapitalization: TextCapitalization.characters,
+                    validator: (v) => validarCi(v) ?? _errorCi,
+                  ),
+                  if (_conUbicacion(p)) ...[
+                    const SizedBox(height: 18),
+                    Text('Ubicación', style: tema.textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    SelectorUbicacion(
+                      latitud: _latitud,
+                      longitud: _longitud,
+                      direccion: p.direccion,
+                      habilitado: !_guardando,
+                      tileProvider: ref.watch(proveedorTeselasProvider),
+                      onCambio: (latitud, longitud) => setState(() {
+                        _latitud = latitud;
+                        _longitud = longitud;
+                      }),
+                    ),
+                    if (p.latitud != null &&
+                        (p.direccion == null || p.direccion!.isEmpty))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'Dirección pendiente de calcular',
+                          key: const Key('direccionPendiente'),
+                          style: tema.textTheme.bodySmall?.copyWith(
+                            color: tema.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                  ],
                   const SizedBox(height: 16),
                   FilledButton(
                     onPressed: (_guardando || !hayCambios) ? null : _guardar,
@@ -363,11 +463,14 @@ class _FilaSoloLectura extends StatelessWidget {
   final String etiqueta;
   final String valor;
   final Widget? insignia;
+  final String? ayuda;
 
   const _FilaSoloLectura({
+    super.key,
     required this.etiqueta,
     required this.valor,
     this.insignia,
+    this.ayuda,
   });
 
   @override
@@ -394,6 +497,13 @@ class _FilaSoloLectura extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [Text(valor, style: tema.textTheme.bodyLarge), ?insignia],
           ),
+          if (ayuda != null)
+            Text(
+              ayuda!,
+              style: tema.textTheme.bodySmall?.copyWith(
+                color: tema.colorScheme.onSurfaceVariant,
+              ),
+            ),
         ],
       ),
     );
