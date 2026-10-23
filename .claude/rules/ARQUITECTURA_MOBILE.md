@@ -21,12 +21,14 @@ lib/
 ├── core/
 │   ├── network/     # ApiClient (Dio + interceptor de sobre), ya implementado (ver CONSUMO_API_MOBILE.md)
 │   ├── routing/     # GoRouter único, con el redirect global -- todavía vacío (ver NAVEGACION_MOBILE.md)
-│   └── theme/       # AppColors/AppTheme, ya implementado con la paleta de marca (espejo de design-tokens)
+│   └── theme/       # AppColors/AppTheme/CockpitColores (diseño Cockpit, espejo de design-tokens) y temaProvider (apariencia)
 ├── layouts/
 │   └── {rol}/       # Shell por rol (AdminShell, UsuarioShell, ya scaffoldeados como ejemplo)
 ├── shared/
-│   └── widgets/     # Widgets usados por 2+ features (ver WIDGETS_UI_MOBILE.md) -- hoy: AvatarUsuario (CU06)
+│   └── widgets/     # Piezas del diseño Cockpit y widgets de 2+ features (ver WIDGETS_UI_MOBILE.md)
 ├── features/
+│   ├── inicio/      # Pestaña Inicio del shell (saludo, tarjeta de próxima clase, accesos): estado vacío hasta sus casos de uso
+│   ├── clases/      # Pestaña Clases/Agenda del shell: estado vacío hasta los casos de uso de Académico
 │   ├── health/      # Feature de diagnóstico end-to-end (service+provider+screen) contra el backend real
 │   └── {feature}/   # Un feature de negocio (ver estructura abajo)
 └── main.dart         # Entry point, monta MaterialApp + ProviderScope (sin GoRouter todavía)
