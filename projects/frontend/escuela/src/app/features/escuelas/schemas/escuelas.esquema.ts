@@ -7,7 +7,10 @@ import type { EsquemaGestion } from '@drivehub/gestion'
  * * registro del estudiante de `identidad`: tienen que seguir iguales a esas, a las del backend y a
  * * las de mobile. El backend es la fuente de verdad.
  * * Los códigos de `erroresDeCampo` son los del backend: ERR_ESC_03 (slug en uso), ERR_IDE_01
- * * (correo en uso) y ERR_IDE_02 (el administrador no alcanza la edad mínima).
+ * * (correo en uso), ERR_IDE_02 (el administrador no alcanza la edad mínima) y ERR_IDE_19 (CI en uso).
+ * * CU08a: el Administrador lleva además CI (5 a 15 caracteres: letras, números y guion), sexo y la
+ * * ubicación elegida en el mapa. Son las mismas reglas del registro del estudiante y de mobile.
+ * * El mapa solo elige el punto: Identidad calcula la dirección.
  */
 export const ESQUEMA_ESCUELAS: EsquemaGestion = {
   recurso: 'escuelas',
@@ -103,6 +106,33 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
             },
           },
           {
+            campo: 'administrador.sexo',
+            titulo: 'Sexo',
+            tipo: 'seleccion',
+            requerido: true,
+            opciones: [
+              { valor: 'MASCULINO', etiqueta: 'Masculino' },
+              { valor: 'FEMENINO', etiqueta: 'Femenino' },
+            ],
+            mitad: true,
+            mensajes: { requerido: 'Elige el sexo' },
+          },
+          {
+            campo: 'administrador.ci',
+            titulo: 'CI',
+            requerido: true,
+            min: 5,
+            max: 15,
+            patron: '^[A-Za-z0-9-]+$',
+            mitad: true,
+            mensajes: {
+              requerido: 'El CI es obligatorio',
+              min: 'El CI debe tener entre 5 y 15 caracteres: letras, números y guion',
+              max: 'El CI debe tener entre 5 y 15 caracteres: letras, números y guion',
+              patron: 'El CI debe tener entre 5 y 15 caracteres: letras, números y guion',
+            },
+          },
+          {
             campo: 'administrador.telefono',
             titulo: 'Teléfono',
             tipo: 'telefono',
@@ -130,6 +160,14 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
               max: 'La contraseña debe tener entre 9 y 64 caracteres',
             },
             ayuda: 'Entre 9 y 64 caracteres.',
+          },
+          {
+            campo: 'administrador.ubicacion',
+            titulo: 'Ubicación',
+            tipo: 'ubicacion',
+            requerido: true,
+            ayuda: 'Marca en el mapa dónde vive el administrador. La dirección se calcula sola.',
+            mensajes: { requerido: 'Elige la ubicación en el mapa' },
           },
         ],
       },
@@ -198,6 +236,7 @@ export const ESQUEMA_ESCUELAS: EsquemaGestion = {
       campo: 'administrador.fechaNacimiento',
       mensaje: 'El administrador debe tener al menos 18 años',
     },
+    ERR_IDE_19: { campo: 'administrador.ci', mensaje: 'Este CI ya está registrado' },
   },
   mensajes: {
     vacio: 'Todavía no hay escuelas.',
