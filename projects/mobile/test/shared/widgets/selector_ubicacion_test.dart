@@ -59,9 +59,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(puntos, hasLength(1));
-    // * Tocar el centro devuelve (casi) el centro inicial: La Paz
-    expect(puntos.single.$1, closeTo(-16.4897, 0.01));
-    expect(puntos.single.$2, closeTo(-68.1193, 0.01));
+    // * Tocar el centro devuelve (casi) el centro inicial: Santa Cruz de la Sierra
+    expect(puntos.single.$1, closeTo(-17.7833, 0.01));
+    expect(puntos.single.$2, closeTo(-63.1821, 0.01));
     expect((puntos.single.$1 * 1e6).roundToDouble() / 1e6, puntos.single.$1);
   });
 

@@ -31,7 +31,7 @@ class SelectorUbicacion extends StatefulWidget {
   final bool habilitado;
   final AlCambiarUbicacion onCambio;
 
-  /// Centro del mapa mientras no hay punto (La Paz por defecto).
+  /// Centro del mapa mientras no hay punto (Santa Cruz de la Sierra por defecto).
   final LatLng centroInicial;
 
   /// Reemplazable en tests para no pedir permisos ni usar el GPS.
@@ -47,7 +47,7 @@ class SelectorUbicacion extends StatefulWidget {
     this.direccion,
     this.habilitado = true,
     required this.onCambio,
-    this.centroInicial = const LatLng(-16.4897, -68.1193),
+    this.centroInicial = const LatLng(-17.7833, -63.1821),
     this.obtenerUbicacionActual,
     this.tileProvider,
   });

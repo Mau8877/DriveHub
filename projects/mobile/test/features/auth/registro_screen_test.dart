@@ -117,8 +117,8 @@ void main() {
     expect(servicio.recibido!.escuelaSlug, 'escuelaexample');
     expect(servicio.recibido!.ci, 'AB12345');
     expect(servicio.recibido!.sexo, 'FEMENINO');
-    expect(servicio.recibido!.latitud, closeTo(-16.4897, 0.01));
-    expect(servicio.recibido!.longitud, closeTo(-68.1193, 0.01));
+    expect(servicio.recibido!.latitud, closeTo(-17.7833, 0.01));
+    expect(servicio.recibido!.longitud, closeTo(-63.1821, 0.01));
     expect(servicio.recibido!.toJson().containsKey('rol'), isFalse);
     expect(find.text('Tu cuenta fue creada. Inicia sesión para continuar.'), findsOneWidget);
   });
