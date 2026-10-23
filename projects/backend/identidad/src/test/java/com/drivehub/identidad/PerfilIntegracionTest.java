@@ -65,7 +65,6 @@ import com.jayway.jsonpath.JsonPath;
 
 import jakarta.servlet.http.Cookie;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 
 /**
@@ -112,11 +111,7 @@ class PerfilIntegracionTest extends PostgresIntegrationTestBase {
         assumeTrue(dockerDisponible, "Docker no está disponible: se salta el test con MinIO real");
         var minio = MinioTestContainer.iniciar();
         s3 = new AlmacenamientoConfig().s3Client(minio.getS3URL(), MinioTestContainer.USUARIO, MinioTestContainer.CLAVE);
-        try {
-            s3.createBucket(CreateBucketRequest.builder().bucket(MinioTestContainer.BUCKET).build());
-        } catch (RuntimeException e) {
-            // * El bucket ya existe: otra clase de test lo creó en el mismo container
-        }
+        MinioTestContainer.crearBucketSiFalta(s3);
     }
 
     @AfterAll

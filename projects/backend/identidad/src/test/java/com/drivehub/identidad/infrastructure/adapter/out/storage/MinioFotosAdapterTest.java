@@ -18,7 +18,6 @@ import com.drivehub.identidad.MinioTestContainer;
 import com.drivehub.identidad.infrastructure.config.AlmacenamientoConfig;
 
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 /**
@@ -51,7 +50,7 @@ class MinioFotosAdapterTest {
         s3 = config.s3Client(minio.getS3URL(), MinioTestContainer.USUARIO, MinioTestContainer.CLAVE);
         presigner = config.s3Presigner(minio.getS3URL(), MinioTestContainer.USUARIO, MinioTestContainer.CLAVE);
         presignerPublico = config.s3Presigner(URL_PUBLICA, MinioTestContainer.USUARIO, MinioTestContainer.CLAVE);
-        s3.createBucket(CreateBucketRequest.builder().bucket(MinioTestContainer.BUCKET).build());
+        MinioTestContainer.crearBucketSiFalta(s3);
         adaptador = new MinioFotosAdapter(s3, presigner, MinioTestContainer.BUCKET, 60);
         adaptadorConHostPublico = new MinioFotosAdapter(s3, presignerPublico, MinioTestContainer.BUCKET, 60);
     }
