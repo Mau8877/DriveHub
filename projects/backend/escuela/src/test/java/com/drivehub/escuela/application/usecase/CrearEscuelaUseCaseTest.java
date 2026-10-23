@@ -79,7 +79,8 @@ class CrearEscuelaUseCaseTest {
     }
 
     private static DatosAdministrador admin() {
-        return new DatosAdministrador("Marta", "Gómez", LocalDate.of(1985, 5, 5), "marta@gmail.com", CLAVE, null);
+        return new DatosAdministrador("Marta", "Gómez", LocalDate.of(1985, 5, 5), "marta@gmail.com", CLAVE, null,
+            "MG98765", "FEMENINO", new java.math.BigDecimal("-16.4897"), new java.math.BigDecimal("-68.1193"));
     }
 
     private static CrearEscuelaInput input(String nombre, String slug) {

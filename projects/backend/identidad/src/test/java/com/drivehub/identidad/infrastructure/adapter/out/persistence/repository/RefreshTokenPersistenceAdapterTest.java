@@ -12,8 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import com.drivehub.identidad.PostgresIntegrationTestBase;
+import com.drivehub.identidad.CiDePrueba;
 import com.drivehub.identidad.domain.model.Dispositivo;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.model.RefreshToken;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.RolNombres;
@@ -39,7 +41,7 @@ class RefreshTokenPersistenceAdapterTest extends PostgresIntegrationTestBase {
 
     private Usuario usuario(String email) {
         Rol rol = roles.buscarPorNombre(RolNombres.ESTUDIANTE).orElseThrow();
-        return usuarios.guardar(Usuario.builder().email(email).passwordHash("$2a$hash").nombres("Ana").apellidos("Pérez")
+        return usuarios.guardar(Usuario.builder().email(email).passwordHash("$2a$hash").ci(CiDePrueba.unico()).sexo(SexoPersona.MASCULINO).nombres("Ana").apellidos("Pérez")
             .fechaNacimiento(LocalDate.of(2000, 1, 1)).escuelaCodigo(UUID.randomUUID()).estado(EstadoUsuario.ACTIVO)
             .roles(Set.of(rol)).build());
     }

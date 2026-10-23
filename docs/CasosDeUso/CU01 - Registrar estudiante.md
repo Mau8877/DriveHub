@@ -9,6 +9,8 @@
 **Objetivo:** Crear su propia cuenta en la plataforma, asociada a una escuela, para poder iniciar sesión después.
 **Plataforma:** Móvil y Web
 
+> **Modificado por [CU08a: Perfil de la persona](CU08a%20-%20Perfil%20de%20la%20persona.md).** El registro pasa a pedir además CI, sexo y ubicación en un mapa, a crear la cuenta junto con su perfil y a rechazar un CI ya registrado (`ERR_IDE_19`). Donde este documento contradiga a CU08a, manda CU08a.
+
 **Descripción:**
 Una persona que quiere estudiar en una autoescuela abre el enlace de registro de esa escuela (web o app) y completa un formulario con sus datos personales y una contraseña. El sistema comprueba que la escuela existe y está activa, que la persona cumple la edad mínima y que el correo no está en uso. Si todo es válido, crea la cuenta con el rol `ESTUDIANTE`, asociada a esa escuela, y lleva a la persona a la pantalla de inicio de sesión. **No** inicia sesión automáticamente. Si algún dato es inválido, el sistema lo informa campo por campo sin crear la cuenta.
 

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -28,8 +29,10 @@ import com.drivehub.identidad.common.exception.IdentidadErrorCodes;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.RolNombres;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.in.CrearAdministradorEscuelaComando;
+import com.drivehub.identidad.domain.port.out.GeocodificadorInversoPort;
 import com.drivehub.identidad.domain.port.out.PasswordHasherPort;
 import com.drivehub.identidad.domain.port.out.RolRepositoryPort;
 import com.drivehub.identidad.domain.port.out.UsuarioRepositoryPort;
@@ -51,6 +54,8 @@ class CrearAdministradorEscuelaServiceTest {
     private RolRepositoryPort rolRepository;
     @Mock
     private PasswordHasherPort passwordHasher;
+    @Mock
+    private GeocodificadorInversoPort geocodificador;
 
     private CrearAdministradorEscuelaService servicio;
     private ListAppender<ILoggingEvent> logs;
@@ -58,7 +63,8 @@ class CrearAdministradorEscuelaServiceTest {
     @BeforeEach
     void crearServicio() {
         Clock reloj = Clock.fixed(HOY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
-        servicio = new CrearAdministradorEscuelaService(usuarioRepository, rolRepository, passwordHasher, reloj, 18);
+        servicio = new CrearAdministradorEscuelaService(
+            usuarioRepository, rolRepository, passwordHasher, geocodificador, reloj, 18);
         logs = new ListAppender<>();
         logs.start();
         ((Logger) LoggerFactory.getLogger(CrearAdministradorEscuelaService.class)).addAppender(logs);
@@ -70,7 +76,8 @@ class CrearAdministradorEscuelaServiceTest {
     }
 
     private CrearAdministradorEscuelaComando comando(LocalDate nacimiento, String email) {
-        return new CrearAdministradorEscuelaComando(" Marta ", "Gómez", nacimiento, email, CLAVE, " ", ESCUELA);
+        return new CrearAdministradorEscuelaComando(" Marta ", "Gómez", nacimiento, email, CLAVE, " ", ESCUELA,
+            " mg 98765 ", SexoPersona.FEMENINO, new BigDecimal("-16.4897"), new BigDecimal("-68.1193"));
     }
 
     private void rolYHashDisponibles() {
@@ -148,5 +155,32 @@ class CrearAdministradorEscuelaServiceTest {
             String completo = evento.getFormattedMessage() + Arrays.toString(evento.getArgumentArray());
             assertThat(completo).doesNotContain(CLAVE).doesNotContain("$2a$hash");
         }
+    }
+
+    @Test
+    void crear_conDatosValidos_creaElPerfilConCiSexoUbicacionYSinCategoria() {
+        rolYHashDisponibles();
+        when(geocodificador.direccionDe(new BigDecimal("-16.4897"), new BigDecimal("-68.1193")))
+            .thenReturn(Optional.of("Plaza Murillo, La Paz"));
+
+        servicio.crear(comando(LocalDate.of(1985, 5, 5), "marta@gmail.com"));
+
+        ArgumentCaptor<Usuario> capturado = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepository).guardar(capturado.capture());
+        var perfil = capturado.getValue().getPerfil();
+        assertThat(perfil.getCi()).isEqualTo("MG98765");
+        assertThat(perfil.getSexo()).isEqualTo(SexoPersona.FEMENINO);
+        assertThat(perfil.getDireccion()).isEqualTo("Plaza Murillo, La Paz");
+        assertThat(perfil.getCategoriaSigla()).isNull();
+    }
+
+    @Test
+    void crear_conCiRepetido_lanzaErrIde19YNoGuardaNada() {
+        when(usuarioRepository.existePorCi("MG98765")).thenReturn(true);
+
+        assertThatThrownBy(() -> servicio.crear(comando(LocalDate.of(1985, 5, 5), "marta@gmail.com")))
+            .isInstanceOfSatisfying(BusinessException.class, ex ->
+                assertThat(ex.getErrorCode()).isEqualTo(IdentidadErrorCodes.CI_EN_USO));
+        verify(usuarioRepository, never()).guardar(any());
     }
 }

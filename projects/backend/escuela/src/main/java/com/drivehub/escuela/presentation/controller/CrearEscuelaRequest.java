@@ -1,8 +1,11 @@
 package com.drivehub.escuela.presentation.controller;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,6 +18,7 @@ import jakarta.validation.constraints.Size;
  *
  * * El slug solo admite minúsculas, números y guiones. Las reglas del Administrador son las del
  * * registro del estudiante (la edad mínima la valida Identidad, que es quien la configura).
+ * * CU08a: el Administrador lleva además CI, sexo y la ubicación del mapa; Identidad calcula la dirección.
  */
 public record CrearEscuelaRequest(
         @NotBlank(message = "El nombre es obligatorio")
@@ -55,7 +59,26 @@ public record CrearEscuelaRequest(
             String password,
 
             @Size(max = 20, message = "El teléfono no puede superar 20 caracteres")
-            String telefono
+            String telefono,
+
+            @NotBlank(message = "El CI es obligatorio")
+            @Size(min = 5, max = 15, message = "El CI debe tener entre 5 y 15 caracteres")
+            @Pattern(regexp = "[A-Za-z0-9-]+", message = "El CI solo admite letras, números y guion")
+            String ci,
+
+            @NotBlank(message = "El sexo es obligatorio")
+            @Pattern(regexp = "MASCULINO|FEMENINO", message = "El sexo debe ser MASCULINO o FEMENINO")
+            String sexo,
+
+            @NotNull(message = "La ubicación es obligatoria")
+            @DecimalMin(value = "-90", message = "La latitud no es válida")
+            @DecimalMax(value = "90", message = "La latitud no es válida")
+            BigDecimal latitud,
+
+            @NotNull(message = "La ubicación es obligatoria")
+            @DecimalMin(value = "-180", message = "La longitud no es válida")
+            @DecimalMax(value = "180", message = "La longitud no es válida")
+            BigDecimal longitud
     ) {
 
         @Override

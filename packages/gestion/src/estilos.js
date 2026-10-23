@@ -564,6 +564,19 @@ export const estilos = css`
     height: 2.75rem;
     padding: 0 0.9rem;
   }
+  .campo select {
+    width: 100%;
+    height: 2.75rem;
+    padding: 0 0.9rem;
+  }
+  .campo.con-error select {
+    border-color: var(--destructive);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--destructive) 14%, transparent);
+  }
+  .campo .etiqueta-campo {
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
   .campo.con-error input {
     border-color: var(--destructive);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--destructive) 14%, transparent);

@@ -29,6 +29,9 @@ Perfil _perfil({
   correoVerificado: true,
   roles: const ['ESTUDIANTE'],
   fotoUrl: fotoUrl,
+  ci: 'AB12345',
+  sexo: 'FEMENINO',
+  categoriaSigla: 'SIN',
 );
 
 class _ServicioFalso extends PerfilService {

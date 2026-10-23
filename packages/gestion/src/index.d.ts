@@ -47,13 +47,17 @@ export interface MensajesCampo {
   patron?: string
   fechaNoFutura?: string
   edadMinima?: string
+  /** `seleccion`: el valor no está entre las opciones. */
+  opcion?: string
+  /** `ubicacion`: las coordenadas están incompletas o fuera de rango. */
+  ubicacion?: string
 }
 
 export interface Campo {
   /** Campo del cuerpo (admite puntos: `administrador.nombres` arma un objeto anidado). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono'
+  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'seleccion' | 'ubicacion'
   requerido?: boolean
   /** Largo mínimo y máximo del texto. */
   min?: number
@@ -70,6 +74,21 @@ export interface Campo {
   ayuda?: string
   /** Con otro campo `mitad` a continuación, los dos comparten fila. */
   mitad?: boolean
+  /** `seleccion`: opciones fijas del esquema. */
+  opciones?: { valor: string; etiqueta: string }[]
+  /**
+   * `seleccion`: opciones traídas de la API (`GET /{recurso}` con `pageSize` 100). `valor` y `etiqueta`
+   * son nombres de campo de cada elemento (ej. `sigla` y `descripcion`).
+   */
+  opcionesDe?: { recurso: string; valor: string; etiqueta: string; params?: Record<string, string> }
+  /** `seleccion`: valor preseleccionado al crear. */
+  porDefecto?: string
+  /**
+   * `ubicacion`: campo del registro cargado cuyo valor se muestra bajo el mapa como dirección (solo
+   * lectura). El campo escribe `latitud` y `longitud` en el cuerpo con el prefijo de su ruta
+   * (`administrador.ubicacion` escribe `administrador.latitud` y `administrador.longitud`).
+   */
+  direccionDe?: string
 }
 
 export interface Seccion {

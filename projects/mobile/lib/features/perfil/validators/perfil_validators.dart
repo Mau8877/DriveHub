@@ -14,6 +14,15 @@ String? validarTelefono(String? valor) => registro.validarTelefono(valor);
 String? validarFechaNacimiento(DateTime? fecha, {DateTime? hoy}) =>
     registro.validarFechaNacimiento(fecha, hoy: hoy);
 
+// * CU08a: el CI, el sexo y la ubicación también son los del registro (misma regla del mismo
+// * campo): una feature importa de otra solo con justificación de negocio, y es esta.
+String? validarCi(String? valor) => registro.validarCi(valor);
+
+String? validarSexo(String? valor) => registro.validarSexo(valor);
+
+String? validarUbicacion(double? latitud, double? longitud) =>
+    registro.validarUbicacion(latitud, longitud);
+
 /// La contraseña actual solo tiene que estar escrita.
 String? validarContrasenaActual(String? valor) {
   if (valor == null || valor.isEmpty) {
@@ -53,6 +62,7 @@ const Map<String, String> mensajesPerfil = {
       'El archivo no es una imagen válida. Usa una foto JPG, PNG o WebP',
   'ERR_IDE_17': 'La imagen no puede superar 5 MB',
   'ERR_IDE_18': 'Ese ya es tu correo',
+  'ERR_IDE_19': 'Este CI ya está registrado',
 };
 
 const String mensajeGenerico = 'Ocurrió un error. Intenta más tarde';

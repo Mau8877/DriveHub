@@ -2,6 +2,8 @@ import { FormControl, Validators } from '@angular/forms'
 
 import { mensajeDeError } from '../schemas/registro.mensajes'
 import {
+  ciValido,
+  coordenada,
   edadEnAnios,
   edadMinima,
   fechaNoFutura,
@@ -88,6 +90,51 @@ describe('registro.reglas', () => {
 
     it('devuelve null si no hay errores', () => {
       expect(mensajeDeError('email', null)).toBeNull()
+    })
+  })
+
+  describe('ciValido', () => {
+    const validar = (ci: string) => ciValido(new FormControl(ci))
+
+    it('acepta de 5 a 15 caracteres con letras, números y guion', () => {
+      expect(validar('12345')).toBeNull()
+      expect(validar('AB-12345')).toBeNull()
+      expect(validar('1'.repeat(15))).toBeNull()
+    })
+
+    it('rechaza menos de 5, más de 15 y los símbolos', () => {
+      expect(validar('1234')).toEqual({ ciFormato: true })
+      expect(validar('1'.repeat(16))).toEqual({ ciFormato: true })
+      expect(validar('AB 1234')).toEqual({ ciFormato: true })
+      expect(validar('AB#1234')).toEqual({ ciFormato: true })
+    })
+
+    it('no opina si está vacío (eso lo valida obligatorio)', () => {
+      expect(validar('')).toBeNull()
+    })
+  })
+
+  describe('coordenada', () => {
+    it('exige valor y lo acepta dentro de los límites, incluidos ellos', () => {
+      expect(coordenada(90)(new FormControl(null))).toEqual({ required: true })
+      expect(coordenada(90)(new FormControl(-90))).toBeNull()
+      expect(coordenada(180)(new FormControl(180))).toBeNull()
+    })
+
+    it('rechaza lo que está fuera de rango o no es un número', () => {
+      expect(coordenada(90)(new FormControl(90.1))).toEqual({ coordenada: true })
+      expect(coordenada(180)(new FormControl(-181))).toEqual({ coordenada: true })
+      expect(coordenada(90)(new FormControl(Number.NaN))).toEqual({ coordenada: true })
+    })
+  })
+
+  describe('mensajes del CI y la ubicación', () => {
+    it('cada error tiene su mensaje en español', () => {
+      expect(mensajeDeError('ci', { required: true })).toBe('El CI es obligatorio')
+      expect(mensajeDeError('ci', { ciFormato: true })).toContain('entre 5 y 15 caracteres')
+      expect(mensajeDeError('sexo', { required: true })).toBe('Elige tu sexo')
+      expect(mensajeDeError('ubicacion', { required: true })).toBe('Elige tu ubicación en el mapa')
+      expect(mensajeDeError('ubicacion', { coordenada: true })).toBe('La ubicación no es válida')
     })
   })
 })

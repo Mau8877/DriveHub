@@ -21,6 +21,12 @@ Map<String, dynamic> _json({
   'escuelaCodigo': escuelaNombre == null ? null : 'e1',
   'escuelaNombre': escuelaNombre,
   'fotoUrl': fotoUrl,
+  'ci': 'AB12345',
+  'sexo': 'FEMENINO',
+  'direccion': 'Av. Arce 2345, La Paz',
+  'latitud': -16.4897,
+  'longitud': -68.1193,
+  'categoriaSigla': 'SIN',
 };
 
 void main() {
@@ -103,6 +109,65 @@ void main() {
     expect(request.toJson(), {
       'passwordActual': 'actual-123',
       'correoNuevo': 'nuevo@gmail.com',
+    });
+  });
+
+  group('CU08a: CI, sexo, ubicación y categoría', () {
+    test('Perfil.fromJson lee CI, sexo, dirección, coordenadas y categoría', () {
+      final perfil = Perfil.fromJson(_json());
+
+      expect(perfil.ci, 'AB12345');
+      expect(perfil.sexo, 'FEMENINO');
+      expect(perfil.direccion, 'Av. Arce 2345, La Paz');
+      expect(perfil.latitud, -16.4897);
+      expect(perfil.longitud, -68.1193);
+      expect(perfil.categoriaSigla, 'SIN');
+    });
+
+    test('Perfil.fromJson acepta coordenadas enteras y los campos de ubicación nulos', () {
+      final entero = Perfil.fromJson({..._json(), 'latitud': -17, 'longitud': -63});
+      final sinUbicacion = Perfil.fromJson({
+        ..._json(),
+        'direccion': null,
+        'latitud': null,
+        'longitud': null,
+        'categoriaSigla': null,
+      });
+
+      expect(entero.latitud, -17.0);
+      expect(sinUbicacion.direccion, isNull);
+      expect(sinUbicacion.latitud, isNull);
+      expect(sinUbicacion.categoriaSigla, isNull);
+    });
+
+    test('EditarPerfilRequest manda CI y sexo, y la ubicación solo como par', () {
+      const request = EditarPerfilRequest(
+        ci: 'CD67890',
+        sexo: 'MASCULINO',
+        latitud: -17.7833,
+        longitud: -63.1821,
+      );
+
+      expect(request.toJson(), {
+        'ci': 'CD67890',
+        'sexo': 'MASCULINO',
+        'latitud': -17.7833,
+        'longitud': -63.1821,
+      });
+      expect(request.estaVacio, isFalse);
+    });
+
+    test('una sola coordenada no se manda', () {
+      const request = EditarPerfilRequest(latitud: -17.7833);
+
+      expect(request.toJson(), isEmpty);
+    });
+
+    test('nunca manda dirección ni categoría', () {
+      const request = EditarPerfilRequest(ci: 'CD67890');
+
+      expect(request.toJson().containsKey('direccion'), isFalse);
+      expect(request.toJson().containsKey('categoriaSigla'), isFalse);
     });
   });
 }

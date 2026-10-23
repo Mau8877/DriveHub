@@ -46,6 +46,10 @@ describe('Registro', () => {
       email: 'ana@gmail.com',
       password: '123456789',
       telefono: '',
+      sexo: 'FEMENINO',
+      ci: 'AB12345',
+      latitud: -16.4897,
+      longitud: -68.1193,
     })
   }
 
@@ -110,6 +114,10 @@ describe('Registro', () => {
       email: 'ana@gmail.com',
       password: '123456789',
       escuelaSlug: 'escuelaexample',
+      ci: 'AB12345',
+      sexo: 'FEMENINO',
+      latitud: -16.4897,
+      longitud: -68.1193,
     })
     fixture.detectChanges()
     const html = fixture.nativeElement as HTMLElement
@@ -142,5 +150,79 @@ describe('Registro', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(
       'No pudimos completar el registro'
     )
+  })
+
+  it('muestra los campos de sexo, CI y el mapa de ubicación', async () => {
+    const fixture = await crear()
+    const html = fixture.nativeElement as HTMLElement
+
+    expect(html.querySelector('#sexo')).not.toBeNull()
+    expect(html.querySelector('#ci')).not.toBeNull()
+    expect(html.querySelector('dh-mapa-ubicacion')).not.toBeNull()
+  })
+
+  it('sin CI, sin sexo y sin punto en el mapa no registra y pide cada dato', async () => {
+    const fixture = await crear()
+    llenar(fixture, fechaHaceAnios(30))
+    fixture.componentInstance.form.patchValue({
+      ci: '',
+      sexo: '',
+      latitud: null,
+      longitud: null,
+    })
+
+    fixture.componentInstance.enviar()
+    fixture.detectChanges()
+
+    expect(servicio.registrar).not.toHaveBeenCalled()
+    const texto = (fixture.nativeElement as HTMLElement).textContent
+    expect(texto).toContain('El CI es obligatorio')
+    expect(texto).toContain('Elige tu sexo')
+    expect(texto).toContain('Elige tu ubicación en el mapa')
+  })
+
+  it('un CI con símbolos o demasiado corto no registra', async () => {
+    const fixture = await crear()
+    llenar(fixture, fechaHaceAnios(30))
+
+    for (const ci of ['AB1', 'AB 123#', 'x'.repeat(16)]) {
+      fixture.componentInstance.form.patchValue({ ci })
+      fixture.componentInstance.enviar()
+      fixture.detectChanges()
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+        'El CI debe tener entre 5 y 15 caracteres'
+      )
+    }
+    expect(servicio.registrar).not.toHaveBeenCalled()
+  })
+
+  it('al elegir un punto en el mapa se llenan la latitud y la longitud', async () => {
+    const fixture = await crear()
+    const mapa = (fixture.nativeElement as HTMLElement).querySelector('dh-mapa-ubicacion')!
+
+    mapa.dispatchEvent(
+      new CustomEvent('dh-ubicacion', {
+        detail: { latitud: -17.7833, longitud: -63.1821 },
+        bubbles: true,
+      })
+    )
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.form.controls.latitud.value).toBe(-17.7833)
+    expect(fixture.componentInstance.form.controls.longitud.value).toBe(-63.1821)
+  })
+
+  it('ERR_IDE_19 marca el campo CI', async () => {
+    servicio.registrar.mockReturnValue(throwError(() => new ApiError('ERR_IDE_19', 'CI en uso')))
+    const fixture = await crear()
+    llenar(fixture, fechaHaceAnios(30))
+
+    fixture.componentInstance.enviar()
+    fixture.detectChanges()
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Este CI ya está registrado'
+    )
+    expect(fixture.componentInstance.registrado()).toBe(false)
   })
 })

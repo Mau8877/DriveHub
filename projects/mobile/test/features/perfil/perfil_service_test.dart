@@ -22,6 +22,12 @@ Map<String, dynamic> _perfil() => exito({
   'escuelaCodigo': null,
   'escuelaNombre': null,
   'fotoUrl': null,
+  'ci': 'AB12345',
+  'sexo': 'FEMENINO',
+  'direccion': null,
+  'latitud': null,
+  'longitud': null,
+  'categoriaSigla': null,
 });
 
 /// Un Dio con el desempaquetado del sobre como el real, pero sin red.

@@ -131,6 +131,7 @@ class ObtenerPerfilServiceTest {
         assertThat(Arrays.stream(PerfilUsuario.class.getRecordComponents()).map(RecordComponent::getName))
             .doesNotContain("passwordHash", "password", "id")
             .containsExactly("codigo", "nombres", "apellidos", "fechaNacimiento", "telefono", "email",
-                "correoVerificado", "roles", "escuelaCodigo", "escuelaNombre", "fotoUrl");
+                "correoVerificado", "roles", "escuelaCodigo", "escuelaNombre", "fotoUrl", "ci", "sexo", "direccion",
+                "latitud", "longitud", "categoriaSigla");
     }
 }

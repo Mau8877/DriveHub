@@ -50,6 +50,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.DockerClientFactory;
 
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.TipoTokenCorreo;
 import com.drivehub.identidad.domain.model.TokenRecuperacion;
@@ -134,7 +135,7 @@ class PerfilIntegracionTest extends PostgresIntegrationTestBase {
 
     private String crearCuenta() {
         String email = "perfil-" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com";
-        usuarios.guardar(Usuario.builder().email(email).passwordHash(hasher.hashear(PASSWORD)).nombres("Ana")
+        usuarios.guardar(Usuario.builder().email(email).passwordHash(hasher.hashear(PASSWORD)).ci(CiDePrueba.unico()).sexo(SexoPersona.MASCULINO).nombres("Ana")
             .apellidos("Pérez").telefono("0991234567").fechaNacimiento(LocalDate.of(1995, 5, 5))
             .estado(EstadoUsuario.ACTIVO).intentosFallidos(0)
             .roles(Set.of(roles.buscarPorNombre(RolNombres.SUPER_ADMIN).orElseThrow(),

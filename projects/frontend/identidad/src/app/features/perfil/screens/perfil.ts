@@ -8,11 +8,13 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
+import type { DetalleUbicacion } from '@drivehub/ui'
 import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
 import {
   APELLIDOS_MAX,
+  ciValido,
   edadMinima,
   fechaNoFutura,
   mensajeDeError,
@@ -26,9 +28,9 @@ import { CambiarContrasena } from '../components/cambiar-contrasena'
 import { CambiarCorreo } from '../components/cambiar-correo'
 import { FotoPerfil } from '../components/foto-perfil'
 import { codigoDe, mensajeDeErrorPerfil } from '../schemas/perfil.errores'
-import type { EditarPerfilRequest, Perfil as PerfilDatos } from '../types/perfil.types'
+import type { EditarPerfilRequest, Perfil as PerfilDatos, Sexo } from '../types/perfil.types'
 
-type Campo = 'nombres' | 'apellidos' | 'telefono' | 'fechaNacimiento'
+type Campo = 'nombres' | 'apellidos' | 'telefono' | 'fechaNacimiento' | 'ci' | 'sexo'
 
 const ROLES: Record<string, string> = {
   ESTUDIANTE: 'Estudiante',
@@ -45,9 +47,12 @@ function hoyComoTexto(): string {
 }
 
 /**
- * Perfil de la cuenta propia (CU06): datos de solo lectura, edición de los datos personales y las
- * secciones de foto, contraseña y correo. La ven los cuatro roles.
+ * Perfil de la cuenta propia (CU06, CU08a): datos de solo lectura, edición de los datos personales
+ * (con CI, sexo y ubicación en el mapa) y las secciones de foto, contraseña y correo. La ven los
+ * cuatro roles.
  *
+ * * La categoría del estudiante se muestra pero no se edita: la asigna la escuela.
+ * * El mapa solo elige el punto; la dirección la recalcula el servidor al guardar.
  * * Las reglas de los campos son las del registro (features/registro): mismas en la web y la app.
  * * Solo se envían los campos que cambiaron; un teléfono vaciado se manda como null.
  * * Al guardar nombres o foto se avisa al shell con el evento `perfil-actualizado` para que
@@ -96,6 +101,15 @@ function hoyComoTexto(): string {
                 <div>
                   <dt>Escuela</dt>
                   <dd data-testid="escuela">{{ p.escuelaNombre }}</dd>
+                </div>
+              }
+              @if (p.categoriaSigla) {
+                <div>
+                  <dt>Categoría</dt>
+                  <dd>
+                    <span data-testid="categoria">{{ p.categoriaSigla }}</span>
+                    <span class="dh-muted dh-texto-sm">La asigna tu escuela</span>
+                  </dd>
                 </div>
               }
             </dl>
@@ -166,6 +180,44 @@ function hoyComoTexto(): string {
                 </div>
               </div>
 
+              <div class="dh-grid-2">
+                <div class="dh-field">
+                  <label for="sexo" class="dh-label">Sexo</label>
+                  <select id="sexo" formControlName="sexo" class="dh-input">
+                    <option value="MASCULINO">Masculino</option>
+                    <option value="FEMENINO">Femenino</option>
+                  </select>
+                  @if (error('sexo'); as mensaje) {
+                    <p class="dh-error" role="alert">{{ mensaje }}</p>
+                  }
+                </div>
+
+                <div class="dh-field">
+                  <label for="ci" class="dh-label">CI</label>
+                  <input id="ci" formControlName="ci" autocomplete="off" class="dh-input" />
+                  @if (error('ci'); as mensaje) {
+                    <p class="dh-error" role="alert">{{ mensaje }}</p>
+                  }
+                </div>
+              </div>
+
+              @if (conUbicacion(p)) {
+                <div class="dh-field">
+                  <span class="dh-label">Ubicación</span>
+                  <dh-mapa-ubicacion
+                    [latitud]="form.controls.latitud.value"
+                    [longitud]="form.controls.longitud.value"
+                    [direccion]="p.direccion ?? ''"
+                    (dh-ubicacion)="alElegirUbicacion($event)"
+                  />
+                  @if (!p.direccion) {
+                    <p class="dh-muted dh-texto-sm" data-testid="direccion-pendiente">
+                      Dirección pendiente de calcular
+                    </p>
+                  }
+                </div>
+              }
+
               @if (errorGeneral(); as mensaje) {
                 <p class="dh-notice dh-notice-error" role="alert">{{ mensaje }}</p>
               }
@@ -213,11 +265,24 @@ export class Perfil implements OnInit {
   protected readonly aviso = signal<string | null>(null)
   protected readonly errorGeneral = signal<string | null>(null)
   private readonly errorDeServidor = signal<Partial<Record<Campo, string>>>({})
-  private readonly valores = signal({
+  private readonly valores = signal<{
+    nombres: string
+    apellidos: string
+    telefono: string
+    fechaNacimiento: string
+    ci: string
+    sexo: Sexo
+    latitud: number | null
+    longitud: number | null
+  }>({
     nombres: '',
     apellidos: '',
     telefono: '',
     fechaNacimiento: '',
+    ci: '',
+    sexo: 'MASCULINO',
+    latitud: null,
+    longitud: null,
   })
 
   protected readonly form = this.fb.group({
@@ -225,6 +290,10 @@ export class Perfil implements OnInit {
     apellidos: ['', [obligatorioConTexto, Validators.maxLength(APELLIDOS_MAX)]],
     telefono: ['', [Validators.maxLength(TELEFONO_MAX)]],
     fechaNacimiento: ['', [Validators.required, fechaNoFutura(), edadMinima()]],
+    ci: ['', [obligatorioConTexto, ciValido]],
+    sexo: ['MASCULINO' as Sexo, [Validators.required]],
+    latitud: [null as number | null, [Validators.min(-90), Validators.max(90)]],
+    longitud: [null as number | null, [Validators.min(-180), Validators.max(180)]],
   })
 
   constructor() {
@@ -252,6 +321,17 @@ export class Perfil implements OnInit {
 
   protected rolesLegibles(p: PerfilDatos): string {
     return p.roles.map((rol) => ROLES[rol] ?? rol).join(', ')
+  }
+
+  /** El Super admin no tiene ubicación: solo se muestra el mapa a quien la tiene o puede tenerla. */
+  protected conUbicacion(p: PerfilDatos): boolean {
+    return p.latitud !== null || !p.roles.includes('SUPER_ADMIN')
+  }
+
+  protected alElegirUbicacion(evento: Event): void {
+    const { latitud, longitud } = (evento as CustomEvent<DetalleUbicacion>).detail
+    this.form.patchValue({ latitud, longitud })
+    this.form.markAsDirty()
   }
 
   /** El perfil que devuelve una sección (foto, correo) reemplaza al actual sin tocar lo escrito. */
@@ -294,6 +374,8 @@ export class Perfil implements OnInit {
       const mensaje = mensajeDeErrorPerfil(error)
       if (codigoDe(error) === 'ERR_IDE_02') {
         this.errorDeServidor.set({ fechaNacimiento: mensaje })
+      } else if (codigoDe(error) === 'ERR_IDE_19') {
+        this.errorDeServidor.set({ ci: mensaje })
       } else {
         this.errorGeneral.set(mensaje)
       }
@@ -310,6 +392,17 @@ export class Perfil implements OnInit {
     if (v.apellidos.trim() !== p.apellidos) cambios.apellidos = v.apellidos.trim()
     if (v.telefono.trim() !== (p.telefono ?? '')) cambios.telefono = v.telefono.trim() || null
     if (v.fechaNacimiento !== p.fechaNacimiento) cambios.fechaNacimiento = v.fechaNacimiento
+    if (v.ci.trim().toUpperCase() !== p.ci) cambios.ci = v.ci.trim()
+    if (v.sexo !== p.sexo) cambios.sexo = v.sexo
+    // * La ubicación va como par y solo si el punto cambió; si no, el servidor no recalcula la dirección
+    if (
+      v.latitud !== null &&
+      v.longitud !== null &&
+      (v.latitud !== p.latitud || v.longitud !== p.longitud)
+    ) {
+      cambios.latitud = v.latitud
+      cambios.longitud = v.longitud
+    }
     return cambios
   }
 
@@ -319,6 +412,10 @@ export class Perfil implements OnInit {
       apellidos: p.apellidos,
       telefono: p.telefono ?? '',
       fechaNacimiento: p.fechaNacimiento,
+      ci: p.ci,
+      sexo: p.sexo,
+      latitud: p.latitud,
+      longitud: p.longitud,
     })
     this.valores.set(this.form.getRawValue())
   }

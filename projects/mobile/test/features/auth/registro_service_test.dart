@@ -47,6 +47,10 @@ void main() {
     email: 'ana@gmail.com',
     password: '123456789',
     escuelaSlug: 'escuelaexample',
+    ci: 'AB12345',
+    sexo: 'FEMENINO',
+    latitud: -16.4897,
+    longitud: -68.1193,
   );
 
   setUp(() {
@@ -71,6 +75,39 @@ void main() {
     expect(cuerpo.containsKey('rol'), isFalse);
     expect(cuerpo.containsKey('telefono'), isFalse);
     expect(cuerpo['escuelaSlug'], 'escuelaexample');
+  });
+
+  test('envía el CI, el sexo y la ubicación, y nunca la dirección ni la categoría', () async {
+    final adaptador = _AdaptadorFalso(201, {
+      'status': 'success',
+      'data': {'codigo': 'u1', 'email': 'ana@gmail.com', 'nombres': 'Ana', 'apellidos': 'Pérez'},
+      'message': 'ok',
+    });
+    ApiClient.instance.httpClientAdapter = adaptador;
+
+    await servicio.registrar(request);
+
+    final cuerpo = adaptador.ultimaPeticion!.data as Map<String, dynamic>;
+    expect(cuerpo['ci'], 'AB12345');
+    expect(cuerpo['sexo'], 'FEMENINO');
+    expect(cuerpo['latitud'], -16.4897);
+    expect(cuerpo['longitud'], -68.1193);
+    expect(cuerpo.containsKey('direccion'), isFalse);
+    expect(cuerpo.containsKey('categoriaSigla'), isFalse);
+  });
+
+  test('un 409 con ERR_IDE_19 llega como ApiException con su código', () async {
+    ApiClient.instance.httpClientAdapter = _AdaptadorFalso(409, {
+      'status': 'failed',
+      'data': null,
+      'message': 'Ya existe una cuenta con ese CI',
+      'error': 'ERR_IDE_19',
+    });
+
+    expect(
+      servicio.registrar(request),
+      throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_IDE_19')),
+    );
   });
 
   test('parsea la cuenta creada', () async {

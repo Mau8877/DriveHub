@@ -18,18 +18,21 @@ import org.springframework.transaction.annotation.Transactional;
 import com.drivehub.identidad.common.exception.ConflictException;
 import com.drivehub.identidad.common.exception.IdentidadErrorCodes;
 import com.drivehub.identidad.common.exception.ValidationException;
+import com.drivehub.identidad.domain.model.Ci;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.Perfil;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.in.CrearAdministradorEscuelaComando;
 import com.drivehub.identidad.domain.port.in.CrearAdministradorEscuelaUseCase;
+import com.drivehub.identidad.domain.port.out.GeocodificadorInversoPort;
 import com.drivehub.identidad.domain.port.out.PasswordHasherPort;
 import com.drivehub.identidad.domain.port.out.RolRepositoryPort;
 import com.drivehub.identidad.domain.port.out.UsuarioRepositoryPort;
 
 /**
- * CU05: el Super admin crea la cuenta del Administrador de una escuela.
+ * CU05 + CU08a: el Super admin crea la cuenta y el perfil del Administrador de una escuela.
  *
  * * El rol es SIEMPRE ADMIN_ESCUELA: no viene en el comando.
  * * No consulta a Escuela: en este momento la escuela todavía no existe (Escuela confirma
@@ -46,6 +49,7 @@ public class CrearAdministradorEscuelaService implements CrearAdministradorEscue
     private final UsuarioRepositoryPort usuarioRepository;
     private final RolRepositoryPort rolRepository;
     private final PasswordHasherPort passwordHasher;
+    private final GeocodificadorInversoPort geocodificador;
     private final Clock reloj;
     private final int edadMinima;
 
@@ -53,11 +57,13 @@ public class CrearAdministradorEscuelaService implements CrearAdministradorEscue
             UsuarioRepositoryPort usuarioRepository,
             RolRepositoryPort rolRepository,
             PasswordHasherPort passwordHasher,
+            GeocodificadorInversoPort geocodificador,
             Clock reloj,
             @Value("${app.registro.edad-minima:18}") int edadMinima) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordHasher = passwordHasher;
+        this.geocodificador = geocodificador;
         this.reloj = reloj;
         this.edadMinima = edadMinima;
     }
@@ -85,16 +91,31 @@ public class CrearAdministradorEscuelaService implements CrearAdministradorEscue
             throw new ConflictException(IdentidadErrorCodes.ADMIN_YA_EXISTE_EN_ESCUELA,
                 "La escuela ya tiene un administrador");
         }
+        String ci = Ci.normalizar(comando.ci());
+        if (usuarioRepository.existePorCi(ci)) {
+            LOG.warn("Administrador rechazado: CI en uso",
+                kv("module", MODULO), kv("errorCode", IdentidadErrorCodes.CI_EN_USO));
+            throw new ConflictException(IdentidadErrorCodes.CI_EN_USO, "Ya existe una cuenta con ese CI");
+        }
         Rol rolAdmin = rolRepository.buscarPorNombre(RolNombres.ADMIN_ESCUELA)
             .orElseThrow(() -> new IllegalStateException("El rol ADMIN_ESCUELA no está sembrado en la base"));
 
-        Usuario nuevo = Usuario.builder()
-            .email(email)
-            .passwordHash(passwordHasher.hashear(comando.password()))
+        Perfil perfil = Perfil.builder()
             .nombres(comando.nombres().trim())
             .apellidos(comando.apellidos().trim())
             .telefono(comando.telefono() == null || comando.telefono().isBlank() ? null : comando.telefono().trim())
             .fechaNacimiento(comando.fechaNacimiento())
+            .ci(ci)
+            .sexo(comando.sexo())
+            .direccion(geocodificador.direccionDe(comando.latitud(), comando.longitud()).orElse(null))
+            .latitud(comando.latitud())
+            .longitud(comando.longitud())
+            .build();
+
+        Usuario nuevo = Usuario.builder()
+            .email(email)
+            .passwordHash(passwordHasher.hashear(comando.password()))
+            .perfil(perfil)
             .escuelaCodigo(comando.escuelaCodigo())
             .estado(EstadoUsuario.ACTIVO)
             .intentosFallidos(0)

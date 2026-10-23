@@ -176,3 +176,13 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
 - **Significado:** El correo nuevo que la persona pidió es igual al correo actual de su cuenta
   (CU06). Si lo usa otra cuenta, la respuesta es `ERR_IDE_01`.
 - **Dónde se lanza:** `SolicitarCambioCorreoService.solicitar()`
+
+## `ERR_IDE_19`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El CI ya pertenece a otra cuenta (CU08a). El CI es único en toda la plataforma y
+  se compara sin espacios y en mayúsculas.
+- **Dónde se lanza:** `RegistrarEstudianteService.registrar()`,
+  `CrearAdministradorEscuelaService.crear()`, `EditarPerfilService.editar()` y
+  `UsuarioPersistenceAdapter` (si dos operaciones simultáneas chocan con el mismo CI)

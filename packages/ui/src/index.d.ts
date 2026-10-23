@@ -77,6 +77,26 @@ export class DhIcono extends HTMLElement {
   tam: number
 }
 
+/** Detalle del evento `dh-ubicacion` de <dh-mapa-ubicacion>: el punto elegido, con 6 decimales. */
+export interface DetalleUbicacion {
+  latitud: number
+  longitud: number
+}
+
+/**
+ * <dh-mapa-ubicacion>: elegir un punto en un mapa de OpenStreetMap. Emite `dh-ubicacion` con
+ * `DetalleUbicacion`. No calcula la dirección: la calcula el servidor al guardar.
+ */
+export class DhMapaUbicacion extends HTMLElement {
+  latitud: number | null
+  longitud: number | null
+  /** Texto de solo lectura que se muestra bajo el mapa (la dirección ya guardada). */
+  direccion: string
+  deshabilitado: boolean
+  /** `[latitud, longitud]` donde se centra el mapa mientras no hay punto (La Paz por defecto). */
+  centro: [number, number]
+}
+
 export class DhSidebar extends HTMLElement {
   items: ItemNavegacion[]
   activo: string
@@ -132,6 +152,7 @@ declare global {
     'dh-avatar': DhAvatar
     'dh-dialogo': DhDialogo
     'dh-icono': DhIcono
+    'dh-mapa-ubicacion': DhMapaUbicacion
     'dh-sidebar': DhSidebar
     'dh-header': DhHeader
     'dh-shell': DhShell

@@ -139,7 +139,11 @@ Cuando el trabajo esté listo para commitear, Claude debe:
    `feat[BACK]: pagos -- ...`).
 2. Proponerle a la persona el/los mensajes de commit listos para usar
    (idealmente en un bloque de código para copiar/pegar), explicando
-   brevemente qué agrupa cada uno si hay más de uno.
+   brevemente qué agrupa cada uno si hay más de uno. Cuando se entregan
+   comandos `git add`/`git commit`, **se encadenan con `;`, nunca con
+   `&&`**: la terminal de la persona es PowerShell 5.1, que no entiende
+   `&&`. Un comando por bloque de código, con su `git add` y su
+   `git commit -m "..."` en la misma línea separados por `;`.
 3. Dejar que la persona misma corra `git add`/`git commit` — Claude no lo
    ejecuta como entrega final salvo que se lo pidan explícitamente.
 
