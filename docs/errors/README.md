@@ -60,6 +60,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IDE_16`](identidad/ERRORES_IDENTIDAD.md#err_ide_16) — La foto de perfil no es una imagen válida (400)
 - [`ERR_IDE_17`](identidad/ERRORES_IDENTIDAD.md#err_ide_17) — La foto de perfil pesa más de 5 MB (400)
 - [`ERR_IDE_18`](identidad/ERRORES_IDENTIDAD.md#err_ide_18) — El correo nuevo es igual al actual (409)
+- [`ERR_IDE_19`](identidad/ERRORES_IDENTIDAD.md#err_ide_19) — El CI ya está registrado (409)
 
 ### Escuela (`ESC`)
 
