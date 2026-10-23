@@ -26,6 +26,7 @@ public final class IdentidadErrorCodes {
     public static final String FOTO_INVALIDA = "ERR_IDE_16";
     public static final String FOTO_DEMASIADO_GRANDE = "ERR_IDE_17";
     public static final String CORREO_IGUAL_AL_ACTUAL = "ERR_IDE_18";
+    public static final String CI_EN_USO = "ERR_IDE_19";
 
     private IdentidadErrorCodes() {
     }

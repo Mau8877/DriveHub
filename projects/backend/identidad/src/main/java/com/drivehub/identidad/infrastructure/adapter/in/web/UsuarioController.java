@@ -40,7 +40,8 @@ public class UsuarioController {
             @Valid @RequestBody RegistrarEstudianteRequest request) {
         Usuario usuario = registrarEstudiante.registrar(new RegistrarEstudianteComando(
             request.nombres(), request.apellidos(), request.fechaNacimiento(), request.email(),
-            request.password(), request.telefono(), request.escuelaSlug()));
+            request.password(), request.telefono(), request.escuelaSlug(), request.ci(), request.sexo(),
+            request.latitud(), request.longitud()));
         UsuarioRegistradoResponse response = new UsuarioRegistradoResponse(
             usuario.getCodigo(), usuario.getEmail(), usuario.getNombres(), usuario.getApellidos());
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -53,7 +54,8 @@ public class UsuarioController {
             @Valid @RequestBody CrearAdministradorEscuelaRequest request) {
         Usuario usuario = crearAdministradorEscuela.crear(new CrearAdministradorEscuelaComando(
             request.nombres(), request.apellidos(), request.fechaNacimiento(), request.email(),
-            request.password(), request.telefono(), request.escuelaCodigo()));
+            request.password(), request.telefono(), request.escuelaCodigo(), request.ci(), request.sexo(),
+            request.latitud(), request.longitud()));
         AdministradorEscuelaResponse response = new AdministradorEscuelaResponse(
             usuario.getCodigo(), usuario.getEmail(), usuario.getNombres(), usuario.getApellidos(),
             usuario.getEscuelaCodigo());

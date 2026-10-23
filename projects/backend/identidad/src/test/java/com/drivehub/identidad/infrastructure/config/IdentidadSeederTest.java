@@ -67,4 +67,29 @@ class IdentidadSeederTest extends PostgresIntegrationTestBase {
         assertThat(rolAdmin).isEqualTo("ADMIN_ESCUELA");
         assertThat(hash).startsWith("$2").isNotEqualTo("123123123");
     }
+
+    @Test
+    void run_creaElPerfilDeCadaCuentaConSuCiYLaUbicacionSoloDelAdminYDelInstructor() {
+        seeder.run(new DefaultApplicationArguments());
+        seeder.run(new DefaultApplicationArguments());
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email IN (?, ?, ?)", Integer.class, IdentidadSeeder.EMAIL_SUPER_ADMIN,
+            IdentidadSeeder.EMAIL_ADMIN_EXAMPLE, IdentidadSeeder.EMAIL_INSTRUCTOR_EXAMPLE)).isEqualTo(3);
+        assertThat(jdbc.queryForObject("SELECT p.ci FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = ?", String.class, IdentidadSeeder.EMAIL_ADMIN_EXAMPLE))
+            .isEqualTo(IdentidadSeeder.CI_ADMIN_EXAMPLE);
+        assertThat(jdbc.queryForObject("SELECT p.direccion FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = ?", String.class, IdentidadSeeder.EMAIL_ADMIN_EXAMPLE)).isNotBlank();
+        assertThat(jdbc.queryForObject("SELECT p.direccion FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = ?", String.class, IdentidadSeeder.EMAIL_SUPER_ADMIN)).isNull();
+        assertThat(jdbc.queryForObject("SELECT p.latitud FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = ?", java.math.BigDecimal.class, IdentidadSeeder.EMAIL_SUPER_ADMIN)).isNull();
+    }
+
+    @Test
+    void ciDeEjemplo_sonDistintosEntreSi() {
+        assertThat(java.util.Set.of(IdentidadSeeder.CI_SUPER_ADMIN, IdentidadSeeder.CI_ADMIN_EXAMPLE,
+            IdentidadSeeder.CI_INSTRUCTOR_EXAMPLE)).hasSize(3);
+    }
 }

@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +47,7 @@ import com.drivehub.identidad.domain.port.in.CambiarContrasenaUseCase;
 import com.drivehub.identidad.domain.port.in.EditarPerfilComando;
 import com.drivehub.identidad.domain.port.in.EditarPerfilUseCase;
 import com.drivehub.identidad.domain.port.in.ObtenerPerfilUseCase;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.port.in.PerfilUsuario;
 import com.drivehub.identidad.domain.port.in.QuitarFotoPerfilUseCase;
 import com.drivehub.identidad.domain.port.in.SolicitarCambioCorreoComando;
@@ -84,7 +86,9 @@ class PerfilControllerTest {
 
     private static PerfilUsuario perfil(String fotoUrl) {
         return new PerfilUsuario(USUARIO, "Ana", "Pérez", LocalDate.of(2000, 1, 1), "0991234567", "ana@gmail.com", true,
-            List.of("ESTUDIANTE"), UUID.randomUUID(), "Autoescuela Sol", fotoUrl);
+            List.of("ESTUDIANTE"), UUID.randomUUID(), "Autoescuela Sol", fotoUrl, "AB12345",
+            SexoPersona.FEMENINO, "Av. Arce 2345, La Paz", new BigDecimal("-16.489700"), new BigDecimal("-68.119300"),
+            "SIN");
     }
 
     private static String json(String cuerpo) {
@@ -326,5 +330,73 @@ class PerfilControllerTest {
         mockMvc.perform(post(RUTA + "/cambiar-correo").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"passwordActual\":\"a\",\"correoNuevo\":\"nuevo@gmail.com\"}"))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void obtener_incluyeCiSexoUbicacionYCategoria() throws Exception {
+        when(obtenerPerfil.obtener(USUARIO)).thenReturn(perfil(null));
+
+        mockMvc.perform(get(RUTA).with(sesion()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.ci").value("AB12345"))
+            .andExpect(jsonPath("$.data.sexo").value("FEMENINO"))
+            .andExpect(jsonPath("$.data.direccion").value("Av. Arce 2345, La Paz"))
+            .andExpect(jsonPath("$.data.latitud").value(-16.4897))
+            .andExpect(jsonPath("$.data.longitud").value(-68.1193))
+            .andExpect(jsonPath("$.data.categoriaSigla").value("SIN"));
+    }
+
+    @Test
+    void editar_conCiSexoYUbicacion_losPasaAlComando() throws Exception {
+        when(editarPerfil.editar(any())).thenReturn(perfil(null));
+
+        mockMvc.perform(patch(RUTA).with(sesion()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"ci\":\"cd67890\",\"sexo\":\"MASCULINO\",\"latitud\":-17.7833,\"longitud\":-63.1821}"))
+            .andExpect(status().isOk());
+
+        ArgumentCaptor<EditarPerfilComando> comando = ArgumentCaptor.forClass(EditarPerfilComando.class);
+        verify(editarPerfil).editar(comando.capture());
+        assertThat(comando.getValue().ci()).contains("cd67890");
+        assertThat(comando.getValue().sexo()).contains(SexoPersona.MASCULINO);
+        assertThat(comando.getValue().latitud().orElseThrow()).isEqualByComparingTo("-17.7833");
+        assertThat(comando.getValue().longitud().orElseThrow()).isEqualByComparingTo("-63.1821");
+    }
+
+    @Test
+    void editar_conCategoriaYDireccionEnElCuerpo_lasIgnoraYNoLasPasaAlComando() throws Exception {
+        when(editarPerfil.editar(any())).thenReturn(perfil(null));
+
+        mockMvc.perform(patch(RUTA).with(sesion()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nombres\":\"Luisa\",\"categoriaSigla\":\"B\",\"direccion\":\"inventada\"}"))
+            .andExpect(status().isOk());
+
+        ArgumentCaptor<EditarPerfilComando> comando = ArgumentCaptor.forClass(EditarPerfilComando.class);
+        verify(editarPerfil).editar(comando.capture());
+        assertThat(comando.getValue().toString()).doesNotContain("inventada").doesNotContain("\"B\"");
+    }
+
+    @Test
+    void editar_conCiInvalidoSexoInvalidoOCoordenadasFueraDeRango_responde400ErrSys01() throws Exception {
+        for (String cuerpo : new String[] {
+            "{\"ci\":\"AB1\"}",
+            "{\"ci\":\"AB 123#\"}",
+            "{\"sexo\":\"OTRO\"}",
+            "{\"latitud\":95,\"longitud\":-68}",
+            "{\"latitud\":-16,\"longitud\":-181}"}) {
+            mockMvc.perform(patch(RUTA).with(sesion()).contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        }
+        verify(editarPerfil, never()).editar(any());
+    }
+
+    @Test
+    void editar_conCiDeOtraCuenta_responde409ConErrIde19() throws Exception {
+        when(editarPerfil.editar(any())).thenThrow(new com.drivehub.identidad.common.exception.ConflictException(
+            "ERR_IDE_19", "Ya existe una cuenta con ese CI"));
+
+        mockMvc.perform(patch(RUTA).with(sesion()).contentType(MediaType.APPLICATION_JSON).content("{\"ci\":\"CD67890\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_IDE_19"));
     }
 }

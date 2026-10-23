@@ -1,6 +1,8 @@
 package com.drivehub.identidad;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -8,8 +10,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
@@ -17,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -24,6 +29,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import com.drivehub.identidad.domain.port.out.GeocodificadorInversoPort;
 import com.sun.net.httpserver.HttpServer;
 
 /**
@@ -44,6 +50,10 @@ class RegistrarEstudianteIntegrationTest extends PostgresIntegrationTestBase {
     @Autowired
     private JdbcTemplate jdbc;
 
+    // * El mapa real no se consulta en las pruebas
+    @MockitoBean
+    private GeocodificadorInversoPort geocodificador;
+
     @DynamicPropertySource
     static void apuntarAEscuelaFalsa(DynamicPropertyRegistry registry) {
         registry.add("app.escuela.url", () -> "http://localhost:" + ESCUELA_FALSA.getAddress().getPort());
@@ -56,10 +66,16 @@ class RegistrarEstudianteIntegrationTest extends PostgresIntegrationTestBase {
 
     private ResultActions registrar(String email, String password, LocalDate nacimiento, String slug, String extra)
             throws Exception {
+        return registrarConCi(email, password, nacimiento, slug, CiDePrueba.unico(), extra);
+    }
+
+    private ResultActions registrarConCi(String email, String password, LocalDate nacimiento, String slug, String ci,
+            String extra) throws Exception {
         String json = """
             {"nombres":"Ana","apellidos":"Pérez","fechaNacimiento":"%s","email":"%s",
-             "password":"%s","escuelaSlug":"%s"%s}
-            """.formatted(nacimiento, email, password, slug, extra);
+             "password":"%s","escuelaSlug":"%s","ci":"%s","sexo":"FEMENINO",
+             "latitud":-16.4897,"longitud":-68.1193%s}
+            """.formatted(nacimiento, email, password, slug, ci, extra);
         return mockMvc.perform(post("/api/v1/usuarios").contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
@@ -162,5 +178,49 @@ class RegistrarEstudianteIntegrationTest extends PostgresIntegrationTestBase {
         } catch (IOException e) {
             throw new IllegalStateException("No se pudo levantar la Escuela falsa", e);
         }
+    }
+
+    @Test
+    void ca01_ca03_registroExitoso_creaElPerfilConLaDireccionCalculadaYLaCategoriaSinCategoria() throws Exception {
+        when(geocodificador.direccionDe(any(BigDecimal.class), any(BigDecimal.class)))
+            .thenReturn(Optional.of("Av. Arce 2345, La Paz"));
+
+        registrarConCi("perfil01@gmail.com", "123456789", LocalDate.of(2000, 1, 1), "escuelaexample", "ab55001", "")
+            .andExpect(status().isCreated());
+
+        assertThat(jdbc.queryForObject("SELECT p.ci FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = 'perfil01@gmail.com'", String.class)).isEqualTo("AB55001");
+        assertThat(jdbc.queryForObject("SELECT p.direccion FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = 'perfil01@gmail.com'", String.class)).isEqualTo("Av. Arce 2345, La Paz");
+        assertThat(jdbc.queryForObject("SELECT p.categoria_sigla FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = 'perfil01@gmail.com'", String.class)).isEqualTo("SIN");
+        assertThat(jdbc.queryForObject("SELECT p.sexo FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = 'perfil01@gmail.com'", String.class)).isEqualTo("FEMENINO");
+    }
+
+    @Test
+    void ca04_sinDireccionDelMapa_guardaElPuntoYLaDireccionQuedaEnBlanco() throws Exception {
+        when(geocodificador.direccionDe(any(BigDecimal.class), any(BigDecimal.class))).thenReturn(Optional.empty());
+
+        registrar("perfil04@gmail.com", "123456789", LocalDate.of(2000, 1, 1), "escuelaexample", "")
+            .andExpect(status().isCreated());
+
+        assertThat(jdbc.queryForObject("SELECT p.direccion FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = 'perfil04@gmail.com'", String.class)).isNull();
+        assertThat(jdbc.queryForObject("SELECT p.latitud FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = 'perfil04@gmail.com'", BigDecimal.class)).isEqualByComparingTo("-16.4897");
+    }
+
+    @Test
+    void ca02_ciRepetido_responde409ConErrIde19YNoCreaLaSegundaCuenta() throws Exception {
+        registrarConCi("ci1@gmail.com", "123456789", LocalDate.of(2000, 1, 1), "escuelaexample", "CI99001", "")
+            .andExpect(status().isCreated());
+
+        registrarConCi("ci2@gmail.com", "123456789", LocalDate.of(2000, 1, 1), "escuelaexample", "ci99001", "")
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_IDE_19"));
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM usuario WHERE email = 'ci2@gmail.com'", Integer.class))
+            .isZero();
     }
 }

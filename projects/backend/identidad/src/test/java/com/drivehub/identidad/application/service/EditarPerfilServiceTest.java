@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -22,21 +23,27 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.drivehub.identidad.common.exception.ConflictException;
 import com.drivehub.identidad.common.exception.IdentidadErrorCodes;
 import com.drivehub.identidad.common.exception.UnauthorizedException;
 import com.drivehub.identidad.common.exception.ValidationException;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.SexoPersona;
+import com.drivehub.identidad.domain.model.Perfil;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.in.EditarPerfilComando;
 import com.drivehub.identidad.domain.port.in.PerfilUsuario;
 import com.drivehub.identidad.domain.port.out.AlmacenFotosPort;
 import com.drivehub.identidad.domain.port.out.EscuelaConsultaPort;
+import com.drivehub.identidad.domain.port.out.GeocodificadorInversoPort;
 import com.drivehub.identidad.domain.port.out.UsuarioRepositoryPort;
 
 @ExtendWith(MockitoExtension.class)
 class EditarPerfilServiceTest {
 
     private static final Instant AHORA = Instant.parse("2026-10-21T12:00:00Z");
+    private static final BigDecimal LA_PAZ_LAT = new BigDecimal("-16.489700");
+    private static final BigDecimal LA_PAZ_LON = new BigDecimal("-68.119300");
 
     @Mock
     private UsuarioRepositoryPort usuarioRepository;
@@ -44,19 +51,29 @@ class EditarPerfilServiceTest {
     private AlmacenFotosPort almacenFotos;
     @Mock
     private EscuelaConsultaPort escuelaConsulta;
+    @Mock
+    private GeocodificadorInversoPort geocodificador;
 
     private EditarPerfilService servicio;
 
     @BeforeEach
     void crearServicio() {
         servicio = new EditarPerfilService(usuarioRepository, new PerfilArmador(almacenFotos, escuelaConsulta),
-            Clock.fixed(AHORA, ZoneOffset.UTC), 18);
+            geocodificador, Clock.fixed(AHORA, ZoneOffset.UTC), 18);
     }
 
     private Usuario cuenta() {
         return Usuario.builder().codigo(UUID.randomUUID()).email("ana@gmail.com").passwordHash("$2a$hash")
             .nombres("Ana").apellidos("Pérez").telefono("0991234567").fechaNacimiento(LocalDate.of(2000, 1, 1))
-            .estado(EstadoUsuario.ACTIVO).roles(Set.of()).build();
+            .estado(EstadoUsuario.ACTIVO).roles(Set.of()).build()
+            .toBuilder().perfil(perfilBase()).build();
+    }
+
+    private Perfil perfilBase() {
+        return Perfil.builder().nombres("Ana").apellidos("Pérez").telefono("0991234567")
+            .fechaNacimiento(LocalDate.of(2000, 1, 1)).ci("AB12345").sexo(SexoPersona.FEMENINO)
+            .direccion("Av. Arce 2345, La Paz").latitud(LA_PAZ_LAT).longitud(LA_PAZ_LON)
+            .categoriaSigla("SIN").build();
     }
 
     private EditarPerfilComando comando(Usuario u, Optional<String> nombres, Optional<String> apellidos,
@@ -161,5 +178,94 @@ class EditarPerfilServiceTest {
                 Optional.empty(), Optional.empty())))
             .isInstanceOfSatisfying(UnauthorizedException.class, ex ->
                 assertThat(ex.getErrorCode()).isEqualTo(IdentidadErrorCodes.SESION_INVALIDA));
+    }
+
+    private EditarPerfilComando comandoNuevo(Usuario u, Optional<String> ci, Optional<SexoPersona> sexo,
+            Optional<BigDecimal> latitud, Optional<BigDecimal> longitud) {
+        return new EditarPerfilComando(u.getCodigo(), Optional.empty(), Optional.empty(), Optional.empty(),
+            Optional.empty(), ci, sexo, latitud, longitud);
+    }
+
+    @Test
+    void editar_conCiYSexo_losGuardaNormalizadosSinTocarLaCategoria() {
+        Usuario usuario = cuenta();
+        when(usuarioRepository.buscarPorCodigo(usuario.getCodigo())).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.existePorCiDeOtro("CD67890", usuario.getCodigo())).thenReturn(false);
+        when(usuarioRepository.actualizar(any(Usuario.class))).thenAnswer(i -> i.getArgument(0));
+
+        PerfilUsuario perfil = servicio.editar(comandoNuevo(usuario, Optional.of(" cd 67890 "),
+            Optional.of(SexoPersona.MASCULINO), Optional.empty(), Optional.empty()));
+
+        assertThat(perfil.ci()).isEqualTo("CD67890");
+        assertThat(perfil.sexo()).isEqualTo(SexoPersona.MASCULINO);
+        assertThat(perfil.categoriaSigla()).isEqualTo("SIN");
+    }
+
+    @Test
+    void editar_conCiDeOtraCuenta_lanzaErrIde19SinGuardar() {
+        Usuario usuario = cuenta();
+        when(usuarioRepository.buscarPorCodigo(usuario.getCodigo())).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.existePorCiDeOtro("CD67890", usuario.getCodigo())).thenReturn(true);
+
+        assertThatThrownBy(() -> servicio.editar(comandoNuevo(usuario, Optional.of("cd67890"), Optional.empty(),
+                Optional.empty(), Optional.empty())))
+            .isInstanceOfSatisfying(ConflictException.class, ex ->
+                assertThat(ex.getErrorCode()).isEqualTo(IdentidadErrorCodes.CI_EN_USO));
+        verify(usuarioRepository, never()).actualizar(any());
+    }
+
+    @Test
+    void editar_conCoordenadasNuevas_recalculaLaDireccion() {
+        Usuario usuario = cuenta();
+        BigDecimal lat = new BigDecimal("-17.783300");
+        BigDecimal lon = new BigDecimal("-63.182100");
+        when(usuarioRepository.buscarPorCodigo(usuario.getCodigo())).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.actualizar(any(Usuario.class))).thenAnswer(i -> i.getArgument(0));
+        when(geocodificador.direccionDe(lat, lon)).thenReturn(Optional.of("Plaza 24 de Septiembre, Santa Cruz"));
+
+        PerfilUsuario perfil = servicio.editar(comandoNuevo(usuario, Optional.empty(), Optional.empty(),
+            Optional.of(lat), Optional.of(lon)));
+
+        assertThat(perfil.direccion()).isEqualTo("Plaza 24 de Septiembre, Santa Cruz");
+        assertThat(perfil.latitud()).isEqualByComparingTo(lat);
+    }
+
+    @Test
+    void editar_conLasMismasCoordenadas_noVuelveAConsultarElMapaNiGuarda() {
+        Usuario usuario = cuenta();
+        when(usuarioRepository.buscarPorCodigo(usuario.getCodigo())).thenReturn(Optional.of(usuario));
+
+        servicio.editar(comandoNuevo(usuario, Optional.empty(), Optional.empty(),
+            Optional.of(new BigDecimal("-16.4897")), Optional.of(new BigDecimal("-68.1193"))));
+
+        verify(geocodificador, never()).direccionDe(any(), any());
+        verify(usuarioRepository, never()).actualizar(any());
+    }
+
+    @Test
+    void editar_siElGeocodificadorNoResponde_guardaElPuntoConLaDireccionEnBlanco() {
+        Usuario usuario = cuenta();
+        BigDecimal lat = new BigDecimal("-17.783300");
+        BigDecimal lon = new BigDecimal("-63.182100");
+        when(usuarioRepository.buscarPorCodigo(usuario.getCodigo())).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.actualizar(any(Usuario.class))).thenAnswer(i -> i.getArgument(0));
+        when(geocodificador.direccionDe(lat, lon)).thenReturn(Optional.empty());
+
+        PerfilUsuario perfil = servicio.editar(comandoNuevo(usuario, Optional.empty(), Optional.empty(),
+            Optional.of(lat), Optional.of(lon)));
+
+        assertThat(perfil.direccion()).isNull();
+        assertThat(perfil.latitud()).isEqualByComparingTo(lat);
+    }
+
+    @Test
+    void editar_conUnaSolaCoordenada_lanzaErrSys01SinGuardar() {
+        Usuario usuario = cuenta();
+        when(usuarioRepository.buscarPorCodigo(usuario.getCodigo())).thenReturn(Optional.of(usuario));
+
+        assertThatThrownBy(() -> servicio.editar(comandoNuevo(usuario, Optional.empty(), Optional.empty(),
+                Optional.of(new BigDecimal("-17.7833")), Optional.empty())))
+            .isInstanceOfSatisfying(ValidationException.class, ex -> assertThat(ex.getErrorCode()).isEqualTo("ERR_SYS_01"));
+        verify(usuarioRepository, never()).actualizar(any());
     }
 }

@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.out.EnviadorCorreoPort;
@@ -71,7 +72,7 @@ class VerificacionCorreoIntegrationTest extends PostgresIntegrationTestBase {
 
     private String crearSuperAdmin() {
         String email = "verif-" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com";
-        usuarios.guardar(Usuario.builder().email(email).passwordHash(hasher.hashear(PASSWORD)).nombres("Ana")
+        usuarios.guardar(Usuario.builder().email(email).passwordHash(hasher.hashear(PASSWORD)).ci(CiDePrueba.unico()).sexo(SexoPersona.MASCULINO).nombres("Ana")
             .apellidos("Pérez").fechaNacimiento(LocalDate.of(1995, 5, 5)).estado(EstadoUsuario.ACTIVO).intentosFallidos(0)
             .roles(Set.of(roles.buscarPorNombre(RolNombres.SUPER_ADMIN).orElseThrow())).build());
         return email;

@@ -1,24 +1,31 @@
 package com.drivehub.identidad;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import com.drivehub.identidad.domain.port.out.GeocodificadorInversoPort;
 
 /**
  * CU05 en Identidad de punta a punta: controller, servicios con su @PreAuthorize, adaptadores
@@ -36,15 +43,25 @@ class AdministradorEscuelaIntegrationTest extends PostgresIntegrationTestBase {
     @Autowired
     private JdbcTemplate jdbc;
 
+    // * El mapa real no se consulta en las pruebas
+    @MockitoBean
+    private GeocodificadorInversoPort geocodificador;
+
     private static RequestPostProcessor como(String rol) {
         return jwt().authorities(new SimpleGrantedAuthority("ROLE_" + rol));
     }
 
     private ResultActions crear(RequestPostProcessor sesion, UUID escuela, String email) throws Exception {
+        return crearConCi(sesion, escuela, email, CiDePrueba.unico());
+    }
+
+    private ResultActions crearConCi(RequestPostProcessor sesion, UUID escuela, String email, String ci)
+            throws Exception {
         String json = """
             {"nombres":"Marta","apellidos":"Gómez","fechaNacimiento":"1985-05-05","email":"%s",
-             "password":"123456789","escuelaCodigo":"%s"}
-            """.formatted(email, escuela);
+             "password":"123456789","escuelaCodigo":"%s","ci":"%s","sexo":"FEMENINO",
+             "latitud":-16.4897,"longitud":-68.1193}
+            """.formatted(email, escuela, ci);
         return mockMvc.perform(post(RUTA).with(sesion).contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
@@ -122,5 +139,41 @@ class AdministradorEscuelaIntegrationTest extends PostgresIntegrationTestBase {
             .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_IDE_13"));
 
         assertThat(jdbc.queryForObject("SELECT count(*) FROM usuario WHERE email = 'adm-usado@gmail.com'", Integer.class)).isOne();
+    }
+
+    @Test
+    void cu08a_creaElPerfilDelAdministradorConSuUbicacionYSinCategoria() throws Exception {
+        when(geocodificador.direccionDe(any(BigDecimal.class), any(BigDecimal.class)))
+            .thenReturn(Optional.of("Plaza Murillo, La Paz"));
+
+        crearConCi(como("SUPER_ADMIN"), UUID.randomUUID(), "adm-perfil@gmail.com", "ad71001")
+            .andExpect(status().isCreated());
+
+        assertThat(jdbc.queryForObject("SELECT p.ci FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = 'adm-perfil@gmail.com'", String.class)).isEqualTo("AD71001");
+        assertThat(jdbc.queryForObject("SELECT p.direccion FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = 'adm-perfil@gmail.com'", String.class)).isEqualTo("Plaza Murillo, La Paz");
+        assertThat(jdbc.queryForObject("SELECT p.categoria_sigla FROM perfil p JOIN usuario u ON u.id = p.usuario_id "
+            + "WHERE u.email = 'adm-perfil@gmail.com'", String.class)).isNull();
+    }
+
+    @Test
+    void cu08a_ciRepetido_responde409ConErrIde19() throws Exception {
+        crearConCi(como("SUPER_ADMIN"), UUID.randomUUID(), "adm-ci1@gmail.com", "AD72001")
+            .andExpect(status().isCreated());
+
+        crearConCi(como("SUPER_ADMIN"), UUID.randomUUID(), "adm-ci2@gmail.com", "ad72001")
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_IDE_19"));
+    }
+
+    @Test
+    void cu08a_revertirYVolverACrearConElMismoCi_funciona() throws Exception {
+        UUID escuela = UUID.randomUUID();
+        crearConCi(como("SUPER_ADMIN"), escuela, "adm-rev@gmail.com", "AD73001").andExpect(status().isCreated());
+
+        revertir(como("SUPER_ADMIN"), escuela).andExpect(status().isOk());
+
+        crearConCi(como("SUPER_ADMIN"), escuela, "adm-rev@gmail.com", "AD73001").andExpect(status().isCreated());
     }
 }

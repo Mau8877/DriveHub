@@ -60,7 +60,9 @@ public class PerfilController {
             @CurrentUserId UUID usuarioCodigo, @Valid @RequestBody EditarPerfilRequest request) {
         EditarPerfilComando comando = new EditarPerfilComando(usuarioCodigo,
             Optional.ofNullable(request.getNombres()), Optional.ofNullable(request.getApellidos()),
-            request.telefonoParaCambiar(), Optional.ofNullable(request.getFechaNacimiento()));
+            request.telefonoParaCambiar(), Optional.ofNullable(request.getFechaNacimiento()),
+            Optional.ofNullable(request.getCi()), Optional.ofNullable(request.getSexo()),
+            Optional.ofNullable(request.getLatitud()), Optional.ofNullable(request.getLongitud()));
         return ResponseEntity.ok(ApiResponse.success(
             PerfilResponse.de(editarPerfil.editar(comando)), "Perfil actualizado correctamente"));
     }

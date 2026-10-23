@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.drivehub.identidad.domain.model.Perfil;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.in.PerfilUsuario;
@@ -37,10 +38,13 @@ public class PerfilArmador {
     }
 
     public PerfilUsuario armar(Usuario usuario) {
+        Perfil perfil = usuario.getPerfil();
         List<String> roles = usuario.getRoles().stream().map(Rol::getNombre).sorted().toList();
         return new PerfilUsuario(usuario.getCodigo(), usuario.getNombres(), usuario.getApellidos(),
             usuario.getFechaNacimiento(), usuario.getTelefono(), usuario.getEmail(), usuario.isCorreoVerificado(),
-            roles, usuario.getEscuelaCodigo(), nombreDeEscuela(usuario), urlDeFoto(usuario));
+            roles, usuario.getEscuelaCodigo(), nombreDeEscuela(usuario), urlDeFoto(usuario),
+            perfil.getCi(), perfil.getSexo(), perfil.getDireccion(), perfil.getLatitud(), perfil.getLongitud(),
+            perfil.getCategoriaSigla());
     }
 
     /** La URL firmada de la foto, o null si no tiene foto o no se pudo firmar (nunca rompe al llamador). */

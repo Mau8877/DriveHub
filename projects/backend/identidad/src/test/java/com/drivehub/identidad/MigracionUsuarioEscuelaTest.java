@@ -26,10 +26,14 @@ class MigracionUsuarioEscuelaTest extends PostgresIntegrationTestBase {
     }
 
     @Test
-    void tablaUsuario_tieneFechaDeNacimientoYEscuelaCodigo() {
+    void tablaUsuario_tieneEscuelaCodigoYLaFechaDeNacimientoViveEnPerfil() {
         List<String> columnas = jdbc.queryForList(
             "SELECT column_name FROM information_schema.columns WHERE table_name = 'usuario'", String.class);
+        List<String> columnasDePerfil = jdbc.queryForList(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'perfil'", String.class);
 
-        assertThat(columnas).contains("fecha_nacimiento", "escuela_codigo");
+        // * CU08a: los datos de la persona se mudaron a perfil
+        assertThat(columnas).contains("escuela_codigo").doesNotContain("fecha_nacimiento");
+        assertThat(columnasDePerfil).contains("fecha_nacimiento");
     }
 }

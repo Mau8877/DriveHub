@@ -15,7 +15,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.drivehub.identidad.PostgresIntegrationTestBase;
+import com.drivehub.identidad.CiDePrueba;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.TipoTokenCorreo;
@@ -45,7 +47,7 @@ class TokenRecuperacionPersistenceAdapterTest extends PostgresIntegrationTestBas
 
     private Usuario usuario(String email) {
         Rol rol = roles.buscarPorNombre(RolNombres.ESTUDIANTE).orElseThrow();
-        return usuarios.guardar(Usuario.builder().email(email).passwordHash("$2a$hash").nombres("Ana").apellidos("Pérez")
+        return usuarios.guardar(Usuario.builder().email(email).passwordHash("$2a$hash").ci(CiDePrueba.unico()).sexo(SexoPersona.MASCULINO).nombres("Ana").apellidos("Pérez")
             .fechaNacimiento(LocalDate.of(2000, 1, 1)).escuelaCodigo(UUID.randomUUID()).estado(EstadoUsuario.ACTIVO)
             .roles(Set.of(rol)).build());
     }

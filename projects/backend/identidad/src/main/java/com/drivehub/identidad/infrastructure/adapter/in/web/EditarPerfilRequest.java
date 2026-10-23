@@ -1,8 +1,13 @@
 package com.drivehub.identidad.infrastructure.adapter.in.web;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 
+import com.drivehub.identidad.domain.model.SexoPersona;
+
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -38,6 +43,22 @@ public class EditarPerfilRequest {
 
     @Past(message = "La fecha de nacimiento debe estar en el pasado")
     private LocalDate fechaNacimiento;
+
+    @Pattern(regexp = "[A-Za-z0-9-]+", message = "El CI solo admite letras, números y guion")
+    @Size(min = 5, max = 15, message = "El CI debe tener entre 5 y 15 caracteres")
+    private String ci;
+
+    private SexoPersona sexo;
+
+    // * CU08a: van juntas (el servicio lo comprueba). No hay `direccion` ni `categoriaSigla`: la dirección
+    // * se calcula en el servidor y la categoría la fija la escuela; si llegan en el cuerpo, se ignoran.
+    @DecimalMin(value = "-90", message = "La latitud no es válida")
+    @DecimalMax(value = "90", message = "La latitud no es válida")
+    private BigDecimal latitud;
+
+    @DecimalMin(value = "-180", message = "La longitud no es válida")
+    @DecimalMax(value = "180", message = "La longitud no es válida")
+    private BigDecimal longitud;
 
     public void setTelefono(String telefono) {
         this.telefono = telefono;
