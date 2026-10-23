@@ -499,4 +499,235 @@ describe('<dh-gestion>', () => {
     expect(fetch.mock.calls[1][0]).toContain('/vehiculos?')
     expect(texto()).toContain('Vehículos')
   })
+
+  // ------------------------------------------------------------------ campos seleccion y ubicacion
+
+  const ESQUEMA_PERFIL = {
+    recurso: 'estudiantes',
+    titulo: 'Gestionar estudiantes',
+    nombreSingular: 'estudiante',
+    columnas: [{ campo: 'nombreCompleto', titulo: 'Nombre' }],
+    crear: {
+      etiqueta: 'Nuevo estudiante',
+      mensajeExito: 'Estudiante creado correctamente.',
+      secciones: [
+        {
+          titulo: 'Datos',
+          campos: [
+            {
+              campo: 'sexo',
+              titulo: 'Sexo',
+              tipo: 'seleccion',
+              requerido: true,
+              opciones: [
+                { valor: 'MASCULINO', etiqueta: 'Masculino' },
+                { valor: 'FEMENINO', etiqueta: 'Femenino' },
+              ],
+              mensajes: { requerido: 'Elige el sexo' },
+            },
+            {
+              campo: 'categoriaSigla',
+              titulo: 'Categoría',
+              tipo: 'seleccion',
+              porDefecto: 'SIN',
+              opcionesDe: { recurso: 'categorias-licencia', valor: 'sigla', etiqueta: 'descripcion' },
+            },
+            {
+              campo: 'administrador.ubicacion',
+              titulo: 'Ubicación',
+              tipo: 'ubicacion',
+              requerido: true,
+              mensajes: { requerido: 'Elige la ubicación en el mapa' },
+            },
+          ],
+        },
+      ],
+    },
+    editar: {
+      mensajeExito: 'Estudiante actualizado correctamente.',
+      secciones: [
+        {
+          campos: [
+            { campo: 'ci', titulo: 'CI', soloLectura: true },
+            { campo: 'categoriaSigla', titulo: 'Categoría', tipo: 'seleccion', opcionesDe: { recurso: 'categorias-licencia', valor: 'sigla', etiqueta: 'descripcion' } },
+            { campo: 'ubicacion', titulo: 'Ubicación', tipo: 'ubicacion', requerido: true, direccionDe: 'direccion' },
+          ],
+        },
+      ],
+    },
+    erroresDeCampo: { ERR_IDE_21: { campo: 'categoriaSigla', mensaje: 'La categoría ya no existe' } },
+  }
+
+  const CATEGORIAS = [
+    { sigla: 'P', descripcion: 'Particular' },
+    { sigla: 'B', descripcion: 'Profesional B' },
+    { sigla: 'SIN', descripcion: 'Sin categoría' },
+  ]
+  const ESTUDIANTE = { codigo: 'e1', nombreCompleto: 'Ana Pérez', ci: 'AB12345', categoriaSigla: 'B', latitud: -16.5, longitud: -68.1, direccion: 'Av. Arce 2345, La Paz' }
+
+  async function montarPerfil() {
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_PERFIL
+    await asentar(el)
+  }
+
+  async function abrirCrearPerfil() {
+    await montarPerfil()
+    fetch.mockResolvedValueOnce(lista(CATEGORIAS))
+    boton('Nuevo estudiante').click()
+    await asentar(el)
+  }
+
+  const mapa = () => el.shadowRoot.querySelector('dh-mapa-ubicacion')
+
+  it('seleccion con opciones fijas dibuja un select con sus etiquetas', async () => {
+    await abrirCrearPerfil()
+
+    const opciones = [...el.shadowRoot.querySelectorAll('#campo-sexo option')].map((o) => o.textContent)
+    expect(opciones).toEqual(['Elige una opción', 'Masculino', 'Femenino'])
+  })
+
+  it('seleccion con opcionesDe pide el recurso con pageSize 100 y dibuja sus etiquetas', async () => {
+    await abrirCrearPerfil()
+
+    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/categorias-licencia?page=1&pageSize=100')
+    const opciones = [...el.shadowRoot.querySelectorAll('#campo-categoriaSigla option')].map((o) => o.textContent)
+    expect(opciones).toEqual(['Elige una opción', 'Particular', 'Profesional B', 'Sin categoría'])
+  })
+
+  it('porDefecto preselecciona la opción al crear', async () => {
+    await abrirCrearPerfil()
+
+    expect(el.shadowRoot.querySelector('#campo-categoriaSigla').value).toBe('SIN')
+  })
+
+  it('mientras las opciones cargan, el select está deshabilitado con "Cargando…"', async () => {
+    await montarPerfil()
+    fetch.mockReturnValueOnce(new Promise(() => {}))
+    boton('Nuevo estudiante').click()
+    await asentar(el)
+
+    const select = el.shadowRoot.querySelector('#campo-categoriaSigla')
+    expect(select.disabled).toBe(true)
+    expect(select.textContent).toContain('Cargando')
+  })
+
+  it('si las opciones fallan, avisa y permite reintentar', async () => {
+    await montarPerfil()
+    fetch.mockResolvedValueOnce(falla(500, 'ERR_SYS_00', 'x'))
+    boton('Nuevo estudiante').click()
+    await asentar(el)
+    expect(texto()).toContain('No pudimos cargar las opciones')
+
+    fetch.mockResolvedValueOnce(lista(CATEGORIAS))
+    boton('Reintentar').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelectorAll('#campo-categoriaSigla option')).toHaveLength(4)
+  })
+
+  it('seleccion requerida sin valor muestra su mensaje y no envía', async () => {
+    await abrirCrearPerfil()
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(texto()).toContain('Elige el sexo')
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('ubicacion monta el mapa; al elegir un punto, el formulario lo guarda y envía latitud y longitud con el prefijo del campo', async () => {
+    await abrirCrearPerfil()
+    const select = el.shadowRoot.querySelector('#campo-sexo')
+    select.value = 'FEMENINO'
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+
+    mapa().dispatchEvent(new CustomEvent('dh-ubicacion', { detail: { latitud: -16.4897, longitud: -68.1193 }, bubbles: true, composed: true }))
+    await asentar(el)
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'e2' })).mockResolvedValueOnce(lista([ESTUDIANTE]))
+    boton('Crear').click()
+    await asentar(el)
+
+    const [url, opciones] = fetch.mock.calls[2]
+    expect(url).toBe('http://api.test/v1/estudiantes')
+    expect(JSON.parse(opciones.body)).toEqual({
+      sexo: 'FEMENINO',
+      categoriaSigla: 'SIN',
+      administrador: { latitud: -16.4897, longitud: -68.1193 },
+    })
+    expect(texto()).toContain('Estudiante creado correctamente.')
+  })
+
+  it('ubicacion requerida sin punto muestra su mensaje bajo el mapa y no envía', async () => {
+    await abrirCrearPerfil()
+    const select = el.shadowRoot.querySelector('#campo-sexo')
+    select.value = 'FEMENINO'
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(texto()).toContain('Elige la ubicación en el mapa')
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('un error del backend asignado a la seleccion se muestra bajo ese campo', async () => {
+    await abrirCrearPerfil()
+    const select = el.shadowRoot.querySelector('#campo-sexo')
+    select.value = 'FEMENINO'
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+    mapa().dispatchEvent(new CustomEvent('dh-ubicacion', { detail: { latitud: -16.5, longitud: -68.1 }, bubbles: true, composed: true }))
+    await asentar(el)
+    fetch.mockResolvedValueOnce(falla(400, 'ERR_IDE_21', 'La categoría no existe'))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(texto()).toContain('La categoría ya no existe')
+  })
+
+  it('al editar, carga el punto del registro, muestra la dirección y solo envía lo editable', async () => {
+    await montarPerfil()
+    fetch.mockResolvedValueOnce(lista(CATEGORIAS))
+    fetch.mockResolvedValueOnce(sobre(ESTUDIANTE))
+    boton('Editar').click()
+    await asentar(el)
+
+    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/categorias-licencia?page=1&pageSize=100')
+    expect(fetch.mock.calls[2][0]).toBe('http://api.test/v1/estudiantes/e1')
+    expect(mapa().latitud).toBe(-16.5)
+    expect(mapa().direccion).toBe('Av. Arce 2345, La Paz')
+    expect(el.shadowRoot.querySelector('#campo-categoriaSigla').value).toBe('B')
+
+    mapa().dispatchEvent(new CustomEvent('dh-ubicacion', { detail: { latitud: -17, longitud: -68 }, bubbles: true, composed: true }))
+    await asentar(el)
+    fetch.mockResolvedValueOnce(sobre(ESTUDIANTE)).mockResolvedValueOnce(lista([ESTUDIANTE]))
+    boton('Guardar').click()
+    await asentar(el)
+
+    const [url, opciones] = fetch.mock.calls[3]
+    expect(url).toBe('http://api.test/v1/estudiantes/e1')
+    expect(opciones.method).toBe('PATCH')
+    expect(JSON.parse(opciones.body)).toEqual({ categoriaSigla: 'B', latitud: -17, longitud: -68 })
+  })
+
+  it('el campo ubicacion solo de lectura deshabilita el mapa', async () => {
+    const esquema = structuredClone(ESQUEMA_PERFIL)
+    esquema.editar.secciones[0].campos[2].soloLectura = true
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = esquema
+    await asentar(el)
+    fetch.mockResolvedValueOnce(lista(CATEGORIAS))
+    fetch.mockResolvedValueOnce(sobre(ESTUDIANTE))
+    boton('Editar').click()
+    await asentar(el)
+
+    expect(mapa().deshabilitado).toBe(true)
+  })
 })

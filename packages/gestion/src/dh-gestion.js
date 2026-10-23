@@ -45,6 +45,15 @@ function camposDe(secciones) {
 }
 
 /**
+ * Prefijo del cuerpo donde un campo `ubicacion` escribe `latitud` y `longitud`: la ruta del campo
+ * sin su último tramo ('administrador.ubicacion' -> 'administrador.'; 'ubicacion' -> '').
+ */
+function prefijoDe(campo) {
+  const i = campo.campo.lastIndexOf('.')
+  return i < 0 ? '' : campo.campo.slice(0, i + 1)
+}
+
+/**
  * <dh-gestion>: pantalla de gestión completa (listado con búsqueda, filtros y paginación; crear;
  * editar; acciones por fila) configurada por un esquema. Es UNA implementación para Angular y
  * React: se usa igual en los dos (ver GESTION_FRONTEND.md y el README del paquete).
@@ -82,6 +91,7 @@ export class DhGestion extends LitElement {
     _verPassword: { state: true },
     _cargandoRegistro: { state: true },
     _bloqueo: { state: true },
+    _opciones: { state: true },
   }
 
   static styles = estilos
@@ -121,6 +131,7 @@ export class DhGestion extends LitElement {
     this._verPassword = {}
     this._cargandoRegistro = false
     this._bloqueo = null
+    this._opciones = {}
   }
 
   updated(cambios) {
@@ -237,7 +248,45 @@ export class DhGestion extends LitElement {
 
   _abrirCrear() {
     this._prepararFormulario('crear')
+    const valores = {}
+    camposDe(this.esquema.crear.secciones).forEach((campo) => {
+      if (campo.porDefecto !== undefined) valores[campo.campo] = campo.porDefecto
+    })
+    this._valores = valores
     this._vista = 'crear'
+    this._cargarOpciones(camposDe(this.esquema.crear.secciones))
+  }
+
+  /** Trae de la API las opciones de los campos `seleccion` que las piden con `opcionesDe`. */
+  async _cargarOpciones(campos) {
+    const esquema = this.esquema
+    const remotos = campos.filter((c) => c.tipo === 'seleccion' && c.opcionesDe)
+    if (remotos.length === 0) return
+    this._opciones = {
+      ...this._opciones,
+      ...Object.fromEntries(remotos.map((c) => [c.campo, { estado: 'cargando', items: [] }])),
+    }
+    await Promise.all(
+      remotos.map(async (campo) => {
+        const origen = campo.opcionesDe
+        let resultado
+        try {
+          const { data } = await solicitar('GET', origen.recurso, {
+            params: { page: 1, pageSize: 100, ...(origen.params ?? {}) },
+          })
+          resultado = {
+            estado: 'ok',
+            items: (data ?? []).map((item) => ({
+              valor: String(leer(item, origen.valor) ?? ''),
+              etiqueta: String(leer(item, origen.etiqueta) ?? leer(item, origen.valor) ?? ''),
+            })),
+          }
+        } catch {
+          resultado = { estado: 'error', items: [] }
+        }
+        if (esquema === this.esquema) this._opciones = { ...this._opciones, [campo.campo]: resultado }
+      })
+    )
   }
 
   async _abrirEditar(fila) {
@@ -246,12 +295,16 @@ export class DhGestion extends LitElement {
     this._vista = 'editar'
     const editar = this.esquema.editar
     this._cargandoRegistro = true
+    this._cargarOpciones(camposDe(editar.secciones))
     try {
       const ruta = (editar.cargar ?? '{id}').replace('{id}', encodeURIComponent(this._idEditando))
       const { data } = await solicitar('GET', `${this.esquema.recurso}/${ruta}`)
       const valores = {}
       camposDe(editar.secciones).forEach((campo) => {
-        valores[campo.campo] = leer(data, campo.campo) ?? ''
+        valores[campo.campo] =
+          campo.tipo === 'ubicacion'
+            ? { latitud: leer(data, `${prefijoDe(campo)}latitud`) ?? null, longitud: leer(data, `${prefijoDe(campo)}longitud`) ?? null }
+            : (leer(data, campo.campo) ?? '')
       })
       this._valores = valores
       this._registro = data
@@ -307,6 +360,14 @@ export class DhGestion extends LitElement {
     this._erroresServidor = errores
   }
 
+  _alUbicar(campo, detalle) {
+    this._valores = { ...this._valores, [campo.campo]: { latitud: detalle.latitud, longitud: detalle.longitud } }
+    this._tocados = new Set(this._tocados).add(campo.campo)
+    const errores = { ...this._erroresServidor }
+    delete errores[campo.campo]
+    this._erroresServidor = errores
+  }
+
   _tocar(campo) {
     this._tocados = new Set(this._tocados).add(campo.campo)
   }
@@ -330,6 +391,14 @@ export class DhGestion extends LitElement {
 
     const cuerpo = {}
     campos.forEach((campo) => {
+      if (campo.tipo === 'ubicacion') {
+        const punto = this._valores[campo.campo]
+        if (punto?.latitud !== undefined && punto?.latitud !== null && punto?.longitud !== undefined && punto?.longitud !== null) {
+          escribir(cuerpo, `${prefijoDe(campo)}latitud`, Number(punto.latitud))
+          escribir(cuerpo, `${prefijoDe(campo)}longitud`, Number(punto.longitud))
+        }
+        return
+      }
       const texto = String(this._valores[campo.campo] ?? '').trim()
       if (texto === '' && !campo.requerido) return
       // * Las contraseñas no se recortan: los espacios cuentan
@@ -703,6 +772,8 @@ export class DhGestion extends LitElement {
   }
 
   _renderCampo(campo) {
+    if (campo.tipo === 'seleccion') return this._renderSeleccion(campo)
+    if (campo.tipo === 'ubicacion') return this._renderUbicacion(campo)
     const id = `campo-${campo.campo.replace('.', '-')}`
     const error = this._errorDe(campo)
     const esPassword = campo.tipo === 'password'
@@ -738,6 +809,65 @@ export class DhGestion extends LitElement {
             </button>
           </div>`
         : entrada}
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
+  /** Lista de opciones de un campo `seleccion`: fijas del esquema o traídas de la API. */
+  _opcionesDe(campo) {
+    if (campo.opciones) return { estado: 'ok', items: campo.opciones }
+    return this._opciones[campo.campo] ?? { estado: 'ok', items: [] }
+  }
+
+  _renderSeleccion(campo) {
+    const id = `campo-${campo.campo.replace('.', '-')}`
+    const error = this._errorDe(campo)
+    const { estado, items } = this._opcionesDe(campo)
+    const actual = String(this._valores[campo.campo] ?? '')
+    return html`<div class="campo ${error ? 'con-error' : ''}">
+      <label for=${id}
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</label
+      >
+      <select
+        id=${id}
+        ?disabled=${campo.soloLectura || estado === 'cargando'}
+        aria-invalid=${error ? 'true' : 'false'}
+        @change=${(e) => {
+          this._alEscribir(campo, e.target.value)
+          this._tocar(campo)
+        }}
+        @blur=${() => this._tocar(campo)}
+      >
+        ${estado === 'cargando' ? html`<option value="">Cargando…</option>` : html`<option value="">Elige una opción</option>`}
+        ${items.map((o) => html`<option value=${o.valor} ?selected=${o.valor === actual}>${o.etiqueta}</option>`)}
+      </select>
+      ${estado === 'error'
+        ? html`<span class="error-campo" role="alert">
+            No pudimos cargar las opciones.
+            <button type="button" class="enlace" @click=${() => this._cargarOpciones([campo])}>Reintentar</button>
+          </span>`
+        : nothing}
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
+  _renderUbicacion(campo) {
+    const error = this._errorDe(campo)
+    const punto = this._valores[campo.campo] ?? {}
+    const direccion = campo.direccionDe && this._registro ? leer(this._registro, campo.direccionDe) : ''
+    return html`<div class="campo ${error ? 'con-error' : ''}">
+      <span class="etiqueta-campo"
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</span
+      >
+      <dh-mapa-ubicacion
+        .latitud=${punto.latitud ?? null}
+        .longitud=${punto.longitud ?? null}
+        .direccion=${direccion ?? ''}
+        ?deshabilitado=${campo.soloLectura}
+        @dh-ubicacion=${(e) => this._alUbicar(campo, e.detail)}
+      ></dh-mapa-ubicacion>
       ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
       ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
     </div>`
