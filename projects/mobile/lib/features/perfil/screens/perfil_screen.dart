@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/theme/tema_provider.dart';
+import '../../../shared/widgets/fila_accion.dart';
+import '../../../shared/widgets/indicador_boton.dart';
+import '../../../shared/widgets/insignia.dart';
+import '../../auth/providers/sesion_provider.dart';
 import '../models/editar_perfil_request.dart';
 import '../models/perfil.dart';
 import '../providers/perfil_provider.dart';
@@ -17,7 +22,7 @@ const _roles = {
 };
 
 /// Perfil de la cuenta propia (CU06): datos de solo lectura, foto, edición de los datos
-/// personales y accesos a cambiar la contraseña y el correo.
+/// personales, accesos a cambiar la contraseña y el correo, apariencia y cerrar sesión.
 ///
 /// * Es el cuerpo de la pestaña "Perfil" del `UsuarioShell`.
 class PerfilScreen extends ConsumerWidget {
@@ -29,16 +34,19 @@ class PerfilScreen extends ConsumerWidget {
     return perfil.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('No pudimos cargar tu perfil'),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: () => ref.invalidate(perfilProvider),
-              child: const Text('Reintentar'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('No pudimos cargar tu perfil'),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () => ref.invalidate(perfilProvider),
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
         ),
       ),
       data: (datos) => _PerfilContenido(perfil: datos),
@@ -148,94 +156,197 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
     }
   }
 
+  Future<void> _cerrarSesion() async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Cerrar sesión?'),
+        content: const Text('Tendrás que iniciar sesión de nuevo para entrar.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sí, cerrar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+    await ref.read(sesionProvider.notifier).cerrarSesion();
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = widget.perfil;
     final hayCambios = !_cambios().estaVacio;
-    final tema = Theme.of(context).textTheme;
+    final tema = Theme.of(context);
+    final apariencia = ref.watch(temaProvider);
 
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
         FotoPerfilSeccion(perfil: p),
-        const SizedBox(height: 24),
-        Text('Tu cuenta', style: tema.titleMedium),
-        const SizedBox(height: 8),
-        _FilaSoloLectura(
-          etiqueta: 'Correo',
-          valor: p.email,
-          insignia: p.correoVerificado ? 'Verificado' : 'Sin verificar',
-        ),
-        _FilaSoloLectura(
-          etiqueta: 'Rol',
-          valor: p.roles.map((r) => _roles[r] ?? r).join(', '),
-        ),
-        if (p.escuelaNombre != null)
-          _FilaSoloLectura(etiqueta: 'Escuela', valor: p.escuelaNombre!),
-        const SizedBox(height: 24),
-        Text('Datos personales', style: tema.titleMedium),
-        const SizedBox(height: 8),
-        Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _nombres,
-                decoration: const InputDecoration(labelText: 'Nombres'),
-                textCapitalization: TextCapitalization.words,
-                validator: validarNombres,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _apellidos,
-                decoration: const InputDecoration(labelText: 'Apellidos'),
-                textCapitalization: TextCapitalization.words,
-                validator: validarApellidos,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _telefono,
-                decoration: const InputDecoration(
-                  labelText: 'Teléfono (opcional)',
-                ),
-                keyboardType: TextInputType.phone,
-                validator: validarTelefono,
-              ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: _guardando ? null : _elegirFecha,
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Fecha de nacimiento',
-                    errorText: _errorFecha,
+        const SizedBox(height: 20),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              children: [
+                _FilaSoloLectura(
+                  etiqueta: 'Correo',
+                  valor: p.email,
+                  insignia: Insignia(
+                    p.correoVerificado ? 'Verificado' : 'Sin verificar',
+                    tono: p.correoVerificado
+                        ? TonoInsignia.exito
+                        : TonoInsignia.neutro,
                   ),
-                  child: Text(_comoFecha(_fecha)),
                 ),
+                const SizedBox(height: 14),
+                _FilaSoloLectura(
+                  etiqueta: 'Rol',
+                  valor: p.roles.map((r) => _roles[r] ?? r).join(', '),
+                ),
+                if (p.escuelaNombre != null) ...[
+                  const SizedBox(height: 14),
+                  _FilaSoloLectura(
+                    etiqueta: 'Escuela',
+                    valor: p.escuelaNombre!,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Datos personales', style: tema.textTheme.titleMedium),
+                  const SizedBox(height: 14),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _nombres,
+                          decoration: const InputDecoration(
+                            labelText: 'Nombres',
+                          ),
+                          textCapitalization: TextCapitalization.words,
+                          validator: validarNombres,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _apellidos,
+                          decoration: const InputDecoration(
+                            labelText: 'Apellidos',
+                          ),
+                          textCapitalization: TextCapitalization.words,
+                          validator: validarApellidos,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _telefono,
+                    decoration: const InputDecoration(
+                      labelText: 'Teléfono (opcional)',
+                    ),
+                    keyboardType: TextInputType.phone,
+                    validator: validarTelefono,
+                  ),
+                  const SizedBox(height: 14),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(15),
+                    onTap: _guardando ? null : _elegirFecha,
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Fecha de nacimiento',
+                        errorText: _errorFecha,
+                        suffixIcon: const Icon(Icons.calendar_today_outlined),
+                      ),
+                      child: Text(_comoFecha(_fecha)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: (_guardando || !hayCambios) ? null : _guardar,
+                    child: _guardando
+                        ? const IndicadorBoton()
+                        : const Text('Guardar cambios'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: (_guardando || !hayCambios) ? null : _guardar,
-                child: _guardando
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Guardar cambios'),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Column(
+            children: [
+              FilaAccion(
+                icono: Icons.lock_outline,
+                titulo: 'Cambiar contraseña',
+                detalle: 'Cerraremos tus otras sesiones',
+                onTap: () => context.push('/perfil/contrasena'),
+              ),
+              const Divider(),
+              FilaAccion(
+                icono: Icons.mail_outline,
+                titulo: 'Cambiar correo',
+                detalle: 'Lo confirmas con un enlace',
+                onTap: () => context.push('/perfil/correo'),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        OutlinedButton(
-          onPressed: () => context.push('/perfil/contrasena'),
-          child: const Text('Cambiar contraseña'),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Apariencia', style: tema.textTheme.titleMedium),
+                const SizedBox(height: 12),
+                SegmentedButton<ThemeMode>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(
+                      value: ThemeMode.system,
+                      label: Text('Sistema'),
+                    ),
+                    ButtonSegment(value: ThemeMode.light, label: Text('Claro')),
+                    ButtonSegment(value: ThemeMode.dark, label: Text('Oscuro')),
+                  ],
+                  selected: {apariencia},
+                  onSelectionChanged: (elegida) =>
+                      ref.read(temaProvider.notifier).elegir(elegida.first),
+                ),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: () => context.push('/perfil/correo'),
-          child: const Text('Cambiar correo'),
+        const SizedBox(height: 16),
+        Card(
+          child: FilaAccion(
+            icono: Icons.logout,
+            titulo: 'Cerrar sesión',
+            peligro: true,
+            onTap: _cerrarSesion,
+          ),
         ),
       ],
     );
@@ -251,7 +362,7 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
 class _FilaSoloLectura extends StatelessWidget {
   final String etiqueta;
   final String valor;
-  final String? insignia;
+  final Widget? insignia;
 
   const _FilaSoloLectura({
     required this.etiqueta,
@@ -261,24 +372,28 @@ class _FilaSoloLectura extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+    final tema = Theme.of(context);
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(etiqueta, style: Theme.of(context).textTheme.bodySmall),
-          ),
-          Expanded(child: Text(valor)),
-          if (insignia != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Text(
-                insignia!,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
+          Text(
+            etiqueta.toUpperCase(),
+            style: tema.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              color: tema.colorScheme.onSurfaceVariant,
             ),
+          ),
+          const SizedBox(height: 3),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [Text(valor, style: tema.textTheme.bodyLarge), ?insignia],
+          ),
         ],
       ),
     );

@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../shared/widgets/cockpit_scaffold.dart';
+import '../../../shared/widgets/indicador_boton.dart';
+import '../../../shared/widgets/medidor_password.dart';
 import '../models/cambiar_contrasena_request.dart';
 import '../providers/perfil_provider.dart';
 import '../validators/perfil_validators.dart';
@@ -94,11 +97,11 @@ class _CambiarContrasenaScreenState
       onPressed: () => setState(() => _ver = !_ver),
     );
 
-    return Scaffold(
+    return CockpitScaffold(
       appBar: AppBar(title: const Text('Cambiar contraseña')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
           child: Form(
             key: _formKey,
             child: Column(
@@ -110,19 +113,21 @@ class _CambiarContrasenaScreenState
                   autofillHints: const [AutofillHints.password],
                   decoration: InputDecoration(
                     labelText: 'Contraseña actual',
+                    prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: ojo,
                     errorText: _errorActual,
                   ),
                   validator: validarContrasenaActual,
                   onChanged: (_) => setState(() => _errorActual = null),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 TextFormField(
                   controller: _nueva,
                   obscureText: !_ver,
                   autofillHints: const [AutofillHints.newPassword],
                   decoration: InputDecoration(
                     labelText: 'Contraseña nueva',
+                    prefixIcon: const Icon(Icons.lock_reset_outlined),
                     errorText: _errorNueva,
                   ),
                   validator: (valor) =>
@@ -130,13 +135,16 @@ class _CambiarContrasenaScreenState
                       distintaDeLaActual(valor, _actual.text),
                   onChanged: (_) => setState(() => _errorNueva = null),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
+                MedidorPassword(fuerza: fuerzaDePassword(_nueva.text)),
+                const SizedBox(height: 14),
                 TextFormField(
                   controller: _confirmacion,
                   obscureText: !_ver,
                   autofillHints: const [AutofillHints.newPassword],
                   decoration: const InputDecoration(
                     labelText: 'Confirma la contraseña nueva',
+                    prefixIcon: Icon(Icons.lock_reset_outlined),
                   ),
                   validator: (valor) => confirmacion(valor, _nueva.text),
                 ),
@@ -144,11 +152,7 @@ class _CambiarContrasenaScreenState
                 FilledButton(
                   onPressed: _enviando ? null : _enviar,
                   child: _enviando
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const IndicadorBoton()
                       : const Text('Cambiar contraseña'),
                 ),
               ],

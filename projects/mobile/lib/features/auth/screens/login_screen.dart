@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../shared/widgets/aviso_cockpit.dart';
+import '../../../shared/widgets/cockpit_scaffold.dart';
+import '../../../shared/widgets/indicador_boton.dart';
+import '../../../shared/widgets/marca_drivehub.dart';
 import '../providers/sesion_provider.dart';
 import '../validators/registro_validators.dart';
 
@@ -88,48 +92,69 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final motivo = _mensajesDeMotivo[ref.watch(sesionProvider).motivo];
 
-    return Scaffold(
+    final tema = Theme.of(context);
+
+    return CockpitScaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: LogoDriveHub(tamano: 34),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    'Iniciar sesión',
+                    style: tema.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tu autoescuela, en tu bolsillo.',
+                    style: tema.textTheme.bodyMedium?.copyWith(
+                      color: tema.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   if (widget.cuentaCreada) ...[
-                    _aviso(
-                      context,
-                      'Tu cuenta fue creada. Inicia sesión para continuar.',
+                    const AvisoCockpit(
+                      texto: 'Tu cuenta fue creada. Inicia sesión para continuar.',
+                      tono: TonoAviso.exito,
                     ),
                     const SizedBox(height: 16),
                   ],
                   if (motivo != null) ...[
-                    _aviso(context, motivo),
+                    AvisoCockpit(texto: motivo, tono: TonoAviso.advertencia),
                     const SizedBox(height: 16),
                   ],
-                  Text(
-                    'Iniciar sesión',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 16),
                   TextFormField(
                     key: const Key('campoEmail'),
                     controller: _email,
-                    decoration: const InputDecoration(labelText: 'Correo'),
+                    decoration: const InputDecoration(
+                      labelText: 'Correo',
+                      prefixIcon: Icon(Icons.mail_outline),
+                    ),
                     keyboardType: TextInputType.emailAddress,
                     autocorrect: false,
                     textInputAction: TextInputAction.next,
                     validator: validarEmail,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   TextFormField(
                     key: const Key('campoPassword'),
                     controller: _password,
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
+                      prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _verPassword
@@ -149,27 +174,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ? 'La contraseña es obligatoria'
                         : null,
                   ),
-                  const SizedBox(height: 24),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      key: const Key('botonOlvideContrasena'),
+                      onPressed: () => context.go('/forgot-password'),
+                      child: const Text('¿Olvidaste tu contraseña?'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   FilledButton(
                     key: const Key('botonIngresar'),
                     onPressed: _enviando ? null : _enviar,
                     child: _enviando
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Ingresar'),
+                        ? const IndicadorBoton()
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('Ingresar'),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward, size: 18),
+                            ],
+                          ),
                   ),
                   const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: () => context.go('/register'),
-                    child: const Text('Crear cuenta'),
-                  ),
-                  TextButton(
-                    key: const Key('botonOlvideContrasena'),
-                    onPressed: () => context.go('/forgot-password'),
-                    child: const Text('¿Olvidaste tu contraseña?'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '¿Eres estudiante nuevo?',
+                        style: tema.textTheme.bodyMedium?.copyWith(
+                          color: tema.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => context.go('/register'),
+                        child: const Text('Crear cuenta'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -177,17 +219,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _aviso(BuildContext context, String texto) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(texto),
     );
   }
 }

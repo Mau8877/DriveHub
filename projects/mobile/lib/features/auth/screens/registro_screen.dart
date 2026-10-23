@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/widgets/cockpit_scaffold.dart';
+import '../../../shared/widgets/indicador_boton.dart';
+import '../../../shared/widgets/medidor_password.dart';
 import '../models/registro_estudiante_request.dart';
 import '../providers/registro_provider.dart';
 import '../validators/registro_validators.dart';
@@ -35,6 +38,13 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
   String? _errorEmail;
   String? _errorFecha;
   String? _errorEscuela;
+
+  @override
+  void initState() {
+    super.initState();
+    // * El medidor de fuerza se repinta con cada tecla de la contraseña
+    _password.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -114,70 +124,103 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
   Widget build(BuildContext context) {
     final enviando = ref.watch(registroProvider).isLoading;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Crear cuenta')),
+    final tema = Theme.of(context);
+
+    return CockpitScaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Volver',
+          onPressed: () => context.go('/login'),
+        ),
+        title: const Text('Crear cuenta'),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  'Regístrate como estudiante con el código que te dio tu autoescuela.',
+                  style: tema.textTheme.bodyMedium?.copyWith(
+                    color: tema.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
                 TextFormField(
                   key: const Key('campoEscuela'),
                   controller: _escuela,
-                  decoration: const InputDecoration(labelText: 'Código de escuela'),
+                  decoration: const InputDecoration(
+                    labelText: 'Código de escuela',
+                    prefixIcon: Icon(Icons.school_outlined),
+                    helperText: 'Es el que va en el enlace de registro de tu escuela.',
+                  ),
                   autocorrect: false,
                   textInputAction: TextInputAction.next,
                   validator: (v) => validarCodigoEscuela(v) ?? _errorEscuela,
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  key: const Key('campoNombres'),
-                  controller: _nombres,
-                  decoration: const InputDecoration(labelText: 'Nombres'),
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  validator: validarNombres,
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        key: const Key('campoNombres'),
+                        controller: _nombres,
+                        decoration: const InputDecoration(labelText: 'Nombres'),
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        validator: validarNombres,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        key: const Key('campoApellidos'),
+                        controller: _apellidos,
+                        decoration: const InputDecoration(labelText: 'Apellidos'),
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        validator: validarApellidos,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  key: const Key('campoApellidos'),
-                  controller: _apellidos,
-                  decoration: const InputDecoration(labelText: 'Apellidos'),
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  validator: validarApellidos,
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 TextFormField(
                   key: const Key('campoFecha'),
                   controller: _fecha,
                   readOnly: true,
                   decoration: const InputDecoration(
                     labelText: 'Fecha de nacimiento',
-                    suffixIcon: Icon(Icons.calendar_today_outlined),
+                    prefixIcon: Icon(Icons.calendar_today_outlined),
                   ),
                   onTap: _elegirFecha,
                   validator: (_) => validarFechaNacimiento(_fechaNacimiento) ?? _errorFecha,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 TextFormField(
                   key: const Key('campoEmail'),
                   controller: _email,
-                  decoration: const InputDecoration(labelText: 'Correo'),
+                  decoration: const InputDecoration(
+                    labelText: 'Correo',
+                    prefixIcon: Icon(Icons.mail_outline),
+                  ),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   textInputAction: TextInputAction.next,
                   validator: (v) => validarEmail(v) ?? _errorEmail,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 TextFormField(
                   key: const Key('campoPassword'),
                   controller: _password,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
+                    prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(_verPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                       tooltip: _verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña',
@@ -188,11 +231,18 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                   textInputAction: TextInputAction.next,
                   validator: validarPassword,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
+                MedidorPassword(fuerza: fuerzaDePassword(_password.text)),
+                const SizedBox(height: 4),
+                Text('Entre 9 y 64 caracteres.', style: tema.textTheme.bodySmall),
+                const SizedBox(height: 10),
                 TextFormField(
                   key: const Key('campoTelefono'),
                   controller: _telefono,
-                  decoration: const InputDecoration(labelText: 'Teléfono (opcional)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Teléfono (opcional)',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
                   keyboardType: TextInputType.phone,
                   validator: validarTelefono,
                 ),
@@ -200,13 +250,23 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                 FilledButton(
                   key: const Key('botonRegistrar'),
                   onPressed: enviando ? null : _enviar,
-                  child: enviando
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Registrarme'),
+                  child: enviando ? const IndicadorBoton() : const Text('Registrarme'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '¿Ya tienes cuenta?',
+                      style: tema.textTheme.bodyMedium?.copyWith(
+                        color: tema.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/login'),
+                      child: const Text('Inicia sesión'),
+                    ),
+                  ],
                 ),
               ],
             ),

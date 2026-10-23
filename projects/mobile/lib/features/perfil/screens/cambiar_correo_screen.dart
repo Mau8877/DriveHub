@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../shared/widgets/aviso_cockpit.dart';
+import '../../../shared/widgets/cockpit_scaffold.dart';
+import '../../../shared/widgets/indicador_boton.dart';
 import '../models/cambiar_correo_request.dart';
 import '../providers/perfil_provider.dart';
 import '../validators/perfil_validators.dart';
@@ -134,27 +137,28 @@ class _CambiarCorreoScreenState extends ConsumerState<CambiarCorreoScreen>
   Widget build(BuildContext context) {
     final correoActual = ref.watch(perfilProvider).valueOrNull?.email ?? '';
 
-    return Scaffold(
+    return CockpitScaffold(
       appBar: AppBar(title: const Text('Cambiar correo')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Tu correo actual es $correoActual'),
+              Text(
+                'Tu correo actual es $correoActual',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
               if (_aviso != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  _aviso!,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
+                AvisoCockpit(texto: _aviso!, tono: TonoAviso.exito),
               ],
               const SizedBox(height: 16),
               if (_pendiente != null) ...[
-                Text(
-                  'Te enviamos un correo a $_pendiente. Tu correo no cambia hasta que abras el '
-                  'enlace (vale 24 horas).',
+                AvisoCockpit(
+                  texto:
+                      'Te enviamos un correo a $_pendiente. Tu correo no cambia hasta que abras el '
+                      'enlace (vale 24 horas).',
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(
@@ -172,6 +176,7 @@ class _CambiarCorreoScreenState extends ConsumerState<CambiarCorreoScreen>
                         obscureText: !_ver,
                         decoration: InputDecoration(
                           labelText: 'Contraseña actual',
+                          prefixIcon: const Icon(Icons.lock_outline),
                           errorText: _errorPassword,
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -194,6 +199,7 @@ class _CambiarCorreoScreenState extends ConsumerState<CambiarCorreoScreen>
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           labelText: 'Correo nuevo',
+                          prefixIcon: const Icon(Icons.mail_outline),
                           errorText: _errorCorreo,
                         ),
                         validator: validarCorreoNuevo,
@@ -203,13 +209,7 @@ class _CambiarCorreoScreenState extends ConsumerState<CambiarCorreoScreen>
                       FilledButton(
                         onPressed: _enviando ? null : _enviar,
                         child: _enviando
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
+                            ? const IndicadorBoton()
                             : const Text('Enviar enlace'),
                       ),
                     ],

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups mobile · DriveHub</title>
+<link rel="stylesheet" href="../../../packages/design-tokens/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script src="shared/boot.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font-sans); background: var(--background); color: var(--foreground); -webkit-font-smoothing: antialiased; transition: background-color .3s, color .3s; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; border: 0; color: inherit; background: none; }
+  .wrap { width: min(78rem, 100% - 2.5rem); margin-inline: auto; }
+  header.top { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 0; gap: 1rem; flex-wrap: wrap; }
+  .logo { display: flex; align-items: center; gap: .65rem; font-weight: 800; font-size: 1.2rem; letter-spacing: -.02em; }
+  .logo b { color: var(--ambar-vial); }
+  .ctrl { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  .seg { display: inline-flex; padding: .2rem; gap: .15rem; border-radius: .8rem; background: var(--muted); }
+  .seg button { height: 2.1rem; padding: 0 .9rem; border-radius: .6rem; font-size: .8125rem; font-weight: 650; color: var(--muted-foreground); }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--foreground); box-shadow: 0 1px 2px rgb(30 41 59 / 10%); }
+  .intro { padding: clamp(1.5rem, 5vw, 3.5rem) 0 2rem; max-width: 46rem; }
+  .etq { display: inline-flex; padding: .35rem .8rem; border-radius: 99px; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; background: color-mix(in srgb, var(--ambar-vial) 18%, transparent); }
+  .intro h1 { margin: 1rem 0 .9rem; font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -.035em; font-weight: 800; }
+  .intro h1 span { background: linear-gradient(90deg, var(--ambar-vial), color-mix(in srgb, var(--ambar-vial) 40%, var(--azul-tecnico))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .intro p { margin: 0; font-size: 1.05rem; color: var(--muted-foreground); line-height: 1.6; }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; padding-bottom: 3rem; }
+  .diseno { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; padding: 1.5rem 1rem 1.5rem; background: var(--card); border: 1px solid var(--border); border-radius: 1.5rem; }
+  .telefono { position: relative; width: 340px; height: 712px; padding: 10px; border-radius: 2.8rem; background: color-mix(in srgb, var(--gris-asfalto) 70%, black); box-shadow: 0 30px 60px -24px rgb(30 41 59 / 50%); }
+  .pantalla { position: relative; width: 320px; height: 692px; overflow: hidden; border-radius: 2.2rem; background: var(--background); }
+  .pantalla iframe { position: absolute; top: 0; left: 0; width: 390px; height: 844px; border: 0; transform: scale(.8205); transform-origin: 0 0; }
+  .info { width: 100%; display: flex; flex-direction: column; gap: .5rem; }
+  .num { font-size: .72rem; font-weight: 800; letter-spacing: .12em; color: var(--info); }
+  .info h2 { margin: 0; font-size: 1.45rem; letter-spacing: -.02em; }
+  .info p { margin: 0; color: var(--muted-foreground); font-size: .9rem; line-height: 1.55; }
+  .tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .tags span { padding: .2rem .6rem; border-radius: 99px; font-size: .72rem; font-weight: 600; background: var(--muted); }
+  .pantallas { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .4rem; }
+  .pantallas button { padding: .38rem .75rem; border-radius: 99px; font-size: .78rem; font-weight: 650; background: var(--background); border: 1px solid var(--border); transition: background-color .2s, border-color .2s; }
+  .pantallas button:hover { background: var(--accent); }
+  .pantallas button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
+  .abrir { display: flex; align-items: center; justify-content: center; height: 2.8rem; margin-top: .6rem; border-radius: .9rem; font-weight: 700; background: var(--primary); color: var(--primary-foreground); }
+  .notas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; padding-bottom: 3.5rem; }
+  .nota { padding: 1.3rem; border-radius: 1.25rem; background: var(--card); border: 1px solid var(--border); }
+  .nota h3 { margin: 0 0 .5rem; font-size: 1rem; } .nota p { margin: 0; color: var(--muted-foreground); font-size: .875rem; line-height: 1.55; }
+  .nota code { padding: .1rem .4rem; border-radius: .35rem; background: var(--muted); font-size: .8rem; }
+  footer { padding: 1.5rem 0 2.5rem; color: var(--muted-foreground); font-size: .8125rem; text-align: center; border-top: 1px solid var(--border); }
+  @media (max-width: 1150px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .grid, .notas { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="index.html"><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--ambar-vial)"/><path d="M10 8h6.5a8 8 0 0 1 0 16H10V8Z" fill="none" stroke="var(--gris-asfalto)" stroke-width="2.6" stroke-linejoin="round"/><path d="M13.5 12.5v7" stroke="var(--gris-asfalto)" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="1.6 3"/></svg><span>Drive<b>Hub</b></span></a>
+    <div class="ctrl">
+      <div class="seg" id="rol" role="group" aria-label="Rol"><button data-v="estudiante" aria-pressed="true">Estudiante</button><button data-v="instructor" aria-pressed="false">Instructor</button></div>
+      <div class="seg" id="tema" role="group" aria-label="Tema"><button data-v="claro" aria-pressed="true">Claro</button><button data-v="oscuro" aria-pressed="false">Oscuro</button></div>
+    </div>
+  </header>
+
+  <section class="intro">
+    <span class="etq">Mockups · Mobile</span>
+    <h1>Tres formas de llevar <span>DriveHub</span> al celular</h1>
+    <p>La app de estudiante e instructor, con las mismas pantallas en tres identidades: inicio de sesión, registro, recuperar contraseña, inicio, clases, perfil con foto, cambio de contraseña y de correo. Todo funciona: formularios, validaciones, hojas, diálogos y tema oscuro. Cambia el rol o el tema arriba y toca las pantallas de cada diseño.</p>
+  </section>
+
+  <section class="grid" id="grid"></section>
+
+  <section class="notas">
+    <div class="nota"><h3>Qué existe y qué es propuesta</h3><p>Login, registro, recuperar, perfil, foto, cambio de contraseña y de correo ya existen en <code>projects/mobile</code> y mantienen sus textos y reglas. El <b>inicio</b> y las <b>clases</b> son ilustrativos: sus casos de uso todavía no están implementados.</p></div>
+    <div class="nota"><h3>Paleta</h3><p>Los tres leen <code>packages/design-tokens/tokens.css</code>, los mismos colores de <code>AppColors</code> en Flutter. Ningún diseño define un color propio.</p></div>
+    <div class="nota"><h3>Cómo se llevan a Flutter</h3><p>Cada diseño cambia el <code>ThemeData</code> (formas, barra, navegación) y los widgets compartidos; las pantallas y los providers no cambian. Al elegir uno se baja a <code>core/theme</code> y <code>shared/widgets</code>.</p></div>
+  </section>
+  <footer>Mockups sin build: se abren sirviendo la raíz del repositorio (ver README).</footer>
+</div>
+
+<script>
+  const DISENOS = [
+    { n: '01', carpeta: 'diseno-1-bento', nombre: 'Bento', texto: 'Claro, cálido y juguetón: el inicio es una rejilla de losetas de color sólido, formas muy redondeadas y una navegación cuya pestaña activa salta en una burbuja ámbar.', tags: ['Losetas de color', 'Navegación burbuja', 'Sin cristal'] },
+    { n: '02', carpeta: 'diseno-2-ruta', nombre: 'Ruta', texto: 'Fluido y aireado: cristal, radios grandes, pestañas flotantes en píldora y degradados suaves. Se siente app de consumo.', tags: ['Cristal', 'Pestañas flotantes', 'Botones redondos'] },
+    { n: '03', carpeta: 'diseno-3-cockpit', nombre: 'Cockpit', texto: 'Oscuro e inmersivo, como el tablero de un auto: resplandor azul y ámbar, anillo de progreso, chips de estado y una ruta dibujada en la tarjeta principal.', tags: ['Oscuro', 'Anillo de progreso', 'Brillos'] },
+  ]
+  const PANTALLAS = [['Login', '/login'], ['Registro', '/registro'], ['Recuperar', '/recuperar'], ['Inicio', '/inicio'], ['Clases', '/clases'], ['Perfil', '/perfil'], ['Contraseña', '/perfil/contrasena'], ['Correo', '/perfil/correo'], ['Estado', '/estado/verificado']]
+  const est = { rol: 'estudiante', tema: 'claro', ruta: {} }
+  const rutaDe = (d) => est.ruta[d.carpeta] || '/login'
+  const url = (d) => d.carpeta + '/index.html?rol=' + est.rol + (est.tema === 'oscuro' ? '&tema=oscuro' : (d.carpeta.includes('cockpit') ? '&tema=claro' : '')) + '#' + rutaDe(d)
+
+  const grid = document.getElementById('grid')
+  DISENOS.forEach((d) => {
+    const c = document.createElement('article')
+    c.className = 'diseno'
+    c.innerHTML = '<div class="telefono"><div class="pantalla"><iframe title="' + d.nombre + '" loading="lazy"></iframe></div></div>' +
+      '<div class="info"><span class="num">DISEÑO ' + d.n + '</span><h2>' + d.nombre + '</h2><p>' + d.texto + '</p>' +
+      '<div class="tags">' + d.tags.map((t) => '<span>' + t + '</span>').join('') + '</div>' +
+      '<div class="pantallas">' + PANTALLAS.map((p) => '<button data-r="' + p[1] + '" aria-pressed="' + (p[1] === '/login') + '">' + p[0] + '</button>').join('') + '</div>' +
+      '<a class="abrir" target="_blank" rel="noopener">Abrir en pantalla completa</a></div>'
+    d.el = c
+    grid.appendChild(c)
+    c.querySelector('.pantallas').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-r]')
+      if (!b) return
+      est.ruta[d.carpeta] = b.dataset.r
+      pintar(d)
+    })
+  })
+  function pintar(d) {
+    const f = d.el.querySelector('iframe')
+    const u = url(d)
+    f.src = u
+    d.el.querySelector('.abrir').href = u
+    d.el.querySelectorAll('.pantallas button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.r === rutaDe(d))))
+  }
+  const todos = () => DISENOS.forEach(pintar)
+  function seg(id, clave, alCambiar) {
+    document.getElementById(id).addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-v]')
+      if (!b) return
+      est[clave] = b.dataset.v
+      document.getElementById(id).querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+      alCambiar()
+    })
+  }
+  seg('rol', 'rol', todos)
+  seg('tema', 'tema', () => {
+    document.documentElement.classList.toggle('dark', est.tema === 'oscuro')
+    try { localStorage.setItem('dh-tema', est.tema) } catch (_) {}
+    todos()
+  })
+  todos()
+</script>
+</body>
+</html>

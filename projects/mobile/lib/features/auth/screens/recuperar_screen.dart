@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/widgets/aviso_cockpit.dart';
+import '../../../shared/widgets/cockpit_scaffold.dart';
+import '../../../shared/widgets/indicador_boton.dart';
 import '../providers/recuperar_provider.dart';
 import '../validators/registro_validators.dart';
 
@@ -43,87 +46,81 @@ class _RecuperarScreenState extends ConsumerState<RecuperarScreen> {
     final cargando = estado.isLoading;
     final enviado = estado.valueOrNull == true;
 
-    return Scaffold(
+    final tema = Theme.of(context);
+
+    return CockpitScaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Volver',
+          onPressed: () => context.go('/login'),
+        ),
+        title: const Text('Recuperar contraseña'),
+      ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Recuperar contraseña',
-                    style: Theme.of(context).textTheme.headlineSmall,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Ingresa tu correo y te enviaremos un enlace para elegir una contraseña nueva.',
+                  style: tema.textTheme.bodyMedium?.copyWith(
+                    color: tema.colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Ingresa tu correo y te enviaremos un enlace para elegir una contraseña nueva.',
-                  ),
-                  const SizedBox(height: 16),
-                  if (enviado)
-                    _aviso(context, _mensajeEnviado)
-                  else ...[
-                    TextFormField(
-                      key: const Key('campoEmail'),
-                      controller: _email,
-                      decoration: const InputDecoration(labelText: 'Correo'),
-                      keyboardType: TextInputType.emailAddress,
-                      autocorrect: false,
-                      onFieldSubmitted: (_) => _enviar(),
-                      validator: validarEmail,
+                ),
+                const SizedBox(height: 20),
+                if (enviado)
+                  const AvisoCockpit(
+                    texto: _mensajeEnviado,
+                    tono: TonoAviso.exito,
+                  )
+                else ...[
+                  TextFormField(
+                    key: const Key('campoEmail'),
+                    controller: _email,
+                    decoration: const InputDecoration(
+                      labelText: 'Correo',
+                      prefixIcon: Icon(Icons.mail_outline),
                     ),
-                    if (estado.hasError) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        'No pudimos procesar la solicitud. Intenta más tarde',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      key: const Key('botonEnviarEnlace'),
-                      onPressed: cargando ? null : _enviar,
-                      child: cargando
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Enviar enlace'),
+                    keyboardType: TextInputType.emailAddress,
+                    autocorrect: false,
+                    onFieldSubmitted: (_) => _enviar(),
+                    validator: validarEmail,
+                  ),
+                  if (estado.hasError) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'No pudimos procesar la solicitud. Intenta más tarde',
+                      style: TextStyle(color: tema.colorScheme.error),
                     ),
                   ],
                   const SizedBox(height: 16),
-                  Text(
-                    'La recuperación solo funciona si verificaste tu correo desde la app.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: const Text('Volver a iniciar sesión'),
+                  FilledButton(
+                    key: const Key('botonEnviarEnlace'),
+                    onPressed: cargando ? null : _enviar,
+                    child: cargando
+                        ? const IndicadorBoton()
+                        : const Text('Enviar enlace'),
                   ),
                 ],
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  'La recuperación solo funciona si verificaste tu correo desde la app.',
+                  style: tema.textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Volver a iniciar sesión'),
+                ),
+              ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _aviso(BuildContext context, String texto) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(texto),
     );
   }
 }

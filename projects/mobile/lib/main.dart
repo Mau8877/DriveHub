@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/network/api_client.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/tema_provider.dart';
 import 'features/auth/providers/sesion_provider.dart';
 
 Future<void> main() async {
@@ -35,6 +36,7 @@ class MyApp extends ConsumerWidget {
       title: 'DriveHub',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      themeMode: ref.watch(temaProvider),
       routerConfig: ref.watch(routerProvider),
     );
   }

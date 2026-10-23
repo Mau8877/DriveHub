@@ -24,6 +24,14 @@ const _verificado = UsuarioSesion(
   correoVerificado: true,
 );
 
+const _instructor = UsuarioSesion(
+  codigo: 'u2',
+  nombres: 'Luis',
+  apellidos: 'Paredes',
+  roles: ['INSTRUCTOR'],
+  correoVerificado: true,
+);
+
 Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
   final sesion = SesionFalsa(EstadoSesion.conSesion(usuario));
   await tester.pumpWidget(
@@ -36,17 +44,74 @@ Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
 }
 
 void main() {
-  testWidgets('el botón Cerrar sesión llama a cerrarSesion una vez', (
-    tester,
-  ) async {
-    final sesion = await _montar(tester, usuarioDePrueba);
+  group('Pestañas', () {
+    testWidgets('arranca en Inicio con el saludo y los accesos rápidos', (
+      tester,
+    ) async {
+      await _montar(tester, _verificado);
 
-    expect(find.byTooltip('Cerrar sesión'), findsOneWidget);
+      expect(find.text('Hola, Ana'), findsOneWidget);
+      expect(find.text('RESERVAR'), findsOneWidget);
+      expect(find.text('SIMULACRO'), findsOneWidget);
+      expect(find.text('MANUALES'), findsOneWidget);
+      expect(find.text('ASISTENTE'), findsOneWidget);
+    });
 
-    await tester.tap(find.byTooltip('Cerrar sesión'));
-    await tester.pump();
+    testWidgets('un acceso rápido avisa que llega con su caso de uso', (
+      tester,
+    ) async {
+      await _montar(tester, _verificado);
 
-    expect(sesion.cierres, 1);
+      await tester.ensureVisible(find.text('SIMULACRO'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('SIMULACRO'));
+      await tester.pump();
+
+      expect(
+        find.text('Simulacro: disponible en el siguiente caso de uso'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Clases muestra Próximas e Historial para el estudiante', (
+      tester,
+    ) async {
+      await _montar(tester, _verificado);
+
+      await tester.tap(find.text('Clases'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mis clases'), findsOneWidget);
+      expect(find.text('No tienes clases próximas'), findsOneWidget);
+
+      await tester.tap(find.text('Historial'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Todavía no tienes historial'), findsOneWidget);
+    });
+
+    testWidgets('el instructor ve Agenda en lugar de Clases', (tester) async {
+      await _montar(tester, _instructor);
+
+      expect(find.text('Agenda'), findsOneWidget);
+      expect(find.text('RESERVAR'), findsNothing);
+
+      await tester.tap(find.text('Agenda'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No tienes clases hoy'), findsOneWidget);
+    });
+
+    testWidgets('el botón de avisos dice que no hay avisos nuevos', (
+      tester,
+    ) async {
+      await _montar(tester, _verificado);
+
+      await tester.tap(find.byTooltip('Avisos'));
+      await tester.pump();
+
+      expect(find.text('Todavía no tienes avisos nuevos'), findsOneWidget);
+    });
   });
 
   group('Verificar correo', () {

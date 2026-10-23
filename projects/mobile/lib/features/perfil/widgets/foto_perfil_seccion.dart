@@ -5,14 +5,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/avatar_usuario.dart';
+import '../../../shared/widgets/indicador_boton.dart';
 import '../models/perfil.dart';
 import '../providers/perfil_provider.dart';
 import '../validators/foto_validators.dart';
 import '../validators/perfil_validators.dart';
 
-/// Sección de la foto del perfil (CU06): elegir de la galería o la cámara, ver una vista previa,
-/// guardar y quitar.
+/// Lo que se puede hacer con la foto desde la hoja de opciones.
+enum _AccionFoto { galeria, camara, quitar }
+
+/// Cabecera del perfil (CU06): la foto con su anillo ámbar y el botón de cámara, el nombre y la
+/// escuela. Elegir de la galería o la cámara, ver una vista previa, guardar y quitar.
 ///
 /// * Revisa la imagen antes de enviarla solo para dar feedback inmediato (formato, peso y
 /// * dimensiones); el backend decide. Una imagen rechazada nunca se envía.
@@ -40,29 +45,65 @@ class _FotoPerfilSeccionState extends ConsumerState<FotoPerfilSeccion> {
   bool _ocupado = false;
   String? _error;
 
-  Future<void> _elegir() async {
-    final origen = await showModalBottomSheet<ImageSource>(
+  Future<void> _abrirOpciones() async {
+    final tieneFoto = widget.perfil.fotoUrl != null;
+    final accion = await showModalBottomSheet<_AccionFoto>(
       context: context,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Foto de perfil',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('Galería'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
+              subtitle: const Text('Elegir una foto guardada'),
+              onTap: () => Navigator.pop(context, _AccionFoto.galeria),
             ),
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
               title: const Text('Cámara'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
+              subtitle: const Text('Tomar una foto ahora'),
+              onTap: () => Navigator.pop(context, _AccionFoto.camara),
             ),
+            if (tieneFoto)
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  'Quitar foto',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                onTap: () => Navigator.pop(context, _AccionFoto.quitar),
+              ),
           ],
         ),
       ),
     );
-    if (origen == null) return;
+    switch (accion) {
+      case null:
+        return;
+      case _AccionFoto.galeria:
+        return _elegir(ImageSource.gallery);
+      case _AccionFoto.camara:
+        return _elegir(ImageSource.camera);
+      case _AccionFoto.quitar:
+        return _quitar();
+    }
+  }
 
+  Future<void> _elegir(ImageSource origen) async {
     final archivo = await _selector.pickImage(
       source: origen,
       maxWidth: fotoMaxLadoPx.toDouble(),
@@ -129,6 +170,7 @@ class _FotoPerfilSeccionState extends ConsumerState<FotoPerfilSeccion> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('¿Quitar tu foto?'),
+        content: const Text('Tu cuenta volverá a mostrar tus iniciales.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -164,69 +206,104 @@ class _FotoPerfilSeccionState extends ConsumerState<FotoPerfilSeccion> {
   Widget build(BuildContext context) {
     final p = widget.perfil;
     final seleccion = _seleccion;
+    final tema = Theme.of(context);
 
     return Column(
       children: [
-        if (seleccion != null)
-          ClipOval(
-            child: Image.memory(
-              seleccion.bytes,
-              width: 112,
-              height: 112,
-              fit: BoxFit.cover,
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // * Anillo ámbar alrededor de la foto, separado por un aro del color de fondo
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.ambar, width: 2.5),
+              ),
+              child: seleccion != null
+                  ? ClipOval(
+                      child: Image.memory(
+                        seleccion.bytes,
+                        width: 104,
+                        height: 104,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : AvatarUsuario(
+                      nombres: p.nombres,
+                      apellidos: p.apellidos,
+                      fotoUrl: p.fotoUrl,
+                      radio: 52,
+                    ),
             ),
-          )
-        else
-          AvatarUsuario(
-            nombres: p.nombres,
-            apellidos: p.apellidos,
-            fotoUrl: p.fotoUrl,
-            radio: 56,
-          ),
-        const SizedBox(height: 12),
-        if (seleccion == null)
-          Wrap(
-            spacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: _ocupado ? null : _elegir,
-                child: Text(p.fotoUrl == null ? 'Subir foto' : 'Cambiar foto'),
-              ),
-              if (p.fotoUrl != null)
-                OutlinedButton(
-                  onPressed: _ocupado ? null : _quitar,
-                  child: const Text('Quitar foto'),
+            Positioned(
+              right: -2,
+              bottom: -2,
+              child: Material(
+                color: tema.colorScheme.primary,
+                shape: CircleBorder(
+                  side: BorderSide(
+                    color: tema.scaffoldBackgroundColor,
+                    width: 3,
+                  ),
                 ),
-            ],
-          )
-        else
+                child: IconButton(
+                  tooltip: p.fotoUrl == null ? 'Subir foto' : 'Cambiar foto',
+                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                  color: tema.colorScheme.onPrimary,
+                  onPressed: (_ocupado || seleccion != null)
+                      ? null
+                      : _abrirOpciones,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Text(
+          '${p.nombres} ${p.apellidos}',
+          style: tema.textTheme.titleLarge,
+          textAlign: TextAlign.center,
+        ),
+        if (p.escuelaNombre != null)
+          Text(p.escuelaNombre!, style: tema.textTheme.bodySmall),
+        const SizedBox(height: 12),
+        if (seleccion != null)
           Wrap(
             spacing: 8,
             children: [
-              FilledButton(
-                onPressed: _ocupado ? null : _guardar,
-                child: _ocupado
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Guardar foto'),
+              SizedBox(
+                width: 150,
+                child: FilledButton(
+                  onPressed: _ocupado ? null : _guardar,
+                  child: _ocupado
+                      ? const IndicadorBoton()
+                      : const Text('Guardar foto'),
+                ),
               ),
-              OutlinedButton(
-                onPressed: _ocupado
-                    ? null
-                    : () => setState(() => _seleccion = null),
-                child: const Text('Cancelar'),
+              SizedBox(
+                width: 130,
+                child: OutlinedButton(
+                  onPressed: _ocupado
+                      ? null
+                      : () => setState(() => _seleccion = null),
+                  child: const Text('Cancelar'),
+                ),
               ),
             ],
+          )
+        else
+          Text(
+            'JPG, PNG o WebP · hasta 5 MB · máx. 4000×4000 px',
+            style: tema.textTheme.bodySmall,
+            textAlign: TextAlign.center,
           ),
         if (_error != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              style: TextStyle(color: tema.colorScheme.error),
               textAlign: TextAlign.center,
             ),
           ),
