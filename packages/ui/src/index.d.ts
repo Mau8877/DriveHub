@@ -93,7 +93,7 @@ export class DhMapaUbicacion extends HTMLElement {
   /** Texto de solo lectura que se muestra bajo el mapa (la dirección ya guardada). */
   direccion: string
   deshabilitado: boolean
-  /** `[latitud, longitud]` donde se centra el mapa mientras no hay punto (La Paz por defecto). */
+  /** `[latitud, longitud]` donde se centra el mapa mientras no hay punto (Santa Cruz de la Sierra por defecto). */
   centro: [number, number]
 }
 

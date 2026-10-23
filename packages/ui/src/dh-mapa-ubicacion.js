@@ -8,7 +8,7 @@ import { LEAFLET_CSS } from './leaflet-css.js'
 // * Se importa la build ESM de Leaflet: la "main" del paquete es UMD y Angular avisa que no es ESM
 const L = Leaflet
 
-const LA_PAZ = [-16.4897, -68.1193]
+const SANTA_CRUZ = [-17.7833, -63.1821]
 const ZOOM_SIN_PUNTO = 12
 const ZOOM_CON_PUNTO = 16
 const PASO_TECLADO = 0.00005
@@ -24,7 +24,7 @@ function redondear(valor) {
  * <dh-mapa-ubicacion>: elegir un punto en un mapa de OpenStreetMap (Leaflet).
  *
  * Propiedades: `latitud` y `longitud` (números o `null`), `direccion` (texto de solo lectura que
- * se muestra bajo el mapa), `deshabilitado` y `centro` (`[lat, lng]`, La Paz por defecto).
+ * se muestra bajo el mapa), `deshabilitado` y `centro` (`[lat, lng]`, Santa Cruz de la Sierra por defecto).
  *
  * Evento: `dh-ubicacion` con `detail: { latitud, longitud }` (6 decimales) cuando la persona toca
  * el mapa, arrastra el marcador, usa "Mi ubicación" o ajusta con Alt + flechas.
@@ -152,7 +152,7 @@ export class DhMapaUbicacion extends LitElement {
     this.longitud = null
     this.direccion = ''
     this.deshabilitado = false
-    this.centro = LA_PAZ
+    this.centro = SANTA_CRUZ
     this._aviso = ''
     this._mapa = null
     this._marcador = null
@@ -169,7 +169,7 @@ export class DhMapaUbicacion extends LitElement {
     const contenedor = this.renderRoot.querySelector('.mapa')
     const tienePunto = this._tienePunto()
     this._mapa = L.map(contenedor, {
-      center: tienePunto ? [this.latitud, this.longitud] : this.centro ?? LA_PAZ,
+      center: tienePunto ? [this.latitud, this.longitud] : this.centro ?? SANTA_CRUZ,
       zoom: tienePunto ? ZOOM_CON_PUNTO : ZOOM_SIN_PUNTO,
       minZoom: 3,
       maxZoom: 19,

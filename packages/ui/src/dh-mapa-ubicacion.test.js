@@ -49,8 +49,8 @@ describe('<dh-mapa-ubicacion>', () => {
     const el = await crear()
 
     const centro = el._mapa.getCenter()
-    expect(centro.lat).toBeCloseTo(-16.4897, 3)
-    expect(centro.lng).toBeCloseTo(-68.1193, 3)
+    expect(centro.lat).toBeCloseTo(-17.7833, 3)
+    expect(centro.lng).toBeCloseTo(-63.1821, 3)
     expect(el._marcador).toBeNull()
   })
 
