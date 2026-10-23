@@ -199,12 +199,16 @@ class _TarjetaProximaClase extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  esInstructor
-                      ? 'Tu agenda aparecerá acá cuando tengas clases asignadas.'
-                      : 'Cuando reserves una clase, verás acá la hora, tu instructor y cómo llegar.',
-                  style: tema.textTheme.bodyMedium?.copyWith(
-                    color: tema.colorScheme.onSurfaceVariant,
+                // * Deja libre la esquina derecha, donde va dibujada la ruta, para que no pase por el texto
+                Padding(
+                  padding: const EdgeInsets.only(right: 70),
+                  child: Text(
+                    esInstructor
+                        ? 'Tu agenda aparecerá acá cuando tengas clases asignadas.'
+                        : 'Cuando reserves una clase, verás acá la hora, tu instructor y cómo llegar.',
+                    style: tema.textTheme.bodyMedium?.copyWith(
+                      color: tema.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 if (!esInstructor) ...[

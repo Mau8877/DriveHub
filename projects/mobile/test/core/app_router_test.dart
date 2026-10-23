@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mobile/core/routing/app_router.dart';
+import 'package:mobile/features/auth/models/usuario_sesion.dart';
 import 'package:mobile/features/auth/providers/sesion_provider.dart';
 
+import '../helpers/horarios_falsos.dart';
 import '../helpers/sesion_falsa.dart';
 
 void main() {
   Future<ProviderContainer> montar(WidgetTester tester, SesionFalsa sesion, {bool esperar = true}) async {
-    final container = ProviderContainer(overrides: [sesionFalsa(sesion)]);
+    final container = ProviderContainer(overrides: [sesionFalsa(sesion), horariosServiceFalso(HorariosServiceFalso())]);
     addTearDown(container.dispose);
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -108,5 +110,47 @@ void main() {
     sesion.cambiar(const EstadoSesion.sinSesion());
     await tester.pumpAndSettle();
     expect(find.text('Iniciar sesión'), findsOneWidget);
+  });
+
+  group('Horarios del instructor (CU12)', () {
+    const instructor = UsuarioSesion(codigo: 'i1', nombres: 'Luis', apellidos: 'Rojas', roles: ['INSTRUCTOR']);
+
+    testWidgets('el Instructor entra a /schedules/new y ve el formulario', (tester) async {
+      final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(instructor)));
+
+      container.read(routerProvider).go('/schedules/new');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('botonGuardarHorario')), findsOneWidget);
+    });
+
+    testWidgets('un Estudiante que pide /schedules/new vuelve al inicio', (tester) async {
+      final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)));
+
+      container.read(routerProvider).go('/schedules/new');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('botonGuardarHorario')), findsNothing);
+      expect(find.text('Inicio'), findsWidgets);
+    });
+
+    testWidgets('la ruta /schedules/slots ya no existe: las franjas son una pestaña de Horarios', (tester) async {
+      final container = await montar(tester, SesionFalsa(const EstadoSesion.conSesion(instructor)));
+
+      container.read(routerProvider).go('/schedules/slots');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mis franjas'), findsNothing);
+      expect(find.byKey(const Key('botonGuardarHorario')), findsNothing);
+    });
+
+    testWidgets('sin sesión, las rutas de horarios llevan al login', (tester) async {
+      final container = await montar(tester, SesionFalsa(const EstadoSesion.sinSesion()));
+
+      container.read(routerProvider).go('/schedules/new');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Iniciar sesión'), findsOneWidget);
+    });
   });
 }
