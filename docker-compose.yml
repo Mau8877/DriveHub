@@ -92,6 +92,10 @@ services:
       - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:-http://localhost:9000}
       # URL interna de Escuela: el registro (CU01) resuelve el slug de la escuela sin pasar por el gateway.
       - ESCUELA_URL=http://drivehub-escuela:8082
+      # Dirección a partir de la ubicación del mapa (CU08a): Nominatim de OpenStreetMap. El servidor público
+      # pide un User-Agent identificable y 1 consulta por segundo; en producción, una instancia propia.
+      - GEOCODIFICACION_URL=${GEOCODIFICACION_URL:-https://nominatim.openstreetmap.org}
+      - GEOCODIFICACION_USER_AGENT=${GEOCODIFICACION_USER_AGENT:-DriveHub/1.0}
       # Correo (CU04b, CU04): en desarrollo va a Mailpit; con un SMTP real solo cambian estos valores.
       - SMTP_HOST=${SMTP_HOST:-drivehub-mailpit}
       - SMTP_PORT=${SMTP_PORT:-1025}
