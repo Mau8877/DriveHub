@@ -13,7 +13,7 @@
 > Reglas de implementación (ids, nombres, migraciones, soft delete):
 > [PERSISTENCIA_BD_BACKEND.md](../../.claude/rules/backend/PERSISTENCIA_BD_BACKEND.md).
 
-Última revisión: 2026-10-19 (hasta CU02).
+Última revisión: 2026-10-21 (se agregó CU12 en Académico).
 
 ## Contenido
 
@@ -211,7 +211,7 @@ Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b) y resta
 | `expira_en` | `TIMESTAMPTZ NOT NULL` | |
 | `usado` | `BOOLEAN NOT NULL DEFAULT FALSE` | |
 
-**Datos sembrados:** los 4 roles (migración). En el perfil `dev`, además, `superadmin@gmail.com` (`SUPER_ADMIN`, sin escuela) y `adminexample@gmail.com` (`ADMIN_ESCUELA` de `escuelaexample`), ambos con contraseña `123123123`.
+**Datos sembrados:** los 4 roles (migración). En el perfil `dev`, además, `superadmin@gmail.com` (`SUPER_ADMIN`, sin escuela) y `adminexample@gmail.com` (`ADMIN_ESCUELA` de `escuelaexample`) e `instructorexample@gmail.com` (`INSTRUCTOR` de `escuelaexample`), todos con contraseña `123123123`.
 
 ---
 
@@ -567,14 +567,20 @@ Horario semanal base del instructor.
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoPlantillaHorario` | UUID | Único |
+| `escuelaCodigo` | UUID | → Escuela `escuela.codigo_escuela`. Se toma del claim `escuela` del JWT al crear (es el dato, no el filtro por tenant) |
 | `instructorCodigo` | UUID | → Identidad. Índice |
-| `vehiculoCodigo` | UUID | → Escuela `vehiculo.codigo_vehiculo` |
-| `diaSemana` | int | 1 (lunes) a 7 (domingo) |
+| `vehiculoCodigo` | UUID | → Escuela `vehiculo.codigo_vehiculo`. **Vacío** hasta que CU10 asigne autos a instructores |
+| `nombre` | string | Hasta 60 caracteres. No es único |
+| `diasSemana` | array de int | 1 (lunes) a 7 (domingo), sin repetir y ordenado. La ventana de horas es la misma para todos los días |
 | `horaInicio`, `horaFin` | string | `HH:mm` |
 | `duracionClaseMin` | int | Ej. 60 |
 | `vigenteDesde` | date | |
 | `vigenteHasta` | date | Opcional |
-| `activa` | boolean | |
+| `estado` | enum | `ACTIVA`, `PAUSADA`, `INACTIVA`. Pausar y reanudar son reversibles; desactivar (`INACTIVA`) es definitivo |
+
+Un horario no se edita: se crea, se pausa o reanuda y se desactiva. Dos horarios **activos** del mismo instructor no pueden cruzarse (algún día en común, horas y vigencias que se solapan); los pausados no cuentan.
+
+Los documentos creados antes del refactor (con `diaSemana` y `activa`) se convierten al arrancar el servicio (`HorariosMigracion`): `diasSemana = [diaSemana]`, `nombre` armado con el día y la ventana, y `estado` según `activa`.
 
 ### `franjas` (CU11, CU12, CU14, CU16)
 
@@ -583,14 +589,17 @@ Horario concreto reservable. Reservar es un `findOneAndUpdate` de `LIBRE` a `RES
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoFranja` | UUID | Único |
+| `escuelaCodigo` | UUID | → Escuela `escuela.codigo_escuela`. Del claim `escuela` del JWT al crear |
 | `plantillaId` | long | Opcional → `plantillas_horario._id` |
-| `instructorCodigo`, `vehiculoCodigo` | UUID | Identidad / Escuela |
+| `instructorCodigo`, `vehiculoCodigo` | UUID | Identidad / Escuela. `vehiculoCodigo` queda vacío hasta CU10 |
 | `fecha` | date | |
 | `horaInicio`, `horaFin` | string | `HH:mm` |
 | `estado` | enum | `LIBRE`, `RESERVADA`, `BLOQUEADA` |
 | `reservaId` | long | Opcional → `reservas._id` |
 
-Índices únicos: `uq_franja_instructor_fecha_hora (instructorCodigo, fecha, horaInicio)` y `uq_franja_vehiculo_fecha_hora (vehiculoCodigo, fecha, horaInicio)`.
+Índices únicos: `uq_franja_instructor_fecha_hora (instructorCodigo, fecha, horaInicio)` y `uq_franja_vehiculo_fecha_hora (vehiculoCodigo, fecha, horaInicio)`. Este último es **parcial** (`partialFilterExpression: { vehiculoCodigo: { $exists: true } }`): sin ese filtro, las franjas sin vehículo de dos instructores distintos en la misma fecha y hora chocarían entre sí. Si una base de desarrollo ya tenía el índice sin filtro, hay que borrarlo una vez (`db.franjas.dropIndex('uq_franja_vehiculo_fecha_hora')`) para que se cree el parcial.
+
+Las franjas se generan desde el horario para 28 días contando hoy, y una tarea diaria completa las que falten. Al pausar o desactivar un horario sus franjas futuras `LIBRE`/`BLOQUEADA` se **borran físicamente** (son datos derivados; un borrado lógico seguiría ocupando la clave única del instructor).
 
 ### `solicitudes_clase` (CU13)
 

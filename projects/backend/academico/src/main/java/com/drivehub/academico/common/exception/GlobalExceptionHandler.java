@@ -4,11 +4,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.drivehub.academico.common.response.ApiResponse;
@@ -33,6 +36,20 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("ERR_SYS_01", message));
+    }
+
+    // * Entrada mal formada que no llega al service: JSON ilegible o con una fecha inválida, un parámetro de
+    // * URL con tipo incorrecto (fecha, estado, UUID) o un parámetro obligatorio ausente. Es un error del
+    // * cliente (400), no del servidor: sin esto lo captura el catch-all y responde 500.
+    // * El mensaje es genérico a propósito: el detalle del parseo es técnico y no se expone.
+    @ExceptionHandler({
+        HttpMessageNotReadableException.class,
+        MethodArgumentTypeMismatchException.class,
+        MissingServletRequestParameterException.class
+    })
+    public ResponseEntity<ApiResponse<Object>> handleSolicitudMalFormada(Exception ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("ERR_SYS_01", "La solicitud no es válida"));
     }
 
     // * Un @PreAuthorize que niega el acceso es 403, no 500 (sin esto lo captura el catch-all).
