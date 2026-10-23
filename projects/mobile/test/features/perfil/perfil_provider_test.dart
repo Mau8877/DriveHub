@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/features/auth/models/usuario_sesion.dart';
 import 'package:mobile/features/auth/providers/sesion_provider.dart';
 import 'package:mobile/features/perfil/models/cambiar_contrasena_request.dart';
 import 'package:mobile/features/perfil/models/cambiar_correo_request.dart';
@@ -119,6 +120,31 @@ void main() {
     await contenedor.read(perfilProvider.future);
     return contenedor.read(perfilProvider.notifier);
   }
+
+  test('si entra otra persona, vuelve a pedir el perfil en vez de mostrar el anterior', () async {
+    final anterior = await contenedor.read(perfilProvider.future);
+    expect(anterior.nombres, 'Ana');
+    expect(servicio.obtenciones, 1);
+
+    servicio.actual = _perfil(nombres: 'Carlos');
+    sesion.cambiar(
+      const EstadoSesion.conSesion(
+        UsuarioSesion(codigo: 'u2', nombres: 'Carlos', apellidos: 'Otsubo', roles: ['ESTUDIANTE']),
+      ),
+    );
+
+    final nuevo = await contenedor.read(perfilProvider.future);
+    expect(nuevo.nombres, 'Carlos');
+    expect(servicio.obtenciones, 2);
+  });
+
+  test('editar los datos no vuelve a pedir el perfil', () async {
+    final notifier = await cargado();
+
+    await notifier.editar(const EditarPerfilRequest(nombres: 'Anita'));
+
+    expect(servicio.obtenciones, 1);
+  });
 
   test('build carga el perfil', () async {
     final perfil = await contenedor.read(perfilProvider.future);

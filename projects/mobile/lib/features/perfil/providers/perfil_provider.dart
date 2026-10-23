@@ -19,7 +19,13 @@ final perfilServiceProvider = Provider<PerfilService>((ref) => PerfilService());
 /// * NO deja el estado en error: el estado conserva el último perfil bueno.
 class PerfilNotifier extends AsyncNotifier<Perfil> {
   @override
-  Future<Perfil> build() => ref.read(perfilServiceProvider).obtener();
+  Future<Perfil> build() {
+    // * El perfil es de UNA persona: si cambia (cierra sesión y entra otra cuenta en la misma
+    // * ejecución de la app) se descarta el anterior y se pide el nuevo. Solo se mira el código:
+    // * editar los datos o la foto actualiza la sesión sin cambiar quién es.
+    ref.watch(sesionProvider.select((s) => s.usuario?.codigo));
+    return ref.read(perfilServiceProvider).obtener();
+  }
 
   Future<void> editar(EditarPerfilRequest request) async {
     final perfil = await ref.read(perfilServiceProvider).editar(request);
