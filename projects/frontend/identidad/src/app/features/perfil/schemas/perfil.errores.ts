@@ -12,6 +12,7 @@ export const MENSAJES_PERFIL: Record<string, string> = {
   ERR_IDE_16: 'El archivo no es una imagen válida. Usa una foto JPG, PNG o WebP',
   ERR_IDE_17: 'La imagen no puede superar 5 MB',
   ERR_IDE_18: 'Ese ya es tu correo',
+  ERR_IDE_19: 'Este CI ya está registrado',
 }
 
 /** El mensaje de un error de la API; genérico si no es un ApiError o el código no está en el mapa. */

@@ -5,6 +5,7 @@ import type { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/fo
  *
  * * Deben coincidir con las del backend y las de mobile
  * * (projects/mobile/lib/features/auth/validators/registro_validators.dart).
+ * * CU08a: CI (5 a 15 caracteres: letras, números y guion) y coordenadas del mapa.
  */
 export const EDAD_MINIMA_REGISTRO = 18
 export const PASSWORD_MIN = 9
@@ -13,6 +14,9 @@ export const NOMBRES_MAX = 80
 export const APELLIDOS_MAX = 80
 export const EMAIL_MAX = 120
 export const TELEFONO_MAX = 20
+export const CI_MIN = 5
+export const CI_MAX = 15
+const CI_PATRON = /^[A-Za-z0-9-]+$/
 
 /** Años cumplidos a la fecha `hoy` (fecha de nacimiento como yyyy-MM-dd). */
 export function edadEnAnios(fechaNacimiento: string, hoy: Date = new Date()): number {
@@ -53,3 +57,26 @@ export function edadMinima(hoy: () => Date = () => new Date()): ValidatorFn {
     return edadEnAnios(valor, hoy()) < EDAD_MINIMA_REGISTRO ? { menorDeEdad: true } : null
   }
 }
+
+/** CI de 5 a 15 caracteres, solo letras, números y guion (sin espacios: se recorta antes de validar). */
+export const ciValido: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+  const valor = String(control.value ?? '').trim()
+  if (valor === '') return null
+  return valor.length < CI_MIN || valor.length > CI_MAX || !CI_PATRON.test(valor)
+    ? { ciFormato: true }
+    : null
+}
+
+/** Una coordenada obligatoria y dentro de [-limite, limite]. */
+export function coordenada(limite: number): ValidatorFn {
+  return (control) => {
+    const valor = control.value as number | null
+    if (valor === null || valor === undefined) return { required: true }
+    return !Number.isFinite(valor) || valor < -limite || valor > limite
+      ? { coordenada: true }
+      : null
+  }
+}
+
+export const LATITUD_MAX = 90
+export const LONGITUD_MAX = 180

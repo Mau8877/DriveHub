@@ -9,7 +9,13 @@ import { PerfilService } from '../api/perfil.service'
 import { MENSAJES_PERFIL, mensajeDeErrorPerfil } from '../schemas/perfil.errores'
 
 const BASE = 'http://localhost:8080/api/v1/usuarios/me'
-const PERFIL = { codigo: 'u1', nombres: 'Ana', email: 'ana@gmail.com', fotoUrl: null }
+const PERFIL = {
+  codigo: 'u1',
+  nombres: 'Ana',
+  email: 'ana@gmail.com',
+  fotoUrl: null,
+  ci: 'AB12345',
+}
 const ok = (data: unknown) => ({ status: 'success', data, message: 'ok', timestamp: 'x' })
 
 describe('PerfilService', () => {
@@ -109,6 +115,24 @@ describe('PerfilService', () => {
     await expect(respuesta).rejects.toMatchObject({ code: 'ERR_IDE_02' })
     await expect(respuesta).rejects.toBeInstanceOf(ApiError)
   })
+
+  it('editar con CI, sexo y ubicación manda solo esos campos, sin dirección ni categoría', async () => {
+    const respuesta = firstValueFrom(
+      servicio.editar({ ci: 'CD67890', sexo: 'MASCULINO', latitud: -17.7833, longitud: -63.1821 })
+    )
+    const req = http.expectOne(BASE)
+    expect(req.request.method).toBe('PATCH')
+    expect(req.request.body).toEqual({
+      ci: 'CD67890',
+      sexo: 'MASCULINO',
+      latitud: -17.7833,
+      longitud: -63.1821,
+    })
+    expect(Object.keys(req.request.body as object)).not.toContain('direccion')
+    expect(Object.keys(req.request.body as object)).not.toContain('categoriaSigla')
+    req.flush(ok(PERFIL))
+    await respuesta
+  })
 })
 
 describe('mensajeDeErrorPerfil', () => {
@@ -122,6 +146,7 @@ describe('mensajeDeErrorPerfil', () => {
       'ERR_IDE_16',
       'ERR_IDE_17',
       'ERR_IDE_18',
+      'ERR_IDE_19',
     ]) {
       expect(MENSAJES_PERFIL[codigo]).toBeTruthy()
       expect(mensajeDeErrorPerfil(new ApiError(codigo, 'x'))).toBe(MENSAJES_PERFIL[codigo])
@@ -133,5 +158,9 @@ describe('mensajeDeErrorPerfil', () => {
       'Ocurrió un error. Intenta más tarde.'
     )
     expect(mensajeDeErrorPerfil(new Error('red'))).toBe('Ocurrió un error. Intenta más tarde.')
+  })
+
+  it('el CI repetido llega con su mensaje en español', () => {
+    expect(MENSAJES_PERFIL['ERR_IDE_19']).toBe('Este CI ya está registrado')
   })
 })

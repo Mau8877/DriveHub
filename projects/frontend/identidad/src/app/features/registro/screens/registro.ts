@@ -4,13 +4,18 @@ import { ActivatedRoute } from '@angular/router'
 import '@drivehub/ui'
 
 import { ApiError } from '../../../core/api/api.types'
-import type { EscuelaPublica } from '../types/registro.types'
+import type { DetalleUbicacion } from '@drivehub/ui'
+import type { EscuelaPublica, Sexo } from '../types/registro.types'
 import { type CampoRegistro, mensajeDeError } from '../schemas/registro.mensajes'
 import {
   APELLIDOS_MAX,
+  ciValido,
+  coordenada,
   edadMinima,
   EMAIL_MAX,
   fechaNoFutura,
+  LATITUD_MAX,
+  LONGITUD_MAX,
   NOMBRES_MAX,
   obligatorioConTexto,
   PASSWORD_MAX,
@@ -26,6 +31,8 @@ import { RegistroService } from '../api/registro.service'
  *
  * * La escuela sale de la URL (/register/:escuelaSlug); se consulta para
  * * mostrar su nombre y, si no está disponible, no se muestra el formulario.
+ * * CU08a: pide además CI, sexo y la ubicación en un mapa (<dh-mapa-ubicacion>). El mapa solo
+ * * elige el punto: la dirección la calcula el servidor al registrar.
  */
 @Component({
   selector: 'app-registro',
@@ -95,6 +102,26 @@ import { RegistroService } from '../api/registro.service'
           </div>
 
           <div class="dh-field">
+            <label for="sexo" class="dh-label">Sexo</label>
+            <select id="sexo" formControlName="sexo" class="dh-input">
+              <option value="">Elige una opción</option>
+              <option value="MASCULINO">Masculino</option>
+              <option value="FEMENINO">Femenino</option>
+            </select>
+            @if (error('sexo'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          <div class="dh-field">
+            <label for="ci" class="dh-label">CI</label>
+            <input id="ci" formControlName="ci" autocomplete="off" class="dh-input" />
+            @if (error('ci'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          <div class="dh-field">
             <label for="email" class="dh-label">Correo</label>
             <input
               id="email"
@@ -136,6 +163,18 @@ import { RegistroService } from '../api/registro.service'
             }
           </div>
 
+          <div class="dh-field">
+            <span class="dh-label">Tu ubicación</span>
+            <dh-mapa-ubicacion
+              [latitud]="form.controls.latitud.value"
+              [longitud]="form.controls.longitud.value"
+              (dh-ubicacion)="alElegirUbicacion($event)"
+            />
+            @if (errorUbicacion(); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
           @if (errorGeneral(); as mensaje) {
             <p class="dh-notice dh-notice-error" role="alert">{{ mensaje }}</p>
           }
@@ -170,6 +209,10 @@ export class Registro implements OnInit {
       [Validators.required, Validators.minLength(PASSWORD_MIN), Validators.maxLength(PASSWORD_MAX)],
     ],
     telefono: ['', [Validators.maxLength(TELEFONO_MAX)]],
+    sexo: ['' as Sexo | '', [Validators.required]],
+    ci: ['', [obligatorioConTexto, ciValido]],
+    latitud: [null as number | null, [coordenada(LATITUD_MAX)]],
+    longitud: [null as number | null, [coordenada(LONGITUD_MAX)]],
   })
 
   private get escuelaSlug(): string {
@@ -190,15 +233,31 @@ export class Registro implements OnInit {
   }
 
   /** Mensaje del campo si ya fue tocado y es inválido. */
-  error(campo: CampoRegistro): string | null {
+  error(campo: Exclude<CampoRegistro, 'ubicacion'>): string | null {
     const control = this.form.controls[campo]
     if (!control.touched && !control.dirty) return null
     return mensajeDeError(campo, control.errors) ?? this.errorDelServidor(campo)
   }
 
-  private readonly erroresDelServidor = signal<Partial<Record<CampoRegistro, string>>>({})
+  /** El mapa no es un control: su error sale de las dos coordenadas, una vez tocadas. */
+  errorUbicacion(): string | null {
+    const { latitud, longitud } = this.form.controls
+    if (!latitud.touched && !longitud.touched) return null
+    return mensajeDeError('ubicacion', latitud.errors ?? longitud.errors)
+  }
 
-  private errorDelServidor(campo: CampoRegistro): string | null {
+  alElegirUbicacion(detalle: Event): void {
+    const { latitud, longitud } = (detalle as CustomEvent<DetalleUbicacion>).detail
+    this.form.patchValue({ latitud, longitud })
+    this.form.controls.latitud.markAsTouched()
+    this.form.controls.longitud.markAsTouched()
+  }
+
+  private readonly erroresDelServidor = signal<
+    Partial<Record<Exclude<CampoRegistro, 'ubicacion'>, string>>
+  >({})
+
+  private errorDelServidor(campo: Exclude<CampoRegistro, 'ubicacion'>): string | null {
     return this.erroresDelServidor()[campo] ?? null
   }
 
@@ -222,6 +281,10 @@ export class Registro implements OnInit {
         password: valores.password,
         ...(telefono ? { telefono } : {}),
         escuelaSlug: this.escuelaSlug,
+        ci: valores.ci.trim(),
+        sexo: valores.sexo as Sexo,
+        latitud: valores.latitud as number,
+        longitud: valores.longitud as number,
       })
       .subscribe({
         next: () => {
@@ -247,6 +310,9 @@ export class Registro implements OnInit {
       case 'ERR_IDE_03':
         this.escuelaNoDisponible.set(true)
         break
+      case 'ERR_IDE_19':
+        this.marcarCampo('ci', 'Este CI ya está registrado')
+        break
       case 'ERR_SYS_01':
         this.errorGeneral.set('Revisa los datos ingresados e inténtalo de nuevo.')
         break
@@ -255,7 +321,7 @@ export class Registro implements OnInit {
     }
   }
 
-  private marcarCampo(campo: CampoRegistro, mensaje: string): void {
+  private marcarCampo(campo: Exclude<CampoRegistro, 'ubicacion'>, mensaje: string): void {
     this.form.controls[campo].markAsTouched()
     this.erroresDelServidor.set({ [campo]: mensaje })
   }

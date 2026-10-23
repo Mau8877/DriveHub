@@ -2,6 +2,8 @@ import type { ValidationErrors } from '@angular/forms'
 
 import {
   APELLIDOS_MAX,
+  CI_MAX,
+  CI_MIN,
   EDAD_MINIMA_REGISTRO,
   EMAIL_MAX,
   NOMBRES_MAX,
@@ -11,7 +13,15 @@ import {
 } from './registro.reglas'
 
 export type CampoRegistro =
-  'nombres' | 'apellidos' | 'fechaNacimiento' | 'email' | 'password' | 'telefono'
+  | 'nombres'
+  | 'apellidos'
+  | 'fechaNacimiento'
+  | 'email'
+  | 'password'
+  | 'telefono'
+  | 'ci'
+  | 'sexo'
+  | 'ubicacion'
 
 const OBLIGATORIO: Record<CampoRegistro, string> = {
   nombres: 'Los nombres son obligatorios',
@@ -20,6 +30,9 @@ const OBLIGATORIO: Record<CampoRegistro, string> = {
   email: 'El correo es obligatorio',
   password: 'La contraseña es obligatoria',
   telefono: 'El teléfono es obligatorio',
+  ci: 'El CI es obligatorio',
+  sexo: 'Elige tu sexo',
+  ubicacion: 'Elige tu ubicación en el mapa',
 }
 
 const MAXIMO: Partial<Record<CampoRegistro, string>> = {
@@ -38,6 +51,9 @@ export function mensajeDeError(
   if (!errores) return null
   if (errores['required']) return OBLIGATORIO[campo]
   if (errores['email']) return 'El correo no es válido'
+  if (errores['ciFormato'])
+    return `El CI debe tener entre ${CI_MIN} y ${CI_MAX} caracteres: letras, números y guion`
+  if (errores['coordenada']) return 'La ubicación no es válida'
   if (errores['minlength'])
     return `La contraseña debe tener entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres`
   if (errores['maxlength']) return MAXIMO[campo] ?? null

@@ -18,6 +18,12 @@ const PERFIL: Perfil = {
   escuelaCodigo: null,
   escuelaNombre: null,
   fotoUrl: null,
+  ci: 'AB12345',
+  sexo: 'FEMENINO',
+  direccion: null,
+  latitud: null,
+  longitud: null,
+  categoriaSigla: null,
 }
 
 describe('FotoPerfil', () => {

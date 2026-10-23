@@ -6,6 +6,9 @@
  */
 export {
   APELLIDOS_MAX,
+  CI_MAX,
+  CI_MIN,
+  ciValido,
   edadMinima,
   EMAIL_MAX,
   fechaNoFutura,
