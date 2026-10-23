@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/providers/sesion_provider.dart';
+import '../../features/perfil/providers/perfil_provider.dart';
 import '../../shared/widgets/aviso_cockpit.dart';
 import '../../shared/widgets/aviso_snack.dart';
 import '../../shared/widgets/avatar_usuario.dart';
@@ -69,8 +70,15 @@ class _ShellConBarraState extends ConsumerState<ShellConBarra>
   void didChangeAppLifecycleState(AppLifecycleState estado) {
     if (estado == AppLifecycleState.resumed &&
         ref.read(sesionProvider).usuario?.correoVerificado == false) {
-      unawaited(ref.read(sesionProvider.notifier).renovar());
+      unawaited(_renovarYRecargarPerfil());
     }
+  }
+
+  /// * El perfil tiene su propio estado: sin recargarlo, la pestaña "Perfil" seguiría
+  /// * mostrando "Sin verificar" aunque la sesión ya diga que el correo está verificado.
+  Future<void> _renovarYRecargarPerfil() async {
+    await ref.read(sesionProvider.notifier).renovar();
+    await ref.read(perfilProvider.notifier).recargar();
   }
 
   Future<void> _verificarCorreo() async {
