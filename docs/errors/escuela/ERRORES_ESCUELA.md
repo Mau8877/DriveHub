@@ -54,3 +54,11 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 - **Significado:** Se intentó editar el nombre de una escuela inactiva: primero hay que
   reactivarla (CU05).
 - **Dónde se lanza:** `EditarEscuelaUseCase.ejecutar()`
+
+## `ERR_ESC_07`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** La categoría de licencia pedida por sigla no existe en el catálogo (CU08).
+  Identidad usa este 404 para saber que la categoría que eligió el Administrador no es válida.
+- **Dónde se lanza:** `ObtenerCategoriaLicenciaUseCase.ejecutar()`

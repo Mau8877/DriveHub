@@ -2,7 +2,7 @@
 
 | Id    | Nombre               | Paquete                | Prioridad | Estado    |
 | ----- | -------------------- | ---------------------- | --------- | --------- |
-| CU08a | Perfil de la persona | P1. Identidad y acceso | Alta      | Pendiente |
+| CU08a | Perfil de la persona | P1. Identidad y acceso | Alta      | Hecho     |
 
 **Actor principal:** Estudiante (persona que se registra)
 **Actores secundarios:** Super admin (al dar de alta una escuela con su Administrador), cualquier persona con sesión (al editar su perfil)

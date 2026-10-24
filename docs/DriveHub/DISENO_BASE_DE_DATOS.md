@@ -83,7 +83,7 @@ Las líneas punteadas son **referencias por código, sin FK**: se validan al esc
 
 ## 2. Identidad — PostgreSQL
 
-Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02), `V20261020120000__correo_verificado_y_tipo_token.sql` (CU04b), `V20261021120000__cambio_de_correo.sql` (CU06), `V20261023100000__crear_perfil.sql` (CU08a).
+Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02), `V20261020120000__correo_verificado_y_tipo_token.sql` (CU04b), `V20261021120000__cambio_de_correo.sql` (CU06), `V20261023100000__crear_perfil.sql` (CU08a), `V20261023120000__extension_unaccent.sql` (CU08).
 
 ```mermaid
 erDiagram
@@ -173,6 +173,8 @@ Datos de la persona, 1 a 1 con `usuario`, para **todos** los roles (Super admin,
 | `categoria_sigla` | `VARCHAR(3)` | → `escuela.categoria_licencia.sigla`, sin FK. Solo el estudiante la tiene (arranca en `SIN`) y solo la escuela la cambia |
 
 `ci` y `sexo` son `NOT NULL` para todos; `direccion`, las coordenadas y la categoría son nulables en la base y el caso de uso las exige según el rol (el Super admin no tiene ubicación). La migración rellena las cuentas anteriores con valores provisionales (`ci = 'X' + id`, `sexo = 'MASCULINO'`, `direccion = 'X'`).
+
+**Extensión `unaccent`** (CU08, `V20261023120000`): la búsqueda de estudiantes por nombre compara `unaccent(lower(nombres || ' ' || apellidos))`, así "jose" encuentra a "José". Solo habilita la extensión: no crea tablas ni índices.
 
 ### `rol`
 
