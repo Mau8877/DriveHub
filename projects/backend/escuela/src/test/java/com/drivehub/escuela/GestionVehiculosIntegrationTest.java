@@ -184,7 +184,7 @@ class GestionVehiculosIntegrationTest {
     }
 
     @Test
-    void ca06_ca07_ca08_cicloDeEstadosYBajaDefinitiva() throws Exception {
+    void ca06_ca07_ca08_cicloDeEstadosBajaYReactivacion() throws Exception {
         UUID codigo = registrarYObtenerCodigo(ESCUELA_A, "EST-001");
 
         mockMvc.perform(post(RUTA + "/" + codigo + "/habilitar").with(admin(ESCUELA_A)))
@@ -196,13 +196,15 @@ class GestionVehiculosIntegrationTest {
         mockMvc.perform(post(RUTA + "/" + codigo + "/dar-de-baja").with(admin(ESCUELA_A)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.estado").value("BAJA"));
 
-        // * De baja ya no se edita ni cambia de estado, pero sigue en el listado
-        mockMvc.perform(post(RUTA + "/" + codigo + "/habilitar").with(admin(ESCUELA_A)))
+        // * De baja no se edita ni va a mantenimiento, pero sigue en el listado y se puede reactivar
+        mockMvc.perform(post(RUTA + "/" + codigo + "/enviar-a-mantenimiento").with(admin(ESCUELA_A)))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
         mockMvc.perform(patch(RUTA + "/" + codigo).with(admin(ESCUELA_A)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"color\":\"Azul\"}"))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
         mockMvc.perform(get(RUTA).with(admin(ESCUELA_A)).param("filter[estado]", "BAJA"))
             .andExpect(jsonPath("$.data[?(@.placa=='EST-001')]").isNotEmpty());
+        mockMvc.perform(post(RUTA + "/" + codigo + "/habilitar").with(admin(ESCUELA_A)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.estado").value("DISPONIBLE"));
     }
 }

@@ -10,13 +10,13 @@ public enum EstadoVehiculo {
 
     /**
      * Transiciones permitidas: DISPONIBLE y MANTENIMIENTO se alternan, y desde cualquiera de las
-     * dos se puede dar de baja. BAJA es final.
+     * dos se puede dar de baja. Un auto de baja solo puede reactivarse (pasa a DISPONIBLE).
      */
     public boolean permiteIrA(EstadoVehiculo destino) {
         return switch (this) {
             case DISPONIBLE -> destino == MANTENIMIENTO || destino == BAJA;
             case MANTENIMIENTO -> destino == DISPONIBLE || destino == BAJA;
-            case BAJA -> false;
+            case BAJA -> destino == DISPONIBLE;
         };
     }
 }

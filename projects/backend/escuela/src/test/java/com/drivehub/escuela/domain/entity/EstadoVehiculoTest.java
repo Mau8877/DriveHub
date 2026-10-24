@@ -21,9 +21,9 @@ class EstadoVehiculoTest {
     }
 
     @Test
-    void permiteIrA_desdeBaja_noVaANingunDestino() {
-        for (EstadoVehiculo destino : EstadoVehiculo.values()) {
-            assertThat(EstadoVehiculo.BAJA.permiteIrA(destino)).isFalse();
-        }
+    void permiteIrA_desdeBaja_soloSeReactivaADisponible() {
+        assertThat(EstadoVehiculo.BAJA.permiteIrA(EstadoVehiculo.DISPONIBLE)).isTrue();
+        assertThat(EstadoVehiculo.BAJA.permiteIrA(EstadoVehiculo.MANTENIMIENTO)).isFalse();
+        assertThat(EstadoVehiculo.BAJA.permiteIrA(EstadoVehiculo.BAJA)).isFalse();
     }
 }

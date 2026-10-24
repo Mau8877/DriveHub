@@ -112,6 +112,7 @@ public class VehiculoController {
         return cambiar(jwt, codigo, EstadoVehiculo.MANTENIMIENTO, "Auto enviado a mantenimiento");
     }
 
+    // * Sirve también para reactivar un auto de baja: en los dos casos el destino es DISPONIBLE
     @PostMapping("/{codigo}/habilitar")
     public ResponseEntity<ApiResponse<VehiculoResponse>> habilitar(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID codigo) {

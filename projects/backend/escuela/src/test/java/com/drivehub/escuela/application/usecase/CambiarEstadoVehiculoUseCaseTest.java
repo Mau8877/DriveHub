@@ -62,9 +62,18 @@ class CambiarEstadoVehiculoUseCaseTest {
     void ejecutar_conTransicionNoPermitida_lanzaErrEsc09SinGuardar() {
         conEstadoActual(EstadoVehiculo.BAJA);
 
-        esperaCodigo(() -> useCase.ejecutar(ESCUELA, CODIGO, EstadoVehiculo.DISPONIBLE),
+        esperaCodigo(() -> useCase.ejecutar(ESCUELA, CODIGO, EstadoVehiculo.MANTENIMIENTO),
             EscuelaErrorCodes.TRANSICION_VEHICULO_INVALIDA);
         verify(vehiculoRepository, never()).actualizar(any());
+    }
+
+    @Test
+    void ejecutar_conAutoDeBajaADisponible_loReactiva() {
+        conEstadoActual(EstadoVehiculo.BAJA);
+        when(vehiculoRepository.actualizar(any())).thenAnswer(i -> Optional.of(i.getArgument(0)));
+
+        assertThat(useCase.ejecutar(ESCUELA, CODIGO, EstadoVehiculo.DISPONIBLE).estado())
+            .isEqualTo(EstadoVehiculo.DISPONIBLE);
     }
 
     @Test
