@@ -21,12 +21,15 @@ describe('esquema de autos', () => {
   })
 
   it('las acciones coinciden con los endpoints y solo dar de baja pide confirmación', () => {
-    const [mantenimiento, habilitar, baja] = ESQUEMA_AUTOS.acciones!
+    const [mantenimiento, habilitar, reactivar, baja] = ESQUEMA_AUTOS.acciones!
 
     expect(mantenimiento).toMatchObject({ metodo: 'POST', ruta: '{id}/enviar-a-mantenimiento' })
     expect(mantenimiento.visibleSi).toEqual({ campo: 'estado', igual: 'DISPONIBLE' })
     expect(habilitar).toMatchObject({ metodo: 'POST', ruta: '{id}/habilitar' })
     expect(habilitar.visibleSi).toEqual({ campo: 'estado', igual: 'MANTENIMIENTO' })
+    expect(reactivar).toMatchObject({ metodo: 'POST', ruta: '{id}/habilitar' })
+    expect(reactivar.visibleSi).toEqual({ campo: 'estado', igual: 'BAJA' })
+    expect(reactivar.confirmar).toBeUndefined()
     expect(baja).toMatchObject({
       metodo: 'POST',
       ruta: '{id}/dar-de-baja',

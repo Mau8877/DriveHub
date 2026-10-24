@@ -219,6 +219,15 @@ export const ESQUEMA_AUTOS: EsquemaGestion = {
       visibleSi: { campo: 'estado', igual: 'MANTENIMIENTO' },
     },
     {
+      // * Mismo endpoint que habilitar: un auto de baja vuelve a DISPONIBLE
+      id: 'reactivar',
+      etiqueta: 'Reactivar',
+      metodo: 'POST',
+      ruta: '{id}/habilitar',
+      mensajeExito: 'Auto reactivado correctamente.',
+      visibleSi: { campo: 'estado', igual: 'BAJA' },
+    },
+    {
       id: 'dar-de-baja',
       etiqueta: 'Dar de baja',
       metodo: 'POST',
