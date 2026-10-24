@@ -15,11 +15,16 @@ export interface Columna {
   /** Campo del registro (admite puntos). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'fecha' | 'insignia' | 'foto'
+  tipo?: 'texto' | 'fecha' | 'insignia' | 'foto' | 'etiquetas'
   /** `tipo: 'foto'`: campo con el nombre completo, para las iniciales cuando la persona no tiene foto. */
   nombre?: string
   /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
   insignias?: Record<string, Insignia>
+  /**
+   * `tipo: 'etiquetas'`: el valor es un arreglo (de textos o de objetos) que se dibuja como insignias
+   * pequeñas; con objetos, `etiqueta` es la propiedad que se muestra (ej. `sigla`). Vacío se ve "—".
+   */
+  etiqueta?: string
   /** Texto atenuado (datos de apoyo como el slug). */
   secundaria?: boolean
   /** Columna principal: el texto va en negrita y, si hay `icono`, con su ficha de icono a la izquierda. */
@@ -48,6 +53,8 @@ export interface MensajesCampo {
   email?: string
   patron?: string
   fechaNoFutura?: string
+  fechaFutura?: string
+  hastaHoy?: string
   edadMinima?: string
   /** `seleccion`: el valor no está entre las opciones. */
   opcion?: string
@@ -66,8 +73,16 @@ export interface Campo {
   max?: number
   /** Nombre de un patrón (`slug`) o una expresión regular. */
   patron?: string
-  /** Reglas con nombre: `fechaNoFutura`, `edadMinima:18`. */
+  /**
+   * Reglas con nombre: `fechaNoFutura` (anterior a hoy), `hastaHoy` (hoy o antes), `fechaFutura`
+   * (posterior a hoy), `edadMinima:18`.
+   */
   validaciones?: string[]
+  /**
+   * Al EDITAR, las `validaciones` solo se aplican si el valor cambió respecto del registro (ej. un
+   * vencimiento ya pasado no impide guardar otros datos). En el alta se aplican siempre.
+   */
+  soloSiCambia?: boolean
   mensajes?: MensajesCampo
   /** Se rellena con un slug de otro campo mientras la persona no lo edite a mano. */
   sugeridoDe?: string
@@ -80,10 +95,18 @@ export interface Campo {
   opciones?: { valor: string; etiqueta: string }[]
   /**
    * `seleccion`: opciones traídas de la API (`GET /{recurso}` con `pageSize` 100). `valor` y `etiqueta`
-   * son nombres de campo de cada elemento (ej. `sigla` y `descripcion`).
+   * son nombres de campo de cada elemento (ej. `sigla` y `descripcion`). `excluir` lista valores del
+   * catálogo que no se ofrecen (ej. `['SIN']`).
    */
-  opcionesDe?: { recurso: string; valor: string; etiqueta: string; params?: Record<string, string> }
-  /** `seleccion`: valor preseleccionado al crear. */
+  opcionesDe?: { recurso: string; valor: string; etiqueta: string; params?: Record<string, string>; excluir?: string[] }
+  /** `seleccion`: elige una o más opciones (un `<dh-select multiple>`); el valor es un arreglo y `requerido` pide al menos una. */
+  multiple?: boolean
+  /**
+   * `seleccion` múltiple: al editar, propiedad de cada elemento del registro que se guarda cuando llegan
+   * objetos (ej. `categorias: [{ sigla, descripcion }]` con `valorDe: 'sigla'`). Por defecto, la de `opcionesDe.valor`.
+   */
+  valorDe?: string
+  /** `seleccion`: valor preseleccionado al crear. `fecha`: `'hoy'` precarga la fecha de hoy al crear. */
   porDefecto?: string
   /**
    * `ubicacion`: campo del registro cargado cuyo valor se muestra bajo el mapa como dirección (solo
@@ -149,11 +172,13 @@ export interface CampoDetalle {
   /** Campo del registro (admite puntos). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'fecha' | 'insignia' | 'foto'
+  tipo?: 'texto' | 'fecha' | 'insignia' | 'foto' | 'etiquetas'
   /** `tipo: 'foto'`: campo con el nombre completo, para las iniciales cuando la persona no tiene foto. */
   nombre?: string
   /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
   insignias?: Record<string, Insignia>
+  /** `tipo: 'etiquetas'`: propiedad que se muestra de cada objeto del arreglo (ej. `sigla`). */
+  etiqueta?: string
   /** Con otro campo `mitad` a continuación, los dos comparten fila. */
   mitad?: boolean
 }
@@ -223,7 +248,14 @@ export declare function solicitar(
 export declare const PATRONES: Record<string, { regex: RegExp; mensaje: string }>
 export declare function slugDesdeTexto(texto: string, largoMaximo?: number): string
 export declare function edadEnAnios(fechaNacimiento: string, hoy?: Date): number
-export declare function validar(campo: Campo, valor: unknown, hoy?: Date): string | null
+export declare function fechaDeHoy(hoy?: Date): string
+export declare function fechaDeManana(hoy?: Date): string
+export declare function validar(
+  campo: Campo,
+  valor: unknown,
+  hoy?: Date,
+  contexto?: { valorInicial?: unknown }
+): string | null
 
 declare global {
   interface HTMLElementTagNameMap {

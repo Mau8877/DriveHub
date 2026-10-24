@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { edadEnAnios, slugDesdeTexto, validar } from './reglas.js'
+import { edadEnAnios, fechaDeHoy, fechaDeManana, slugDesdeTexto, validar } from './reglas.js'
 
 describe('slugDesdeTexto', () => {
   it('pasa a minúsculas, quita tildes y usa guiones', () => {
@@ -131,5 +131,90 @@ describe('edadEnAnios', () => {
       expect(validar(ubicacion, { latitud: 0, longitud: -180.5 })).toBe('La ubicación no es válida')
       expect(validar(ubicacion, { latitud: 'abc', longitud: 1 })).toBe('La ubicación no es válida')
     })
+  })
+})
+
+describe('validar: seleccion multiple', () => {
+  const categorias = { campo: 'categorias', titulo: 'Categorías', tipo: 'seleccion', multiple: true, requerido: true }
+
+  it('requerido pide al menos un elemento', () => {
+    expect(validar(categorias, [])).toBe('Elige al menos una opción')
+    expect(validar(categorias, undefined)).toBe('Elige al menos una opción')
+    expect(validar(categorias, ['', '  '])).toBe('Elige al menos una opción')
+    expect(validar({ ...categorias, mensajes: { requerido: 'Elige una categoría' } }, [])).toBe('Elige una categoría')
+    expect(validar(categorias, ['B', 'C'])).toBeNull()
+  })
+
+  it('sin requerido, vacío es válido', () => {
+    expect(validar({ ...categorias, requerido: false }, [])).toBeNull()
+  })
+
+  it('con opciones fijas rechaza un valor que no está entre ellas', () => {
+    const fijas = { ...categorias, opciones: [{ valor: 'B', etiqueta: 'B' }] }
+
+    expect(validar(fijas, ['B', 'Z'])).toBe('Elige una opción de la lista')
+    expect(validar(fijas, ['B'])).toBeNull()
+  })
+})
+
+describe('validar: fechaFutura', () => {
+  const hoy = new Date(2026, 9, 24)
+  const vence = { campo: 'licenciaVence', titulo: 'Vencimiento', tipo: 'fecha', validaciones: ['fechaFutura'] }
+
+  it('rechaza hoy y ayer y acepta mañana', () => {
+    expect(validar(vence, '2026-10-24', hoy)).toBe('La fecha debe ser posterior a hoy')
+    expect(validar(vence, '2026-10-23', hoy)).toBe('La fecha debe ser posterior a hoy')
+    expect(validar(vence, '2026-10-25', hoy)).toBeNull()
+  })
+
+  it('el mensaje se puede cambiar', () => {
+    const campo = { ...vence, mensajes: { fechaFutura: 'La licencia ya venció' } }
+
+    expect(validar(campo, '2026-10-01', hoy)).toBe('La licencia ya venció')
+  })
+
+  it('fechaDeHoy y fechaDeManana dan yyyy-MM-dd en la zona local', () => {
+    expect(fechaDeHoy(new Date(2026, 0, 5))).toBe('2026-01-05')
+    expect(fechaDeManana(new Date(2026, 11, 31))).toBe('2027-01-01')
+  })
+})
+
+describe('validar: soloSiCambia', () => {
+  const hoy = new Date(2026, 9, 24)
+  const vence = { campo: 'licenciaVence', titulo: 'Vencimiento', tipo: 'fecha', validaciones: ['fechaFutura'], soloSiCambia: true }
+
+  it('al editar no valida un valor que no cambió', () => {
+    expect(validar(vence, '2026-01-01', hoy, { valorInicial: '2026-01-01' })).toBeNull()
+  })
+
+  it('al editar valida el valor si cambió', () => {
+    expect(validar(vence, '2026-02-01', hoy, { valorInicial: '2026-01-01' })).toBe('La fecha debe ser posterior a hoy')
+    expect(validar(vence, '2026-12-01', hoy, { valorInicial: '2026-01-01' })).toBeNull()
+  })
+
+  it('en el alta (sin valor inicial) se aplica siempre', () => {
+    expect(validar(vence, '2026-01-01', hoy)).toBe('La fecha debe ser posterior a hoy')
+    expect(validar(vence, '2026-01-01', hoy, {})).toBe('La fecha debe ser posterior a hoy')
+  })
+
+  it('sin soloSiCambia, editar tampoco deja pasar el valor sin cambios', () => {
+    const sin = { ...vence, soloSiCambia: false }
+
+    expect(validar(sin, '2026-01-01', hoy, { valorInicial: '2026-01-01' })).toBe('La fecha debe ser posterior a hoy')
+  })
+
+  it('un campo requerido sigue pidiendo valor aunque no haya cambiado', () => {
+    expect(validar({ ...vence, requerido: true }, '', hoy, { valorInicial: '' })).toBe('Este campo es obligatorio')
+  })
+})
+
+describe('validar: hastaHoy', () => {
+  const hoy = new Date(2026, 9, 24)
+  const contratacion = { campo: 'fechaContratacion', titulo: 'Contratación', tipo: 'fecha', validaciones: ['hastaHoy'] }
+
+  it('acepta hoy y el pasado, rechaza mañana', () => {
+    expect(validar(contratacion, '2026-10-24', hoy)).toBeNull()
+    expect(validar(contratacion, '2020-01-01', hoy)).toBeNull()
+    expect(validar(contratacion, '2026-10-25', hoy)).toBe('La fecha no puede ser futura')
   })
 })
