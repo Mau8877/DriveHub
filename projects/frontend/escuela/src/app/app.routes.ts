@@ -16,6 +16,17 @@ export const routes: Routes = [
   {
     path: '',
     providers: [provideHttpClient(withInterceptors([apiInterceptor]))],
-    children: [{ path: '', component: Inicio }],
+    children: [
+      { path: '', component: Inicio },
+      // * CU08: dentro del shell es /escuela/estudiantes. Una sola ruta: <dh-gestion> maneja por
+      // * dentro el listado, el detalle, crear y editar.
+      {
+        path: 'estudiantes',
+        loadComponent: () =>
+          import('./features/estudiantes/screens/estudiantes-gestion').then(
+            (m) => m.EstudiantesGestion
+          ),
+      },
+    ],
   },
 ]
