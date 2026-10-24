@@ -11,7 +11,20 @@ const MAX_ARCHIVO_BYTES_POR_DEFECTO = 20 * 1024 * 1024
 /** Valor de un campo tal como se muestra en el formulario: una lista se ve como "a, b, c". */
 function paraFormulario(campo, valor) {
   if (campo.tipo === 'lista') return Array.isArray(valor) ? valor.join(', ') : (valor ?? '')
+  if (campo.tipo === 'opciones') return filasDe(campo, valor)
+  // * Un desplegable maneja texto: un número (ej. la dificultad) se muestra como texto
+  if (campo.tipo === 'seleccion') return valor == null ? '' : String(valor)
   return valor ?? ''
+}
+
+const FILAS_POR_DEFECTO = 2
+const FILAS_MAXIMAS_POR_DEFECTO = 6
+
+/** Las filas de un campo `opciones`: las guardadas, o las vacías que pide `min` si todavía no hay. */
+function filasDe(campo, valor) {
+  const filas = Array.isArray(valor) ? valor : []
+  if (filas.length > 0) return filas.map((f) => ({ texto: f.texto ?? '', correcta: Boolean(f.correcta) }))
+  return Array.from({ length: campo.min ?? FILAS_POR_DEFECTO }, () => ({ texto: '', correcta: false }))
 }
 
 /** Una lista escrita como "a, b, a" viaja como array sin vacíos ni repetidos. */
@@ -328,6 +341,11 @@ export class DhGestion extends LitElement {
         if (nuevo) escribir(cuerpo, campo.campo, descriptor)
         return
       }
+      if (campo.tipo === 'opciones') {
+        const filas = filasDe(campo, this._valores[campo.campo])
+        escribir(cuerpo, campo.campo, filas.map((f) => ({ texto: f.texto.trim(), correcta: f.correcta })))
+        return
+      }
       const texto = String(this._valores[campo.campo] ?? '').trim()
       if (campo.tipo === 'lista') {
         if (texto !== '' || campo.requerido) escribir(cuerpo, campo.campo, aLista(texto))
@@ -335,8 +353,8 @@ export class DhGestion extends LitElement {
       }
       if (texto === '' && !campo.requerido) return
       // * Las contraseñas no se recortan (los espacios cuentan) y los números viajan como número
-      const valor =
-        campo.tipo === 'password' ? this._valores[campo.campo] : campo.tipo === 'numero' ? Number(texto) : texto
+      const numerico = campo.tipo === 'numero' || (campo.tipo === 'seleccion' && campo.numerico)
+      const valor = campo.tipo === 'password' ? this._valores[campo.campo] : numerico ? Number(texto) : texto
       escribir(cuerpo, campo.campo, valor)
     })
 
@@ -697,6 +715,68 @@ export class DhGestion extends LitElement {
     </div>`
   }
 
+  /** Cambia una fila del campo `opciones` (o la quita/agrega) y deja el nuevo arreglo como valor. */
+  _cambiarFilas(campo, cambio) {
+    this._alEscribir(campo, cambio(filasDe(campo, this._valores[campo.campo])))
+  }
+
+  /**
+   * Lista de respuestas repetible: cada fila lleva su texto y una casilla "correcta". `min` y `max`
+   * son la cantidad de filas (2 y 6 por defecto) y `maxTexto` el largo de cada texto.
+   */
+  _renderOpciones(campo, id, error) {
+    const filas = filasDe(campo, this._valores[campo.campo])
+    const minimo = campo.min ?? FILAS_POR_DEFECTO
+    const maximo = campo.max ?? FILAS_MAXIMAS_POR_DEFECTO
+    return html`<div class="campo" id=${id}>
+      <span class="etiqueta">${campo.titulo}${campo.requerido ? '' : ' (opcional)'}</span>
+      <ol class="filas-opciones">
+        ${filas.map(
+          (fila, i) => html`<li class="fila-opcion">
+            <input
+              type="text"
+              aria-label=${`Opción ${i + 1}`}
+              maxlength=${campo.maxTexto ?? 200}
+              autocomplete="off"
+              .value=${fila.texto}
+              @input=${(e) =>
+                this._cambiarFilas(campo, (f) => f.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
+              @blur=${() => this._tocar(campo)}
+            />
+            <label class="correcta">
+              <input
+                type="checkbox"
+                .checked=${fila.correcta}
+                @change=${(e) =>
+                  this._cambiarFilas(campo, (f) => f.map((x, j) => (j === i ? { ...x, correcta: e.target.checked } : x)))}
+              />
+              Correcta
+            </label>
+            <button
+              type="button"
+              class="enlace peligro"
+              aria-label=${`Quitar opción ${i + 1}`}
+              ?disabled=${filas.length <= minimo}
+              @click=${() => this._cambiarFilas(campo, (f) => f.filter((_, j) => j !== i))}
+            >
+              Quitar
+            </button>
+          </li>`
+        )}
+      </ol>
+      <button
+        type="button"
+        class="boton secundario"
+        ?disabled=${filas.length >= maximo}
+        @click=${() => this._cambiarFilas(campo, (f) => [...f, { texto: '', correcta: false }])}
+      >
+        Agregar opción
+      </button>
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
   _renderImagen(campo, id, error) {
     const url = this._valores[campo.campo]
     const subiendo = Boolean(this._subiendo[campo.campo])
@@ -722,13 +802,24 @@ export class DhGestion extends LitElement {
     const error = this._errorDe(campo)
     if (campo.tipo === 'imagen') return this._renderImagen(campo, id, error)
     if (campo.tipo === 'archivo') return this._renderArchivo(campo, id, error)
+    if (campo.tipo === 'opciones') return this._renderOpciones(campo, id, error)
     const esPassword = campo.tipo === 'password'
     const tipo =
       esPassword && !this._verPassword[campo.campo]
         ? 'password'
         : { email: 'email', fecha: 'date', telefono: 'tel', numero: 'number' }[campo.tipo] ?? 'text'
     const entrada =
-      campo.tipo === 'seleccion'
+      campo.tipo === 'textarea'
+        ? html`<textarea
+            id=${id}
+            rows="4"
+            .value=${String(this._valores[campo.campo] ?? '')}
+            ?readonly=${campo.soloLectura}
+            aria-invalid=${error ? 'true' : 'false'}
+            @input=${(e) => this._alEscribir(campo, e.target.value)}
+            @blur=${() => this._tocar(campo)}
+          ></textarea>`
+        : campo.tipo === 'seleccion'
         ? html`<select
             id=${id}
             .value=${String(this._valores[campo.campo] ?? '')}

@@ -49,13 +49,20 @@ export interface Campo {
   /** Campo del cuerpo (admite puntos: `administrador.nombres` arma un objeto anidado). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'numero' | 'seleccion' | 'imagen' | 'archivo' | 'lista'
+  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'numero' | 'seleccion' | 'imagen' | 'archivo' | 'lista' | 'textarea' | 'opciones'
   requerido?: boolean
   /** Largo mínimo y máximo del texto. En `tipo: 'numero'` son el rango del valor (entero). */
   min?: number
   max?: number
   /** Para `tipo: 'seleccion'`: las opciones del desplegable (el `valor` es lo que se envía). */
   opciones?: { valor: string; etiqueta: string }[]
+  /** Para `tipo: 'seleccion'`: el valor elegido viaja como número (ej. una dificultad de 1 a 3). */
+  numerico?: boolean
+  /**
+   * Para `tipo: 'opciones'`: `min` y `max` son la cantidad de filas (2 y 6 por defecto) y `maxTexto` el
+   * largo de cada texto (200). El valor viaja como arreglo de `{ texto, correcta }`.
+   */
+  maxTexto?: number
   /**
    * Para `tipo: 'imagen'`: ruta (relativa al API) que firma la subida a Cloudinary y devuelve
    * `{ cloudName, apiKey, timestamp, folder, signature }`. El valor del campo es la URL resultante.

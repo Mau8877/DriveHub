@@ -880,3 +880,260 @@ describe('<dh-gestion> campos archivo y lista, columna enlace', () => {
     expect(cuerpo.archivo).toBeUndefined()
   })
 })
+
+describe('<dh-gestion> campos textarea, opciones y seleccion numerica, y datos booleanos', () => {
+  let el
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+  const filas = () => Array.from(el.shadowRoot.querySelectorAll('.fila-opcion'))
+  const PREGUNTA = {
+    codigo: 'p1',
+    enunciado: '¿Qué indica el PARE?',
+    dificultad: 2,
+    activa: true,
+    opciones: [
+      { id: 'A', texto: 'Detenerse', correcta: true },
+      { id: 'B', texto: 'Seguir', correcta: false },
+      { id: 'C', texto: 'Tocar bocina', correcta: false },
+    ],
+  }
+  const INACTIVA = { ...PREGUNTA, codigo: 'p2', activa: false }
+
+  const ESQUEMA_PREGUNTAS = {
+    recurso: 'preguntas',
+    titulo: 'Preguntas',
+    columnas: [
+      { campo: 'enunciado', titulo: 'Enunciado' },
+      {
+        campo: 'activa',
+        titulo: 'Estado',
+        tipo: 'insignia',
+        insignias: { true: { etiqueta: 'Activa', tono: 'exito' }, false: { etiqueta: 'Inactiva' } },
+      },
+    ],
+    filtros: [
+      {
+        clave: 'filter[activa]',
+        titulo: 'Estado',
+        opciones: [
+          { valor: 'true', etiqueta: 'Activas' },
+          { valor: 'false', etiqueta: 'Inactivas' },
+        ],
+      },
+    ],
+    crear: {
+      etiqueta: 'Nueva pregunta',
+      mensajeExito: 'Listo',
+      etiquetaEnviar: 'Crear',
+      secciones: [
+        {
+          campos: [
+            { campo: 'enunciado', titulo: 'Enunciado', tipo: 'textarea', requerido: true, max: 500 },
+            {
+              campo: 'dificultad',
+              titulo: 'Dificultad',
+              tipo: 'seleccion',
+              numerico: true,
+              requerido: true,
+              opciones: [
+                { valor: '1', etiqueta: 'Fácil' },
+                { valor: '2', etiqueta: 'Media' },
+                { valor: '3', etiqueta: 'Difícil' },
+              ],
+            },
+            { campo: 'opciones', titulo: 'Opciones', tipo: 'opciones', requerido: true, min: 2, max: 3 },
+          ],
+        },
+      ],
+    },
+    editar: {
+      etiquetaEnviar: 'Guardar',
+      mensajeExito: 'Guardado',
+      secciones: [
+        {
+          campos: [
+            {
+              campo: 'dificultad',
+              titulo: 'Dificultad',
+              tipo: 'seleccion',
+              numerico: true,
+              opciones: [{ valor: '2', etiqueta: 'Media' }],
+            },
+            { campo: 'opciones', titulo: 'Opciones', tipo: 'opciones', requerido: true },
+          ],
+        },
+      ],
+    },
+    acciones: [
+      {
+        id: 'desactivar',
+        etiqueta: 'Desactivar',
+        metodo: 'POST',
+        ruta: '{id}/desactivar',
+        mensajeExito: 'Listo',
+        visibleSi: { campo: 'activa', igual: true },
+      },
+      {
+        id: 'activar',
+        etiqueta: 'Activar',
+        metodo: 'POST',
+        ruta: '{id}/activar',
+        mensajeExito: 'Listo',
+        visibleSi: { campo: 'activa', igual: false },
+      },
+    ],
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  async function montar(datos = [PREGUNTA, INACTIVA]) {
+    fetch.mockResolvedValueOnce(lista(datos))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_PREGUNTAS
+    await asentar(el)
+  }
+
+  async function escribirEn(selector, valor, evento = 'input') {
+    const campo = el.shadowRoot.querySelector(selector)
+    campo.value = valor
+    campo.dispatchEvent(new Event(evento, { bubbles: true }))
+    await asentar(el)
+  }
+
+  async function llenarFila(i, texto, correcta = false) {
+    const entrada = filas()[i].querySelector('input[type="text"]')
+    entrada.value = texto
+    entrada.dispatchEvent(new Event('input', { bubbles: true }))
+    await asentar(el)
+    const casilla = filas()[i].querySelector('input[type="checkbox"]')
+    casilla.checked = correcta
+    casilla.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+  }
+
+  it('un dato booleano se muestra con su insignia y decide las acciones visibles', async () => {
+    await montar()
+
+    expect(el.shadowRoot.textContent).toContain('Activa')
+    expect(el.shadowRoot.textContent).toContain('Inactiva')
+    const botones = Array.from(el.shadowRoot.querySelectorAll('tbody tr')).map((tr) =>
+      Array.from(tr.querySelectorAll('button')).map((b) => b.textContent.trim())
+    )
+    expect(botones[0]).toContain('Desactivar')
+    expect(botones[0]).not.toContain('Activar')
+    expect(botones[1]).toContain('Activar')
+    expect(botones[1]).not.toContain('Desactivar')
+  })
+
+  it('el filtro de un booleano manda filter[activa]=false', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(lista([INACTIVA]))
+
+    const filtro = el.shadowRoot.querySelector('select')
+    filtro.value = 'false'
+    filtro.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+
+    expect(fetch.mock.calls[1][0]).toContain('filter%5Bactiva%5D=false')
+  })
+
+  it('el campo opciones arranca con las filas mínimas y respeta el mínimo y el máximo', async () => {
+    await montar([])
+    boton('Nueva pregunta').click()
+    await asentar(el)
+
+    expect(filas()).toHaveLength(2)
+    expect(filas()[0].querySelector('button').disabled).toBe(true)
+    boton('Agregar opción').click()
+    await asentar(el)
+    expect(filas()).toHaveLength(3)
+    expect(boton('Agregar opción').disabled).toBe(true)
+    filas()[2].querySelector('button').click()
+    await asentar(el)
+    expect(filas()).toHaveLength(2)
+  })
+
+  it('envía el textarea, la dificultad como número y las opciones como arreglo de objetos', async () => {
+    await montar([])
+    boton('Nueva pregunta').click()
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('textarea#campo-enunciado')).not.toBeNull()
+    await escribirEn('#campo-enunciado', '  ¿Qué indica el PARE?  ')
+    await escribirEn('#campo-dificultad', '2', 'change')
+    await llenarFila(0, ' Detenerse ', true)
+    await llenarFila(1, 'Seguir', false)
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'p9' })).mockResolvedValueOnce(lista([]))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      enunciado: '¿Qué indica el PARE?',
+      dificultad: 2,
+      opciones: [
+        { texto: 'Detenerse', correcta: true },
+        { texto: 'Seguir', correcta: false },
+      ],
+    })
+  })
+
+  it('sin texto en una opción o sin ninguna correcta no se envía y muestra el error bajo el campo', async () => {
+    await montar([])
+    boton('Nueva pregunta').click()
+    await asentar(el)
+    await escribirEn('#campo-enunciado', 'Enunciado válido')
+    await escribirEn('#campo-dificultad', '1', 'change')
+    await llenarFila(0, 'Uno', false)
+
+    boton('Crear').click()
+    await asentar(el)
+    expect(el.shadowRoot.textContent).toContain('Todas las opciones necesitan texto')
+
+    await llenarFila(1, 'Dos', false)
+    boton('Crear').click()
+    await asentar(el)
+    expect(el.shadowRoot.textContent).toContain('Marca al menos una opción correcta')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('al editar carga las opciones del backend como filas y reenvía el conjunto completo', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(sobre(PREGUNTA))
+    boton('Editar').click()
+    await asentar(el)
+
+    expect(filas()).toHaveLength(3)
+    expect(filas()[0].querySelector('input[type="text"]').value).toBe('Detenerse')
+    expect(filas()[0].querySelector('input[type="checkbox"]').checked).toBe(true)
+    expect(filas()[1].querySelector('input[type="checkbox"]').checked).toBe(false)
+    expect(el.shadowRoot.querySelector('#campo-dificultad').value).toBe('2')
+
+    await llenarFila(1, 'Avanzar', false)
+    fetch.mockResolvedValueOnce(sobre(PREGUNTA)).mockResolvedValueOnce(lista([PREGUNTA]))
+    boton('Guardar').click()
+    await asentar(el)
+
+    expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({
+      dificultad: 2,
+      opciones: [
+        { texto: 'Detenerse', correcta: true },
+        { texto: 'Avanzar', correcta: false },
+        { texto: 'Tocar bocina', correcta: false },
+      ],
+    })
+  })
+})

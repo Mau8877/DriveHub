@@ -52,6 +52,8 @@ function fechaComoTexto(fecha) {
  * @returns {string | null}
  */
 export function validar(campo, valor, hoy = new Date()) {
+  // * Una lista de filas (opciones de respuesta) se valida por filas, no como texto
+  if (campo.tipo === 'opciones') return validarOpciones(campo, valor)
   const texto = String(valor ?? '').trim()
   const mensajes = campo.mensajes ?? {}
 
@@ -88,6 +90,28 @@ export function validar(campo, valor, hoy = new Date()) {
       return mensajes.edadMinima ?? `Debe tener al menos ${argumento} años`
     }
   }
+  return null
+}
+
+/**
+ * Filas de un campo `opciones`: entre `min` y `max` (2 y 6), todas con texto de hasta `maxTexto`
+ * caracteres (200) y al menos una marcada como correcta. Las reglas que dependen de otro campo (el
+ * tipo de pregunta) las valida el backend.
+ */
+function validarOpciones(campo, valor) {
+  const mensajes = campo.mensajes ?? {}
+  const filas = Array.isArray(valor) ? valor : []
+  const minimo = campo.min ?? 2
+  const maximo = campo.max ?? 6
+  if (filas.length < minimo) return mensajes.min ?? `Agrega al menos ${minimo} opciones`
+  if (filas.length > maximo) return mensajes.max ?? `Puedes agregar hasta ${maximo} opciones`
+  if (filas.some((f) => String(f.texto ?? '').trim() === '')) {
+    return mensajes.patron ?? 'Todas las opciones necesitan texto'
+  }
+  if (filas.some((f) => String(f.texto).trim().length > (campo.maxTexto ?? 200))) {
+    return mensajes.max ?? `Cada opción puede tener hasta ${campo.maxTexto ?? 200} caracteres`
+  }
+  if (!filas.some((f) => f.correcta)) return mensajes.requerido ?? 'Marca al menos una opción correcta'
   return null
 }
 

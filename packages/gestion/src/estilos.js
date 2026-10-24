@@ -128,7 +128,8 @@ export const estilos = css`
     margin-bottom: 1rem;
   }
   input,
-  select {
+  select,
+  textarea {
     font: inherit;
     color: var(--foreground);
     background: var(--card);
@@ -136,6 +137,10 @@ export const estilos = css`
     border-radius: calc(var(--radius) * 0.8);
     padding: 0.5rem 0.75rem;
     min-width: 0;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 5rem;
   }
   input[type='search'] {
     min-width: 16rem;
@@ -202,6 +207,33 @@ export const estilos = css`
   }
 
   /* Insignias */
+  .etiqueta {
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  .filas-opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fila-opcion {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .fila-opcion > input[type='text'] {
+    flex: 1 1 14rem;
+  }
+  .correcta {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    font-size: 0.8125rem;
+  }
   .enlace-archivo {
     color: var(--info);
     font-weight: 500;
