@@ -30,6 +30,7 @@ import com.drivehub.identidad.domain.port.out.RefreshTokenRepositoryPort;
 import com.drivehub.identidad.domain.port.out.RolRepositoryPort;
 import com.drivehub.identidad.domain.port.out.TokenRecuperacionRepositoryPort;
 import com.drivehub.identidad.domain.port.out.UsuarioRepositoryPort;
+import com.drivehub.identidad.infrastructure.adapter.out.persistence.model.UsuarioModel;
 
 /**
  * Persistencia de usuarios y roles contra un Postgres real.
@@ -279,5 +280,25 @@ class UsuarioPersistenceAdapterTest extends PostgresIntegrationTestBase {
 
         assertThat(usuarioRepository.existePorCi("PG60001")).isFalse();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM perfil WHERE ci = 'PG60001'", Integer.class)).isZero();
+    }
+
+    @Test
+    void guardar_conUnCodigoDado_laCuentaQuedaConEseCodigo() {
+        Rol estudiante = rolRepository.buscarPorNombre(RolNombres.ESTUDIANTE).orElseThrow();
+        UUID codigo = UUID.randomUUID();
+
+        Usuario guardado = usuarioRepository.guardar(
+            nuevoEstudiante("codigo-dado@gmail.com", estudiante).toBuilder().codigo(codigo).build());
+
+        assertThat(guardado.getCodigo()).isEqualTo(codigo);
+        assertThat(usuarioRepository.buscarPorCodigo(codigo)).isPresent();
+    }
+
+    @Test
+    void asignarCodigo_conElModelYaConCodigo_noLoSobrescribe() {
+        UsuarioModel model = new UsuarioModel("x@gmail.com", "hash", null, EstadoUsuario.ACTIVO);
+        model.asignarCodigo(UUID.randomUUID());
+
+        assertThatThrownBy(() -> model.asignarCodigo(UUID.randomUUID())).isInstanceOf(IllegalStateException.class);
     }
 }

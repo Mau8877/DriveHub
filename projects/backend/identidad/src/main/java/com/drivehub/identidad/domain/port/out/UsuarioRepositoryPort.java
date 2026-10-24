@@ -1,5 +1,7 @@
 package com.drivehub.identidad.domain.port.out;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,6 +46,30 @@ public interface UsuarioRepositoryPort {
      * es un estudiante o si es de otra escuela: no se distinguen. Los roles no se cargan.
      */
     Optional<Usuario> buscarEstudianteDeEscuela(UUID escuelaCodigo, UUID codigo);
+
+    /**
+     * Las cuentas con rol INSTRUCTOR de esa escuela (CU09), con su perfil, de la más reciente a la
+     * más antigua (`created_at DESC, id DESC`). Nunca trae a una persona de otra escuela ni a quien
+     * no sea instructor. Los roles de las cuentas devueltas no se cargan.
+     *
+     * @param busqueda texto ya recortado: cada palabra debe aparecer en nombres + apellidos; nulo
+     *                 o en blanco no filtra
+     * @param pagina 1-indexada
+     */
+    PaginaUsuarios listarInstructoresDeEscuela(UUID escuelaCodigo, String busqueda, int pagina, int tamano);
+
+    /**
+     * Las cuentas INSTRUCTOR de esa escuela cuyo código está en la lista (CU09), en una sola
+     * consulta. Solo las que existen, son instructores y son de esa escuela; sin orden garantizado.
+     * Los roles no se cargan.
+     */
+    List<Usuario> buscarInstructoresPorCodigos(UUID escuelaCodigo, Collection<UUID> codigos);
+
+    /**
+     * La cuenta INSTRUCTOR con ese código dentro de esa escuela (CU09). Vacío si no existe, si no es
+     * un instructor o si es de otra escuela: no se distinguen. Los roles no se cargan.
+     */
+    Optional<Usuario> buscarInstructorDeEscuela(UUID escuelaCodigo, UUID codigo);
 
     /**
      * Borra la cuenta y todo lo que cuelga de ella (roles, sesiones, enlaces de correo), de forma

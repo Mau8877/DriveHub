@@ -1,6 +1,7 @@
 package com.drivehub.identidad.infrastructure.adapter.out.persistence.repository;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -8,7 +9,6 @@ import org.springframework.data.jpa.domain.Specification;
 
 import com.drivehub.identidad.domain.model.EstadoFiltroEstudiante;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
-import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.port.out.FiltroEstudiantes;
 import com.drivehub.identidad.infrastructure.adapter.out.persistence.model.PerfilModel;
 import com.drivehub.identidad.infrastructure.adapter.out.persistence.model.UsuarioModel;
@@ -22,30 +22,31 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 
 /**
- * Condiciones de la consulta de estudiantes de una escuela (CU08), armadas con Criteria para que
- * el AND de N palabras de la búsqueda no se escriba concatenando texto SQL.
+ * Condiciones de la consulta de las cuentas de una escuela con un rol dado (estudiantes en CU08,
+ * instructores en CU09), armadas con Criteria para que el AND de N palabras de la búsqueda no se
+ * escriba concatenando texto SQL.
  */
-final class EstudiantesSpecification {
+final class CuentasDeEscuelaSpecification {
 
     private static final char ESCAPE = '\\';
 
-    private EstudiantesSpecification() {
+    private CuentasDeEscuelaSpecification() {
     }
 
-    /** Las cuentas ESTUDIANTE de esa escuela que cumplen el filtro, con su perfil en la misma consulta. */
-    static Specification<UsuarioModel> deEscuela(UUID escuelaCodigo, FiltroEstudiantes filtro) {
+    /** Las cuentas con ese rol de esa escuela que cumplen el filtro, con su perfil en la misma consulta. */
+    static Specification<UsuarioModel> deEscuela(UUID escuelaCodigo, String rol, FiltroEstudiantes filtro) {
         return (root, query, cb) -> {
             Join<UsuarioModel, PerfilModel> perfil = perfilDe(root, query.getResultType());
 
             List<Predicate> condiciones = new ArrayList<>();
             condiciones.add(cb.equal(root.get("escuelaCodigo"), escuelaCodigo));
 
-            Subquery<Long> esEstudiante = query.subquery(Long.class);
-            Root<UsuarioRolModel> usuarioRol = esEstudiante.from(UsuarioRolModel.class);
-            esEstudiante.select(usuarioRol.<Long>get("id")).where(
+            Subquery<Long> tieneElRol = query.subquery(Long.class);
+            Root<UsuarioRolModel> usuarioRol = tieneElRol.from(UsuarioRolModel.class);
+            tieneElRol.select(usuarioRol.<Long>get("id")).where(
                 cb.equal(usuarioRol.get("usuario").get("id"), root.get("id")),
-                cb.equal(usuarioRol.get("rol").get("nombre"), RolNombres.ESTUDIANTE));
-            condiciones.add(cb.exists(esEstudiante));
+                cb.equal(usuarioRol.get("rol").get("nombre"), rol));
+            condiciones.add(cb.exists(tieneElRol));
 
             if (filtro.estado() == EstadoFiltroEstudiante.ACTIVO) {
                 condiciones.add(root.get("estado").in(EstadoUsuario.ACTIVO, EstadoUsuario.BLOQUEADO));
@@ -69,6 +70,11 @@ final class EstudiantesSpecification {
     /** La cuenta con ese código; se combina con {@link #deEscuela} para no salir de la escuela. */
     static Specification<UsuarioModel> conCodigo(UUID codigo) {
         return (root, query, cb) -> cb.equal(root.get("codigo"), codigo);
+    }
+
+    /** Las cuentas cuyo código está en la lista; se combina con {@link #deEscuela} para no salir de la escuela. */
+    static Specification<UsuarioModel> conCodigos(Collection<UUID> codigos) {
+        return (root, query, cb) -> root.get("codigo").in(codigos);
     }
 
     // * En la consulta de datos el perfil viaja con un JOIN FETCH (sin N+1); en la de conteo, un JOIN común

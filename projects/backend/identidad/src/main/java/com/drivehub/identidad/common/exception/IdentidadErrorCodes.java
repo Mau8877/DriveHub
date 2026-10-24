@@ -29,6 +29,8 @@ public final class IdentidadErrorCodes {
     public static final String CI_EN_USO = "ERR_IDE_19";
     public static final String ESTUDIANTE_NO_ENCONTRADO = "ERR_IDE_20";
     public static final String CATEGORIA_NO_EXISTE = "ERR_IDE_21";
+    public static final String INSTRUCTOR_NO_ENCONTRADO = "ERR_IDE_22";
+    public static final String CUENTA_YA_USADA = "ERR_IDE_23";
 
     private IdentidadErrorCodes() {
     }

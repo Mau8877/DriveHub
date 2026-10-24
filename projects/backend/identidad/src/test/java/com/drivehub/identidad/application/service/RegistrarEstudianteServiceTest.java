@@ -61,7 +61,7 @@ class RegistrarEstudianteServiceTest {
     @BeforeEach
     void crearServicio() {
         Clock reloj = Clock.fixed(HOY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
-        servicio = new RegistrarEstudianteService(escuelaConsulta, new AltaEstudiante(
+        servicio = new RegistrarEstudianteService(escuelaConsulta, new AltaCuenta(
             usuarioRepository, rolRepository, passwordHasher, geocodificador, reloj, 18));
     }
 

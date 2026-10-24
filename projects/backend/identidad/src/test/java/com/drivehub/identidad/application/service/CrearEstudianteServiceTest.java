@@ -72,7 +72,7 @@ class CrearEstudianteServiceTest {
     void crearServicio() {
         Clock reloj = Clock.fixed(HOY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
         servicio = new CrearEstudianteService(new EscuelaDelAdministrador(usuarioRepository), categoriaConsulta,
-            new AltaEstudiante(usuarioRepository, rolRepository, passwordHasher, geocodificador, reloj, 18),
+            new AltaCuenta(usuarioRepository, rolRepository, passwordHasher, geocodificador, reloj, 18),
             new EstudianteMapeador(reloj, mock(PerfilArmador.class)));
     }
 

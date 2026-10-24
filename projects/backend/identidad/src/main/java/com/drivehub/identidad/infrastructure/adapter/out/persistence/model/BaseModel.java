@@ -56,6 +56,17 @@ public abstract class BaseModel {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    /**
+     * Fija el código público al crear el Model, cuando quien lo crea ya lo eligió (CU09: Escuela
+     * genera el código de la persona). Después de tener código no se puede cambiar.
+     */
+    public void asignarCodigo(UUID nuevo) {
+        if (codigo != null) {
+            throw new IllegalStateException("El código público no se puede cambiar");
+        }
+        codigo = nuevo;
+    }
+
     @PrePersist
     protected void generarCodigoSiFalta() {
         if (codigo == null) {

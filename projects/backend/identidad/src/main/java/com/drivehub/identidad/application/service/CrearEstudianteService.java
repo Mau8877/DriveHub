@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.drivehub.identidad.common.exception.IdentidadErrorCodes;
 import com.drivehub.identidad.common.exception.ValidationException;
 import com.drivehub.identidad.domain.model.CategoriaNombres;
+import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.in.CrearEstudianteComando;
 import com.drivehub.identidad.domain.port.in.CrearEstudianteUseCase;
@@ -29,7 +30,7 @@ import lombok.RequiredArgsConstructor;
  * * el correo sin verificar y la contraseña inicial que escribió el Administrador.
  * * La categoría es opcional ("sin categoría" por defecto); otra se valida con Escuela, que tiene el
  * * catálogo. Si Escuela no responde, el alta falla y no se crea nada.
- * * Las reglas de datos (edad, correo y CI únicos, perfil) son las de {@link AltaEstudiante}.
+ * * Las reglas de datos (edad, correo y CI únicos, perfil) son las de {@link AltaCuenta}.
  * ! Nunca se loguea la contraseña, el CI, el correo, el teléfono ni las coordenadas.
  */
 @Service
@@ -41,7 +42,7 @@ public class CrearEstudianteService implements CrearEstudianteUseCase {
 
     private final EscuelaDelAdministrador escuelaDelAdministrador;
     private final CategoriaLicenciaConsultaPort categoriaConsulta;
-    private final AltaEstudiante altaEstudiante;
+    private final AltaCuenta altaCuenta;
     private final EstudianteMapeador mapeador;
 
     @Override
@@ -51,10 +52,10 @@ public class CrearEstudianteService implements CrearEstudianteUseCase {
         UUID escuela = escuelaDelAdministrador.de(comando.administradorCodigo());
         String categoria = categoriaElegida(comando.categoriaSigla());
 
-        AltaEstudiante.Datos datos = new AltaEstudiante.Datos(comando.nombres(), comando.apellidos(),
+        AltaCuenta.Datos datos = new AltaCuenta.Datos(comando.nombres(), comando.apellidos(),
             comando.fechaNacimiento(), comando.email(), comando.password(), comando.telefono(), comando.ci(),
             comando.sexo(), comando.latitud(), comando.longitud());
-        Usuario guardado = altaEstudiante.crear(datos, () -> escuela, categoria);
+        Usuario guardado = altaCuenta.crear(datos, () -> escuela, RolNombres.ESTUDIANTE, categoria);
 
         LOG.info("Estudiante creado por el administrador", kv("module", MODULO),
             kv("usuarioCodigo", guardado.getCodigo()), kv("administradorCodigo", comando.administradorCodigo()));
