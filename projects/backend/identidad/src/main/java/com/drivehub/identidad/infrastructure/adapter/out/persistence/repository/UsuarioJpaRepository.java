@@ -5,13 +5,15 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
 
 import com.drivehub.identidad.infrastructure.adapter.out.persistence.model.UsuarioModel;
 
-public interface UsuarioJpaRepository extends JpaRepository<UsuarioModel, Long> {
+public interface UsuarioJpaRepository
+        extends JpaRepository<UsuarioModel, Long>, JpaSpecificationExecutor<UsuarioModel> {
 
     boolean existsByEmail(String email);
 

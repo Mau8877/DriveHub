@@ -27,6 +27,8 @@ public final class IdentidadErrorCodes {
     public static final String FOTO_DEMASIADO_GRANDE = "ERR_IDE_17";
     public static final String CORREO_IGUAL_AL_ACTUAL = "ERR_IDE_18";
     public static final String CI_EN_USO = "ERR_IDE_19";
+    public static final String ESTUDIANTE_NO_ENCONTRADO = "ERR_IDE_20";
+    public static final String CATEGORIA_NO_EXISTE = "ERR_IDE_21";
 
     private IdentidadErrorCodes() {
     }

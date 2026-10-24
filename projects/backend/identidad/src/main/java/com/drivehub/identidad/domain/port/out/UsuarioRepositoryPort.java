@@ -31,6 +31,21 @@ public interface UsuarioRepositoryPort {
     Optional<Usuario> buscarAdministradorDeEscuela(UUID escuelaCodigo);
 
     /**
+     * Las cuentas con rol ESTUDIANTE de esa escuela (CU08), con su perfil, de la más reciente a la
+     * más antigua (`created_at DESC, id DESC`). Nunca trae a una persona de otra escuela.
+     * Los roles de las cuentas devueltas no se cargan.
+     *
+     * @param pagina 1-indexada
+     */
+    PaginaUsuarios listarEstudiantesDeEscuela(UUID escuelaCodigo, FiltroEstudiantes filtro, int pagina, int tamano);
+
+    /**
+     * La cuenta ESTUDIANTE con ese código dentro de esa escuela (CU08). Vacío si no existe, si no
+     * es un estudiante o si es de otra escuela: no se distinguen. Los roles no se cargan.
+     */
+    Optional<Usuario> buscarEstudianteDeEscuela(UUID escuelaCodigo, UUID codigo);
+
+    /**
      * Borra la cuenta y todo lo que cuelga de ella (roles, sesiones, enlaces de correo), de forma
      * FÍSICA. Solo para revertir la creación de un Administrador sin uso (CU05).
      */

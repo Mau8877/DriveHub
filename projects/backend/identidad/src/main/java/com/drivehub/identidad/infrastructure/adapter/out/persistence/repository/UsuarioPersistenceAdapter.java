@@ -7,6 +7,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +19,8 @@ import com.drivehub.identidad.domain.model.Perfil;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
+import com.drivehub.identidad.domain.port.out.FiltroEstudiantes;
+import com.drivehub.identidad.domain.port.out.PaginaUsuarios;
 import com.drivehub.identidad.domain.port.out.UsuarioRepositoryPort;
 import com.drivehub.identidad.infrastructure.adapter.out.persistence.model.PerfilModel;
 import com.drivehub.identidad.infrastructure.adapter.out.persistence.model.RolModel;
@@ -108,6 +113,27 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
     public Optional<Usuario> buscarAdministradorDeEscuela(UUID escuelaCodigo) {
         return usuarioRolJpaRepository.findUsuariosConRolEnEscuela(escuelaCodigo, RolNombres.ADMIN_ESCUELA).stream()
             .findFirst().map(m -> aDominio(m, m.getPerfil(), rolesDe(m)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginaUsuarios listarEstudiantesDeEscuela(
+            UUID escuelaCodigo, FiltroEstudiantes filtro, int pagina, int tamano) {
+        Page<UsuarioModel> resultado = usuarioJpaRepository.findAll(
+            EstudiantesSpecification.deEscuela(escuelaCodigo, filtro),
+            PageRequest.of(pagina - 1, tamano, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))));
+        return new PaginaUsuarios(
+            resultado.getContent().stream().map(m -> aDominio(m, m.getPerfil(), Set.of())).toList(),
+            resultado.getTotalElements());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Usuario> buscarEstudianteDeEscuela(UUID escuelaCodigo, UUID codigo) {
+        return usuarioJpaRepository
+            .findOne(EstudiantesSpecification.deEscuela(escuelaCodigo, new FiltroEstudiantes(null, null))
+                .and(EstudiantesSpecification.conCodigo(codigo)))
+            .map(m -> aDominio(m, m.getPerfil(), Set.of()));
     }
 
     @Override
