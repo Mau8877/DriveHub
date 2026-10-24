@@ -27,4 +27,9 @@ public class InstructorCategoriaModel extends BaseModel {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "categoria_id", nullable = false)
     private CategoriaLicenciaModel categoria;
+
+    public InstructorCategoriaModel(InstructorModel instructor, CategoriaLicenciaModel categoria) {
+        this.instructor = instructor;
+        this.categoria = categoria;
+    }
 }

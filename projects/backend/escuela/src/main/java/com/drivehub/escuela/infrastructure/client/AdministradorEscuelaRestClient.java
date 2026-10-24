@@ -9,20 +9,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
-import com.drivehub.escuela.common.exception.ConflictException;
-import com.drivehub.escuela.common.exception.ForbiddenException;
-import com.drivehub.escuela.common.exception.LockedException;
-import com.drivehub.escuela.common.exception.NotFoundException;
-import com.drivehub.escuela.common.exception.UnauthorizedException;
-import com.drivehub.escuela.common.exception.ValidationException;
 import com.drivehub.escuela.domain.gateway.AdministradorCreado;
 import com.drivehub.escuela.domain.gateway.AdministradorEscuelaGateway;
 import com.drivehub.escuela.domain.gateway.DatosAdministrador;
@@ -63,7 +54,7 @@ public class AdministradorEscuelaRestClient implements AdministradorEscuelaGatew
         try {
             SobreAdministrador sobre = restClient.post()
                 .uri(RUTA)
-                .header(HttpHeaders.AUTHORIZATION, bearerDeLaSesion())
+                .header(HttpHeaders.AUTHORIZATION, TraductorDeErroresDeIdentidad.bearerDeLaSesion())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(cuerpo)
                 .retrieve()
@@ -74,7 +65,7 @@ public class AdministradorEscuelaRestClient implements AdministradorEscuelaGatew
             DatosRespuesta d = sobre.data();
             return new AdministradorCreado(d.codigo(), d.email(), d.nombres(), d.apellidos());
         } catch (RestClientResponseException e) {
-            throw traducir(e);
+            throw TraductorDeErroresDeIdentidad.traducir(e);
         } catch (RestClientException e) {
             throw new IdentidadNoDisponibleException("No se pudo hablar con Identidad", e);
         }
@@ -85,49 +76,13 @@ public class AdministradorEscuelaRestClient implements AdministradorEscuelaGatew
         try {
             restClient.delete()
                 .uri(uri -> uri.path(RUTA).queryParam("escuelaCodigo", escuelaCodigo).build())
-                .header(HttpHeaders.AUTHORIZATION, bearerDeLaSesion())
+                .header(HttpHeaders.AUTHORIZATION, TraductorDeErroresDeIdentidad.bearerDeLaSesion())
                 .retrieve()
                 .toBodilessEntity();
         } catch (RestClientResponseException e) {
-            throw traducir(e);
+            throw TraductorDeErroresDeIdentidad.traducir(e);
         } catch (RestClientException e) {
             throw new IdentidadNoDisponibleException("No se pudo hablar con Identidad", e);
-        }
-    }
-
-    private String bearerDeLaSesion() {
-        Authentication autenticacion = SecurityContextHolder.getContext().getAuthentication();
-        if (autenticacion instanceof JwtAuthenticationToken jwt) {
-            return "Bearer " + jwt.getToken().getTokenValue();
-        }
-        throw new IllegalStateException("No hay una sesión con token para llamar a Identidad");
-    }
-
-    private RuntimeException traducir(RestClientResponseException e) {
-        int estado = e.getStatusCode().value();
-        SobreError sobre = leerError(e);
-        boolean noEsDeNegocio = estado >= 500 || estado == 429 || sobre == null || sobre.error() == null;
-        if (noEsDeNegocio) {
-            return new IdentidadNoDisponibleException("Identidad respondió " + estado, e);
-        }
-        String codigo = sobre.error();
-        String mensaje = sobre.message() == null ? "Identidad rechazó la petición" : sobre.message();
-        return switch (estado) {
-            case 400 -> new ValidationException(codigo, mensaje);
-            case 401 -> new UnauthorizedException(codigo, mensaje);
-            case 403 -> new ForbiddenException(codigo, mensaje);
-            case 404 -> new NotFoundException(codigo, mensaje);
-            case 409 -> new ConflictException(codigo, mensaje);
-            case 423 -> new LockedException(codigo, mensaje);
-            default -> new IdentidadNoDisponibleException("Identidad respondió " + estado, e);
-        };
-    }
-
-    private SobreError leerError(RestClientResponseException e) {
-        try {
-            return e.getResponseBodyAs(SobreError.class);
-        } catch (RuntimeException ignorada) {
-            return null;
         }
     }
 
@@ -148,8 +103,5 @@ public class AdministradorEscuelaRestClient implements AdministradorEscuelaGatew
     }
 
     private record DatosRespuesta(UUID codigo, String email, String nombres, String apellidos) {
-    }
-
-    private record SobreError(String error, String message) {
     }
 }
