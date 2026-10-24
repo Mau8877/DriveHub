@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@drivehub/design-tokens": "workspace:*",
+    "@drivehub/gestion": "workspace:*",
     "@drivehub/mf-contract": "workspace:*",
     "@tanstack/react-form": "^1.33.2",
     "@tanstack/react-query": "^5.101.4",

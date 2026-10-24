@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { waitFor } from '@testing-library/react'
 
 import { mount, unmount } from './mount'
 
@@ -10,6 +10,10 @@ const props = {
   navegar: () => undefined,
   renovarSesion: async () => null,
 }
+
+/** Espera a que el remoto pinte su pantalla (la gestión de manuales, un <dh-gestion>). */
+const pantalla = (elemento: HTMLElement) =>
+  waitFor(() => expect(elemento.querySelector('dh-gestion')).not.toBeNull(), { timeout: 8000 })
 
 function nuevoElemento() {
   const elemento = document.createElement('div')
@@ -23,7 +27,7 @@ describe('mount', () => {
 
     mount(elemento, props)
 
-    expect(await screen.findByRole('heading', { name: 'Contenido' })).toBeInTheDocument()
+    await pantalla(elemento)
     unmount(elemento)
     await waitFor(() => expect(elemento).toBeEmptyDOMElement())
     elemento.remove()
@@ -32,7 +36,7 @@ describe('mount', () => {
   it('unmount deja el elemento vacío', async () => {
     const elemento = nuevoElemento()
     mount(elemento, props)
-    await screen.findByRole('heading', { name: 'Contenido' })
+    await pantalla(elemento)
 
     unmount(elemento)
 
