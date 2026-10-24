@@ -15,9 +15,11 @@ export interface Columna {
   /** Campo del registro (admite puntos). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'fecha' | 'insignia'
+  tipo?: 'texto' | 'fecha' | 'insignia' | 'imagen' | 'enlace'
   /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
   insignias?: Record<string, Insignia>
+  /** Para `tipo: 'enlace'`: el texto del enlace (el valor del campo es la URL). */
+  etiqueta?: string
   /** Texto atenuado (datos de apoyo como el slug). */
   secundaria?: boolean
   /** Columna principal: el texto va en negrita y, si hay `icono`, con su ficha de icono a la izquierda. */
@@ -45,6 +47,8 @@ export interface MensajesCampo {
   max?: string
   email?: string
   patron?: string
+  /** `archivo`: mensaje cuando el tipo de archivo no es el aceptado. */
+  tipo?: string
   fechaNoFutura?: string
   edadMinima?: string
   /** `seleccion`: el valor no está entre las opciones. */
@@ -57,9 +61,25 @@ export interface Campo {
   /** Campo del cuerpo (admite puntos: `administrador.nombres` arma un objeto anidado). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'seleccion' | 'ubicacion'
+  tipo?:
+    | 'texto'
+    | 'email'
+    | 'password'
+    | 'fecha'
+    | 'telefono'
+    | 'numero'
+    | 'seleccion'
+    | 'ubicacion'
+    | 'imagen'
+    | 'archivo'
+    | 'lista'
+    | 'textarea'
+    | 'opciones'
   requerido?: boolean
-  /** Largo mínimo y máximo del texto. */
+  /**
+   * Largo mínimo y máximo del texto. En `tipo: 'numero'` son el rango del valor (entero) y en
+   * `tipo: 'opciones'` la cantidad de filas (2 y 6 por defecto).
+   */
   min?: number
   max?: number
   /** Nombre de un patrón (`slug`) o una expresión regular. */
@@ -83,6 +103,24 @@ export interface Campo {
   opcionesDe?: { recurso: string; valor: string; etiqueta: string; params?: Record<string, string> }
   /** `seleccion`: valor preseleccionado al crear. */
   porDefecto?: string
+  /** `seleccion`: el valor elegido viaja como número (ej. una dificultad de 1 a 3). */
+  numerico?: boolean
+  /** `opciones`: largo máximo del texto de cada fila (200). El valor viaja como arreglo de `{ texto, correcta }`. */
+  maxTexto?: number
+  /**
+   * `imagen`: ruta (relativa al API) que firma la subida a Cloudinary y devuelve
+   * `{ cloudName, apiKey, timestamp, folder, signature }`. El valor del campo es la URL resultante.
+   */
+  firma?: string
+  /**
+   * `archivo`: ruta (relativa al API) que recibe el archivo (multipart, campo `archivo`) y devuelve su
+   * descriptor. El descriptor viaja en el cuerpo, bajo este campo, solo si es nuevo.
+   */
+  subida?: string
+  /** `archivo`: tipos MIME aceptados, separados por coma (ej. `application/pdf`). */
+  accept?: string
+  /** `archivo`: tamaño máximo en bytes (por defecto 20 MB). */
+  maxBytes?: number
   /**
    * `ubicacion`: campo del registro cargado cuyo valor se muestra bajo el mapa como dirección (solo
    * lectura). El campo escribe `latitud` y `longitud` en el cuerpo con el prefijo de su ruta
@@ -213,7 +251,11 @@ export declare class ErrorApi extends Error {
 export declare function solicitar(
   metodo: string,
   ruta: string,
-  opciones?: { params?: Record<string, string | number | null | undefined>; cuerpo?: unknown }
+  opciones?: {
+    params?: Record<string, string | number | null | undefined>
+    cuerpo?: unknown
+    formulario?: FormData
+  }
 ): Promise<{ data: any; meta?: any }>
 
 export declare const PATRONES: Record<string, { regex: RegExp; mensaje: string }>

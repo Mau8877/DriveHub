@@ -979,3 +979,702 @@ describe('<dh-gestion>', () => {
     expect(el.shadowRoot.querySelector('aside.drawer form')).not.toBeNull()
   })
 })
+
+// * Lo que hace <dh-select> al elegir una opción (el componente tiene sus propios tests en @drivehub/ui)
+const elegirOpcion = async (el, id, valor) => {
+  el.shadowRoot
+    .querySelector(`#${id}`)
+    .dispatchEvent(new CustomEvent('dh-cambio', { detail: { valor }, bubbles: true, composed: true }))
+  await asentar(el)
+}
+
+describe('<dh-gestion> filas sin acciones', () => {
+  let el
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  it('una fila sin ninguna acción disponible dice "Sin acciones" en vez de quedar vacía', async () => {
+    fetch.mockResolvedValueOnce(lista([{ ...MUERTA, codigo: 'c3', estado: 'OTRO' }]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = { ...ESQUEMA, editar: { ...ESQUEMA.editar, visibleSi: { campo: 'estado', igual: 'ACTIVA' } } }
+    await asentar(el)
+
+    expect(el.shadowRoot.textContent).toContain('Sin acciones')
+  })
+})
+
+describe('<dh-gestion> campos numero y seleccion', () => {
+  let el
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  it('el desplegable ofrece sus opciones y el número viaja como número en el cuerpo', async () => {
+    fetch.mockResolvedValueOnce(lista([]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = {
+      recurso: 'vehiculos',
+      titulo: 'Autos',
+      columnas: [{ campo: 'placa', titulo: 'Placa' }],
+      crear: {
+        etiqueta: 'Nuevo auto',
+        mensajeExito: 'Listo',
+        etiquetaEnviar: 'Registrar',
+        secciones: [
+          {
+            campos: [
+              { campo: 'placa', titulo: 'Placa', requerido: true },
+              {
+                campo: 'transmision',
+                titulo: 'Transmisión',
+                tipo: 'seleccion',
+                requerido: true,
+                opciones: [
+                  { valor: 'MANUAL', etiqueta: 'Manual' },
+                  { valor: 'AUTOMATICO', etiqueta: 'Automática' },
+                ],
+              },
+              { campo: 'kilometraje', titulo: 'Kilometraje', tipo: 'numero', min: 0 },
+            ],
+          },
+        ],
+      },
+    }
+    await asentar(el)
+    Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Nuevo auto').click()
+    await asentar(el)
+
+    const select = el.shadowRoot.querySelector('#campo-transmision')
+    expect(select.tagName).toBe('DH-SELECT')
+    expect(select.opciones.map((o) => o.valor)).toEqual(['MANUAL', 'AUTOMATICO'])
+    expect(el.shadowRoot.querySelector('#campo-kilometraje').type).toBe('number')
+
+    const poner = async (selector, valor, evento) => {
+      const campo = el.shadowRoot.querySelector(selector)
+      campo.value = valor
+      campo.dispatchEvent(new Event(evento, { bubbles: true }))
+      campo.dispatchEvent(new Event('blur'))
+      await asentar(el)
+    }
+    await poner('#campo-placa', 'ABC-123', 'input')
+    await elegirOpcion(el, 'campo-transmision', 'AUTOMATICO')
+    await poner('#campo-kilometraje', '1500', 'input')
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'v1' })).mockResolvedValueOnce(lista([]))
+
+    Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Registrar').click()
+    await asentar(el)
+
+    const [, init] = fetch.mock.calls[1]
+    expect(JSON.parse(init.body)).toEqual({ placa: 'ABC-123', transmision: 'AUTOMATICO', kilometraje: 1500 })
+  })
+})
+
+describe('<dh-gestion> campo y columna imagen', () => {
+  let el
+  const FOTO = 'https://res.cloudinary.com/nube/image/upload/v1/drivehub/e1/vehiculos/auto.jpg'
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+
+  const ESQUEMA_AUTOS = {
+    recurso: 'vehiculos',
+    titulo: 'Autos',
+    columnas: [
+      { campo: 'imagenUrl', titulo: 'Foto', tipo: 'imagen' },
+      { campo: 'placa', titulo: 'Placa' },
+    ],
+    crear: {
+      etiqueta: 'Nuevo auto',
+      mensajeExito: 'Listo',
+      etiquetaEnviar: 'Registrar',
+      secciones: [
+        {
+          campos: [
+            { campo: 'placa', titulo: 'Placa', requerido: true },
+            { campo: 'imagenUrl', titulo: 'Foto', tipo: 'imagen', firma: 'vehiculos/firma-imagen' },
+          ],
+        },
+      ],
+    },
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  async function montar() {
+    fetch.mockResolvedValueOnce(lista([{ codigo: 'v1', placa: 'ABC-123', imagenUrl: FOTO }]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_AUTOS
+    await asentar(el)
+  }
+
+  async function abrirCrearYElegir(archivo) {
+    await montar()
+    boton('Nuevo auto').click()
+    await asentar(el)
+    const entrada = el.shadowRoot.querySelector('#campo-imagenUrl')
+    Object.defineProperty(entrada, 'files', { value: [archivo], configurable: true })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+  }
+
+  it('la columna imagen muestra una miniatura recortada de Cloudinary', async () => {
+    await montar()
+
+    const img = el.shadowRoot.querySelector('img.miniatura')
+    expect(img.getAttribute('src')).toContain('/image/upload/c_fill,w_96,h_64,f_auto,q_auto/v1/')
+  })
+
+  it('sube la foto con la firma del backend y deja la URL en el cuerpo del formulario', async () => {
+    fetch.mockImplementation(async () => lista([]))
+    const archivo = new File(['x'], 'auto.png', { type: 'image/png' })
+    await montar()
+    boton('Nuevo auto').click()
+    await asentar(el)
+    fetch.mockReset()
+    fetch
+      .mockResolvedValueOnce(
+        sobre({ cloudName: 'nube', apiKey: 'k', timestamp: 1700000000, folder: 'drivehub/e1/vehiculos', signature: 'sig' })
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ secure_url: FOTO }), { status: 200 }))
+
+    const entrada = el.shadowRoot.querySelector('#campo-imagenUrl')
+    Object.defineProperty(entrada, 'files', { value: [archivo], configurable: true })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+
+    expect(fetch.mock.calls[0][0]).toBe('http://api.test/v1/vehiculos/firma-imagen')
+    expect(fetch.mock.calls[0][1].method).toBe('POST')
+    const [urlNube, init] = fetch.mock.calls[1]
+    expect(urlNube).toBe('https://api.cloudinary.com/v1_1/nube/image/upload')
+    expect(init.body.get('signature')).toBe('sig')
+    expect(init.body.get('api_key')).toBe('k')
+    expect(init.body.get('folder')).toBe('drivehub/e1/vehiculos')
+    expect(init.body.get('file').name).toBe('auto.png')
+    expect(el.shadowRoot.querySelector('img.vista-previa')).not.toBeNull()
+
+    const placa = el.shadowRoot.querySelector('#campo-placa')
+    placa.value = 'ABC-123'
+    placa.dispatchEvent(new Event('input', { bubbles: true }))
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'v2' })).mockResolvedValueOnce(lista([]))
+    boton('Registrar').click()
+    await asentar(el)
+    expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({ placa: 'ABC-123', imagenUrl: FOTO })
+  })
+
+  it('rechaza lo que no es imagen o pesa más de 5 MB sin llamar a nadie', async () => {
+    await abrirCrearYElegir(new File(['x'], 'datos.pdf', { type: 'application/pdf' }))
+    expect(el.shadowRoot.textContent).toContain('El archivo debe ser una imagen')
+
+    const grande = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'grande.png', { type: 'image/png' })
+    const entrada = el.shadowRoot.querySelector('#campo-imagenUrl')
+    Object.defineProperty(entrada, 'files', { value: [grande], configurable: true })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+
+    expect(el.shadowRoot.textContent).toContain('no puede pesar más de 5 MB')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('si Cloudinary rechaza la subida, avisa y no deja URL', async () => {
+    await montar()
+    boton('Nuevo auto').click()
+    await asentar(el)
+    fetch
+      .mockResolvedValueOnce(sobre({ cloudName: 'nube', apiKey: 'k', timestamp: 1, folder: 'f', signature: 's' }))
+      .mockResolvedValueOnce(new Response('{}', { status: 400 }))
+
+    const entrada = el.shadowRoot.querySelector('#campo-imagenUrl')
+    Object.defineProperty(entrada, 'files', {
+      value: [new File(['x'], 'a.png', { type: 'image/png' })],
+      configurable: true,
+    })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+
+    expect(el.shadowRoot.textContent).toContain('No pudimos subir la imagen')
+    expect(el.shadowRoot.querySelector('img.vista-previa')).toBeNull()
+  })
+})
+
+describe('<dh-gestion> campos archivo y lista, columna enlace', () => {
+  let el
+  const DESCRIPTOR = {
+    url: 'http://localhost:9000/drivehub-contenido/escuelas/e1/manuales/a.pdf',
+    nombre: 'm.pdf',
+    mime: 'application/pdf',
+    sha256: 'a'.repeat(64),
+    tamanoBytes: 193,
+  }
+  const FILA = { codigo: 'm1', titulo: 'Señales', etiquetas: ['vial', 'señales'], archivo: { ...DESCRIPTOR } }
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+  const pdf = (nombre = 'm.pdf', tipo = 'application/pdf') => new File(['%PDF'], nombre, { type: tipo })
+
+  const ESQUEMA_MANUALES = {
+    recurso: 'manuales',
+    titulo: 'Manuales',
+    columnas: [
+      { campo: 'titulo', titulo: 'Título' },
+      { campo: 'archivo.url', titulo: 'PDF', tipo: 'enlace', etiqueta: 'Ver PDF' },
+    ],
+    crear: {
+      etiqueta: 'Nuevo manual',
+      mensajeExito: 'Listo',
+      etiquetaEnviar: 'Crear',
+      secciones: [
+        {
+          campos: [
+            { campo: 'titulo', titulo: 'Título', requerido: true },
+            { campo: 'etiquetas', titulo: 'Etiquetas', tipo: 'lista' },
+            {
+              campo: 'archivo',
+              titulo: 'PDF',
+              tipo: 'archivo',
+              requerido: true,
+              subida: 'manuales/archivos',
+              accept: 'application/pdf',
+              maxBytes: 1024,
+              mensajes: { requerido: 'Sube el PDF', tipo: 'Debe ser un PDF', max: 'Muy pesado' },
+            },
+          ],
+        },
+      ],
+    },
+    editar: {
+      etiquetaEnviar: 'Guardar',
+      mensajeExito: 'Guardado',
+      secciones: [
+        {
+          campos: [
+            { campo: 'titulo', titulo: 'Título', requerido: true },
+            { campo: 'etiquetas', titulo: 'Etiquetas', tipo: 'lista' },
+            { campo: 'archivo', titulo: 'PDF', tipo: 'archivo', subida: 'manuales/archivos' },
+          ],
+        },
+      ],
+    },
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  async function montar(filas = [FILA]) {
+    fetch.mockResolvedValueOnce(lista(filas))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_MANUALES
+    await asentar(el)
+  }
+
+  async function elegir(archivo) {
+    const entrada = el.shadowRoot.querySelector('#campo-archivo')
+    Object.defineProperty(entrada, 'files', { value: [archivo], configurable: true })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+  }
+
+  async function escribirTexto(selector, valor) {
+    const campo = el.shadowRoot.querySelector(selector)
+    campo.value = valor
+    campo.dispatchEvent(new Event('input', { bubbles: true }))
+    await asentar(el)
+  }
+
+  it('la columna enlace abre el archivo en otra pestaña con su etiqueta', async () => {
+    await montar()
+
+    const enlace = el.shadowRoot.querySelector('a.enlace-archivo')
+    expect(enlace.textContent.trim()).toBe('Ver PDF')
+    expect(enlace.getAttribute('href')).toBe(DESCRIPTOR.url)
+    expect(enlace.getAttribute('target')).toBe('_blank')
+    expect(enlace.getAttribute('rel')).toContain('noopener')
+  })
+
+  it('sube el archivo como multipart al elegirlo y al enviar manda su descriptor y la lista como array', async () => {
+    await montar([])
+    boton('Nuevo manual').click()
+    await asentar(el)
+    fetch.mockReset()
+    fetch.mockResolvedValueOnce(sobre(DESCRIPTOR))
+
+    await elegir(pdf())
+
+    const [urlSubida, initSubida] = fetch.mock.calls[0]
+    expect(urlSubida).toBe('http://api.test/v1/manuales/archivos')
+    expect(initSubida.method).toBe('POST')
+    expect(initSubida.body.get('archivo').name).toBe('m.pdf')
+    expect(initSubida.headers['Content-Type']).toBeUndefined()
+    expect(el.shadowRoot.textContent).toContain('m.pdf')
+
+    await escribirTexto('#campo-titulo', 'Señales')
+    await escribirTexto('#campo-etiquetas', ' vial, señales ,vial,, ')
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'm2' })).mockResolvedValueOnce(lista([]))
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      titulo: 'Señales',
+      etiquetas: ['vial', 'señales'],
+      archivo: DESCRIPTOR,
+    })
+  })
+
+  it('sin archivo no se envía y pide subirlo; un tipo o tamaño no válido avisa sin llamar a nadie', async () => {
+    await montar([])
+    boton('Nuevo manual').click()
+    await asentar(el)
+    await escribirTexto('#campo-titulo', 'Señales')
+    boton('Crear').click()
+    await asentar(el)
+    expect(el.shadowRoot.textContent).toContain('Sube el PDF')
+
+    fetch.mockReset()
+    await elegir(pdf('a.png', 'image/png'))
+    expect(el.shadowRoot.textContent).toContain('Debe ser un PDF')
+    await elegir(new File([new Uint8Array(2048)], 'grande.pdf', { type: 'application/pdf' }))
+    expect(el.shadowRoot.textContent).toContain('Muy pesado')
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('si el backend rechaza el archivo, muestra su mensaje y no deja valor', async () => {
+    await montar([])
+    boton('Nuevo manual').click()
+    await asentar(el)
+    fetch.mockReset()
+    fetch.mockResolvedValueOnce(falla(400, 'ERR_SYS_01', 'El manual debe ser un archivo PDF'))
+
+    await elegir(pdf())
+
+    expect(el.shadowRoot.textContent).toContain('El manual debe ser un archivo PDF')
+    expect(el.shadowRoot.querySelector('.archivo-actual')).toBeNull()
+  })
+
+  it('al editar muestra el archivo actual y las etiquetas como texto, y sin cambiar el archivo no lo reenvía', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(sobre(FILA))
+    boton('Editar').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelector('#campo-etiquetas').value).toBe('vial, señales')
+    // * El listado sigue visible detrás del panel: el enlace del archivo actual es el del panel
+    expect(el.shadowRoot.querySelector('.drawer a.enlace-archivo').textContent.trim()).toBe('m.pdf')
+
+    await escribirTexto('#campo-titulo', 'Señales 2')
+    fetch.mockResolvedValueOnce(sobre(FILA)).mockResolvedValueOnce(lista([FILA]))
+    boton('Guardar').click()
+    await asentar(el)
+
+    const cuerpo = JSON.parse(fetch.mock.calls[2][1].body)
+    expect(cuerpo).toEqual({ titulo: 'Señales 2', etiquetas: ['vial', 'señales'] })
+    expect(cuerpo.archivo).toBeUndefined()
+  })
+})
+
+describe('<dh-gestion> campos textarea, opciones y seleccion numerica, y datos booleanos', () => {
+  let el
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+  const filas = () => Array.from(el.shadowRoot.querySelectorAll('.fila-opcion'))
+  const PREGUNTA = {
+    codigo: 'p1',
+    enunciado: '¿Qué indica el PARE?',
+    dificultad: 2,
+    activa: true,
+    opciones: [
+      { id: 'A', texto: 'Detenerse', correcta: true },
+      { id: 'B', texto: 'Seguir', correcta: false },
+      { id: 'C', texto: 'Tocar bocina', correcta: false },
+    ],
+  }
+  const INACTIVA = { ...PREGUNTA, codigo: 'p2', activa: false }
+
+  const ESQUEMA_PREGUNTAS = {
+    recurso: 'preguntas',
+    titulo: 'Preguntas',
+    columnas: [
+      { campo: 'enunciado', titulo: 'Enunciado' },
+      {
+        campo: 'activa',
+        titulo: 'Estado',
+        tipo: 'insignia',
+        insignias: { true: { etiqueta: 'Activa', tono: 'exito' }, false: { etiqueta: 'Inactiva' } },
+      },
+    ],
+    filtros: [
+      {
+        clave: 'filter[activa]',
+        titulo: 'Estado',
+        opciones: [
+          { valor: 'true', etiqueta: 'Activas' },
+          { valor: 'false', etiqueta: 'Inactivas' },
+        ],
+      },
+    ],
+    crear: {
+      etiqueta: 'Nueva pregunta',
+      mensajeExito: 'Listo',
+      etiquetaEnviar: 'Crear',
+      secciones: [
+        {
+          campos: [
+            { campo: 'enunciado', titulo: 'Enunciado', tipo: 'textarea', requerido: true, max: 500 },
+            {
+              campo: 'dificultad',
+              titulo: 'Dificultad',
+              tipo: 'seleccion',
+              numerico: true,
+              requerido: true,
+              opciones: [
+                { valor: '1', etiqueta: 'Fácil' },
+                { valor: '2', etiqueta: 'Media' },
+                { valor: '3', etiqueta: 'Difícil' },
+              ],
+            },
+            { campo: 'opciones', titulo: 'Opciones', tipo: 'opciones', requerido: true, min: 2, max: 3 },
+          ],
+        },
+      ],
+    },
+    editar: {
+      etiquetaEnviar: 'Guardar',
+      mensajeExito: 'Guardado',
+      secciones: [
+        {
+          campos: [
+            {
+              campo: 'dificultad',
+              titulo: 'Dificultad',
+              tipo: 'seleccion',
+              numerico: true,
+              opciones: [{ valor: '2', etiqueta: 'Media' }],
+            },
+            { campo: 'opciones', titulo: 'Opciones', tipo: 'opciones', requerido: true },
+          ],
+        },
+      ],
+    },
+    acciones: [
+      {
+        id: 'desactivar',
+        etiqueta: 'Desactivar',
+        metodo: 'POST',
+        ruta: '{id}/desactivar',
+        mensajeExito: 'Listo',
+        visibleSi: { campo: 'activa', igual: true },
+      },
+      {
+        id: 'activar',
+        etiqueta: 'Activar',
+        metodo: 'POST',
+        ruta: '{id}/activar',
+        mensajeExito: 'Listo',
+        visibleSi: { campo: 'activa', igual: false },
+      },
+    ],
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  async function montar(datos = [PREGUNTA, INACTIVA]) {
+    fetch.mockResolvedValueOnce(lista(datos))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_PREGUNTAS
+    await asentar(el)
+  }
+
+  async function escribirEn(selector, valor, evento = 'input') {
+    const campo = el.shadowRoot.querySelector(selector)
+    campo.value = valor
+    campo.dispatchEvent(new Event(evento, { bubbles: true }))
+    await asentar(el)
+  }
+
+  async function llenarFila(i, texto, correcta = false) {
+    const entrada = filas()[i].querySelector('input[type="text"]')
+    entrada.value = texto
+    entrada.dispatchEvent(new Event('input', { bubbles: true }))
+    await asentar(el)
+    const casilla = filas()[i].querySelector('input[type="checkbox"]')
+    casilla.checked = correcta
+    casilla.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+  }
+
+  it('un dato booleano se muestra con su insignia y decide las acciones visibles', async () => {
+    await montar()
+
+    expect(el.shadowRoot.textContent).toContain('Activa')
+    expect(el.shadowRoot.textContent).toContain('Inactiva')
+    const botones = Array.from(el.shadowRoot.querySelectorAll('tbody tr')).map((tr) =>
+      Array.from(tr.querySelectorAll('button')).map((b) => b.textContent.trim())
+    )
+    expect(botones[0]).toContain('Desactivar')
+    expect(botones[0]).not.toContain('Activar')
+    expect(botones[1]).toContain('Activar')
+    expect(botones[1]).not.toContain('Desactivar')
+  })
+
+  it('el filtro de un booleano manda filter[activa]=false', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(lista([INACTIVA]))
+
+    boton('Inactivas').click()
+    await asentar(el)
+
+    expect(fetch.mock.calls[1][0]).toContain('filter%5Bactiva%5D=false')
+  })
+
+  it('el campo opciones arranca con las filas mínimas y respeta el mínimo y el máximo', async () => {
+    await montar([])
+    boton('Nueva pregunta').click()
+    await asentar(el)
+
+    expect(filas()).toHaveLength(2)
+    expect(filas()[0].querySelector('button').disabled).toBe(true)
+    boton('Agregar opción').click()
+    await asentar(el)
+    expect(filas()).toHaveLength(3)
+    expect(boton('Agregar opción').disabled).toBe(true)
+    filas()[2].querySelector('button').click()
+    await asentar(el)
+    expect(filas()).toHaveLength(2)
+  })
+
+  it('envía el textarea, la dificultad como número y las opciones como arreglo de objetos', async () => {
+    await montar([])
+    boton('Nueva pregunta').click()
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('textarea#campo-enunciado')).not.toBeNull()
+    await escribirEn('#campo-enunciado', '  ¿Qué indica el PARE?  ')
+    await elegirOpcion(el, 'campo-dificultad', '2')
+    await llenarFila(0, ' Detenerse ', true)
+    await llenarFila(1, 'Seguir', false)
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'p9' })).mockResolvedValueOnce(lista([]))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      enunciado: '¿Qué indica el PARE?',
+      dificultad: 2,
+      opciones: [
+        { texto: 'Detenerse', correcta: true },
+        { texto: 'Seguir', correcta: false },
+      ],
+    })
+  })
+
+  it('sin texto en una opción o sin ninguna correcta no se envía y muestra el error bajo el campo', async () => {
+    await montar([])
+    boton('Nueva pregunta').click()
+    await asentar(el)
+    await escribirEn('#campo-enunciado', 'Enunciado válido')
+    await elegirOpcion(el, 'campo-dificultad', '1')
+    await llenarFila(0, 'Uno', false)
+
+    boton('Crear').click()
+    await asentar(el)
+    expect(el.shadowRoot.textContent).toContain('Todas las opciones necesitan texto')
+
+    await llenarFila(1, 'Dos', false)
+    boton('Crear').click()
+    await asentar(el)
+    expect(el.shadowRoot.textContent).toContain('Marca al menos una opción correcta')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('al editar carga las opciones del backend como filas y reenvía el conjunto completo', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(sobre(PREGUNTA))
+    boton('Editar').click()
+    await asentar(el)
+
+    expect(filas()).toHaveLength(3)
+    expect(filas()[0].querySelector('input[type="text"]').value).toBe('Detenerse')
+    expect(filas()[0].querySelector('input[type="checkbox"]').checked).toBe(true)
+    expect(filas()[1].querySelector('input[type="checkbox"]').checked).toBe(false)
+    expect(el.shadowRoot.querySelector('#campo-dificultad').valor).toBe('2')
+
+    await llenarFila(1, 'Avanzar', false)
+    fetch.mockResolvedValueOnce(sobre(PREGUNTA)).mockResolvedValueOnce(lista([PREGUNTA]))
+    boton('Guardar').click()
+    await asentar(el)
+
+    expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({
+      dificultad: 2,
+      opciones: [
+        { texto: 'Detenerse', correcta: true },
+        { texto: 'Avanzar', correcta: false },
+        { texto: 'Tocar bocina', correcta: false },
+      ],
+    })
+  })
+})

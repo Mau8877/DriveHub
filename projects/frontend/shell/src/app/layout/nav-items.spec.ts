@@ -12,11 +12,12 @@ describe('navItemsDeRoles', () => {
     expect(rutas([ROLES.SUPER_ADMIN])).toEqual(['/', '/escuelas'])
   })
 
-  it('el Administrador de escuela ve Inicio, "Estudiantes" y los seis módulos de siempre, y no "Gestionar escuelas"', () => {
+  it('el Administrador de escuela ve Inicio, "Estudiantes", "Autos" y los seis módulos de siempre, y no "Gestionar escuelas"', () => {
     expect(rutas([ROLES.ADMIN_ESCUELA])).toEqual([
       '/',
       '/identidad',
       '/escuela/estudiantes',
+      '/escuela/autos',
       '/escuela',
       '/pagos',
       '/examenes',
@@ -44,6 +45,21 @@ describe('navItemsDeRoles', () => {
     expect(rutas([ROLES.SUPER_ADMIN])).not.toContain('/escuela/estudiantes')
     expect(rutas([ROLES.INSTRUCTOR])).not.toContain('/escuela/estudiantes')
     expect(rutas([ROLES.ESTUDIANTE])).not.toContain('/escuela/estudiantes')
+  })
+
+  it('"Autos" lleva a /escuela/autos, solo lo ve el Administrador de escuela y va antes que "Escuela"', () => {
+    const autos = NAV_ITEMS.find((i) => i.etiqueta === 'Autos')
+    const etiquetas = NAV_ITEMS.map((i) => i.etiqueta)
+
+    expect(autos).toMatchObject({
+      ruta: '/escuela/autos',
+      descripcion: 'Flota de la escuela',
+      icono: 'car',
+    })
+    expect(rutas([ROLES.ADMIN_ESCUELA])).toContain('/escuela/autos')
+    expect(rutas([ROLES.SUPER_ADMIN])).not.toContain('/escuela/autos')
+    expect(rutas([ROLES.INSTRUCTOR])).not.toContain('/escuela/autos')
+    expect(etiquetas.indexOf('Autos')).toBeLessThan(etiquetas.indexOf('Escuela'))
   })
 
   it('"Estudiantes" va antes que "Escuela" (las migas toman el primer ítem que coincide por prefijo)', () => {

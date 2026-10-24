@@ -70,6 +70,33 @@ describe('validar', () => {
   })
 })
 
+describe('validar números y selecciones', () => {
+  const numero = { campo: 'km', titulo: 'Kilometraje', tipo: 'numero', min: 0, max: 100 }
+  const seleccion = {
+    campo: 'transmision',
+    titulo: 'Transmisión',
+    tipo: 'seleccion',
+    requerido: true,
+    opciones: [{ valor: 'MANUAL', etiqueta: 'Manual' }],
+  }
+
+  it('un número entero se valida por su valor, no por el largo del texto', () => {
+    expect(validar(numero, '0')).toBeNull()
+    expect(validar(numero, '100')).toBeNull()
+    expect(validar(numero, '-1')).toBe('Debe ser al menos 0')
+    expect(validar(numero, '101')).toBe('No puede superar 100')
+    expect(validar(numero, '1.5')).toBe('Debe ser un número entero')
+    expect(validar(numero, 'abc')).toBe('Debe ser un número entero')
+    expect(validar(numero, '')).toBeNull()
+  })
+
+  it('una selección solo acepta una de sus opciones', () => {
+    expect(validar(seleccion, 'MANUAL')).toBeNull()
+    expect(validar(seleccion, 'CVT')).toBe('Elige una opción de la lista')
+    expect(validar(seleccion, '')).toBe('Este campo es obligatorio')
+  })
+})
+
 describe('edadEnAnios', () => {
   it('cuenta años cumplidos', () => {
     expect(edadEnAnios('2000-10-22', new Date(2026, 9, 21))).toBe(25)
@@ -131,5 +158,46 @@ describe('edadEnAnios', () => {
       expect(validar(ubicacion, { latitud: 0, longitud: -180.5 })).toBe('La ubicación no es válida')
       expect(validar(ubicacion, { latitud: 'abc', longitud: 1 })).toBe('La ubicación no es válida')
     })
+  })
+})
+
+describe('validar opciones de respuesta', () => {
+  const campo = { campo: 'opciones', titulo: 'Opciones', tipo: 'opciones', requerido: true }
+  const fila = (texto, correcta = false) => ({ texto, correcta })
+
+  it('pide entre 2 y 6 filas, todas con texto, y al menos una correcta', () => {
+    expect(validar(campo, [fila('Uno', true), fila('Dos')])).toBeNull()
+    expect(validar(campo, [])).toBe('Agrega al menos 2 opciones')
+    expect(validar(campo, undefined)).toBe('Agrega al menos 2 opciones')
+    expect(validar(campo, [fila('Uno', true)])).toBe('Agrega al menos 2 opciones')
+    expect(validar(campo, Array.from({ length: 7 }, (_, i) => fila(`Op ${i}`, i === 0)))).toBe(
+      'Puedes agregar hasta 6 opciones'
+    )
+    expect(validar(campo, [fila('Uno', true), fila('  ')])).toBe('Todas las opciones necesitan texto')
+    expect(validar(campo, [fila('Uno'), fila('Dos')])).toBe('Marca al menos una opción correcta')
+    expect(validar(campo, [fila('x'.repeat(201), true), fila('Dos')])).toBe(
+      'Cada opción puede tener hasta 200 caracteres'
+    )
+  })
+
+  it('min, max y los mensajes salen del esquema', () => {
+    const personalizado = {
+      ...campo,
+      min: 3,
+      max: 4,
+      mensajes: { min: 'Pocas', requerido: 'Falta la correcta' },
+    }
+
+    expect(validar(personalizado, [fila('a', true), fila('b')])).toBe('Pocas')
+    expect(validar(personalizado, [fila('a'), fila('b'), fila('c')])).toBe('Falta la correcta')
+    expect(validar(personalizado, [fila('a', true), fila('b'), fila('c')])).toBeNull()
+  })
+
+  it('un texto largo (textarea) se valida por su largo como cualquier texto', () => {
+    const texto = { campo: 'e', titulo: 'Enunciado', tipo: 'textarea', requerido: true, min: 5, max: 10 }
+
+    expect(validar(texto, 'abc')).not.toBeNull()
+    expect(validar(texto, 'abcdef')).toBeNull()
+    expect(validar(texto, 'a'.repeat(11))).not.toBeNull()
   })
 })

@@ -20,12 +20,19 @@ import lombok.Setter;
 @Getter
 @NoArgsConstructor
 @Document(collection = "banco_preguntas")
-@CompoundIndex(name = "idx_pregunta_categoria_tema_activa", def = "{'categoria': 1, 'tema': 1, 'activa': 1}")
+// * Escuela primero: todo el banco se consulta dentro de una escuela (CU19) y CU20 arma el simulacro
+// * sacando preguntas por categoría y tema de la escuela
+@CompoundIndex(name = "idx_pregunta_escuela_categoria_tema_activa",
+        def = "{'escuelaCodigo': 1, 'categoria': 1, 'tema': 1, 'activa': 1}")
 public class Pregunta extends BaseDocument {
 
     // * Identificador público (UUID v7). El _id Long es interno, ver BaseDocument.
     @Indexed(unique = true)
     private UUID codigoPregunta;
+
+    // * Escuela (tenant) dueña de la pregunta: el claim `escuela` del JWT, sin relación física
+    @Setter
+    private UUID escuelaCodigo;
 
     @Setter
     private String categoria;
@@ -59,6 +66,7 @@ public class Pregunta extends BaseDocument {
     private boolean activa;
 
     // * Persona de Identidad que la creó
+    @Setter
     private UUID creadaPorCodigo;
 
     @Override

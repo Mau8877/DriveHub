@@ -24,6 +24,11 @@ public final class AcademicoErrorCodes {
     public static final String HORARIO_NO_ESTA_PAUSADO = "ERR_ACA_12";
     public static final String RANGO_FECHAS_INVALIDO = "ERR_ACA_13";
 
+    // * CU19: banco de preguntas
+    public static final String PREGUNTA_NO_ENCONTRADA = "ERR_ACA_14";
+    public static final String PREGUNTA_YA_EN_ESE_ESTADO = "ERR_ACA_15";
+    public static final String TOKEN_SIN_ESCUELA = "ERR_ACA_16";
+
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public static final String VALIDACION = "ERR_SYS_01";
     public static final String SESION_INVALIDA = "ERR_SYS_04";

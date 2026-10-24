@@ -27,6 +27,12 @@ export const routes: Routes = [
             (m) => m.EstudiantesGestion
           ),
       },
+      // * Gestionar autos (CU07): una sola ruta, <dh-gestion> maneja lista, crear y editar por dentro
+      {
+        path: 'autos',
+        loadComponent: () =>
+          import('./features/autos/screens/autos-gestion').then((m) => m.AutosGestion),
+      },
     ],
   },
 ]

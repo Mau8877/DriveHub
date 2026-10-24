@@ -6,6 +6,39 @@ import { estilos } from './estilos.js'
 import { slugDesdeTexto, validar } from './reglas.js'
 
 const ESPERA_BUSQUEDA_MS = 300
+const MAX_IMAGEN_BYTES = 5 * 1024 * 1024
+const MAX_ARCHIVO_BYTES_POR_DEFECTO = 20 * 1024 * 1024
+const FILAS_POR_DEFECTO = 2
+const FILAS_MAXIMAS_POR_DEFECTO = 6
+
+/** Las filas de un campo `opciones`: las guardadas, o las vacías que pide `min` si todavía no hay. */
+function filasDe(campo, valor) {
+  const filas = Array.isArray(valor) ? valor : []
+  if (filas.length > 0) return filas.map((f) => ({ texto: f.texto ?? '', correcta: Boolean(f.correcta) }))
+  return Array.from({ length: campo.min ?? FILAS_POR_DEFECTO }, () => ({ texto: '', correcta: false }))
+}
+
+/** Valor de un campo tal como se muestra en el formulario: una lista se ve como "a, b, c". */
+function paraFormulario(campo, valor) {
+  if (campo.tipo === 'lista') return Array.isArray(valor) ? valor.join(', ') : (valor ?? '')
+  if (campo.tipo === 'opciones') return filasDe(campo, valor)
+  // * Una lista desplegable maneja texto: un número (ej. la dificultad) se muestra como texto
+  if (campo.tipo === 'seleccion') return valor == null ? '' : String(valor)
+  return valor ?? ''
+}
+
+/** Una lista escrita como "a, b, a" viaja como array sin vacíos ni repetidos. */
+function aLista(texto) {
+  return [...new Set(String(texto).split(',').map((t) => t.trim()).filter(Boolean))]
+}
+
+/**
+ * Versión recortada de una imagen de Cloudinary (`c_fill,w_,h_`), para no bajar la foto completa
+ * en un listado. Una URL que no sea de Cloudinary se devuelve igual.
+ */
+function miniatura(url, ancho, alto) {
+  return String(url).replace('/image/upload/', `/image/upload/c_fill,w_${ancho},h_${alto},f_auto,q_auto/`)
+}
 
 /** Lee un valor de un objeto por ruta con puntos ('administrador.nombres'). */
 function leer(objeto, ruta) {
@@ -64,7 +97,8 @@ function prefijoDe(campo) {
  */
 /** Ancho de una columna: el del esquema, o uno corto para insignias y fechas. El resto reparte lo que sobra. */
 function anchoColumna(c) {
-  const ancho = c.ancho ?? (c.tipo === 'insignia' || c.tipo === 'fecha' ? '8rem' : '')
+  const ancho =
+    c.ancho ?? (c.tipo === 'imagen' || c.tipo === 'enlace' ? '6.5rem' : c.tipo === 'insignia' || c.tipo === 'fecha' ? '8rem' : '')
   return ancho ? `width: ${ancho}` : ''
 }
 
@@ -89,6 +123,8 @@ export class DhGestion extends LitElement {
     _errorGeneral: { state: true },
     _enviando: { state: true },
     _verPassword: { state: true },
+    _subiendo: { state: true },
+    _errorSubida: { state: true },
     _cargandoRegistro: { state: true },
     _bloqueo: { state: true },
     _opciones: { state: true },
@@ -129,6 +165,8 @@ export class DhGestion extends LitElement {
     this._errorGeneral = null
     this._enviando = false
     this._verPassword = {}
+    this._subiendo = {}
+    this._errorSubida = {}
     this._cargandoRegistro = false
     this._bloqueo = null
     this._opciones = {}
@@ -304,7 +342,7 @@ export class DhGestion extends LitElement {
         valores[campo.campo] =
           campo.tipo === 'ubicacion'
             ? { latitud: leer(data, `${prefijoDe(campo)}latitud`) ?? null, longitud: leer(data, `${prefijoDe(campo)}longitud`) ?? null }
-            : (leer(data, campo.campo) ?? '')
+            : paraFormulario(campo, leer(data, campo.campo))
       })
       this._valores = valores
       this._registro = data
@@ -351,6 +389,8 @@ export class DhGestion extends LitElement {
     this._errorGeneral = null
     this._enviando = false
     this._verPassword = {}
+    this._subiendo = {}
+    this._errorSubida = {}
     this._bloqueo = null
     this._registro = null
     this._manuales = new Set()
@@ -425,10 +465,27 @@ export class DhGestion extends LitElement {
         }
         return
       }
+      // * El archivo ya se subió al elegirlo: al enviar solo viaja su descriptor, y solo si es nuevo
+      if (campo.tipo === 'archivo') {
+        const { nuevo, ...descriptor } = this._valores[campo.campo] ?? {}
+        if (nuevo) escribir(cuerpo, campo.campo, descriptor)
+        return
+      }
+      if (campo.tipo === 'opciones') {
+        const filas = filasDe(campo, this._valores[campo.campo])
+        escribir(cuerpo, campo.campo, filas.map((f) => ({ texto: f.texto.trim(), correcta: f.correcta })))
+        return
+      }
       const texto = String(this._valores[campo.campo] ?? '').trim()
+      if (campo.tipo === 'lista') {
+        if (texto !== '' || campo.requerido) escribir(cuerpo, campo.campo, aLista(texto))
+        return
+      }
       if (texto === '' && !campo.requerido) return
-      // * Las contraseñas no se recortan: los espacios cuentan
-      escribir(cuerpo, campo.campo, campo.tipo === 'password' ? this._valores[campo.campo] : texto)
+      // * Las contraseñas no se recortan (los espacios cuentan) y los números viajan como número
+      const numerico = campo.tipo === 'numero' || (campo.tipo === 'seleccion' && campo.numerico)
+      const valor = campo.tipo === 'password' ? this._valores[campo.campo] : numerico ? Number(texto) : texto
+      escribir(cuerpo, campo.campo, valor)
     })
 
     const creando = this._vista === 'crear'
@@ -614,6 +671,16 @@ export class DhGestion extends LitElement {
       const insignia = columna.insignias?.[valor]
       return html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
     }
+    if (columna.tipo === 'enlace') {
+      return valor
+        ? html`<a class="enlace-archivo" href=${valor} target="_blank" rel="noopener noreferrer"
+            >${columna.etiqueta ?? 'Abrir'}</a
+          >`
+        : ''
+    }
+    if (columna.tipo === 'imagen') {
+      return valor ? html`<img class="miniatura" src=${miniatura(valor, 96, 64)} alt="" loading="lazy" />` : ''
+    }
     if (columna.tipo === 'fecha') return valor ? formatearFecha(valor) : ''
     if (columna.principal) {
       return html`<span class="principal-celda">
@@ -631,6 +698,10 @@ export class DhGestion extends LitElement {
     const trabajando = this._trabajando === id
     const puedeEditar = esquema.editar && cumple(esquema.editar.visibleSi, fila)
     const puedeVer = esquema.detalle && cumple(esquema.detalle.visibleSi, fila)
+    // * Una fila final (ej. un auto de baja sin salida) no tiene acciones: se dice, en vez de dejar la celda vacía
+    if (!puedeVer && !puedeEditar && !(esquema.acciones ?? []).some((a) => cumple(a.visibleSi, fila))) {
+      return html`<span class="sin-acciones">Sin acciones</span>`
+    }
     return html`<span class="acciones">
       ${puedeVer
         ? html`<button type="button" class="enlace" @click=${() => this._abrirDetalle(fila)}>
@@ -873,14 +944,29 @@ export class DhGestion extends LitElement {
   _renderCampo(campo) {
     if (campo.tipo === 'seleccion') return this._renderSeleccion(campo)
     if (campo.tipo === 'ubicacion') return this._renderUbicacion(campo)
+    if (campo.tipo === 'imagen') return this._renderImagen(campo)
+    if (campo.tipo === 'archivo') return this._renderArchivo(campo)
+    if (campo.tipo === 'opciones') return this._renderOpciones(campo)
     const id = `campo-${campo.campo.replace('.', '-')}`
     const error = this._errorDe(campo)
     const esPassword = campo.tipo === 'password'
     const tipo =
       esPassword && !this._verPassword[campo.campo]
         ? 'password'
-        : { email: 'email', fecha: 'date', telefono: 'tel' }[campo.tipo] ?? 'text'
-    const entrada = html`<input
+        : { email: 'email', fecha: 'date', telefono: 'tel', numero: 'number' }[campo.tipo] ?? 'text'
+    const entrada =
+      campo.tipo === 'textarea'
+        ? html`<textarea
+            id=${id}
+            rows="4"
+            maxlength=${campo.max ?? nothing}
+            .value=${String(this._valores[campo.campo] ?? '')}
+            ?readonly=${campo.soloLectura}
+            aria-invalid=${error ? 'true' : 'false'}
+            @input=${(e) => this._alEscribir(campo, e.target.value)}
+            @blur=${() => this._tocar(campo)}
+          ></textarea>`
+        : html`<input
       id=${id}
       type=${tipo}
       autocomplete=${esPassword ? 'new-password' : 'off'}
@@ -908,6 +994,195 @@ export class DhGestion extends LitElement {
             </button>
           </div>`
         : entrada}
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
+  /**
+   * Sube la foto directo a Cloudinary con una firma que pide el backend (el API secret no sale de
+   * él) y deja la URL resultante como valor del campo.
+   */
+  async _subirImagen(campo, evento) {
+    // * Se guarda antes del primer await: después el evento ya no apunta al elemento
+    const entrada = evento.target
+    const archivo = entrada.files?.[0]
+    if (!archivo) return
+    const fallar = (mensaje) => (this._errorSubida = { ...this._errorSubida, [campo.campo]: mensaje })
+    if (!archivo.type.startsWith('image/')) return fallar('El archivo debe ser una imagen')
+    if (archivo.size > MAX_IMAGEN_BYTES) return fallar('La imagen no puede pesar más de 5 MB')
+
+    this._errorSubida = { ...this._errorSubida, [campo.campo]: null }
+    this._subiendo = { ...this._subiendo, [campo.campo]: true }
+    try {
+      const { data: firma } = await solicitar('POST', campo.firma)
+      const cuerpo = new FormData()
+      cuerpo.set('file', archivo)
+      cuerpo.set('api_key', firma.apiKey)
+      cuerpo.set('timestamp', String(firma.timestamp))
+      cuerpo.set('folder', firma.folder)
+      cuerpo.set('signature', firma.signature)
+      const respuesta = await fetch(`https://api.cloudinary.com/v1_1/${firma.cloudName}/image/upload`, {
+        method: 'POST',
+        body: cuerpo,
+      })
+      const resultado = await respuesta.json().catch(() => null)
+      if (!respuesta.ok || !resultado?.secure_url) throw new Error('subida rechazada')
+      this._alEscribir(campo, resultado.secure_url)
+    } catch (error) {
+      fallar(error instanceof ErrorApi ? error.message : 'No pudimos subir la imagen. Inténtalo de nuevo.')
+    } finally {
+      this._subiendo = { ...this._subiendo, [campo.campo]: false }
+      entrada.value = ''
+    }
+  }
+
+  /**
+   * Sube el archivo al backend (multipart, a `campo.subida`) apenas se elige y deja su descriptor
+   * como valor del campo, marcado como nuevo. Al enviar el formulario solo viaja ese descriptor.
+   */
+  async _subirArchivo(campo, evento) {
+    const entrada = evento.target
+    const archivo = entrada.files?.[0]
+    if (!archivo) return
+    const fallar = (mensaje) => (this._errorSubida = { ...this._errorSubida, [campo.campo]: mensaje })
+    if (campo.accept && !campo.accept.split(',').includes(archivo.type)) {
+      return fallar(campo.mensajes?.tipo ?? 'El tipo de archivo no es válido')
+    }
+    const maximo = campo.maxBytes ?? MAX_ARCHIVO_BYTES_POR_DEFECTO
+    if (archivo.size > maximo) {
+      return fallar(campo.mensajes?.max ?? `El archivo no puede pesar más de ${Math.round(maximo / 1024 / 1024)} MB`)
+    }
+
+    this._errorSubida = { ...this._errorSubida, [campo.campo]: null }
+    this._subiendo = { ...this._subiendo, [campo.campo]: true }
+    try {
+      const cuerpo = new FormData()
+      cuerpo.set('archivo', archivo)
+      const { data } = await solicitar('POST', campo.subida, { formulario: cuerpo })
+      this._alEscribir(campo, { ...data, nuevo: true })
+    } catch (error) {
+      fallar(error instanceof ErrorApi ? error.message : 'No pudimos subir el archivo. Inténtalo de nuevo.')
+    } finally {
+      this._subiendo = { ...this._subiendo, [campo.campo]: false }
+      entrada.value = ''
+    }
+  }
+
+  _renderImagen(campo) {
+    const id = `campo-${campo.campo.replace('.', '-')}`
+    const url = this._valores[campo.campo]
+    const subiendo = Boolean(this._subiendo[campo.campo])
+    const error = this._errorSubida[campo.campo] ?? this._errorDe(campo)
+    return html`<div class="campo ${error ? 'con-error' : ''}">
+      <label for=${id}
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</label
+      >
+      ${url ? html`<img class="vista-previa" src=${miniatura(url, 480, 300)} alt="Foto actual" />` : nothing}
+      <input
+        id=${id}
+        type="file"
+        accept="image/*"
+        ?disabled=${subiendo || campo.soloLectura}
+        @change=${(e) => this._subirImagen(campo, e)}
+      />
+      ${subiendo ? html`<span class="ayuda" role="status">Subiendo imagen…</span>` : nothing}
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
+  _renderArchivo(campo) {
+    const id = `campo-${campo.campo.replace('.', '-')}`
+    const actual = this._valores[campo.campo]
+    const subiendo = Boolean(this._subiendo[campo.campo])
+    const error = this._errorSubida[campo.campo] ?? this._errorDe(campo)
+    return html`<div class="campo ${error ? 'con-error' : ''}">
+      <label for=${id}
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</label
+      >
+      ${actual?.url
+        ? html`<span class="archivo-actual">
+            <a class="enlace-archivo" href=${actual.url} target="_blank" rel="noopener noreferrer"
+              >${actual.nombre ?? 'Ver archivo'}</a
+            >
+            ${actual.nuevo ? html`<span class="ayuda">(nuevo, se guarda al enviar)</span>` : nothing}
+          </span>`
+        : nothing}
+      <input
+        id=${id}
+        type="file"
+        accept=${campo.accept ?? ''}
+        ?disabled=${subiendo || campo.soloLectura}
+        @change=${(e) => this._subirArchivo(campo, e)}
+      />
+      ${subiendo ? html`<span class="ayuda" role="status">Subiendo archivo…</span>` : nothing}
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
+  /** Cambia una fila del campo `opciones` (o la quita/agrega) y deja el nuevo arreglo como valor. */
+  _cambiarFilas(campo, cambio) {
+    this._alEscribir(campo, cambio(filasDe(campo, this._valores[campo.campo])))
+  }
+
+  /**
+   * Lista de respuestas repetible: cada fila lleva su texto y una casilla "correcta". `min` y `max`
+   * son la cantidad de filas (2 y 6 por defecto) y `maxTexto` el largo de cada texto.
+   */
+  _renderOpciones(campo) {
+    const id = `campo-${campo.campo.replace('.', '-')}`
+    const error = this._errorDe(campo)
+    const filas = filasDe(campo, this._valores[campo.campo])
+    const minimo = campo.min ?? FILAS_POR_DEFECTO
+    const maximo = campo.max ?? FILAS_MAXIMAS_POR_DEFECTO
+    return html`<div class="campo ${error ? 'con-error' : ''}" id=${id}>
+      <span class="etiqueta-campo"
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</span
+      >
+      <ol class="filas-opcion">
+        ${filas.map(
+          (fila, i) => html`<li class="fila-opcion">
+            <input
+              type="text"
+              aria-label=${`Opción ${i + 1}`}
+              maxlength=${campo.maxTexto ?? 200}
+              autocomplete="off"
+              .value=${fila.texto}
+              @input=${(e) =>
+                this._cambiarFilas(campo, (f) => f.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
+              @blur=${() => this._tocar(campo)}
+            />
+            <label class="correcta">
+              <input
+                type="checkbox"
+                .checked=${fila.correcta}
+                @change=${(e) =>
+                  this._cambiarFilas(campo, (f) => f.map((x, j) => (j === i ? { ...x, correcta: e.target.checked } : x)))}
+              />
+              Correcta
+            </label>
+            <button
+              type="button"
+              class="enlace peligro"
+              aria-label=${`Quitar opción ${i + 1}`}
+              ?disabled=${filas.length <= minimo}
+              @click=${() => this._cambiarFilas(campo, (f) => f.filter((_, j) => j !== i))}
+            >
+              Quitar
+            </button>
+          </li>`
+        )}
+      </ol>
+      <button
+        type="button"
+        class="boton secundario agregar-fila"
+        ?disabled=${filas.length >= maximo}
+        @click=${() => this._cambiarFilas(campo, (f) => [...f, { texto: '', correcta: false }])}
+      >
+        Agregar opción
+      </button>
       ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
       ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
     </div>`

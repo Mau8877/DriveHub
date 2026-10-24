@@ -12,12 +12,13 @@ use App\Common\Models\BaseModel;
  * * drivehub-contenido. `version` sube cada vez que se reemplaza el archivo.
  *
  * @property string $codigo_manual Identificador público (UUID v7)
+ * @property string $escuela_codigo Escuela (tenant) dueña del manual: el claim `escuela` del JWT
  * @property string $titulo
  * @property string|null $descripcion
  * @property string $categoria Sigla de categoría (Escuela categoria_licencia) o GENERAL
  * @property string|null $tema
  * @property int $version
- * @property array{url:string,mime:string,tamano_bytes:int,sha256:string} $archivo
+ * @property array{url:string,mime:string,tamano_bytes:int,sha256:string,nombre?:string} $archivo
  * @property EstadoPublicacion $estado
  * @property array<int,string> $etiquetas
  * @property string|null $publicado_por_codigo Persona de Identidad (usuario.codigo_usuario)
@@ -27,6 +28,7 @@ class Manual extends BaseModel
     protected $table = 'manuales';
 
     protected $fillable = [
+        'escuela_codigo',
         'titulo',
         'descripcion',
         'categoria',

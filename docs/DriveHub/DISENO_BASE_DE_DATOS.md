@@ -246,7 +246,7 @@ Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b), restab
 
 ## 3. Escuela — PostgreSQL
 
-Escuelas (tenants), instructores, flota, categorías de licencia y asignaciones. El **estudiante no tiene tabla propia** (CU08a): es una cuenta con su perfil en [Identidad](#2-identidad--postgresql) y Escuela lo referencia por su `codigo_usuario`. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261023100000__escuela_sin_estudiante_y_categorias.sql` (CU08a).
+Escuelas (tenants), instructores, flota, categorías de licencia y asignaciones. El **estudiante no tiene tabla propia** (CU08a): es una cuenta con su perfil en [Identidad](#2-identidad--postgresql) y Escuela lo referencia por su `codigo_usuario`. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261023100000__escuela_sin_estudiante_y_categorias.sql` (CU08a), `V20261024100000__vehiculo_escuela_codigo.sql` y `V20261024110000__vehiculo_imagen_url.sql` (CU07).
 
 ```mermaid
 erDiagram
@@ -334,11 +334,12 @@ Categorías que enseña cada instructor.
 
 ### `vehiculo`
 
-Flota (CU07).
+Flota (CU07). Es la primera tabla de Escuela con `escuela_codigo` (tenant): las demás lo suman con sus casos de uso.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
-| `placa` | `VARCHAR(10) NOT NULL UNIQUE` | |
+| `escuela_codigo` | `UUID NOT NULL` | → `escuela.codigo_escuela`, sin FK. Es el claim `escuela` del JWT; toda consulta del repositorio filtra por él. Índice `idx_vehiculo_escuela_codigo` |
+| `placa` | `VARCHAR(10) NOT NULL UNIQUE` | Única en toda la plataforma, no por escuela |
 | `marca` | `VARCHAR(40) NOT NULL` | |
 | `modelo` | `VARCHAR(40) NOT NULL` | |
 | `anio` | `SMALLINT` | |
@@ -349,6 +350,7 @@ Flota (CU07).
 | `kilometraje` | `INT NOT NULL DEFAULT 0` | |
 | `soat_vence` | `DATE` | |
 | `inspeccion_vence` | `DATE` | |
+| `imagen_url` | `VARCHAR(300)` | URL https de la foto en Cloudinary (`res.cloudinary.com`); el archivo no se guarda en la base |
 
 ### `mantenimiento_vehiculo`
 
@@ -690,14 +692,15 @@ Evaluación práctica durante la clase.
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoPregunta` | UUID | Único |
-| `categoria`, `tema` | string | Índice compuesto `idx_pregunta_categoria_tema_activa (categoria, tema, activa)` |
+| `escuelaCodigo` | UUID | Escuela (tenant) dueña de la pregunta, el claim `escuela` del JWT, sin relación física. Todo listado y toda consulta filtran por él (CU19) |
+| `categoria`, `tema` | string | Índice compuesto `idx_pregunta_escuela_categoria_tema_activa (escuelaCodigo, categoria, tema, activa)`: CU20 arma el simulacro con preguntas activas por categoría y tema de la escuela |
 | `tipo` | enum | `OPCION_UNICA`, `OPCION_MULTIPLE`, `VERDADERO_FALSO` |
 | `enunciado` | string | |
 | `imagenUrl` | string | Opcional |
-| `opciones` | array | `[{ id (letra), texto, correcta }]` |
+| `opciones` | array | `[{ id (letra), texto, correcta }]`. El `id` (A, B, C…) lo asigna el servicio por orden. De 2 a 6 opciones (exactamente 2 en `VERDADERO_FALSO`); 1 correcta en `OPCION_UNICA` y `VERDADERO_FALSO`, 1 o más en `OPCION_MULTIPLE` |
 | `explicacion` | string | Se muestra al corregir |
 | `dificultad` | int | 1 a 3 |
-| `activa` | boolean | |
+| `activa` | boolean | Una pregunta no se borra: se desactiva y deja de entrar en los simulacros nuevos (CU19) |
 | `creadaPorCodigo` | UUID | Persona de Identidad |
 
 ### `simulacros_config` (CU20)
@@ -755,24 +758,25 @@ Vista consolidada de notas: se escribe al cerrar cada evaluación y publica `exa
 
 ## 6. Contenido — MongoDB
 
-Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de MinIO. Los campos van en `snake_case` (Eloquent). Migración: `2026_10_18_120000_crear_colecciones_contenido.php`. `_id` Long con la colección `contadores`.
+Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de MinIO. Los campos van en `snake_case` (Eloquent). Migraciones: `2026_10_18_120000_crear_colecciones_contenido.php` y `2026_10_24_120000_manuales_por_escuela.php` (CU32). `_id` Long con la colección `contadores`.
 
 ### `manuales` (CU32, CU34)
 
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigo_manual` | UUID | Índice único `uq_manuales_codigo` |
+| `escuela_codigo` | UUID | Escuela (tenant) dueña del manual, el claim `escuela` del JWT. Todo el listado y toda búsqueda filtran por él |
 | `titulo` | string | |
 | `descripcion` | string | Opcional |
 | `categoria` | string | Sigla de categoría (Escuela) o `GENERAL` |
 | `tema` | string | Opcional |
 | `version` | int | Sube cada vez que se reemplaza el archivo |
-| `archivo` | subdocumento | `{ url, mime, tamano_bytes, sha256 }` |
+| `archivo` | subdocumento | `{ url, mime, tamano_bytes, sha256, nombre }`. `url` es la dirección pública del PDF en el bucket (`{MINIO_PUBLIC_URL}/drivehub-contenido/escuelas/{escuela}/manuales/{uuid}.pdf`) |
 | `estado` | enum | `BORRADOR`, `PUBLICADO`, `ARCHIVADO` |
 | `etiquetas` | array de string | |
 | `publicado_por_codigo` | UUID | Persona de Identidad |
 
-Índices: `idx_manuales_estado_categoria (estado, categoria)` y de texto `idx_manuales_texto (titulo, descripcion, etiquetas)`.
+Índices: `idx_manuales_estado_categoria (estado, categoria)`, `idx_manuales_escuela_estado_categoria (escuela_codigo, estado, categoria)` y de texto `idx_manuales_texto (titulo, descripcion, etiquetas)`. La búsqueda del listado usa expresión regular sin distinguir mayúsculas sobre título, descripción y etiquetas, no el índice de texto.
 
 ### `tutoriales` (CU33, CU35)
 
@@ -968,7 +972,7 @@ Todas por **código público**, sin FK física.
 
 ### Pendiente de diseñar
 
-- **Filtro por tenant.** Falta `escuela_codigo` en las tablas de Escuela (`instructor`, `vehiculo`…), Pagos, Académico, Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. Se diseña antes de CU07; el claim ya viaja en el token (CU02). Los estudiantes ya quedan aislados por escuela porque la cuenta lleva `escuela_codigo` (CU08a).
+- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Falta en las demás tablas de Escuela (`instructor`…), Pagos, el resto de Académico (`simulacros_config` en CU20, `intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
 - **Estado de la saga reserva-pago:** dueño por decidir ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 - **Valores de `severidad`** de los indicadores del tablero (se fijan con CU40).
 - **Job de limpieza** de `refresh_token` vencidos.

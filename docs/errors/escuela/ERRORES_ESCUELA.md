@@ -62,3 +62,38 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 - **Significado:** La categoría de licencia pedida por sigla no existe en el catálogo (CU08).
   Identidad usa este 404 para saber que la categoría que eligió el Administrador no es válida.
 - **Dónde se lanza:** `ObtenerCategoriaLicenciaUseCase.ejecutar()`
+
+## `ERR_ESC_08`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Ya existe un auto con esa placa. La placa es única en toda la plataforma,
+  también frente a autos de otra escuela o dados de baja (CU07). También se responde si dos
+  registros simultáneos con la misma placa chocan: el segundo pierde.
+- **Dónde se lanza:** `RegistrarVehiculoUseCase.ejecutar()` y `VehiculoRepositoryImpl.guardar()`
+
+## `ERR_ESC_09`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El auto pedido no existe en la escuela de quien lo pide. Un auto de otra
+  escuela se responde igual, para no revelar qué autos existen (CU07).
+- **Dónde se lanza:** `ObtenerVehiculoUseCase.ejecutar()`, `EditarVehiculoUseCase.ejecutar()` y
+  `CambiarEstadoVehiculoUseCase.ejecutar()`
+
+## `ERR_ESC_10`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El cambio no es posible desde el estado actual del auto (CU07): editar o
+  ir a mantenimiento un auto dado de baja, enviar a mantenimiento uno que no está disponible,
+  habilitar uno que no está en mantenimiento ni de baja, o dar de baja uno que ya lo está.
+- **Dónde se lanza:** `EditarVehiculoUseCase.ejecutar()` y `CambiarEstadoVehiculoUseCase.ejecutar()`
+
+## `ERR_ESC_11`
+
+- **HTTP:** 403
+- **Excepción:** `ForbiddenException`
+- **Significado:** El token de acceso no trae la escuela de la cuenta (claim `escuela`), así
+  que no hay escuela sobre la cual operar (CU07). Un Administrador de escuela siempre la trae.
+- **Dónde se lanza:** `VehiculoController.escuelaDe()`

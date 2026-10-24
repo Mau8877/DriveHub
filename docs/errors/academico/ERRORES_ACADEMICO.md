@@ -112,3 +112,30 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 - **Significado:** Al consultar las franjas por rango, la fecha inicial es posterior a la final,
   el rango abarca más de 7 días, o se indicó solo una de las dos fechas (CU12).
 - **Dónde se lanza:** `FranjaService.listar()`
+
+## `ERR_ACA_14`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** La pregunta pedida no existe en la escuela de quien la pide. Una pregunta de otra
+  escuela, o una eliminada lógicamente, se responde igual, para no revelar qué preguntas existen (CU19).
+  Un código que no es un UUID responde `ERR_SYS_01`, no este.
+- **Dónde se lanza:** `PreguntaService.buscar()`, y a través de él `obtener()`, `editar()` y `cambiarActiva()`
+
+## `ERR_ACA_15`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se pidió activar una pregunta que ya estaba activa, o desactivar una que ya estaba
+  desactivada (CU19). También se responde si dos peticiones iguales llegan a la vez y la segunda no
+  cambia nada.
+- **Dónde se lanza:** `PreguntaService.cambiarActiva()`
+
+## `ERR_ACA_16`
+
+- **HTTP:** 403
+- **Excepción:** `ForbiddenException`
+- **Significado:** El token de acceso no trae la escuela de la cuenta (claim `escuela`) o la persona
+  (`sub`) no es un código válido, así que no hay escuela sobre la cual operar (CU19). Un Administrador de
+  escuela siempre los trae.
+- **Dónde se lanza:** `PreguntaController.escuelaDe()` y `PreguntaController.autorDe()`
