@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
  * * Las fotos son la imagen de ejemplo `car` de la cuenta pública `demo` de Cloudinary, con un
  * * tono distinto por auto (`e_hue`): no hace falta cuenta propia para verlas. Se reemplazan
  * * subiendo la foto real desde la pantalla de autos.
+ * * El auto de baja se crea primero: el listado va del más reciente al más antiguo y así queda al final.
  * * Se siembra por placa: si ya existe, no se toca; un auto borrado a mano se vuelve a crear.
  */
 @Component
@@ -43,14 +44,14 @@ public class VehiculoSeeder implements ApplicationRunner {
     }
 
     private static final List<Ejemplo> EJEMPLOS = List.of(
+        new Ejemplo("SEED-008", "Renault", "Sandero", 2016, "Beige", Transmision.MANUAL, 102300, EstadoVehiculo.BAJA, 30),
         new Ejemplo("SEED-001", "Toyota", "Yaris", 2021, "Rojo", Transmision.MANUAL, 18500, EstadoVehiculo.DISPONIBLE, 0),
         new Ejemplo("SEED-002", "Suzuki", "Swift", 2020, "Azul", Transmision.MANUAL, 32100, EstadoVehiculo.DISPONIBLE, 200),
         new Ejemplo("SEED-003", "Nissan", "Versa", 2022, "Blanco", Transmision.AUTOMATICO, 9800, EstadoVehiculo.DISPONIBLE, 330),
         new Ejemplo("SEED-004", "Kia", "Rio", 2019, "Gris", Transmision.MANUAL, 54200, EstadoVehiculo.DISPONIBLE, 90),
         new Ejemplo("SEED-005", "Hyundai", "Accent", 2021, "Negro", Transmision.AUTOMATICO, 27300, EstadoVehiculo.MANTENIMIENTO, 270),
         new Ejemplo("SEED-006", "Chevrolet", "Spark", 2018, "Verde", Transmision.MANUAL, 71800, EstadoVehiculo.DISPONIBLE, 140),
-        new Ejemplo("SEED-007", "Volkswagen", "Gol", 2017, "Plata", Transmision.MANUAL, 88400, EstadoVehiculo.MANTENIMIENTO, 40),
-        new Ejemplo("SEED-008", "Renault", "Sandero", 2016, "Beige", Transmision.MANUAL, 102300, EstadoVehiculo.BAJA, 30));
+        new Ejemplo("SEED-007", "Volkswagen", "Gol", 2017, "Plata", Transmision.MANUAL, 88400, EstadoVehiculo.MANTENIMIENTO, 40));
 
     private final VehiculoRepository vehiculoRepository;
 
