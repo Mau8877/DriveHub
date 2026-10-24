@@ -21,8 +21,9 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [GESTION_FRONTEND.md](../..
 |--------|--------|------------|
 | [UT-CU07-FE-01](./UT-CU07-FE-01.md) | Ampliar `<dh-gestion>` con `numero` y `seleccion` | — |
 | [UT-CU07-FE-02](./UT-CU07-FE-02.md) | Esquema, pantalla y ruta de autos | 01 |
+| [UT-CU07-FE-03](./UT-CU07-FE-03.md) | Foto del auto: campo y columna de imagen | 02, BE-06 |
 
-**Cadena:** `01 → 02`.
+**Cadena:** `01 → 02 → 03`.
 
 ## Cobertura del caso de uso
 

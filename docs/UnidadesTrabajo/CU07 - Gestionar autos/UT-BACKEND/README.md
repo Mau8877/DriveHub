@@ -15,6 +15,7 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_CLEAN_BACKEND
 - **Un auto de otra escuela es un 404** (`ERR_ESC_08`), no un 403: no se revela qué autos existen.
 - **Un solo caso de uso para los tres cambios de estado** (`CambiarEstadoVehiculoUseCase`, destino como parámetro): son la misma regla (`EstadoVehiculo.permiteIrA`). Tres endpoints, un caso de uso.
 - **Placa única en toda la plataforma** (el `UNIQUE` ya existía), no por escuela.
+- **La foto se sube directo a Cloudinary** con una firma del backend (el API secret no sale de `escuela`); el auto guarda solo la URL. El seed usa la imagen pública `car` de la cuenta `demo`, así no hace falta cuenta propia para verlo.
 - **Categoría de licencia e historial de mantenimiento fuera de alcance**: el catálogo de categorías no tiene caso de uso todavía.
 
 ## Contrato de datos / recurso HTTP
@@ -28,6 +29,7 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_CLEAN_BACKEND
 | `POST` | `/api/v1/vehiculos/{codigo}/enviar-a-mantenimiento` | 200 | `VehiculoResponse` |
 | `POST` | `/api/v1/vehiculos/{codigo}/habilitar` | 200 | `VehiculoResponse` |
 | `POST` | `/api/v1/vehiculos/{codigo}/dar-de-baja` | 200 | `VehiculoResponse` |
+| `POST` | `/api/v1/vehiculos/firma-imagen` | 200 | `{ cloudName, apiKey, timestamp, folder, signature }` |
 
 Códigos de error nuevos: `ERR_ESC_07` a `ERR_ESC_10` ([docs/errors](../../../errors/escuela/ERRORES_ESCUELA.md)).
 
@@ -40,8 +42,9 @@ Códigos de error nuevos: `ERR_ESC_07` a `ERR_ESC_10` ([docs/errors](../../../er
 | [UT-CU07-BE-03](./UT-CU07-BE-03.md) | Casos de uso: registrar, listar y obtener | 02 |
 | [UT-CU07-BE-04](./UT-CU07-BE-04.md) | Casos de uso: editar y cambiar estado | 02 |
 | [UT-CU07-BE-05](./UT-CU07-BE-05.md) | Controller, errores y documentación | 03, 04 |
+| [UT-CU07-BE-06](./UT-CU07-BE-06.md) | Foto del auto en Cloudinary y seed de ejemplo | 05 |
 
-**Cadena:** `01 → 02 → 03, 04 → 05`.
+**Cadena:** `01 → 02 → 03, 04 → 05 → 06`.
 
 ## Cobertura del caso de uso
 
