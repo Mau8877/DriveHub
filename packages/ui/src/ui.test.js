@@ -81,6 +81,35 @@ describe('dh-sidebar', () => {
     expect(q(el, 'a.activo').getAttribute('aria-current')).toBe('page')
   })
 
+  it('si dos items coinciden, solo queda activo el de la ruta más específica', async () => {
+    const items = [
+      { ruta: '/', etiqueta: 'Inicio' },
+      { ruta: '/escuela/estudiantes', etiqueta: 'Estudiantes' },
+      { ruta: '/escuela', etiqueta: 'Escuela' },
+    ]
+    const el = await crear('dh-sidebar', { items, activo: '/escuela/estudiantes' })
+    expect(qa(el, 'a.item.activo').map((a) => a.getAttribute('href'))).toEqual(['/escuela/estudiantes'])
+
+    el.activo = '/escuela/estudiantes/e1?x=1'
+    await el.updateComplete
+    expect(qa(el, 'a.item.activo').map((a) => a.getAttribute('href'))).toEqual(['/escuela/estudiantes'])
+
+    // * Fuera de la ruta más específica, el item general vuelve a ser el activo
+    el.activo = '/escuela'
+    await el.updateComplete
+    expect(qa(el, 'a.item.activo').map((a) => a.getAttribute('href'))).toEqual(['/escuela'])
+    el.activo = '/escuela/otra-cosa'
+    await el.updateComplete
+    expect(qa(el, 'a.item.activo').map((a) => a.getAttribute('href'))).toEqual(['/escuela'])
+  })
+
+  it('una ruta que solo empieza igual no es una subruta: /escuelas no activa /escuela', async () => {
+    const items = [{ ruta: '/escuela', etiqueta: 'Escuela' }, { ruta: '/escuelas', etiqueta: 'Gestionar escuelas' }]
+    const el = await crear('dh-sidebar', { items, activo: '/escuelas' })
+
+    expect(qa(el, 'a.item.activo').map((a) => a.getAttribute('href'))).toEqual(['/escuelas'])
+  })
+
   it('un clic normal emite dh-navegar con la ruta y no navega; con Ctrl lo deja al navegador', async () => {
     const el = await crear('dh-sidebar', { items: ITEMS })
     const alNavegar = vi.fn()

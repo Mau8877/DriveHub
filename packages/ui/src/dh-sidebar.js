@@ -9,7 +9,8 @@ import { icono } from './iconos.js'
  *
  * Propiedades
  *   items         ItemNavegacion[]  { ruta, etiqueta, descripcion?, icono?, grupo?, insignia? }
- *   activo        ruta actual; un item está activo si es esa ruta o una subruta suya
+ *   activo        ruta actual; un item está activo si es esa ruta o una subruta suya, salvo que otro
+ *                 item coincida con una ruta más específica (gana el más específico)
  *   marca         { prefijo, resaltado, ruta }  (por defecto "DriveHub")
  *   etiquetaGrupo texto sobre el menú (ej. el nombre de la escuela)
  *   colapsado     menú de solo iconos (se refleja como atributo)
@@ -239,10 +240,24 @@ export class DhSidebar extends LitElement {
     this.navegacionNativa = false
   }
 
-  /** ¿Es la ruta actual (o una subruta) la del item? La raíz `/` solo coincide consigo misma. */
+  /**
+   * ¿Es la ruta actual (o una subruta) la del item? La raíz `/` solo coincide consigo misma.
+   *
+   * * Si otro item también coincide con una ruta MÁS específica (`/escuela/estudiantes` frente a
+   * * `/escuela`), gana el más específico: nunca quedan dos items activos a la vez.
+   */
   _esActivo(item) {
     const actual = String(this.activo ?? '').split(/[?#]/)[0]
     const ruta = String(item.ruta ?? '').split(/[?#]/)[0]
+    if (!ruta) return false
+    if (!this._coincide(actual, ruta)) return false
+    return !(this.items ?? []).some((otro) => {
+      const otraRuta = String(otro.ruta ?? '').split(/[?#]/)[0]
+      return otraRuta.length > ruta.length && this._coincide(actual, otraRuta)
+    })
+  }
+
+  _coincide(actual, ruta) {
     if (!ruta) return false
     if (ruta === '/') return actual === '/'
     return actual === ruta || actual.startsWith(`${ruta}/`)
