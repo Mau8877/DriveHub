@@ -34,6 +34,19 @@ function fechaDeHoyComoTexto(hoy: Date): string {
   return `${hoy.getFullYear()}-${mes}-${dia}`
 }
 
+/**
+ * La última fecha de nacimiento que cumple la edad mínima (hoy menos EDAD_MINIMA_REGISTRO años). Es lo
+ * que el calendario deja elegir como máximo; el validador `edadMinima` sigue siendo la regla.
+ * El 29 de febrero cae el 28 si el año de destino no es bisiesto.
+ */
+export function fechaMaximaDeNacimiento(hoy: Date = new Date()): string {
+  const anio = hoy.getFullYear() - EDAD_MINIMA_REGISTRO
+  const ultimoDiaDelMes = new Date(anio, hoy.getMonth() + 1, 0).getDate()
+  return fechaDeHoyComoTexto(
+    new Date(anio, hoy.getMonth(), Math.min(hoy.getDate(), ultimoDiaDelMes))
+  )
+}
+
 /** Obligatorio y que no sea solo espacios. */
 export const obligatorioConTexto: ValidatorFn = (
   control: AbstractControl

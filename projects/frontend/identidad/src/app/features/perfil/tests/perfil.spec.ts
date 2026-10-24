@@ -55,6 +55,20 @@ describe('Perfil', () => {
     fixture.detectChanges()
   }
 
+  // * <dh-fecha> y <dh-select> guardan su valor en la propiedad `valor`, no en `value`
+  const valorDe = (id: string) =>
+    (html().querySelector(`#${id}`) as unknown as { valor: string }).valor
+
+  // * Lo que hacen <dh-fecha> y <dh-select> al elegir (cada uno tiene sus propios tests en @drivehub/ui)
+  function elegir(id: string, valor: string) {
+    html()
+      .querySelector(`#${id}`)!
+      .dispatchEvent(
+        new CustomEvent('dh-cambio', { detail: { valor }, bubbles: true, composed: true })
+      )
+    fixture.detectChanges()
+  }
+
   function escribir(id: string, valor: string) {
     const campo = entrada(id)
     campo.value = valor
@@ -83,7 +97,7 @@ describe('Perfil', () => {
     expect(entrada('nombres').value).toBe('Ana')
     expect(entrada('apellidos').value).toBe('Pérez')
     expect(entrada('telefono').value).toBe('0991234567')
-    expect(entrada('fechaNacimiento').value).toBe('2000-01-01')
+    expect(valorDe('fechaNacimiento')).toBe('2000-01-01')
     expect(html().querySelector('[data-testid="email"]')?.textContent).toBe('ana@gmail.com')
     expect(html().textContent).toContain('Verificado')
     expect(html().querySelector('[data-testid="rol"]')?.textContent).toBe(
@@ -95,10 +109,17 @@ describe('Perfil', () => {
   it('el bloque de solo lectura no tiene campos editables', async () => {
     await crear()
 
-    const idsEditables = Array.from(html().querySelector('form')!.querySelectorAll('input')).map(
-      (i) => i.id
-    )
-    expect(idsEditables).toEqual(['nombres', 'apellidos', 'telefono', 'fechaNacimiento', 'ci'])
+    const idsEditables = Array.from(
+      html().querySelector('form')!.querySelectorAll('input, dh-fecha, dh-select')
+    ).map((i) => i.id)
+    expect(idsEditables).toEqual([
+      'nombres',
+      'apellidos',
+      'telefono',
+      'fechaNacimiento',
+      'sexo',
+      'ci',
+    ])
   })
 
   it('sin escuela (Super admin) no muestra la fila de escuela', async () => {
@@ -211,7 +232,7 @@ describe('Perfil', () => {
     await crear()
 
     expect(entrada('ci').value).toBe('AB12345')
-    expect((html().querySelector('#sexo') as HTMLSelectElement).value).toBe('FEMENINO')
+    expect(valorDe('sexo')).toBe('FEMENINO')
     const mapa = html().querySelector('dh-mapa-ubicacion') as unknown as {
       latitud: number
       longitud: number
@@ -264,10 +285,7 @@ describe('Perfil', () => {
     await crear()
 
     escribir('ci', 'CD67890')
-    const sexo = html().querySelector('#sexo') as HTMLSelectElement
-    sexo.value = 'MASCULINO'
-    sexo.dispatchEvent(new Event('change'))
-    fixture.detectChanges()
+    elegir('sexo', 'MASCULINO')
     await guardar()
 
     expect(api.editar).toHaveBeenCalledWith({ ci: 'CD67890', sexo: 'MASCULINO' })

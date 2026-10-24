@@ -12,10 +12,12 @@ import type { DetalleUbicacion } from '@drivehub/ui'
 import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
+import { DhValor } from '../../../core/forms/dh-valor.directive'
 import {
   APELLIDOS_MAX,
   ciValido,
   edadMinima,
+  fechaMaximaDeNacimiento,
   fechaNoFutura,
   mensajeDeError,
   NOMBRES_MAX,
@@ -39,13 +41,6 @@ const ROLES: Record<string, string> = {
   SUPER_ADMIN: 'Super admin',
 }
 
-function hoyComoTexto(): string {
-  const hoy = new Date()
-  const mes = String(hoy.getMonth() + 1).padStart(2, '0')
-  const dia = String(hoy.getDate()).padStart(2, '0')
-  return `${hoy.getFullYear()}-${mes}-${dia}`
-}
-
 /**
  * Perfil de la cuenta propia (CU06, CU08a): datos de solo lectura, edición de los datos personales
  * (con CI, sexo y ubicación en el mapa) y las secciones de foto, contraseña y correo. La ven los
@@ -60,7 +55,7 @@ function hoyComoTexto(): string {
  */
 @Component({
   selector: 'app-perfil',
-  imports: [ReactiveFormsModule, FotoPerfil, CambiarContrasena, CambiarCorreo],
+  imports: [ReactiveFormsModule, DhValor, FotoPerfil, CambiarContrasena, CambiarCorreo],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <section class="dh-page">
@@ -166,14 +161,13 @@ function hoyComoTexto(): string {
 
                 <div class="dh-field">
                   <label for="fechaNacimiento" class="dh-label">Fecha de nacimiento</label>
-                  <input
+                  <dh-fecha
                     id="fechaNacimiento"
-                    type="date"
                     formControlName="fechaNacimiento"
-                    [max]="hoy"
-                    autocomplete="bday"
-                    class="dh-input"
-                  />
+                    etiqueta="Fecha de nacimiento"
+                    [max]="maximoNacimiento"
+                    [invalido]="!!error('fechaNacimiento')"
+                  ></dh-fecha>
                   @if (error('fechaNacimiento'); as mensaje) {
                     <p class="dh-error" role="alert">{{ mensaje }}</p>
                   }
@@ -183,10 +177,14 @@ function hoyComoTexto(): string {
               <div class="dh-grid-2">
                 <div class="dh-field">
                   <label for="sexo" class="dh-label">Sexo</label>
-                  <select id="sexo" formControlName="sexo" class="dh-input">
-                    <option value="MASCULINO">Masculino</option>
-                    <option value="FEMENINO">Femenino</option>
-                  </select>
+                  <dh-select
+                    id="sexo"
+                    formControlName="sexo"
+                    etiqueta="Sexo"
+                    sin-vacio
+                    [opciones]="opcionesSexo"
+                    [invalido]="!!error('sexo')"
+                  ></dh-select>
                   @if (error('sexo'); as mensaje) {
                     <p class="dh-error" role="alert">{{ mensaje }}</p>
                   }
@@ -258,7 +256,12 @@ export class Perfil implements OnInit {
   private readonly fb = inject(FormBuilder).nonNullable
   private readonly api = inject(PerfilService)
 
-  protected readonly hoy = hoyComoTexto()
+  // * Hasta dónde deja elegir el calendario (la edad mínima); la regla de verdad es `edadMinima`
+  protected readonly maximoNacimiento = fechaMaximaDeNacimiento()
+  protected readonly opcionesSexo = [
+    { valor: 'MASCULINO', etiqueta: 'Masculino' },
+    { valor: 'FEMENINO', etiqueta: 'Femenino' },
+  ]
   protected readonly cargando = signal(true)
   protected readonly perfil = signal<PerfilDatos | null>(null)
   protected readonly guardando = signal(false)

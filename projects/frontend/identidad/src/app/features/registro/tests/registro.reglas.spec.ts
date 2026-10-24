@@ -6,6 +6,7 @@ import {
   coordenada,
   edadEnAnios,
   edadMinima,
+  fechaMaximaDeNacimiento,
   fechaNoFutura,
   obligatorioConTexto,
   PASSWORD_MAX,
@@ -19,6 +20,21 @@ describe('registro.reglas', () => {
     it('cuenta los años cumplidos a la fecha de hoy', () => {
       expect(edadEnAnios('2000-10-19', HOY)).toBe(26)
       expect(edadEnAnios('2000-10-20', HOY)).toBe(25)
+    })
+  })
+
+  describe('fechaMaximaDeNacimiento', () => {
+    it('es hoy menos 18 años: esa fecha todavía cumple la edad mínima y el día siguiente no', () => {
+      const maxima = fechaMaximaDeNacimiento(HOY)
+
+      expect(maxima).toBe('2008-10-19')
+      expect(edadEnAnios(maxima, HOY)).toBe(18)
+      expect(edadEnAnios('2008-10-20', HOY)).toBe(17)
+    })
+
+    it('el 29 de febrero cae el 28 cuando el año de destino no es bisiesto', () => {
+      expect(fechaMaximaDeNacimiento(new Date(2028, 1, 29))).toBe('2010-02-28')
+      expect(fechaMaximaDeNacimiento(new Date(2032, 1, 29))).toBe('2014-02-28')
     })
   })
 

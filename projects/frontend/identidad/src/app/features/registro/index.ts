@@ -11,6 +11,7 @@ export {
   ciValido,
   edadMinima,
   EMAIL_MAX,
+  fechaMaximaDeNacimiento,
   fechaNoFutura,
   NOMBRES_MAX,
   obligatorioConTexto,
