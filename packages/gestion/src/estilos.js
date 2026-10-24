@@ -202,6 +202,17 @@ export const estilos = css`
   }
 
   /* Insignias */
+  .enlace-archivo {
+    color: var(--info);
+    font-weight: 500;
+    text-decoration: underline;
+  }
+  .archivo-actual {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
   .sin-acciones {
     color: var(--muted-foreground);
     font-size: 0.8125rem;

@@ -29,7 +29,7 @@ export class ErrorApi extends Error {
 /**
  * @param {string} metodo
  * @param {string} ruta Relativa a la URL base de la API, sin barra inicial (ej. 'escuelas/abc').
- * @param {{ params?: Record<string, string | number | undefined | null>, cuerpo?: unknown }} [opciones]
+ * @param {{ params?: Record<string, string | number | undefined | null>, cuerpo?: unknown, formulario?: FormData }} [opciones]
  * @returns {Promise<{ data: any, meta?: any }>}
  */
 export async function solicitar(metodo, ruta, opciones = {}) {
@@ -44,12 +44,13 @@ export async function solicitar(metodo, ruta, opciones = {}) {
   const enviar = async (token) => {
     const cabeceras = { Accept: 'application/json' }
     if (token) cabeceras.Authorization = `Bearer ${token}`
+    // * Con un FormData el navegador pone el Content-Type (con su boundary): no se fija a mano
     if (opciones.cuerpo !== undefined) cabeceras['Content-Type'] = 'application/json'
     try {
       return await fetch(url, {
         method: metodo,
         headers: cabeceras,
-        body: opciones.cuerpo !== undefined ? JSON.stringify(opciones.cuerpo) : undefined,
+        body: opciones.formulario ?? (opciones.cuerpo !== undefined ? JSON.stringify(opciones.cuerpo) : undefined),
         credentials: 'include',
       })
     } catch {

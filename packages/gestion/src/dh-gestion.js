@@ -6,6 +6,18 @@ import { slugDesdeTexto, validar } from './reglas.js'
 
 const ESPERA_BUSQUEDA_MS = 300
 const MAX_IMAGEN_BYTES = 5 * 1024 * 1024
+const MAX_ARCHIVO_BYTES_POR_DEFECTO = 20 * 1024 * 1024
+
+/** Valor de un campo tal como se muestra en el formulario: una lista se ve como "a, b, c". */
+function paraFormulario(campo, valor) {
+  if (campo.tipo === 'lista') return Array.isArray(valor) ? valor.join(', ') : (valor ?? '')
+  return valor ?? ''
+}
+
+/** Una lista escrita como "a, b, a" viaja como array sin vacíos ni repetidos. */
+function aLista(texto) {
+  return [...new Set(String(texto).split(',').map((t) => t.trim()).filter(Boolean))]
+}
 
 /**
  * Versión recortada de una imagen de Cloudinary (`c_fill,w_,h_`), para no bajar la foto completa
@@ -54,7 +66,7 @@ function camposDe(secciones) {
  */
 /** Ancho de una columna: el del esquema, o uno corto para insignias y fechas. El resto reparte lo que sobra. */
 function anchoColumna(c) {
-  const ancho = c.ancho ?? (c.tipo === 'imagen' ? '6.5rem' : c.tipo === 'insignia' || c.tipo === 'fecha' ? '8rem' : '')
+  const ancho = c.ancho ?? (c.tipo === 'imagen' || c.tipo === 'enlace' ? '6.5rem' : c.tipo === 'insignia' || c.tipo === 'fecha' ? '8rem' : '')
   return ancho ? `width: ${ancho}` : ''
 }
 
@@ -233,7 +245,7 @@ export class DhGestion extends LitElement {
       const { data } = await solicitar('GET', `${this.esquema.recurso}/${ruta}`)
       const valores = {}
       camposDe(editar.secciones).forEach((campo) => {
-        valores[campo.campo] = leer(data, campo.campo) ?? ''
+        valores[campo.campo] = paraFormulario(campo, leer(data, campo.campo))
       })
       this._valores = valores
       this._registro = data
@@ -310,7 +322,17 @@ export class DhGestion extends LitElement {
 
     const cuerpo = {}
     campos.forEach((campo) => {
+      // * El archivo ya se subió al elegirlo: al enviar solo viaja su descriptor, y solo si es nuevo
+      if (campo.tipo === 'archivo') {
+        const { nuevo, ...descriptor } = this._valores[campo.campo] ?? {}
+        if (nuevo) escribir(cuerpo, campo.campo, descriptor)
+        return
+      }
       const texto = String(this._valores[campo.campo] ?? '').trim()
+      if (campo.tipo === 'lista') {
+        if (texto !== '' || campo.requerido) escribir(cuerpo, campo.campo, aLista(texto))
+        return
+      }
       if (texto === '' && !campo.requerido) return
       // * Las contraseñas no se recortan (los espacios cuentan) y los números viajan como número
       const valor =
@@ -462,6 +484,11 @@ export class DhGestion extends LitElement {
       const insignia = columna.insignias?.[valor]
       return html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
     }
+    if (columna.tipo === 'enlace') {
+      return valor
+        ? html`<a class="enlace-archivo" href=${valor} target="_blank" rel="noopener noreferrer">${columna.etiqueta ?? 'Abrir'}</a>`
+        : ''
+    }
     if (columna.tipo === 'imagen') {
       return valor ? html`<img class="miniatura" src=${miniatura(valor, 96, 64)} alt="" loading="lazy" />` : ''
     }
@@ -611,6 +638,65 @@ export class DhGestion extends LitElement {
     }
   }
 
+  /**
+   * Sube el archivo al backend (multipart, a `campo.subida`) apenas se elige y deja su descriptor
+   * como valor del campo, marcado como nuevo. Al enviar el formulario solo viaja ese descriptor.
+   */
+  async _subirArchivo(campo, evento) {
+    const entrada = evento.target
+    const archivo = entrada.files?.[0]
+    if (!archivo) return
+    const fallar = (mensaje) => (this._errorSubida = { ...this._errorSubida, [campo.campo]: mensaje })
+    if (campo.accept && !campo.accept.split(',').includes(archivo.type)) {
+      return fallar(campo.mensajes?.tipo ?? 'El tipo de archivo no es válido')
+    }
+    const maximo = campo.maxBytes ?? MAX_ARCHIVO_BYTES_POR_DEFECTO
+    if (archivo.size > maximo) {
+      return fallar(campo.mensajes?.max ?? `El archivo no puede pesar más de ${Math.round(maximo / 1024 / 1024)} MB`)
+    }
+
+    this._errorSubida = { ...this._errorSubida, [campo.campo]: null }
+    this._subiendo = { ...this._subiendo, [campo.campo]: true }
+    try {
+      const cuerpo = new FormData()
+      cuerpo.set('archivo', archivo)
+      const { data } = await solicitar('POST', campo.subida, { formulario: cuerpo })
+      this._alEscribir(campo, { ...data, nuevo: true })
+    } catch (error) {
+      fallar(error instanceof ErrorApi ? error.message : 'No pudimos subir el archivo. Inténtalo de nuevo.')
+    } finally {
+      this._subiendo = { ...this._subiendo, [campo.campo]: false }
+      entrada.value = ''
+    }
+  }
+
+  _renderArchivo(campo, id, error) {
+    const actual = this._valores[campo.campo]
+    const subiendo = Boolean(this._subiendo[campo.campo])
+    const falla = this._errorSubida[campo.campo] ?? error
+    return html`<div class="campo">
+      <label for=${id}>${campo.titulo}${campo.requerido ? '' : ' (opcional)'}</label>
+      ${actual?.url
+        ? html`<span class="archivo-actual">
+            <a class="enlace-archivo" href=${actual.url} target="_blank" rel="noopener noreferrer"
+              >${actual.nombre ?? 'Ver archivo'}</a
+            >
+            ${actual.nuevo ? html`<span class="ayuda">(nuevo, se guarda al enviar)</span>` : nothing}
+          </span>`
+        : nothing}
+      <input
+        id=${id}
+        type="file"
+        accept=${campo.accept ?? ''}
+        ?disabled=${subiendo || campo.soloLectura}
+        @change=${(e) => this._subirArchivo(campo, e)}
+      />
+      ${subiendo ? html`<span class="ayuda" role="status">Subiendo archivo…</span>` : nothing}
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${falla ? html`<span class="error-campo" role="alert">${falla}</span>` : nothing}
+    </div>`
+  }
+
   _renderImagen(campo, id, error) {
     const url = this._valores[campo.campo]
     const subiendo = Boolean(this._subiendo[campo.campo])
@@ -635,6 +721,7 @@ export class DhGestion extends LitElement {
     const id = `campo-${campo.campo.replace('.', '-')}`
     const error = this._errorDe(campo)
     if (campo.tipo === 'imagen') return this._renderImagen(campo, id, error)
+    if (campo.tipo === 'archivo') return this._renderArchivo(campo, id, error)
     const esPassword = campo.tipo === 'password'
     const tipo =
       esPassword && !this._verPassword[campo.campo]

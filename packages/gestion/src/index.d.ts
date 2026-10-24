@@ -15,11 +15,13 @@ export interface Columna {
   /** Campo del registro (admite puntos). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'fecha' | 'insignia' | 'imagen'
+  tipo?: 'texto' | 'fecha' | 'insignia' | 'imagen' | 'enlace'
   /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
   insignias?: Record<string, Insignia>
   /** Texto atenuado (datos de apoyo como el slug). */
   secundaria?: boolean
+  /** Para `tipo: 'enlace'`: el texto del enlace (el valor del campo es la URL). */
+  etiqueta?: string
   /** Ancho CSS de la columna (ej. '10rem'). Por defecto, corto para insignias y fechas; el resto reparte lo que sobra. */
   ancho?: string
 }
@@ -37,6 +39,8 @@ export interface MensajesCampo {
   max?: string
   email?: string
   patron?: string
+  /** `archivo`: mensaje cuando el tipo de archivo no es el aceptado. */
+  tipo?: string
   fechaNoFutura?: string
   edadMinima?: string
 }
@@ -45,7 +49,7 @@ export interface Campo {
   /** Campo del cuerpo (admite puntos: `administrador.nombres` arma un objeto anidado). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'numero' | 'seleccion' | 'imagen'
+  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'numero' | 'seleccion' | 'imagen' | 'archivo' | 'lista'
   requerido?: boolean
   /** Largo mínimo y máximo del texto. En `tipo: 'numero'` son el rango del valor (entero). */
   min?: number
@@ -57,6 +61,15 @@ export interface Campo {
    * `{ cloudName, apiKey, timestamp, folder, signature }`. El valor del campo es la URL resultante.
    */
   firma?: string
+  /**
+   * Para `tipo: 'archivo'`: ruta (relativa al API) que recibe el archivo (multipart, campo `archivo`)
+   * y devuelve su descriptor. El descriptor viaja en el cuerpo, bajo este campo, solo si es nuevo.
+   */
+  subida?: string
+  /** Para `tipo: 'archivo'`: tipos MIME aceptados, separados por coma (ej. `application/pdf`). */
+  accept?: string
+  /** Para `tipo: 'archivo'`: tamaño máximo en bytes (por defecto 20 MB). */
+  maxBytes?: number
   /** Nombre de un patrón (`slug`) o una expresión regular. */
   patron?: string
   /** Reglas con nombre: `fechaNoFutura`, `edadMinima:18`. */
@@ -151,7 +164,11 @@ export declare class ErrorApi extends Error {
 export declare function solicitar(
   metodo: string,
   ruta: string,
-  opciones?: { params?: Record<string, string | number | null | undefined>; cuerpo?: unknown }
+  opciones?: {
+    params?: Record<string, string | number | null | undefined>
+    cuerpo?: unknown
+    formulario?: FormData
+  }
 ): Promise<{ data: any; meta?: any }>
 
 export declare const PATRONES: Record<string, { regex: RegExp; mensaje: string }>

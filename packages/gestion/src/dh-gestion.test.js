@@ -695,3 +695,188 @@ describe('<dh-gestion> campo y columna imagen', () => {
     expect(el.shadowRoot.querySelector('img.vista-previa')).toBeNull()
   })
 })
+
+describe('<dh-gestion> campos archivo y lista, columna enlace', () => {
+  let el
+  const DESCRIPTOR = {
+    url: 'http://localhost:9000/drivehub-contenido/escuelas/e1/manuales/a.pdf',
+    nombre: 'm.pdf',
+    mime: 'application/pdf',
+    sha256: 'a'.repeat(64),
+    tamanoBytes: 193,
+  }
+  const FILA = { codigo: 'm1', titulo: 'Señales', etiquetas: ['vial', 'señales'], archivo: { ...DESCRIPTOR } }
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+  const pdf = (nombre = 'm.pdf', tipo = 'application/pdf') => new File(['%PDF'], nombre, { type: tipo })
+
+  const ESQUEMA_MANUALES = {
+    recurso: 'manuales',
+    titulo: 'Manuales',
+    columnas: [
+      { campo: 'titulo', titulo: 'Título' },
+      { campo: 'archivo.url', titulo: 'PDF', tipo: 'enlace', etiqueta: 'Ver PDF' },
+    ],
+    crear: {
+      etiqueta: 'Nuevo manual',
+      mensajeExito: 'Listo',
+      etiquetaEnviar: 'Crear',
+      secciones: [
+        {
+          campos: [
+            { campo: 'titulo', titulo: 'Título', requerido: true },
+            { campo: 'etiquetas', titulo: 'Etiquetas', tipo: 'lista' },
+            {
+              campo: 'archivo',
+              titulo: 'PDF',
+              tipo: 'archivo',
+              requerido: true,
+              subida: 'manuales/archivos',
+              accept: 'application/pdf',
+              maxBytes: 1024,
+              mensajes: { requerido: 'Sube el PDF', tipo: 'Debe ser un PDF', max: 'Muy pesado' },
+            },
+          ],
+        },
+      ],
+    },
+    editar: {
+      etiquetaEnviar: 'Guardar',
+      mensajeExito: 'Guardado',
+      secciones: [
+        {
+          campos: [
+            { campo: 'titulo', titulo: 'Título', requerido: true },
+            { campo: 'etiquetas', titulo: 'Etiquetas', tipo: 'lista' },
+            { campo: 'archivo', titulo: 'PDF', tipo: 'archivo', subida: 'manuales/archivos' },
+          ],
+        },
+      ],
+    },
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  async function montar(filas = [FILA]) {
+    fetch.mockResolvedValueOnce(lista(filas))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_MANUALES
+    await asentar(el)
+  }
+
+  async function elegir(archivo) {
+    const entrada = el.shadowRoot.querySelector('#campo-archivo')
+    Object.defineProperty(entrada, 'files', { value: [archivo], configurable: true })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+  }
+
+  async function escribirTexto(selector, valor) {
+    const campo = el.shadowRoot.querySelector(selector)
+    campo.value = valor
+    campo.dispatchEvent(new Event('input', { bubbles: true }))
+    await asentar(el)
+  }
+
+  it('la columna enlace abre el archivo en otra pestaña con su etiqueta', async () => {
+    await montar()
+
+    const enlace = el.shadowRoot.querySelector('a.enlace-archivo')
+    expect(enlace.textContent.trim()).toBe('Ver PDF')
+    expect(enlace.getAttribute('href')).toBe(DESCRIPTOR.url)
+    expect(enlace.getAttribute('target')).toBe('_blank')
+    expect(enlace.getAttribute('rel')).toContain('noopener')
+  })
+
+  it('sube el archivo como multipart al elegirlo y al enviar manda su descriptor y la lista como array', async () => {
+    await montar([])
+    boton('Nuevo manual').click()
+    await asentar(el)
+    fetch.mockReset()
+    fetch.mockResolvedValueOnce(sobre(DESCRIPTOR))
+
+    await elegir(pdf())
+
+    const [urlSubida, initSubida] = fetch.mock.calls[0]
+    expect(urlSubida).toBe('http://api.test/v1/manuales/archivos')
+    expect(initSubida.method).toBe('POST')
+    expect(initSubida.body.get('archivo').name).toBe('m.pdf')
+    expect(initSubida.headers['Content-Type']).toBeUndefined()
+    expect(el.shadowRoot.textContent).toContain('m.pdf')
+
+    await escribirTexto('#campo-titulo', 'Señales')
+    await escribirTexto('#campo-etiquetas', ' vial, señales ,vial,, ')
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'm2' })).mockResolvedValueOnce(lista([]))
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      titulo: 'Señales',
+      etiquetas: ['vial', 'señales'],
+      archivo: DESCRIPTOR,
+    })
+  })
+
+  it('sin archivo no se envía y pide subirlo; un tipo o tamaño no válido avisa sin llamar a nadie', async () => {
+    await montar([])
+    boton('Nuevo manual').click()
+    await asentar(el)
+    await escribirTexto('#campo-titulo', 'Señales')
+    boton('Crear').click()
+    await asentar(el)
+    expect(el.shadowRoot.textContent).toContain('Sube el PDF')
+
+    fetch.mockReset()
+    await elegir(pdf('a.png', 'image/png'))
+    expect(el.shadowRoot.textContent).toContain('Debe ser un PDF')
+    await elegir(new File([new Uint8Array(2048)], 'grande.pdf', { type: 'application/pdf' }))
+    expect(el.shadowRoot.textContent).toContain('Muy pesado')
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('si el backend rechaza el archivo, muestra su mensaje y no deja valor', async () => {
+    await montar([])
+    boton('Nuevo manual').click()
+    await asentar(el)
+    fetch.mockReset()
+    fetch.mockResolvedValueOnce(falla(400, 'ERR_SYS_01', 'El manual debe ser un archivo PDF'))
+
+    await elegir(pdf())
+
+    expect(el.shadowRoot.textContent).toContain('El manual debe ser un archivo PDF')
+    expect(el.shadowRoot.querySelector('.archivo-actual')).toBeNull()
+  })
+
+  it('al editar muestra el archivo actual y las etiquetas como texto, y sin cambiar el archivo no lo reenvía', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(sobre(FILA))
+    boton('Editar').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelector('#campo-etiquetas').value).toBe('vial, señales')
+    expect(el.shadowRoot.querySelector('a.enlace-archivo').textContent.trim()).toBe('m.pdf')
+
+    await escribirTexto('#campo-titulo', 'Señales 2')
+    fetch.mockResolvedValueOnce(sobre(FILA)).mockResolvedValueOnce(lista([FILA]))
+    boton('Guardar').click()
+    await asentar(el)
+
+    const cuerpo = JSON.parse(fetch.mock.calls[2][1].body)
+    expect(cuerpo).toEqual({ titulo: 'Señales 2', etiquetas: ['vial', 'señales'] })
+    expect(cuerpo.archivo).toBeUndefined()
+  })
+})
