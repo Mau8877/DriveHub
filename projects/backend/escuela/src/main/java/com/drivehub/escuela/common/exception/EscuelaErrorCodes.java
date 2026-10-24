@@ -14,6 +14,7 @@ public final class EscuelaErrorCodes {
     public static final String ESCUELA_YA_INACTIVA = "ERR_ESC_04";
     public static final String ESCUELA_YA_ACTIVA = "ERR_ESC_05";
     public static final String ESCUELA_INACTIVA_NO_EDITABLE = "ERR_ESC_06";
+    public static final String CATEGORIA_NO_ENCONTRADA = "ERR_ESC_07";
 
     // * Código transversal del sistema (ERR_SYS), igual en todos los servicios: validación de negocio
     // * que no cubren las anotaciones del DTO.
