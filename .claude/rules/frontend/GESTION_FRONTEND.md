@@ -48,6 +48,17 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
   `<dh-select>` y `<dh-fecha>` de `@drivehub/ui`, nunca un `<select>` ni un `<input type="date">` nativo
   (ver "Nada de componentes nativos" en [UI_FRONTEND.md](UI_FRONTEND.md)). Un campo `fecha` con
   `fechaNoFutura` o `edadMinima:N` ya limita el calendario a lo que esas reglas permiten.
+- **Selección múltiple** (campo `seleccion` con `multiple: true`): usa `<dh-select multiple>`, el valor del
+  formulario es un **arreglo** (por defecto `[]`), `requerido` significa al menos uno y al enviar viaja el
+  arreglo. `opcionesDe.excluir` (`['SIN']`) quita valores del catálogo; `valorDe` (`'sigla'`) dice qué propiedad
+  guardar cuando el registro trae objetos (`categorias: [{ sigla, descripcion }]`) al editar.
+- **Etiquetas** (`tipo: 'etiquetas'` en una columna o un dato del detalle): el valor es un arreglo, de textos o
+  de objetos (`etiqueta: 'sigla'` dice qué propiedad mostrar), dibujado como insignias pequeñas. En la tabla
+  caben tres y el resto se resume en "+N"; en el detalle se ven todas; vacío se muestra "—".
+- **Reglas de fecha**: además de `fechaNoFutura` (anterior a hoy) y `edadMinima:N`, `hastaHoy` (hoy o antes) y
+  `fechaFutura` (posterior a hoy; el calendario arranca mañana). Con `soloSiCambia: true` en el campo, al
+  **editar** sus `validaciones` solo se aplican si el valor cambió (un vencimiento ya pasado no impide
+  guardar otros datos); en el alta se aplican siempre. `porDefecto: 'hoy'` en un campo `fecha` lo precarga al crear.
 - **Foto** (`tipo: 'foto'` en una columna o un dato del detalle): dibuja un `<dh-avatar>` con la URL de
   la foto y, sin foto, las iniciales del campo que dice `nombre` (el nombre completo). La URL es
   prefirmada y vence: el avatar vuelve a las iniciales si la imagen ya no carga.

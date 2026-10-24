@@ -94,6 +94,7 @@ existen son:
 | Identidad → Escuela | Consultar la escuela por slug o por codigo y si está activa | CU01, CU02 |
 | Escuela → Identidad | Crear al Administrador de una escuela y, si algo falla, revertirlo | CU05 |
 | Identidad → Escuela | Validar que una categoría de licencia existe (reenvía el Bearer del Administrador) | CU08 |
+| Escuela → Identidad | Crear, consultar, buscar, reubicar y revertir la cuenta de un instructor (reenvía el Bearer del Administrador) | CU09 |
 
 Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
 Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque
