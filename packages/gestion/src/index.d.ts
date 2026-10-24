@@ -15,7 +15,7 @@ export interface Columna {
   /** Campo del registro (admite puntos). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'fecha' | 'insignia'
+  tipo?: 'texto' | 'fecha' | 'insignia' | 'imagen'
   /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
   insignias?: Record<string, Insignia>
   /** Texto atenuado (datos de apoyo como el slug). */
@@ -45,13 +45,18 @@ export interface Campo {
   /** Campo del cuerpo (admite puntos: `administrador.nombres` arma un objeto anidado). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'numero' | 'seleccion'
+  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'numero' | 'seleccion' | 'imagen'
   requerido?: boolean
   /** Largo mínimo y máximo del texto. En `tipo: 'numero'` son el rango del valor (entero). */
   min?: number
   max?: number
   /** Para `tipo: 'seleccion'`: las opciones del desplegable (el `valor` es lo que se envía). */
   opciones?: { valor: string; etiqueta: string }[]
+  /**
+   * Para `tipo: 'imagen'`: ruta (relativa al API) que firma la subida a Cloudinary y devuelve
+   * `{ cloudName, apiKey, timestamp, folder, signature }`. El valor del campo es la URL resultante.
+   */
+  firma?: string
   /** Nombre de un patrón (`slug`) o una expresión regular. */
   patron?: string
   /** Reglas con nombre: `fechaNoFutura`, `edadMinima:18`. */

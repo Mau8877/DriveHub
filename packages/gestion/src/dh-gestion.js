@@ -5,6 +5,15 @@ import { estilos } from './estilos.js'
 import { slugDesdeTexto, validar } from './reglas.js'
 
 const ESPERA_BUSQUEDA_MS = 300
+const MAX_IMAGEN_BYTES = 5 * 1024 * 1024
+
+/**
+ * Versión recortada de una imagen de Cloudinary (`c_fill,w_,h_`), para no bajar la foto completa
+ * en un listado. Una URL que no sea de Cloudinary se devuelve igual.
+ */
+function miniatura(url, ancho, alto) {
+  return String(url).replace('/image/upload/', `/image/upload/c_fill,w_${ancho},h_${alto},f_auto,q_auto/`)
+}
 
 /** Lee un valor de un objeto por ruta con puntos ('administrador.nombres'). */
 function leer(objeto, ruta) {
@@ -45,7 +54,7 @@ function camposDe(secciones) {
  */
 /** Ancho de una columna: el del esquema, o uno corto para insignias y fechas. El resto reparte lo que sobra. */
 function anchoColumna(c) {
-  const ancho = c.ancho ?? (c.tipo === 'insignia' || c.tipo === 'fecha' ? '8rem' : '')
+  const ancho = c.ancho ?? (c.tipo === 'imagen' ? '6.5rem' : c.tipo === 'insignia' || c.tipo === 'fecha' ? '8rem' : '')
   return ancho ? `width: ${ancho}` : ''
 }
 
@@ -70,6 +79,8 @@ export class DhGestion extends LitElement {
     _errorGeneral: { state: true },
     _enviando: { state: true },
     _verPassword: { state: true },
+    _subiendo: { state: true },
+    _errorSubida: { state: true },
     _cargandoRegistro: { state: true },
     _bloqueo: { state: true },
   }
@@ -103,6 +114,8 @@ export class DhGestion extends LitElement {
     this._errorGeneral = null
     this._enviando = false
     this._verPassword = {}
+    this._subiendo = {}
+    this._errorSubida = {}
     this._cargandoRegistro = false
     this._bloqueo = null
   }
@@ -241,6 +254,8 @@ export class DhGestion extends LitElement {
     this._errorGeneral = null
     this._enviando = false
     this._verPassword = {}
+    this._subiendo = {}
+    this._errorSubida = {}
     this._bloqueo = null
     this._registro = null
     this._manuales = new Set()
@@ -447,6 +462,9 @@ export class DhGestion extends LitElement {
       const insignia = columna.insignias?.[valor]
       return html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
     }
+    if (columna.tipo === 'imagen') {
+      return valor ? html`<img class="miniatura" src=${miniatura(valor, 96, 64)} alt="" loading="lazy" />` : ''
+    }
     if (columna.tipo === 'fecha') {
       return valor ? new Date(valor).toLocaleDateString('es') : ''
     }
@@ -552,9 +570,68 @@ export class DhGestion extends LitElement {
     </fieldset>`
   }
 
+  /**
+   * Sube la foto directo a Cloudinary con una firma que pide el backend (el API secret no sale de
+   * él) y deja la URL resultante como valor del campo.
+   */
+  async _subirImagen(campo, evento) {
+    // * Se guarda antes del primer await: después el evento ya no apunta al elemento
+    const entrada = evento.target
+    const archivo = entrada.files?.[0]
+    if (!archivo) return
+    const fallar = (mensaje) => (this._errorSubida = { ...this._errorSubida, [campo.campo]: mensaje })
+    if (!archivo.type.startsWith('image/')) return fallar('El archivo debe ser una imagen')
+    if (archivo.size > MAX_IMAGEN_BYTES) return fallar('La imagen no puede pesar más de 5 MB')
+
+    this._errorSubida = { ...this._errorSubida, [campo.campo]: null }
+    this._subiendo = { ...this._subiendo, [campo.campo]: true }
+    try {
+      const { data: firma } = await solicitar('POST', campo.firma)
+      const cuerpo = new FormData()
+      cuerpo.set('file', archivo)
+      cuerpo.set('api_key', firma.apiKey)
+      cuerpo.set('timestamp', String(firma.timestamp))
+      cuerpo.set('folder', firma.folder)
+      cuerpo.set('signature', firma.signature)
+      const respuesta = await fetch(`https://api.cloudinary.com/v1_1/${firma.cloudName}/image/upload`, {
+        method: 'POST',
+        body: cuerpo,
+      })
+      const resultado = await respuesta.json().catch(() => null)
+      if (!respuesta.ok || !resultado?.secure_url) throw new Error('subida rechazada')
+      this._alEscribir(campo, resultado.secure_url)
+    } catch (error) {
+      fallar(error instanceof ErrorApi ? error.message : 'No pudimos subir la imagen. Inténtalo de nuevo.')
+    } finally {
+      this._subiendo = { ...this._subiendo, [campo.campo]: false }
+      entrada.value = ''
+    }
+  }
+
+  _renderImagen(campo, id, error) {
+    const url = this._valores[campo.campo]
+    const subiendo = Boolean(this._subiendo[campo.campo])
+    const falla = this._errorSubida[campo.campo] ?? error
+    return html`<div class="campo">
+      <label for=${id}>${campo.titulo}${campo.requerido ? '' : ' (opcional)'}</label>
+      ${url ? html`<img class="vista-previa" src=${miniatura(url, 480, 300)} alt="Foto actual" />` : nothing}
+      <input
+        id=${id}
+        type="file"
+        accept="image/*"
+        ?disabled=${subiendo || campo.soloLectura}
+        @change=${(e) => this._subirImagen(campo, e)}
+      />
+      ${subiendo ? html`<span class="ayuda" role="status">Subiendo imagen…</span>` : nothing}
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${falla ? html`<span class="error-campo" role="alert">${falla}</span>` : nothing}
+    </div>`
+  }
+
   _renderCampo(campo) {
     const id = `campo-${campo.campo.replace('.', '-')}`
     const error = this._errorDe(campo)
+    if (campo.tipo === 'imagen') return this._renderImagen(campo, id, error)
     const esPassword = campo.tipo === 'password'
     const tipo =
       esPassword && !this._verPassword[campo.campo]

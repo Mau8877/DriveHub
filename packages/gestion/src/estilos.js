@@ -202,6 +202,21 @@ export const estilos = css`
   }
 
   /* Insignias */
+  .miniatura {
+    display: block;
+    width: 4.5rem;
+    height: 3rem;
+    object-fit: cover;
+    border-radius: calc(var(--radius) * 0.6);
+    border: 1px solid var(--border);
+  }
+  .vista-previa {
+    display: block;
+    width: 100%;
+    max-width: 20rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
   .insignia {
     display: inline-block;
     padding: 0.125rem 0.625rem;

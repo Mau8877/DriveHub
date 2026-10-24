@@ -544,3 +544,143 @@ describe('<dh-gestion> campos numero y seleccion', () => {
     expect(JSON.parse(init.body)).toEqual({ placa: 'ABC-123', transmision: 'AUTOMATICO', kilometraje: 1500 })
   })
 })
+
+describe('<dh-gestion> campo y columna imagen', () => {
+  let el
+  const FOTO = 'https://res.cloudinary.com/nube/image/upload/v1/drivehub/e1/vehiculos/auto.jpg'
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+
+  const ESQUEMA_AUTOS = {
+    recurso: 'vehiculos',
+    titulo: 'Autos',
+    columnas: [
+      { campo: 'imagenUrl', titulo: 'Foto', tipo: 'imagen' },
+      { campo: 'placa', titulo: 'Placa' },
+    ],
+    crear: {
+      etiqueta: 'Nuevo auto',
+      mensajeExito: 'Listo',
+      etiquetaEnviar: 'Registrar',
+      secciones: [
+        {
+          campos: [
+            { campo: 'placa', titulo: 'Placa', requerido: true },
+            { campo: 'imagenUrl', titulo: 'Foto', tipo: 'imagen', firma: 'vehiculos/firma-imagen' },
+          ],
+        },
+      ],
+    },
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  async function montar() {
+    fetch.mockResolvedValueOnce(lista([{ codigo: 'v1', placa: 'ABC-123', imagenUrl: FOTO }]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_AUTOS
+    await asentar(el)
+  }
+
+  async function abrirCrearYElegir(archivo) {
+    await montar()
+    boton('Nuevo auto').click()
+    await asentar(el)
+    const entrada = el.shadowRoot.querySelector('#campo-imagenUrl')
+    Object.defineProperty(entrada, 'files', { value: [archivo], configurable: true })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+  }
+
+  it('la columna imagen muestra una miniatura recortada de Cloudinary', async () => {
+    await montar()
+
+    const img = el.shadowRoot.querySelector('img.miniatura')
+    expect(img.getAttribute('src')).toContain('/image/upload/c_fill,w_96,h_64,f_auto,q_auto/v1/')
+  })
+
+  it('sube la foto con la firma del backend y deja la URL en el cuerpo del formulario', async () => {
+    fetch.mockImplementation(async () => lista([]))
+    const archivo = new File(['x'], 'auto.png', { type: 'image/png' })
+    await montar()
+    boton('Nuevo auto').click()
+    await asentar(el)
+    fetch.mockReset()
+    fetch
+      .mockResolvedValueOnce(
+        sobre({ cloudName: 'nube', apiKey: 'k', timestamp: 1700000000, folder: 'drivehub/e1/vehiculos', signature: 'sig' })
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ secure_url: FOTO }), { status: 200 }))
+
+    const entrada = el.shadowRoot.querySelector('#campo-imagenUrl')
+    Object.defineProperty(entrada, 'files', { value: [archivo], configurable: true })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+
+    expect(fetch.mock.calls[0][0]).toBe('http://api.test/v1/vehiculos/firma-imagen')
+    expect(fetch.mock.calls[0][1].method).toBe('POST')
+    const [urlNube, init] = fetch.mock.calls[1]
+    expect(urlNube).toBe('https://api.cloudinary.com/v1_1/nube/image/upload')
+    expect(init.body.get('signature')).toBe('sig')
+    expect(init.body.get('api_key')).toBe('k')
+    expect(init.body.get('folder')).toBe('drivehub/e1/vehiculos')
+    expect(init.body.get('file').name).toBe('auto.png')
+    expect(el.shadowRoot.querySelector('img.vista-previa')).not.toBeNull()
+
+    const placa = el.shadowRoot.querySelector('#campo-placa')
+    placa.value = 'ABC-123'
+    placa.dispatchEvent(new Event('input', { bubbles: true }))
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'v2' })).mockResolvedValueOnce(lista([]))
+    boton('Registrar').click()
+    await asentar(el)
+    expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({ placa: 'ABC-123', imagenUrl: FOTO })
+  })
+
+  it('rechaza lo que no es imagen o pesa más de 5 MB sin llamar a nadie', async () => {
+    await abrirCrearYElegir(new File(['x'], 'datos.pdf', { type: 'application/pdf' }))
+    expect(el.shadowRoot.textContent).toContain('El archivo debe ser una imagen')
+
+    const grande = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'grande.png', { type: 'image/png' })
+    const entrada = el.shadowRoot.querySelector('#campo-imagenUrl')
+    Object.defineProperty(entrada, 'files', { value: [grande], configurable: true })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+
+    expect(el.shadowRoot.textContent).toContain('no puede pesar más de 5 MB')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('si Cloudinary rechaza la subida, avisa y no deja URL', async () => {
+    await montar()
+    boton('Nuevo auto').click()
+    await asentar(el)
+    fetch
+      .mockResolvedValueOnce(sobre({ cloudName: 'nube', apiKey: 'k', timestamp: 1, folder: 'f', signature: 's' }))
+      .mockResolvedValueOnce(new Response('{}', { status: 400 }))
+
+    const entrada = el.shadowRoot.querySelector('#campo-imagenUrl')
+    Object.defineProperty(entrada, 'files', {
+      value: [new File(['x'], 'a.png', { type: 'image/png' })],
+      configurable: true,
+    })
+    entrada.dispatchEvent(new Event('change', { bubbles: true }))
+    await asentar(el)
+
+    expect(el.shadowRoot.textContent).toContain('No pudimos subir la imagen')
+    expect(el.shadowRoot.querySelector('img.vista-previa')).toBeNull()
+  })
+})
