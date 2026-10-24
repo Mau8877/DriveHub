@@ -81,11 +81,12 @@ describe('ShellLayout', () => {
   describe('Menú por rol', () => {
     const etiquetas = (shell: DhShell) => shell.items.map((i) => i.etiqueta)
 
-    it('el Administrador de escuela ve Inicio y sus seis módulos, y no "Gestionar escuelas"', () => {
+    it('el Administrador de escuela ve Inicio, "Estudiantes" y sus seis módulos, y no "Gestionar escuelas"', () => {
       const { shell } = crear(USUARIO)
 
-      expect(etiquetas(shell)).toHaveLength(7)
+      expect(etiquetas(shell)).toHaveLength(8)
       expect(etiquetas(shell)).toContain('Inicio')
+      expect(etiquetas(shell)).toContain('Estudiantes')
       expect(etiquetas(shell)).not.toContain('Gestionar escuelas')
       expect(shell.etiquetaGrupo).toBe('Tu escuela')
     })

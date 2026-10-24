@@ -39,6 +39,15 @@ export const NAV_ITEMS: NavItem[] = [
     icono: 'users',
     roles: [ROLES.ADMIN_ESCUELA],
   },
+  // * Va ANTES de '/escuela': migasDeRuta toma el primer ítem cuya ruta coincide por prefijo, y
+  // * '/escuela/estudiantes' también empieza con '/escuela/' (si no, las migas dirían "Escuela")
+  {
+    ruta: '/escuela/estudiantes',
+    etiqueta: 'Estudiantes',
+    descripcion: 'Alumnos de tu escuela',
+    icono: 'users',
+    roles: [ROLES.ADMIN_ESCUELA],
+  },
   {
     ruta: '/escuela',
     etiqueta: 'Escuela',
