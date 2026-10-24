@@ -12,8 +12,8 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
   El correo es único en toda la plataforma, no solo dentro de una escuela
   (CU01, registro del estudiante). También se devuelve si dos registros con
   el mismo correo llegan a la vez y la base rechaza el segundo.
-- **Dónde se lanza:** `AltaEstudiante.crear()` (lo usan `RegistrarEstudianteService.registrar()` y
-  `CrearEstudianteService.crear()`, CU08), `SolicitarCambioCorreoService.solicitar()` (CU06, el correo nuevo ya lo usa otra cuenta) y
+- **Dónde se lanza:** `AltaCuenta.crear()` (lo usan `RegistrarEstudianteService.registrar()` y
+  `CrearEstudianteService.crear()`, CU08, y `CrearCuentaInstructorService.crear()`, CU09), `SolicitarCambioCorreoService.solicitar()` (CU06, el correo nuevo ya lo usa otra cuenta) y
   `UsuarioPersistenceAdapter.guardar()` (carrera entre dos registros)
 
 ## `ERR_IDE_02`
@@ -23,8 +23,8 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
 - **Significado:** La persona no alcanza la edad mínima para registrarse
   (18 años cumplidos a la fecha del registro, configurable con
   `app.registro.edad-minima`).
-- **Dónde se lanza:** `AltaEstudiante.crear()` (lo usan `RegistrarEstudianteService.registrar()` y
-  `CrearEstudianteService.crear()`, CU08) y, al cambiar la fecha de nacimiento del perfil (CU06),
+- **Dónde se lanza:** `AltaCuenta.crear()` (lo usan `RegistrarEstudianteService.registrar()` y
+  `CrearEstudianteService.crear()`, CU08, y `CrearCuentaInstructorService.crear()`, CU09) y, al cambiar la fecha de nacimiento del perfil (CU06),
   `EditarPerfilService.editar()`
 
 ## `ERR_IDE_03`
@@ -184,8 +184,8 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
 - **Excepción:** `ConflictException`
 - **Significado:** El CI ya pertenece a otra cuenta (CU08a). El CI es único en toda la plataforma y
   se compara sin espacios y en mayúsculas.
-- **Dónde se lanza:** `AltaEstudiante.crear()` (lo usan `RegistrarEstudianteService.registrar()` y
-  `CrearEstudianteService.crear()`, CU08),
+- **Dónde se lanza:** `AltaCuenta.crear()` (lo usan `RegistrarEstudianteService.registrar()` y
+  `CrearEstudianteService.crear()`, CU08, y `CrearCuentaInstructorService.crear()`, CU09),
   `CrearAdministradorEscuelaService.crear()`, `EditarPerfilService.editar()` y
   `UsuarioPersistenceAdapter` (si dos operaciones simultáneas chocan con el mismo CI)
 
@@ -205,3 +205,20 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
 - **Significado:** La categoría de licencia elegida para el estudiante no existe en el catálogo de
   Escuela (CU08). La categoría "sin categoría" existe siempre.
 - **Dónde se lanza:** `CrearEstudianteService.crear()` y `EditarEstudianteService.editar()`
+
+## `ERR_IDE_22`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El instructor pedido no existe en la escuela de quien llama (CU09). Un
+  instructor de otra escuela, una cuenta que no es de un instructor y un código inexistente
+  responden igual: no se distinguen.
+- **Dónde se lanza:** `EditarUbicacionInstructorService.editar()`
+
+## `ERR_IDE_23`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La cuenta del instructor ya se usó (inició sesión) y no se puede revertir
+  (CU09): Escuela intentó deshacer un alta a medias, pero la persona ya entró. La cuenta se conserva.
+- **Dónde se lanza:** `RevertirCuentaInstructorService.revertir()`

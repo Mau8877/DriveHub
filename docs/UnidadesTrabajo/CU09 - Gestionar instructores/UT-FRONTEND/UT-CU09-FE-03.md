@@ -23,8 +23,9 @@ El listado de instructores muestra las categorías como etiquetas; el vencimient
 ## Alcance
 
 - **Columna y dato de detalle `tipo: 'etiquetas'`**: el valor es un arreglo (de strings o de objetos); la propiedad `etiqueta` indica qué campo del objeto se muestra (`'sigla'`). Se dibujan como insignias pequeñas en una fila que no desborda la celda (si no caben, "+N"); vacío se muestra "—". La columna declara su `ancho` como las demás. En móvil (tarjetas) se ven igual.
+- **Regla de validación `hastaHoy`** (`reglas.js`): la fecha debe ser **hoy o anterior** (la contratación puede ser hoy; `fechaNoFutura` rechaza también hoy y no se toca); mensaje por defecto "La fecha no puede ser futura"; limita el calendario hasta hoy.
 - **Regla de validación `fechaFutura`** (`reglas.js`): la fecha debe ser **posterior a hoy** (hoy no vale); mensaje configurable, por defecto "La fecha debe ser posterior a hoy". Limita también el calendario: `min` del `<dh-fecha>` = mañana.
-- **Opción `soloSiCambia: true`** en una regla de un campo: en la **edición** la regla solo se aplica si el valor es distinto del que trajo el registro; en el alta se aplica siempre. Si nada cambió, no se muestra error.
+- **Opción `soloSiCambia: true`** en un campo: en la **edición** sus `validaciones` solo se aplican si el valor es distinto del que trajo el registro; en el alta se aplica siempre. Si nada cambió, no se muestra error.
 - **`porDefecto: 'hoy'`** en un campo `fecha`: el alta lo precarga con la fecha de hoy (formato `yyyy-MM-dd`, en la zona local); la edición usa el valor del registro.
 - Tipos en `index.d.ts` y documentación en [GESTION_FRONTEND.md](../../../../.claude/rules/frontend/GESTION_FRONTEND.md). Solo tokens en los estilos de las etiquetas.
 - Pruebas (`vitest`, jsdom): columna `etiquetas` con strings y con objetos, vacía y con desborde; detalle con etiquetas; `fechaFutura` rechaza hoy y ayer y acepta mañana; el calendario no deja elegir hoy; `soloSiCambia` no valida un valor sin cambios en edición pero sí en el alta y si cambia; `porDefecto: 'hoy'` precarga en el alta y no pisa el valor al editar; `validar` de `reglas.js` con las combinaciones.

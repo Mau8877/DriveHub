@@ -62,3 +62,29 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 - **Significado:** La categoría de licencia pedida por sigla no existe en el catálogo (CU08).
   Identidad usa este 404 para saber que la categoría que eligió el Administrador no es válida.
 - **Dónde se lanza:** `ObtenerCategoriaLicenciaUseCase.ejecutar()`
+
+## `ERR_ESC_08`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El número de licencia ya pertenece a otro instructor (CU09). Es único en toda la
+  plataforma y se compara sin espacios y en mayúsculas. También se devuelve si dos altas con el
+  mismo número llegan a la vez y la base rechaza la segunda.
+- **Dónde se lanza:** `CrearInstructorUseCase.ejecutar()`, `EditarInstructorUseCase.ejecutar()` e
+  `InstructorRepositoryImpl.guardar()` / `actualizar()` (carrera entre dos operaciones)
+
+## `ERR_ESC_09`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El instructor pedido no existe en la escuela de quien consulta (CU09). Un
+  instructor de otra escuela y un código inexistente responden igual: no se distinguen.
+- **Dónde se lanza:** `ObtenerInstructorUseCase.ejecutar()` y `EditarInstructorUseCase.ejecutar()`
+
+## `ERR_ESC_10`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** Una de las categorías elegidas para el instructor no existe en el catálogo
+  (CU09). La opción "sin categoría" (`SIN`) tampoco vale: un instructor enseña categorías reales.
+- **Dónde se lanza:** `CrearInstructorUseCase.ejecutar()` y `EditarInstructorUseCase.ejecutar()`

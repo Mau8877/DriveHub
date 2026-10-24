@@ -246,7 +246,7 @@ Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b), restab
 
 ## 3. Escuela — PostgreSQL
 
-Escuelas (tenants), instructores, flota, categorías de licencia y asignaciones. El **estudiante no tiene tabla propia** (CU08a): es una cuenta con su perfil en [Identidad](#2-identidad--postgresql) y Escuela lo referencia por su `codigo_usuario`. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261023100000__escuela_sin_estudiante_y_categorias.sql` (CU08a).
+Escuelas (tenants), instructores, flota, categorías de licencia y asignaciones. El **estudiante no tiene tabla propia** (CU08a): es una cuenta con su perfil en [Identidad](#2-identidad--postgresql) y Escuela lo referencia por su `codigo_usuario`. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261023100000__escuela_sin_estudiante_y_categorias.sql` (CU08a), `V20261024100000__instructor_con_escuela.sql` (CU09).
 
 ```mermaid
 erDiagram
@@ -271,6 +271,7 @@ erDiagram
     instructor {
         bigint id PK
         uuid usuario_codigo UK "Identidad"
+        uuid escuela_codigo "Tenant, sin FK"
         varchar nro_licencia UK
     }
     vehiculo {
@@ -280,7 +281,7 @@ erDiagram
     }
 ```
 
-> `escuela` aún **no** se relaciona con las demás tablas de este servicio: el `escuela_codigo` en `instructor`, `vehiculo`... se agrega con el diseño del filtro por tenant (antes de CU07). Ver [sección 10](#10-diferencias-con-el-pdf-y-pendientes).
+> `escuela` aún **no** se relaciona con las demás tablas de este servicio, salvo `instructor` (que ya guarda su `escuela_codigo`, CU09): el de `vehiculo`... se agrega con el diseño del filtro por tenant (antes de CU07). Ver [sección 10](#10-diferencias-con-el-pdf-y-pendientes).
 
 ### `escuela`
 
@@ -312,11 +313,12 @@ Sembrada por migración (CU08a), en este orden: `P` Particular, `M` Motocicleta,
 
 ### `instructor`
 
-Perfil del instructor (CU09).
+Ficha profesional del instructor (CU09).
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `usuario_codigo` | `UUID NOT NULL UNIQUE` | → `identidad.usuario.codigo_usuario`, sin FK. El CI y los datos personales están en el `perfil` de Identidad |
+| `escuela_codigo` | `UUID NOT NULL` | Escuela (tenant) de la ficha, sin FK (CU09). Índice `idx_instructor_escuela_codigo_estado (escuela_codigo, estado)` |
 | `nro_licencia` | `VARCHAR(30) NOT NULL UNIQUE` | |
 | `licencia_vence` | `DATE` | |
 | `estado` | `VARCHAR(12) NOT NULL DEFAULT 'ACTIVO'` | `CHECK IN ('ACTIVO','INACTIVO','LICENCIA')` |
