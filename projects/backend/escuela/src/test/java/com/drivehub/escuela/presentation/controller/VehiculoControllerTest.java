@@ -35,6 +35,7 @@ import com.drivehub.escuela.application.dto.RegistrarVehiculoInput;
 import com.drivehub.escuela.application.dto.VehiculoOutput;
 import com.drivehub.escuela.application.usecase.CambiarEstadoVehiculoUseCase;
 import com.drivehub.escuela.application.usecase.EditarVehiculoUseCase;
+import com.drivehub.escuela.application.usecase.FirmarSubidaImagenVehiculoUseCase;
 import com.drivehub.escuela.application.usecase.ListarVehiculosUseCase;
 import com.drivehub.escuela.application.usecase.ObtenerVehiculoUseCase;
 import com.drivehub.escuela.application.usecase.RegistrarVehiculoUseCase;
@@ -44,6 +45,7 @@ import com.drivehub.escuela.common.exception.GlobalExceptionHandler;
 import com.drivehub.escuela.common.exception.NotFoundException;
 import com.drivehub.escuela.domain.entity.EstadoVehiculo;
 import com.drivehub.escuela.domain.entity.Transmision;
+import com.drivehub.escuela.domain.gateway.FirmaSubidaImagen;
 import com.drivehub.escuela.infrastructure.config.SecurityConfig;
 
 @WebMvcTest(VehiculoController.class)
@@ -67,6 +69,8 @@ class VehiculoControllerTest {
     private EditarVehiculoUseCase editarVehiculo;
     @MockitoBean
     private CambiarEstadoVehiculoUseCase cambiarEstado;
+    @MockitoBean
+    private FirmarSubidaImagenVehiculoUseCase firmarSubidaImagen;
     // * SecurityConfig es un resource server: necesita un decodificador de JWT
     @MockitoBean
     private JwtDecoder jwtDecoder;
@@ -77,7 +81,7 @@ class VehiculoControllerTest {
 
     private static VehiculoOutput vehiculo(EstadoVehiculo estado) {
         return new VehiculoOutput(CODIGO, "ABC-123", "Toyota", "Yaris", (short) 2020, "Rojo", Transmision.MANUAL,
-            estado, 1000, null, null, Instant.parse("2026-10-24T10:00:00Z"));
+            estado, 1000, null, null, null, Instant.parse("2026-10-24T10:00:00Z"));
     }
 
     private static String cuerpoCrear() {
@@ -198,7 +202,7 @@ class VehiculoControllerTest {
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.codigo").value(CODIGO.toString()));
 
         verify(editarVehiculo).ejecutar(new com.drivehub.escuela.application.dto.EditarVehiculoInput(
-            ESCUELA, CODIGO, null, null, null, "Azul", 1500, null, null));
+            ESCUELA, CODIGO, null, null, null, "Azul", 1500, null, null, null));
     }
 
     @Test
@@ -220,6 +224,22 @@ class VehiculoControllerTest {
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.estado").value("DISPONIBLE"));
         mockMvc.perform(post(RUTA + "/" + CODIGO + "/dar-de-baja").with(sesion()))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.estado").value("BAJA"));
+    }
+
+    @Test
+    void firmarImagen_devuelveLaFirmaDeLaEscuelaDelTokenSinElSecret() throws Exception {
+        when(firmarSubidaImagen.ejecutar(ESCUELA)).thenReturn(
+            new FirmaSubidaImagen("nube", "key", 1700000000L, "drivehub/" + ESCUELA + "/vehiculos", "abc123"));
+
+        mockMvc.perform(post(RUTA + "/firma-imagen").with(sesion()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.cloudName").value("nube"))
+            .andExpect(jsonPath("$.data.apiKey").value("key"))
+            .andExpect(jsonPath("$.data.timestamp").value(1700000000L))
+            .andExpect(jsonPath("$.data.folder").value("drivehub/" + ESCUELA + "/vehiculos"))
+            .andExpect(jsonPath("$.data.signature").value("abc123"))
+            .andExpect(jsonPath("$.data.apiSecret").doesNotExist());
+        mockMvc.perform(post(RUTA + "/firma-imagen")).andExpect(status().isUnauthorized());
     }
 
     @Test

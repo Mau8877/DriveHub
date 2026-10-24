@@ -29,5 +29,6 @@ public class Vehiculo {
     private final int kilometraje;
     private final LocalDate soatVence;
     private final LocalDate inspeccionVence;
+    private final String imagenUrl;
     private final Instant creadoEn;
 }

@@ -23,6 +23,7 @@ import com.drivehub.escuela.application.dto.RegistrarVehiculoInput;
 import com.drivehub.escuela.application.dto.VehiculoOutput;
 import com.drivehub.escuela.application.usecase.CambiarEstadoVehiculoUseCase;
 import com.drivehub.escuela.application.usecase.EditarVehiculoUseCase;
+import com.drivehub.escuela.application.usecase.FirmarSubidaImagenVehiculoUseCase;
 import com.drivehub.escuela.application.usecase.ListarVehiculosUseCase;
 import com.drivehub.escuela.application.usecase.ObtenerVehiculoUseCase;
 import com.drivehub.escuela.application.usecase.RegistrarVehiculoUseCase;
@@ -31,6 +32,7 @@ import com.drivehub.escuela.common.exception.ForbiddenException;
 import com.drivehub.escuela.common.response.ApiResponse;
 import com.drivehub.escuela.common.response.PageMeta;
 import com.drivehub.escuela.domain.entity.EstadoVehiculo;
+import com.drivehub.escuela.domain.gateway.FirmaSubidaImagen;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,13 +54,22 @@ public class VehiculoController {
     private final ObtenerVehiculoUseCase obtenerVehiculo;
     private final EditarVehiculoUseCase editarVehiculo;
     private final CambiarEstadoVehiculoUseCase cambiarEstado;
+    private final FirmarSubidaImagenVehiculoUseCase firmarSubidaImagen;
+
+    // * La foto se sube directo a Cloudinary con esta firma; después se guarda la URL en el auto
+    @PostMapping("/firma-imagen")
+    public ResponseEntity<ApiResponse<FirmaImagenResponse>> firmarImagen(@AuthenticationPrincipal Jwt jwt) {
+        FirmaSubidaImagen firma = firmarSubidaImagen.ejecutar(escuelaDe(jwt));
+        return ResponseEntity.ok(ApiResponse.success(new FirmaImagenResponse(firma.cloudName(), firma.apiKey(),
+            firma.timestamp(), firma.carpeta(), firma.firma()), "Subida de imagen autorizada"));
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<VehiculoResponse>> registrar(
             @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CrearVehiculoRequest request) {
         VehiculoOutput creado = registrarVehiculo.ejecutar(new RegistrarVehiculoInput(escuelaDe(jwt), request.placa(),
             request.marca(), request.modelo(), request.anio(), request.color(), request.transmision(),
-            request.kilometraje(), request.soatVence(), request.inspeccionVence()));
+            request.kilometraje(), request.soatVence(), request.inspeccionVence(), request.imagenUrl()));
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success(aRespuesta(creado), "Auto registrado correctamente"));
     }
@@ -91,7 +102,7 @@ public class VehiculoController {
             @Valid @RequestBody EditarVehiculoRequest request) {
         VehiculoOutput editado = editarVehiculo.ejecutar(new EditarVehiculoInput(escuelaDe(jwt), codigo,
             request.marca(), request.modelo(), request.anio(), request.color(), request.kilometraje(),
-            request.soatVence(), request.inspeccionVence()));
+            request.soatVence(), request.inspeccionVence(), request.imagenUrl()));
         return ResponseEntity.ok(ApiResponse.success(aRespuesta(editado), "Auto actualizado correctamente"));
     }
 
@@ -134,6 +145,7 @@ public class VehiculoController {
 
     private static VehiculoResponse aRespuesta(VehiculoOutput v) {
         return new VehiculoResponse(v.codigo(), v.placa(), v.marca(), v.modelo(), v.anio(), v.color(),
-            v.transmision(), v.estado(), v.kilometraje(), v.soatVence(), v.inspeccionVence(), v.creadoEn());
+            v.transmision(), v.estado(), v.kilometraje(), v.soatVence(), v.inspeccionVence(), v.imagenUrl(),
+            v.creadoEn());
     }
 }

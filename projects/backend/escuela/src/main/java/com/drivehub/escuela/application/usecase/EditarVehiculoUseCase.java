@@ -39,6 +39,7 @@ public class EditarVehiculoUseCase {
         String marca = ReglasVehiculo.limpiar(input.marca());
         String modelo = ReglasVehiculo.limpiar(input.modelo());
         String color = ReglasVehiculo.limpiar(input.color());
+        String imagenUrl = ReglasVehiculo.limpiar(input.imagenUrl());
         if (marca != null) {
             ReglasVehiculo.texto(marca, "marca", 40);
         }
@@ -48,6 +49,7 @@ public class EditarVehiculoUseCase {
         ReglasVehiculo.colorOpcional(color);
         ReglasVehiculo.anio(input.anio());
         ReglasVehiculo.kilometraje(input.kilometraje());
+        ReglasVehiculo.imagenUrl(imagenUrl);
 
         Vehiculo actual = vehiculoRepository.buscarPorCodigo(input.escuelaCodigo(), input.codigo()).orElseThrow(() -> {
             LOG.warn("Edición rechazada: el auto no existe", kv("module", ReglasVehiculo.MODULO),
@@ -73,6 +75,7 @@ public class EditarVehiculoUseCase {
             .kilometraje(input.kilometraje() != null ? input.kilometraje() : actual.getKilometraje())
             .soatVence(input.soatVence() != null ? input.soatVence() : actual.getSoatVence())
             .inspeccionVence(input.inspeccionVence() != null ? input.inspeccionVence() : actual.getInspeccionVence())
+            .imagenUrl(imagenUrl != null && !imagenUrl.isEmpty() ? imagenUrl : actual.getImagenUrl())
             .build();
         Vehiculo guardado = vehiculoRepository.actualizar(editado).orElseThrow(() ->
             new NotFoundException(EscuelaErrorCodes.VEHICULO_NO_ENCONTRADO, "El auto no existe"));

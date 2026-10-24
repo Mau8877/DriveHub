@@ -75,6 +75,7 @@ public class VehiculoRepositoryImpl implements VehiculoRepository {
         model.setKilometraje(v.getKilometraje());
         model.setSoatVence(v.getSoatVence());
         model.setInspeccionVence(v.getInspeccionVence());
+        model.setImagenUrl(v.getImagenUrl());
         model.setEstado(v.getEstado());
     }
 
@@ -106,6 +107,7 @@ public class VehiculoRepositoryImpl implements VehiculoRepository {
             .kilometraje(model.getKilometraje())
             .soatVence(model.getSoatVence())
             .inspeccionVence(model.getInspeccionVence())
+            .imagenUrl(model.getImagenUrl())
             .creadoEn(model.getCreatedAt())
             .build();
     }

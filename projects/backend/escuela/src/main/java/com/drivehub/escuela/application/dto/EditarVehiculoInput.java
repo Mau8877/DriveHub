@@ -8,5 +8,6 @@ import java.util.UUID;
  * se editan por acá.
  */
 public record EditarVehiculoInput(UUID escuelaCodigo, UUID codigo, String marca, String modelo, Short anio,
-        String color, Integer kilometraje, LocalDate soatVence, LocalDate inspeccionVence) {
+        String color, Integer kilometraje, LocalDate soatVence, LocalDate inspeccionVence,
+        String imagenUrl) {
 }

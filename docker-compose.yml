@@ -129,6 +129,10 @@ services:
       # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
       - IDENTIDAD_URL=http://drivehub-identidad:8081
       - SPRING_DATASOURCE_USERNAME=escuela
+      # Fotos de los autos (CU07): se piden al .env, vacías si no hay cuenta de Cloudinary.
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
       - SPRING_DATASOURCE_PASSWORD=${ESCUELA_DB_PASSWORD}
       - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
       - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}

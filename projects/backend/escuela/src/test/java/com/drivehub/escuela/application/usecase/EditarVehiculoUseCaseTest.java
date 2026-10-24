@@ -46,7 +46,7 @@ class EditarVehiculoUseCaseTest {
     }
 
     private static EditarVehiculoInput cambios(String marca, Integer km) {
-        return new EditarVehiculoInput(ESCUELA, CODIGO, marca, null, null, null, km, null, null);
+        return new EditarVehiculoInput(ESCUELA, CODIGO, marca, null, null, null, km, null, null, null);
     }
 
     private void esperaCodigo(Runnable accion, String codigo) {
@@ -60,7 +60,7 @@ class EditarVehiculoUseCaseTest {
         when(vehiculoRepository.actualizar(any())).thenAnswer(i -> Optional.of(i.getArgument(0)));
 
         VehiculoOutput resultado = useCase.ejecutar(new EditarVehiculoInput(ESCUELA, CODIGO, " Nissan ", null, null,
-            null, 1500, LocalDate.parse("2027-01-01"), null));
+            null, 1500, LocalDate.parse("2027-01-01"), null, null));
 
         ArgumentCaptor<Vehiculo> guardado = ArgumentCaptor.forClass(Vehiculo.class);
         verify(vehiculoRepository).actualizar(guardado.capture());
@@ -72,6 +72,19 @@ class EditarVehiculoUseCaseTest {
         assertThat(resultado.placa()).isEqualTo("ABC-123");
         assertThat(resultado.transmision()).isEqualTo(Transmision.MANUAL);
         assertThat(resultado.estado()).isEqualTo(EstadoVehiculo.DISPONIBLE);
+    }
+
+    @Test
+    void ejecutar_conImagenNuevaLaCambiaYSinImagenDejaLaActual() {
+        when(vehiculoRepository.buscarPorCodigo(ESCUELA, CODIGO)).thenReturn(Optional.of(
+            vehiculo(EstadoVehiculo.DISPONIBLE).toBuilder().imagenUrl("https://res.cloudinary.com/n/vieja.jpg").build()));
+        when(vehiculoRepository.actualizar(any())).thenAnswer(i -> Optional.of(i.getArgument(0)));
+
+        assertThat(useCase.ejecutar(cambios("Nissan", null)).imagenUrl()).isEqualTo("https://res.cloudinary.com/n/vieja.jpg");
+        assertThat(useCase.ejecutar(new EditarVehiculoInput(ESCUELA, CODIGO, null, null, null, null, null, null, null,
+            "https://res.cloudinary.com/n/nueva.jpg")).imagenUrl()).isEqualTo("https://res.cloudinary.com/n/nueva.jpg");
+        esperaCodigo(() -> useCase.ejecutar(new EditarVehiculoInput(ESCUELA, CODIGO, null, null, null, null, null, null,
+            null, "https://otro-sitio.com/x.jpg")), "ERR_SYS_01");
     }
 
     @Test

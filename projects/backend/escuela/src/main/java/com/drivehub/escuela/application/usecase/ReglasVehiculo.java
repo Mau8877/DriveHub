@@ -23,6 +23,7 @@ final class ReglasVehiculo {
     static final String MODULO = "vehiculos";
     static final Pattern PLACA = Pattern.compile("^[A-Z0-9-]{5,10}$");
     static final int ANIO_MINIMO = 1980;
+    static final String PREFIJO_IMAGEN = "https://res.cloudinary.com/";
 
     private ReglasVehiculo() {
     }
@@ -49,6 +50,13 @@ final class ReglasVehiculo {
         }
     }
 
+    /** La imagen vive en Cloudinary: solo se aceptan sus URLs https, para no guardar enlaces ajenos. */
+    static void imagenUrl(String url) {
+        if (url != null && (url.length() > 300 || !url.startsWith(PREFIJO_IMAGEN))) {
+            throw invalido("La imagen debe ser una URL https de Cloudinary de hasta 300 caracteres");
+        }
+    }
+
     static void kilometraje(Integer kilometraje) {
         if (kilometraje != null && kilometraje < 0) {
             throw invalido("El kilometraje no puede ser negativo");
@@ -63,6 +71,6 @@ final class ReglasVehiculo {
     static VehiculoOutput aSalida(Vehiculo v) {
         return new VehiculoOutput(v.getCodigo(), v.getPlaca(), v.getMarca(), v.getModelo(), v.getAnio(), v.getColor(),
             v.getTransmision(), v.getEstado(), v.getKilometraje(), v.getSoatVence(), v.getInspeccionVence(),
-            v.getCreadoEn());
+            v.getImagenUrl(), v.getCreadoEn());
     }
 }

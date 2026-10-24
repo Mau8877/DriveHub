@@ -28,6 +28,9 @@ public record EditarVehiculoRequest(
 
         LocalDate soatVence,
 
-        LocalDate inspeccionVence
+        LocalDate inspeccionVence,
+
+        @Size(max = 300, message = "La imagen no puede superar 300 caracteres")
+        String imagenUrl
 ) {
 }

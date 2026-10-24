@@ -38,7 +38,7 @@ class RegistrarVehiculoUseCaseTest {
     private RegistrarVehiculoUseCase useCase;
 
     private static RegistrarVehiculoInput input(String placa, String marca, Short anio, Integer km) {
-        return new RegistrarVehiculoInput(ESCUELA, placa, marca, "Yaris", anio, " Rojo ", Transmision.MANUAL, km, null, null);
+        return new RegistrarVehiculoInput(ESCUELA, placa, marca, "Yaris", anio, " Rojo ", Transmision.MANUAL, km, null, null, null);
     }
 
     private void esperaCodigo(Runnable accion, String codigo) {
@@ -65,6 +65,22 @@ class RegistrarVehiculoUseCaseTest {
     }
 
     @Test
+    void ejecutar_conImagenDeCloudinary_laGuardaYConImagenAjena_lanzaErrSys01() {
+        when(vehiculoRepository.existePorPlaca("ABC-123")).thenReturn(false);
+        when(vehiculoRepository.guardar(any())).thenAnswer(i -> i.getArgument(0));
+        String foto = "https://res.cloudinary.com/nube/image/upload/v1/auto.jpg";
+
+        VehiculoOutput resultado = useCase.ejecutar(new RegistrarVehiculoInput(ESCUELA, "ABC-123", "Toyota", "Yaris",
+            null, null, Transmision.MANUAL, null, null, null, foto));
+
+        assertThat(resultado.imagenUrl()).isEqualTo(foto);
+        esperaCodigo(() -> useCase.ejecutar(new RegistrarVehiculoInput(ESCUELA, "ABC-124", "Toyota", "Yaris", null,
+            null, Transmision.MANUAL, null, null, null, "https://sitio-ajeno.com/auto.jpg")), "ERR_SYS_01");
+        esperaCodigo(() -> useCase.ejecutar(new RegistrarVehiculoInput(ESCUELA, "ABC-124", "Toyota", "Yaris", null,
+            null, Transmision.MANUAL, null, null, null, "http://res.cloudinary.com/nube/auto.jpg")), "ERR_SYS_01");
+    }
+
+    @Test
     void ejecutar_conPlacaEnUso_lanzaErrEsc07SinGuardar() {
         when(vehiculoRepository.existePorPlaca("ABC-123")).thenReturn(true);
 
@@ -84,7 +100,7 @@ class RegistrarVehiculoUseCaseTest {
         esperaCodigo(() -> useCase.ejecutar(input("ABC-123", "Toyota", (short) anioFuturo, null)), "ERR_SYS_01");
         esperaCodigo(() -> useCase.ejecutar(input("ABC-123", "Toyota", null, -1)), "ERR_SYS_01");
         esperaCodigo(() -> useCase.ejecutar(new RegistrarVehiculoInput(ESCUELA, "ABC-123", "Toyota", "Yaris", null,
-            null, null, null, null, null)), "ERR_SYS_01");
+            null, null, null, null, null, null)), "ERR_SYS_01");
         verify(vehiculoRepository, never()).existePorPlaca(any());
         verify(vehiculoRepository, never()).guardar(any());
     }

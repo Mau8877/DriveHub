@@ -43,6 +43,10 @@ public class RegistrarVehiculoUseCase {
         if (color != null && color.isEmpty()) {
             color = null;
         }
+        String imagenUrl = ReglasVehiculo.limpiar(input.imagenUrl());
+        if (imagenUrl != null && imagenUrl.isEmpty()) {
+            imagenUrl = null;
+        }
 
         if (placa == null || !ReglasVehiculo.PLACA.matcher(placa).matches()) {
             throw ReglasVehiculo.invalido("La placa debe tener entre 5 y 10 caracteres: letras, números y guiones");
@@ -52,6 +56,7 @@ public class RegistrarVehiculoUseCase {
         ReglasVehiculo.colorOpcional(color);
         ReglasVehiculo.anio(input.anio());
         ReglasVehiculo.kilometraje(input.kilometraje());
+        ReglasVehiculo.imagenUrl(imagenUrl);
         if (input.transmision() == null) {
             throw ReglasVehiculo.invalido("La transmisión es obligatoria");
         }
@@ -74,6 +79,7 @@ public class RegistrarVehiculoUseCase {
             .kilometraje(input.kilometraje() == null ? 0 : input.kilometraje())
             .soatVence(input.soatVence())
             .inspeccionVence(input.inspeccionVence())
+            .imagenUrl(imagenUrl)
             .build());
 
         LOG.info("Auto registrado", kv("module", ReglasVehiculo.MODULO), kv("vehiculoCodigo", codigo),

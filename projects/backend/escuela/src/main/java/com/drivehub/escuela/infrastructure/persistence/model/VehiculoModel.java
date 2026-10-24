@@ -82,6 +82,11 @@ public class VehiculoModel extends BaseModel {
     @Column(name = "inspeccion_vence")
     private LocalDate inspeccionVence;
 
+    // * URL https de Cloudinary; el archivo vive allá, acá solo se guarda dónde
+    @Setter
+    @Column(name = "imagen_url", length = 300)
+    private String imagenUrl;
+
     public VehiculoModel(UUID codigo, UUID escuelaCodigo, String placa, String marca, String modelo,
             Transmision transmision) {
         this.escuelaCodigo = escuelaCodigo;

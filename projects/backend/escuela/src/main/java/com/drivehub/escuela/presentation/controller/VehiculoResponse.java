@@ -12,5 +12,5 @@ import com.drivehub.escuela.domain.entity.Transmision;
  */
 public record VehiculoResponse(UUID codigo, String placa, String marca, String modelo, Short anio, String color,
         Transmision transmision, EstadoVehiculo estado, int kilometraje, LocalDate soatVence,
-        LocalDate inspeccionVence, Instant creadoEn) {
+        LocalDate inspeccionVence, String imagenUrl, Instant creadoEn) {
 }
