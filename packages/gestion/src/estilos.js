@@ -37,8 +37,7 @@ export const estilos = css`
     white-space: nowrap;
   }
   button:focus-visible,
-  input:focus-visible,
-  select:focus-visible {
+  input:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
@@ -198,8 +197,7 @@ export const estilos = css`
     color: var(--muted-foreground);
     pointer-events: none;
   }
-  input,
-  select {
+  input {
     font: inherit;
     color: var(--foreground);
     background: var(--card);
@@ -214,15 +212,15 @@ export const estilos = css`
     padding: 0 0.9rem 0 2.6rem;
     background: var(--background);
   }
-  select {
-    height: 2.6rem;
-    padding: 0 0.8rem;
+  /* Lista desplegable del filtro (<dh-select>) */
+  .filtro-lista {
+    --dh-select-alto: 2.6rem;
+    min-width: 11rem;
   }
   input:hover:not([readonly]) {
     border-color: color-mix(in srgb, var(--gris-medio) 55%, transparent);
   }
-  input:focus,
-  select:focus {
+  input:focus {
     outline: none;
     background: var(--card);
     border-color: var(--ambar-vial);
@@ -586,15 +584,6 @@ export const estilos = css`
     width: 100%;
     height: 2.75rem;
     padding: 0 0.9rem;
-  }
-  .campo select {
-    width: 100%;
-    height: 2.75rem;
-    padding: 0 0.9rem;
-  }
-  .campo.con-error select {
-    border-color: var(--destructive);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--destructive) 14%, transparent);
   }
   .campo .etiqueta-campo {
     font-size: 0.8125rem;

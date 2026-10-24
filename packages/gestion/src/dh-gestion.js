@@ -529,14 +529,14 @@ export class DhGestion extends LitElement {
     const actual = this._filtros[filtro.clave] ?? ''
     // * Pocas opciones: control segmentado (como el diseño). Muchas: lista desplegable
     if (filtro.opciones.length > 4) {
-      return html`<select
-        aria-label=${filtro.titulo}
-        .value=${actual}
-        @change=${(e) => this._alFiltrar(filtro.clave, e.target.value)}
-      >
-        <option value="">${filtro.titulo}: todos</option>
-        ${filtro.opciones.map((o) => html`<option value=${o.valor}>${o.etiqueta}</option>`)}
-      </select>`
+      return html`<dh-select
+        class="filtro-lista"
+        .etiqueta=${filtro.titulo}
+        .valor=${actual}
+        .placeholder=${`${filtro.titulo}: todos`}
+        .opciones=${filtro.opciones}
+        @dh-cambio=${(e) => this._alFiltrar(filtro.clave, e.detail.valor)}
+      ></dh-select>`
     }
     const opciones = [{ valor: '', etiqueta: filtro.todas ?? 'Todas' }, ...filtro.opciones]
     return html`<div class="segmentos" role="group" aria-label=${filtro.titulo}>
@@ -924,23 +924,25 @@ export class DhGestion extends LitElement {
     const error = this._errorDe(campo)
     const { estado, items } = this._opcionesDe(campo)
     const actual = String(this._valores[campo.campo] ?? '')
+    // * Lista propia (<dh-select>), no el <select> nativo: ver UI_FRONTEND.md
     return html`<div class="campo ${error ? 'con-error' : ''}">
-      <label for=${id}
-        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</label
+      <span class="etiqueta-campo"
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</span
       >
-      <select
+      <dh-select
         id=${id}
-        ?disabled=${campo.soloLectura || estado === 'cargando'}
-        aria-invalid=${error ? 'true' : 'false'}
-        @change=${(e) => {
-          this._alEscribir(campo, e.target.value)
+        .etiqueta=${campo.titulo}
+        .valor=${actual}
+        .opciones=${items}
+        .placeholder=${estado === 'cargando' ? 'Cargando…' : 'Elige una opción'}
+        ?deshabilitado=${campo.soloLectura || estado === 'cargando'}
+        ?invalido=${!!error}
+        @dh-cambio=${(e) => {
+          this._alEscribir(campo, e.detail.valor)
           this._tocar(campo)
         }}
-        @blur=${() => this._tocar(campo)}
-      >
-        ${estado === 'cargando' ? html`<option value="">Cargando…</option>` : html`<option value="">Elige una opción</option>`}
-        ${items.map((o) => html`<option value=${o.valor} ?selected=${o.valor === actual}>${o.etiqueta}</option>`)}
-      </select>
+        @dh-blur=${() => this._tocar(campo)}
+      ></dh-select>
       ${estado === 'error'
         ? html`<span class="error-campo" role="alert">
             No pudimos cargar las opciones.

@@ -581,37 +581,46 @@ describe('<dh-gestion>', () => {
   }
 
   const mapa = () => el.shadowRoot.querySelector('dh-mapa-ubicacion')
+  const listaDe = (id) => el.shadowRoot.querySelector(`#${id}`)
+  const etiquetasDe = (id) => listaDe(id).opciones.map((o) => o.etiqueta)
+  // * Lo que hace <dh-select> al elegir una opción (el componente tiene sus propios tests en @drivehub/ui)
+  const elegir = async (id, valor) => {
+    listaDe(id).dispatchEvent(new CustomEvent('dh-cambio', { detail: { valor }, bubbles: true, composed: true }))
+    await asentar(el)
+  }
 
-  it('seleccion con opciones fijas dibuja un select con sus etiquetas', async () => {
+  it('seleccion con opciones fijas dibuja una lista <dh-select> con sus etiquetas, no un select nativo', async () => {
     await abrirCrearPerfil()
 
-    const opciones = [...el.shadowRoot.querySelectorAll('#campo-sexo option')].map((o) => o.textContent)
-    expect(opciones).toEqual(['Elige una opción', 'Masculino', 'Femenino'])
+    expect(listaDe('campo-sexo').tagName).toBe('DH-SELECT')
+    expect(el.shadowRoot.querySelector('select')).toBeNull()
+    expect(etiquetasDe('campo-sexo')).toEqual(['Masculino', 'Femenino'])
+    expect(listaDe('campo-sexo').placeholder).toBe('Elige una opción')
+    expect(listaDe('campo-sexo').etiqueta).toBe('Sexo')
   })
 
   it('seleccion con opcionesDe pide el recurso con pageSize 100 y dibuja sus etiquetas', async () => {
     await abrirCrearPerfil()
 
     expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/categorias-licencia?page=1&pageSize=100')
-    const opciones = [...el.shadowRoot.querySelectorAll('#campo-categoriaSigla option')].map((o) => o.textContent)
-    expect(opciones).toEqual(['Elige una opción', 'Particular', 'Profesional B', 'Sin categoría'])
+    expect(etiquetasDe('campo-categoriaSigla')).toEqual(['Particular', 'Profesional B', 'Sin categoría'])
   })
 
   it('porDefecto preselecciona la opción al crear', async () => {
     await abrirCrearPerfil()
 
-    expect(el.shadowRoot.querySelector('#campo-categoriaSigla').value).toBe('SIN')
+    expect(listaDe('campo-categoriaSigla').valor).toBe('SIN')
   })
 
-  it('mientras las opciones cargan, el select está deshabilitado con "Cargando…"', async () => {
+  it('mientras las opciones cargan, la lista está deshabilitada con "Cargando…"', async () => {
     await montarPerfil()
     fetch.mockReturnValueOnce(new Promise(() => {}))
     boton('Nuevo estudiante').click()
     await asentar(el)
 
-    const select = el.shadowRoot.querySelector('#campo-categoriaSigla')
-    expect(select.disabled).toBe(true)
-    expect(select.textContent).toContain('Cargando')
+    const select = listaDe('campo-categoriaSigla')
+    expect(select.deshabilitado).toBe(true)
+    expect(select.placeholder).toBe('Cargando…')
   })
 
   it('si las opciones fallan, avisa y permite reintentar', async () => {
@@ -625,7 +634,8 @@ describe('<dh-gestion>', () => {
     boton('Reintentar').click()
     await asentar(el)
 
-    expect(el.shadowRoot.querySelectorAll('#campo-categoriaSigla option')).toHaveLength(4)
+    expect(listaDe('campo-categoriaSigla').opciones).toHaveLength(3)
+    expect(listaDe('campo-categoriaSigla').deshabilitado).toBe(false)
   })
 
   it('seleccion requerida sin valor muestra su mensaje y no envía', async () => {
@@ -640,9 +650,7 @@ describe('<dh-gestion>', () => {
 
   it('ubicacion monta el mapa; al elegir un punto, el formulario lo guarda y envía latitud y longitud con el prefijo del campo', async () => {
     await abrirCrearPerfil()
-    const select = el.shadowRoot.querySelector('#campo-sexo')
-    select.value = 'FEMENINO'
-    select.dispatchEvent(new Event('change', { bubbles: true }))
+    await elegir('campo-sexo', 'FEMENINO')
     await asentar(el)
 
     mapa().dispatchEvent(new CustomEvent('dh-ubicacion', { detail: { latitud: -16.4897, longitud: -68.1193 }, bubbles: true, composed: true }))
@@ -663,9 +671,7 @@ describe('<dh-gestion>', () => {
 
   it('ubicacion requerida sin punto muestra su mensaje bajo el mapa y no envía', async () => {
     await abrirCrearPerfil()
-    const select = el.shadowRoot.querySelector('#campo-sexo')
-    select.value = 'FEMENINO'
-    select.dispatchEvent(new Event('change', { bubbles: true }))
+    await elegir('campo-sexo', 'FEMENINO')
     await asentar(el)
 
     boton('Crear').click()
@@ -677,9 +683,7 @@ describe('<dh-gestion>', () => {
 
   it('un error del backend asignado a la seleccion se muestra bajo ese campo', async () => {
     await abrirCrearPerfil()
-    const select = el.shadowRoot.querySelector('#campo-sexo')
-    select.value = 'FEMENINO'
-    select.dispatchEvent(new Event('change', { bubbles: true }))
+    await elegir('campo-sexo', 'FEMENINO')
     mapa().dispatchEvent(new CustomEvent('dh-ubicacion', { detail: { latitud: -16.5, longitud: -68.1 }, bubbles: true, composed: true }))
     await asentar(el)
     fetch.mockResolvedValueOnce(falla(400, 'ERR_IDE_21', 'La categoría no existe'))
@@ -701,7 +705,7 @@ describe('<dh-gestion>', () => {
     expect(fetch.mock.calls[2][0]).toBe('http://api.test/v1/estudiantes/e1')
     expect(mapa().latitud).toBe(-16.5)
     expect(mapa().direccion).toBe('Av. Arce 2345, La Paz')
-    expect(el.shadowRoot.querySelector('#campo-categoriaSigla').value).toBe('B')
+    expect(listaDe('campo-categoriaSigla').valor).toBe('B')
 
     mapa().dispatchEvent(new CustomEvent('dh-ubicacion', { detail: { latitud: -17, longitud: -68 }, bubbles: true, composed: true }))
     await asentar(el)
@@ -729,6 +733,31 @@ describe('<dh-gestion>', () => {
     await asentar(el)
 
     expect(mapa().deshabilitado).toBe(true)
+  })
+
+  it('un filtro con más de 4 opciones usa la lista <dh-select> y consulta al elegir', async () => {
+    const opciones = ['A', 'B', 'C', 'D', 'E'].map((v) => ({ valor: v, etiqueta: 'Categoría ' + v }))
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = { ...structuredClone(ESQUEMA_PERFIL), filtros: [{ clave: 'filter[categoria]', titulo: 'Categoría', opciones }] }
+    await asentar(el)
+
+    const filtro = el.shadowRoot.querySelector('dh-select.filtro-lista')
+    expect(filtro).not.toBeNull()
+    expect(el.shadowRoot.querySelector('select')).toBeNull()
+    expect(filtro.opciones).toHaveLength(5)
+    expect(filtro.placeholder).toBe('Categoría: todos')
+
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE]))
+    filtro.dispatchEvent(new CustomEvent('dh-cambio', { detail: { valor: 'C' }, bubbles: true, composed: true }))
+    await asentar(el)
+    expect(fetch.mock.calls[1][0]).toContain('filter%5Bcategoria%5D=C')
+
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE]))
+    filtro.dispatchEvent(new CustomEvent('dh-cambio', { detail: { valor: '' }, bubbles: true, composed: true }))
+    await asentar(el)
+    expect(fetch.mock.calls[2][0]).not.toContain('filter')
   })
 
   // ------------------------------------------------------------------ detalle de solo lectura
@@ -853,7 +882,7 @@ describe('<dh-gestion>', () => {
 
     const drawer = el.shadowRoot.querySelector('aside.drawer')
     expect(drawer.querySelector('form')).toBeNull()
-    expect(drawer.querySelector('input, select, textarea')).toBeNull()
+    expect(drawer.querySelector('input, select, textarea, dh-select')).toBeNull()
     expect(drawer.querySelector('button[type="submit"]')).toBeNull()
     expect(Array.from(drawer.querySelectorAll('button')).map((b) => b.textContent.trim()).filter(Boolean)).toEqual(['Cerrar'])
   })
