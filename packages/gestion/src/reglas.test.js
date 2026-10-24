@@ -70,6 +70,33 @@ describe('validar', () => {
   })
 })
 
+describe('validar números y selecciones', () => {
+  const numero = { campo: 'km', titulo: 'Kilometraje', tipo: 'numero', min: 0, max: 100 }
+  const seleccion = {
+    campo: 'transmision',
+    titulo: 'Transmisión',
+    tipo: 'seleccion',
+    requerido: true,
+    opciones: [{ valor: 'MANUAL', etiqueta: 'Manual' }],
+  }
+
+  it('un número entero se valida por su valor, no por el largo del texto', () => {
+    expect(validar(numero, '0')).toBeNull()
+    expect(validar(numero, '100')).toBeNull()
+    expect(validar(numero, '-1')).toBe('Debe ser al menos 0')
+    expect(validar(numero, '101')).toBe('No puede superar 100')
+    expect(validar(numero, '1.5')).toBe('Debe ser un número entero')
+    expect(validar(numero, 'abc')).toBe('Debe ser un número entero')
+    expect(validar(numero, '')).toBeNull()
+  })
+
+  it('una selección solo acepta una de sus opciones', () => {
+    expect(validar(seleccion, 'MANUAL')).toBeNull()
+    expect(validar(seleccion, 'CVT')).toBe('Elige una opción')
+    expect(validar(seleccion, '')).toBe('Este campo es obligatorio')
+  })
+})
+
 describe('edadEnAnios', () => {
   it('cuenta años cumplidos', () => {
     expect(edadEnAnios('2000-10-22', new Date(2026, 9, 21))).toBe(25)

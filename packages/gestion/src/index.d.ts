@@ -45,11 +45,13 @@ export interface Campo {
   /** Campo del cuerpo (admite puntos: `administrador.nombres` arma un objeto anidado). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono'
+  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'numero' | 'seleccion'
   requerido?: boolean
-  /** Largo mínimo y máximo del texto. */
+  /** Largo mínimo y máximo del texto. En `tipo: 'numero'` son el rango del valor (entero). */
   min?: number
   max?: number
+  /** Para `tipo: 'seleccion'`: las opciones del desplegable (el `valor` es lo que se envía). */
+  opciones?: { valor: string; etiqueta: string }[]
   /** Nombre de un patrón (`slug`) o una expresión regular. */
   patron?: string
   /** Reglas con nombre: `fechaNoFutura`, `edadMinima:18`. */

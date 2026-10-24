@@ -59,6 +59,11 @@ export function validar(campo, valor, hoy = new Date()) {
     return campo.requerido ? (mensajes.requerido ?? 'Este campo es obligatorio') : null
   }
 
+  if (campo.tipo === 'numero') return validarNumero(campo, texto, mensajes)
+  if (campo.tipo === 'seleccion' && !(campo.opciones ?? []).some((o) => o.valor === texto)) {
+    return mensajes.requerido ?? 'Elige una opción'
+  }
+
   if (campo.min !== undefined && texto.length < campo.min) {
     return mensajes.min ?? largoPorDefecto(campo)
   }
@@ -82,6 +87,19 @@ export function validar(campo, valor, hoy = new Date()) {
     if (nombre === 'edadMinima' && edadEnAnios(texto, hoy) < Number(argumento)) {
       return mensajes.edadMinima ?? `Debe tener al menos ${argumento} años`
     }
+  }
+  return null
+}
+
+/** Un número entero; `min` y `max` son el rango del valor, no del largo del texto. */
+function validarNumero(campo, texto, mensajes) {
+  const numero = Number(texto)
+  if (!Number.isInteger(numero)) return mensajes.patron ?? 'Debe ser un número entero'
+  if (campo.min !== undefined && numero < campo.min) {
+    return mensajes.min ?? `Debe ser al menos ${campo.min}`
+  }
+  if (campo.max !== undefined && numero > campo.max) {
+    return mensajes.max ?? `No puede superar ${campo.max}`
   }
   return null
 }

@@ -465,3 +465,82 @@ describe('<dh-gestion>', () => {
     expect(texto()).toContain('Vehículos')
   })
 })
+
+describe('<dh-gestion> campos numero y seleccion', () => {
+  let el
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  it('el desplegable ofrece sus opciones y el número viaja como número en el cuerpo', async () => {
+    fetch.mockResolvedValueOnce(lista([]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = {
+      recurso: 'vehiculos',
+      titulo: 'Autos',
+      columnas: [{ campo: 'placa', titulo: 'Placa' }],
+      crear: {
+        etiqueta: 'Nuevo auto',
+        mensajeExito: 'Listo',
+        etiquetaEnviar: 'Registrar',
+        secciones: [
+          {
+            campos: [
+              { campo: 'placa', titulo: 'Placa', requerido: true },
+              {
+                campo: 'transmision',
+                titulo: 'Transmisión',
+                tipo: 'seleccion',
+                requerido: true,
+                opciones: [
+                  { valor: 'MANUAL', etiqueta: 'Manual' },
+                  { valor: 'AUTOMATICO', etiqueta: 'Automática' },
+                ],
+              },
+              { campo: 'kilometraje', titulo: 'Kilometraje', tipo: 'numero', min: 0 },
+            ],
+          },
+        ],
+      },
+    }
+    await asentar(el)
+    Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Nuevo auto').click()
+    await asentar(el)
+
+    const select = el.shadowRoot.querySelector('#campo-transmision')
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(['', 'MANUAL', 'AUTOMATICO'])
+    expect(el.shadowRoot.querySelector('#campo-kilometraje').type).toBe('number')
+
+    const poner = async (selector, valor, evento) => {
+      const campo = el.shadowRoot.querySelector(selector)
+      campo.value = valor
+      campo.dispatchEvent(new Event(evento, { bubbles: true }))
+      campo.dispatchEvent(new Event('blur'))
+      await asentar(el)
+    }
+    await poner('#campo-placa', 'ABC-123', 'input')
+    await poner('#campo-transmision', 'AUTOMATICO', 'change')
+    await poner('#campo-kilometraje', '1500', 'input')
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'v1' })).mockResolvedValueOnce(lista([]))
+
+    Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Registrar').click()
+    await asentar(el)
+
+    const [, init] = fetch.mock.calls[1]
+    expect(JSON.parse(init.body)).toEqual({ placa: 'ABC-123', transmision: 'AUTOMATICO', kilometraje: 1500 })
+  })
+})

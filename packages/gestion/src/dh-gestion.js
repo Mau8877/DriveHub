@@ -297,8 +297,10 @@ export class DhGestion extends LitElement {
     campos.forEach((campo) => {
       const texto = String(this._valores[campo.campo] ?? '').trim()
       if (texto === '' && !campo.requerido) return
-      // * Las contraseñas no se recortan: los espacios cuentan
-      escribir(cuerpo, campo.campo, campo.tipo === 'password' ? this._valores[campo.campo] : texto)
+      // * Las contraseñas no se recortan (los espacios cuentan) y los números viajan como número
+      const valor =
+        campo.tipo === 'password' ? this._valores[campo.campo] : campo.tipo === 'numero' ? Number(texto) : texto
+      escribir(cuerpo, campo.campo, valor)
     })
 
     const creando = this._vista === 'crear'
@@ -557,17 +559,32 @@ export class DhGestion extends LitElement {
     const tipo =
       esPassword && !this._verPassword[campo.campo]
         ? 'password'
-        : { email: 'email', fecha: 'date', telefono: 'tel' }[campo.tipo] ?? 'text'
-    const entrada = html`<input
-      id=${id}
-      type=${tipo}
-      autocomplete=${esPassword ? 'new-password' : 'off'}
-      .value=${String(this._valores[campo.campo] ?? '')}
-      ?readonly=${campo.soloLectura}
-      aria-invalid=${error ? 'true' : 'false'}
-      @input=${(e) => this._alEscribir(campo, e.target.value)}
-      @blur=${() => this._tocar(campo)}
-    />`
+        : { email: 'email', fecha: 'date', telefono: 'tel', numero: 'number' }[campo.tipo] ?? 'text'
+    const entrada =
+      campo.tipo === 'seleccion'
+        ? html`<select
+            id=${id}
+            .value=${String(this._valores[campo.campo] ?? '')}
+            ?disabled=${campo.soloLectura}
+            aria-invalid=${error ? 'true' : 'false'}
+            @change=${(e) => this._alEscribir(campo, e.target.value)}
+            @blur=${() => this._tocar(campo)}
+          >
+            <option value="">Elige una opción</option>
+            ${(campo.opciones ?? []).map(
+              (o) => html`<option value=${o.valor} ?selected=${o.valor === this._valores[campo.campo]}>${o.etiqueta}</option>`
+            )}
+          </select>`
+        : html`<input
+            id=${id}
+            type=${tipo}
+            autocomplete=${esPassword ? 'new-password' : 'off'}
+            .value=${String(this._valores[campo.campo] ?? '')}
+            ?readonly=${campo.soloLectura}
+            aria-invalid=${error ? 'true' : 'false'}
+            @input=${(e) => this._alEscribir(campo, e.target.value)}
+            @blur=${() => this._tocar(campo)}
+          />`
     return html`<div class="campo">
       <label for=${id}>${campo.titulo}${campo.requerido ? '' : ' (opcional)'}</label>
       ${esPassword
