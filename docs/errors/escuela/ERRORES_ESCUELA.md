@@ -78,8 +78,8 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 - **HTTP:** 409
 - **Excepción:** `ConflictException`
 - **Significado:** El cambio no es posible desde el estado actual del auto (CU07): editar o
-  cambiar de estado un auto dado de baja, enviar a mantenimiento uno que no está disponible,
-  habilitar uno que no está en mantenimiento, o dar de baja uno que ya lo está.
+  ir a mantenimiento un auto dado de baja, enviar a mantenimiento uno que no está disponible,
+  habilitar uno que no está en mantenimiento ni de baja, o dar de baja uno que ya lo está.
 - **Dónde se lanza:** `EditarVehiculoUseCase.ejecutar()` y `CambiarEstadoVehiculoUseCase.ejecutar()`
 
 ## `ERR_ESC_10`

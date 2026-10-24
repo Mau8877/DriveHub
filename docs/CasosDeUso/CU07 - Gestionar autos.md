@@ -10,7 +10,7 @@
 **Plataforma:** Web
 
 **Descripción:**
-El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "Autos". Ahí ve el listado de los autos de su escuela con búsqueda por placa, marca o modelo, filtro por estado y paginación. Desde el listado registra un auto nuevo (placa, marca, modelo, año, color, transmisión, kilometraje y vencimientos de SOAT e inspección y una foto), edita sus datos y cambia su estado: lo envía a mantenimiento, lo habilita de nuevo o lo da de baja. Solo un auto `DISPONIBLE` se puede asignar o reservar (CU10, CU14). Un auto de baja ya no cambia más. Cada escuela ve y toca únicamente sus propios autos.
+El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "Autos". Ahí ve el listado de los autos de su escuela con búsqueda por placa, marca o modelo, filtro por estado y paginación. Desde el listado registra un auto nuevo (placa, marca, modelo, año, color, transmisión, kilometraje y vencimientos de SOAT e inspección y una foto), edita sus datos y cambia su estado: lo envía a mantenimiento, lo habilita de nuevo, lo da de baja o reactiva uno de baja. Solo un auto `DISPONIBLE` se puede asignar o reservar (CU10, CU14). Un auto de baja no se edita ni va a mantenimiento: solo se puede reactivar. Cada escuela ve y toca únicamente sus propios autos.
 
 ---
 
@@ -53,7 +53,12 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 ## Flujo F5: dar de baja
 
 1. En el listado, el Administrador elige "Dar de baja" en un auto `DISPONIBLE` o en `MANTENIMIENTO` y confirma.
-2. El sistema lo pasa a `BAJA`. Es definitivo: el auto sigue en el listado, pero no se edita ni cambia de estado.
+2. El sistema lo pasa a `BAJA`: el auto sigue en el listado, pero no se edita ni va a mantenimiento hasta que se reactive.
+
+## Flujo F6: reactivar un auto de baja
+
+1. En el listado, el Administrador elige "Reactivar" en un auto de baja.
+2. El sistema lo pasa a `DISPONIBLE`.
 
 ## Flujos alternativos y excepciones
 
@@ -61,7 +66,7 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 - **A2 (F1 paso 4):** La placa ya está registrada → 409 `ERR_ESC_07`; no se crea nada.
 - **A3 (F2 paso 4):** El kilometraje nuevo es menor al actual → 400 `ERR_SYS_01`.
 - **A4 (F2, F3, F4, F5):** El auto no existe o es de otra escuela → 404 `ERR_ESC_08` (no se revela si existe en otra escuela).
-- **A5 (F2, F3, F4, F5):** El cambio no es posible desde el estado actual (editar o cambiar un auto de baja, enviar a mantenimiento un auto que no está disponible, habilitar uno que no está en mantenimiento, dar de baja uno que ya lo está) → 409 `ERR_ESC_09`.
+- **A5 (F2, F3, F4, F5):** El cambio no es posible desde el estado actual (editar un auto de baja, enviar a mantenimiento uno que no está disponible, habilitar uno que no está en mantenimiento ni de baja, dar de baja uno que ya lo está) → 409 `ERR_ESC_09`.
 - **A6 (cualquier flujo):** La persona no es Administrador de escuela → 403; sin sesión o con sesión vencida → 401.
 - **A7 (cualquier flujo):** El token no trae la escuela de la cuenta → 403 `ERR_ESC_10`.
 - **A7b (F1, F2):** La foto no es una imagen, pesa más de 5 MB o la subida a Cloudinary falla → el cliente avisa bajo el campo y no cambia la foto; si llega una URL que no es de Cloudinary, el sistema responde 400 `ERR_SYS_01`.
@@ -74,8 +79,8 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 - **Placa:** de 5 a 10 caracteres, letras, números y guiones; se guarda en mayúsculas sin espacios alrededor. Es única en toda la plataforma (una placa identifica a un solo auto) y **no se edita**.
 - **Transmisión** (`MANUAL` o `AUTOMATICO`): no se edita después de registrar el auto.
 - **Año:** entre 1980 y el año siguiente al actual. **Kilometraje:** entero mayor o igual a 0; al editar no puede bajar.
-- **Estados y transiciones:** `DISPONIBLE → MANTENIMIENTO`, `MANTENIMIENTO → DISPONIBLE`, `DISPONIBLE → BAJA`, `MANTENIMIENTO → BAJA`. `BAJA` es final.
-- **Dar de baja no es borrado:** el auto conserva su historia (clases pasadas, asignaciones) y se ve en el listado con estado `BAJA`.
+- **Estados y transiciones:** `DISPONIBLE → MANTENIMIENTO`, `MANTENIMIENTO → DISPONIBLE`, `DISPONIBLE → BAJA`, `MANTENIMIENTO → BAJA` y `BAJA → DISPONIBLE` (reactivar). Desde `BAJA` no hay otra salida.
+- **Dar de baja no es borrado:** el auto conserva su historia (clases pasadas, asignaciones) y se ve en el listado con estado `BAJA`. Reactivarlo lo devuelve a `DISPONIBLE` con sus datos.
 - **Foto:** el archivo vive en Cloudinary (carpeta `drivehub/{escuela}/vehiculos`) y el auto guarda solo su URL https. La subida la autoriza el backend con una firma (el API secret nunca llega al navegador). Solo se aceptan URLs de `res.cloudinary.com`, de hasta 300 caracteres. Editar sin elegir foto nueva deja la actual.
 - **El listado es paginado** ([ENDPOINTS_BACKEND.md](../../.claude/rules/backend/ENDPOINTS_BACKEND.md)). Mensajes en español, sin detalles técnicos.
 
@@ -83,7 +88,7 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 
 - Registrar: existe el auto `DISPONIBLE` ligado a la escuela del Administrador.
 - Editar: los campos enviados quedan cambiados; placa, transmisión y estado igual.
-- Enviar a mantenimiento / habilitar / dar de baja: el auto queda en el estado destino.
+- Enviar a mantenimiento / habilitar / dar de baja / reactivar: el auto queda en el estado destino.
 
 ## Criterios de aceptación
 
@@ -93,7 +98,7 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 - **CA04:** Dados datos inválidos, el cliente debe indicar cada campo sin enviar, y el sistema debe responder 400 `ERR_SYS_01` si llegan igual.
 - **CA05:** Dados datos válidos de edición, el sistema debe cambiar solo los campos enviados y dejar igual placa, transmisión y estado; un kilometraje menor al actual se rechaza con 400 `ERR_SYS_01`.
 - **CA06:** Dado un auto `DISPONIBLE`, enviarlo a mantenimiento lo deja en `MANTENIMIENTO`; habilitarlo después lo deja en `DISPONIBLE`.
-- **CA07:** Dado un auto que no está de baja, darlo de baja lo deja en `BAJA`, y desde ahí ni se edita ni cambia de estado (409 `ERR_ESC_09`).
+- **CA07:** Dado un auto que no está de baja, darlo de baja lo deja en `BAJA`; desde ahí ni se edita ni va a mantenimiento (409 `ERR_ESC_09`), y reactivarlo lo deja `DISPONIBLE`.
 - **CA08:** Dada una transición no permitida desde el estado actual, el sistema debe responder 409 `ERR_ESC_09` sin cambiar nada.
 - **CA09:** Dado un auto de otra escuela o inexistente, el sistema debe responder 404 `ERR_ESC_08` a cualquier operación.
 - **CA10:** Dada una persona que no es Administrador de escuela, el sistema debe responder 403 a cualquier operación, y 401 si no hay sesión válida.
