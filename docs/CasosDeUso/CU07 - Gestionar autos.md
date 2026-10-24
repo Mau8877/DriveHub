@@ -10,7 +10,7 @@
 **Plataforma:** Web
 
 **Descripción:**
-El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "Autos". Ahí ve el listado de los autos de su escuela con búsqueda por placa, marca o modelo, filtro por estado y paginación. Desde el listado registra un auto nuevo (placa, marca, modelo, año, color, transmisión, kilometraje y vencimientos de SOAT e inspección), edita sus datos y cambia su estado: lo envía a mantenimiento, lo habilita de nuevo o lo da de baja. Solo un auto `DISPONIBLE` se puede asignar o reservar (CU10, CU14). Un auto de baja ya no cambia más. Cada escuela ve y toca únicamente sus propios autos.
+El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "Autos". Ahí ve el listado de los autos de su escuela con búsqueda por placa, marca o modelo, filtro por estado y paginación. Desde el listado registra un auto nuevo (placa, marca, modelo, año, color, transmisión, kilometraje y vencimientos de SOAT e inspección y una foto), edita sus datos y cambia su estado: lo envía a mantenimiento, lo habilita de nuevo o lo da de baja. Solo un auto `DISPONIBLE` se puede asignar o reservar (CU10, CU14). Un auto de baja ya no cambia más. Cada escuela ve y toca únicamente sus propios autos.
 
 ---
 
@@ -27,7 +27,8 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 ## Flujo F1: registrar un auto
 
 1. Desde el listado, el Administrador elige "Nuevo auto".
-2. El sistema muestra el formulario: placa, marca, modelo, año (opcional), color (opcional), transmisión, kilometraje (opcional, 0 por defecto), vencimiento del SOAT (opcional) y de la inspección (opcional).
+2. El sistema muestra el formulario: placa, marca, modelo, año (opcional), color (opcional), transmisión, kilometraje (opcional, 0 por defecto), vencimiento del SOAT (opcional), de la inspección (opcional) y foto (opcional).
+   La foto se elige desde el equipo y se sube a Cloudinary; el formulario la muestra al terminar de subir.
 3. El Administrador completa el formulario y lo envía.
 4. El sistema valida los datos y comprueba que la placa no esté en uso.
 5. El sistema registra el auto en estado `DISPONIBLE` y vuelve al listado, donde aparece.
@@ -63,6 +64,7 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 - **A5 (F2, F3, F4, F5):** El cambio no es posible desde el estado actual (editar o cambiar un auto de baja, enviar a mantenimiento un auto que no está disponible, habilitar uno que no está en mantenimiento, dar de baja uno que ya lo está) → 409 `ERR_ESC_09`.
 - **A6 (cualquier flujo):** La persona no es Administrador de escuela → 403; sin sesión o con sesión vencida → 401.
 - **A7 (cualquier flujo):** El token no trae la escuela de la cuenta → 403 `ERR_ESC_10`.
+- **A7b (F1, F2):** La foto no es una imagen, pesa más de 5 MB o la subida a Cloudinary falla → el cliente avisa bajo el campo y no cambia la foto; si llega una URL que no es de Cloudinary, el sistema responde 400 `ERR_SYS_01`.
 - **A8 (cualquier flujo):** Se superó el límite de peticiones → 429 (`ERR_SYS_02`).
 
 ## Reglas de negocio
@@ -74,6 +76,7 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 - **Año:** entre 1980 y el año siguiente al actual. **Kilometraje:** entero mayor o igual a 0; al editar no puede bajar.
 - **Estados y transiciones:** `DISPONIBLE → MANTENIMIENTO`, `MANTENIMIENTO → DISPONIBLE`, `DISPONIBLE → BAJA`, `MANTENIMIENTO → BAJA`. `BAJA` es final.
 - **Dar de baja no es borrado:** el auto conserva su historia (clases pasadas, asignaciones) y se ve en el listado con estado `BAJA`.
+- **Foto:** el archivo vive en Cloudinary (carpeta `drivehub/{escuela}/vehiculos`) y el auto guarda solo su URL https. La subida la autoriza el backend con una firma (el API secret nunca llega al navegador). Solo se aceptan URLs de `res.cloudinary.com`, de hasta 300 caracteres. Editar sin elegir foto nueva deja la actual.
 - **El listado es paginado** ([ENDPOINTS_BACKEND.md](../../.claude/rules/backend/ENDPOINTS_BACKEND.md)). Mensajes en español, sin detalles técnicos.
 
 ## Postcondiciones
@@ -94,7 +97,8 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 - **CA08:** Dada una transición no permitida desde el estado actual, el sistema debe responder 409 `ERR_ESC_09` sin cambiar nada.
 - **CA09:** Dado un auto de otra escuela o inexistente, el sistema debe responder 404 `ERR_ESC_08` a cualquier operación.
 - **CA10:** Dada una persona que no es Administrador de escuela, el sistema debe responder 403 a cualquier operación, y 401 si no hay sesión válida.
-- **CA11:** Dado el menú de la web, la opción de autos debe verse solo para el Administrador de escuela.
+- **CA11:** Dado un archivo que es una imagen de hasta 5 MB, el sistema debe subirla a Cloudinary con una firma del backend y guardar su URL en el auto; una URL ajena a Cloudinary se rechaza con 400 `ERR_SYS_01`.
+- **CA12:** Dado el menú de la web, la opción de autos debe verse solo para el Administrador de escuela.
 
 ## Fuera de alcance
 

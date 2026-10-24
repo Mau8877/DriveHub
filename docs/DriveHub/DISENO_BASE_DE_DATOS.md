@@ -217,7 +217,7 @@ Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b) y resta
 
 ## 3. Escuela — PostgreSQL
 
-Escuelas (tenants), personas de la escuela, flota y asignaciones. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261024100000__vehiculo_escuela_codigo.sql` (CU07).
+Escuelas (tenants), personas de la escuela, flota y asignaciones. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261024100000__vehiculo_escuela_codigo.sql` y `V20261024110000__vehiculo_imagen_url.sql` (CU07).
 
 ```mermaid
 erDiagram
@@ -344,6 +344,7 @@ Flota (CU07). Es la primera tabla de Escuela con `escuela_codigo` (tenant): las 
 | `kilometraje` | `INT NOT NULL DEFAULT 0` | |
 | `soat_vence` | `DATE` | |
 | `inspeccion_vence` | `DATE` | |
+| `imagen_url` | `VARCHAR(300)` | URL https de la foto en Cloudinary (`res.cloudinary.com`); el archivo no se guarda en la base |
 
 ### `mantenimiento_vehiculo`
 
