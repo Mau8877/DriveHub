@@ -40,6 +40,38 @@ function formatearFecha(valor) {
   return `${String(fecha.getUTCDate()).padStart(2, '0')} ${MESES[fecha.getUTCMonth()]} ${fecha.getUTCFullYear()}`
 }
 
+const dos = (n) => String(n).padStart(2, '0')
+const claveFecha = (anio, mes, dia) => `${String(anio).padStart(4, '0')}-${dos(mes + 1)}-${dos(dia)}`
+
+/**
+ * Última fecha que el calendario deja elegir según las reglas del campo: `fechaNoFutura` (hasta ayer) y
+ * `edadMinima:N` (hasta hoy menos N años). Es solo una ayuda del selector: la validación sigue en `validar`.
+ */
+function maximoDeFecha(campo) {
+  const hoy = new Date()
+  const limites = []
+  for (const regla of campo.validaciones ?? []) {
+    const [nombre, argumento] = regla.split(':')
+    if (nombre === 'fechaNoFutura') {
+      const ayer = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1)
+      limites.push(claveFecha(ayer.getFullYear(), ayer.getMonth(), ayer.getDate()))
+    }
+    if (nombre === 'edadMinima') {
+      const anio = hoy.getFullYear() - Number(argumento)
+      // * El 29 de febrero cae el 28 en un año que no es bisiesto
+      const ultimo = new Date(anio, hoy.getMonth() + 1, 0).getDate()
+      limites.push(claveFecha(anio, hoy.getMonth(), Math.min(hoy.getDate(), ultimo)))
+    }
+  }
+  return limites.sort()[0] ?? ''
+}
+
+/** Nombres y apellidos para las iniciales del avatar a partir de un nombre completo ("Ana María Pérez" -> A + P). */
+function partesDeNombre(completo) {
+  const palabras = String(completo ?? '').trim().split(/\s+/).filter(Boolean)
+  return { nombres: palabras[0] ?? '', apellidos: palabras.length > 1 ? palabras[palabras.length - 1] : '' }
+}
+
 function camposDe(secciones) {
   return secciones.flatMap((seccion) => seccion.campos)
 }
@@ -64,7 +96,7 @@ function prefijoDe(campo) {
  */
 /** Ancho de una columna: el del esquema, o uno corto para insignias y fechas. El resto reparte lo que sobra. */
 function anchoColumna(c) {
-  const ancho = c.ancho ?? (c.tipo === 'insignia' || c.tipo === 'fecha' ? '8rem' : '')
+  const ancho = c.ancho ?? (c.tipo === 'insignia' || c.tipo === 'fecha' ? '8rem' : c.tipo === 'foto' ? '5rem' : '')
   return ancho ? `width: ${ancho}` : ''
 }
 
@@ -615,6 +647,7 @@ export class DhGestion extends LitElement {
       return html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
     }
     if (columna.tipo === 'fecha') return valor ? formatearFecha(valor) : ''
+    if (columna.tipo === 'foto') return this._avatar(columna, fila, valor, 36)
     if (columna.principal) {
       return html`<span class="principal-celda">
         ${columna.icono ? html`<span class="icono-fila">${icono(columna.icono, 18)}</span>` : nothing}
@@ -799,6 +832,9 @@ export class DhGestion extends LitElement {
   _renderDato(campo) {
     const valor = leer(this._registro, campo.campo)
     const vacio = valor === undefined || valor === null || valor === ''
+    if (campo.tipo === 'foto') {
+      return html`<div class="dato foto">${this._avatar(campo, this._registro, valor, 72)}</div>`
+    }
     let contenido = '—'
     if (!vacio) {
       if (campo.tipo === 'insignia') {
@@ -872,6 +908,7 @@ export class DhGestion extends LitElement {
 
   _renderCampo(campo) {
     if (campo.tipo === 'seleccion') return this._renderSeleccion(campo)
+    if (campo.tipo === 'fecha') return this._renderFecha(campo)
     if (campo.tipo === 'ubicacion') return this._renderUbicacion(campo)
     const id = `campo-${campo.campo.replace('.', '-')}`
     const error = this._errorDe(campo)
@@ -879,7 +916,7 @@ export class DhGestion extends LitElement {
     const tipo =
       esPassword && !this._verPassword[campo.campo]
         ? 'password'
-        : { email: 'email', fecha: 'date', telefono: 'tel' }[campo.tipo] ?? 'text'
+        : { email: 'email', telefono: 'tel' }[campo.tipo] ?? 'text'
     const entrada = html`<input
       id=${id}
       type=${tipo}
@@ -917,6 +954,38 @@ export class DhGestion extends LitElement {
   _opcionesDe(campo) {
     if (campo.opciones) return { estado: 'ok', items: campo.opciones }
     return this._opciones[campo.campo] ?? { estado: 'ok', items: [] }
+  }
+
+  /** Foto de la persona (o sus iniciales): `nombre` del esquema dice qué campo trae el nombre completo. */
+  _avatar(columna, fila, fotoUrl, tam) {
+    const { nombres, apellidos } = partesDeNombre(columna.nombre ? leer(fila, columna.nombre) : '')
+    return html`<dh-avatar .nombres=${nombres} .apellidos=${apellidos} .fotoUrl=${fotoUrl ?? null} .tam=${tam}></dh-avatar>`
+  }
+
+  _renderFecha(campo) {
+    const id = `campo-${campo.campo.replace('.', '-')}`
+    const error = this._errorDe(campo)
+    // * Calendario propio (<dh-fecha>), no el <input type="date"> nativo: ver UI_FRONTEND.md
+    return html`<div class="campo ${error ? 'con-error' : ''}">
+      <span class="etiqueta-campo"
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</span
+      >
+      <dh-fecha
+        id=${id}
+        .etiqueta=${campo.titulo}
+        .valor=${String(this._valores[campo.campo] ?? '')}
+        .max=${maximoDeFecha(campo)}
+        ?deshabilitado=${campo.soloLectura}
+        ?invalido=${!!error}
+        @dh-cambio=${(e) => {
+          this._alEscribir(campo, e.detail.valor)
+          this._tocar(campo)
+        }}
+        @dh-blur=${() => this._tocar(campo)}
+      ></dh-fecha>
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
   }
 
   _renderSeleccion(campo) {

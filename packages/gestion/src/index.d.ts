@@ -15,7 +15,9 @@ export interface Columna {
   /** Campo del registro (admite puntos). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'fecha' | 'insignia'
+  tipo?: 'texto' | 'fecha' | 'insignia' | 'foto'
+  /** `tipo: 'foto'`: campo con el nombre completo, para las iniciales cuando la persona no tiene foto. */
+  nombre?: string
   /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
   insignias?: Record<string, Insignia>
   /** Texto atenuado (datos de apoyo como el slug). */
@@ -147,7 +149,9 @@ export interface CampoDetalle {
   /** Campo del registro (admite puntos). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'fecha' | 'insignia'
+  tipo?: 'texto' | 'fecha' | 'insignia' | 'foto'
+  /** `tipo: 'foto'`: campo con el nombre completo, para las iniciales cuando la persona no tiene foto. */
+  nombre?: string
   /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
   insignias?: Record<string, Insignia>
   /** Con otro campo `mitad` a continuación, los dos comparten fila. */

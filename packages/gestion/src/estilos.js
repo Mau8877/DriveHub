@@ -552,6 +552,9 @@ export const estilos = css`
     margin-bottom: 1rem;
     min-width: 0;
   }
+  .dato.foto {
+    align-items: flex-start;
+  }
   .dato-titulo {
     font-size: 0.8125rem;
     font-weight: 600;
