@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
@@ -90,7 +91,7 @@ class AuthIntegrationTest extends PostgresIntegrationTestBase {
         for (String nombre : nombresRoles) {
             rolesDeLaCuenta.add(roles.buscarPorNombre(nombre).orElseThrow());
         }
-        return usuarios.guardar(Usuario.builder().email(email).passwordHash(hasher.hashear(PASSWORD)).nombres("Ana")
+        return usuarios.guardar(Usuario.builder().email(email).passwordHash(hasher.hashear(PASSWORD)).ci(CiDePrueba.unico()).sexo(SexoPersona.MASCULINO).nombres("Ana")
             .apellidos("Pérez").fechaNacimiento(LocalDate.of(1995, 5, 5)).escuelaCodigo(escuela)
             .estado(EstadoUsuario.ACTIVO).intentosFallidos(0).roles(rolesDeLaCuenta).build());
     }

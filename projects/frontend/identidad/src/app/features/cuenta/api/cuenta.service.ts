@@ -18,6 +18,11 @@ export class CuentaService {
     return this.http.post<null>(`${apiBaseUrl()}/auth/verificar-correo/confirmar`, { token })
   }
 
+  /** Confirma el cambio de correo con el enlace que llegó al correo nuevo (CU06). Público. */
+  confirmarCambioCorreo(token: string): Observable<null> {
+    return this.http.post<null>(`${apiBaseUrl()}/auth/cambiar-correo/confirmar`, { token })
+  }
+
   /** Pide el enlace de recuperación. Responde siempre lo mismo, exista o no la cuenta. */
   solicitarRecuperacion(email: string): Observable<null> {
     return this.http.post<null>(`${apiBaseUrl()}/auth/recuperar`, { email })

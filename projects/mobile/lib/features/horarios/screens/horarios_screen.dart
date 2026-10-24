@@ -27,7 +27,7 @@ class HorariosScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.sm, AppSpace.lg, AppSpace.md),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: SegmentedButton<PestanaHorarios>(
             key: const Key('pestanasHorarios'),
             showSelectedIcon: false,
@@ -129,12 +129,12 @@ class _Plantillas extends ConsumerWidget {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => Center(
               child: Padding(
-                padding: const EdgeInsets.all(AppSpace.xl),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(mensajeDeError(error), textAlign: TextAlign.center),
-                    const SizedBox(height: AppSpace.sm),
+                    const SizedBox(height: 8),
                     OutlinedButton(
                       onPressed: () => ref.invalidate(horariosListProvider),
                       style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
@@ -149,9 +149,9 @@ class _Plantillas extends ConsumerWidget {
                 return const Center(child: Text('Todavía no tienes horarios. Crea el primero.'));
               }
               return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(AppSpace.lg, 0, AppSpace.lg, AppSpace.lg),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 itemCount: lista.length,
-                separatorBuilder: (_, _) => const SizedBox(height: AppSpace.md),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (_, i) => _TarjetaHorario(
                   horario: lista[i],
                   alPausar: () => _pausar(context, ref, lista[i]),
@@ -163,7 +163,7 @@ class _Plantillas extends ConsumerWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.sm, AppSpace.lg, AppSpace.lg),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: FilledButton.icon(
             key: const Key('botonNuevoHorario'),
             onPressed: () => context.push('/schedules/new'),
@@ -198,14 +198,13 @@ class _TarjetaHorario extends StatelessWidget {
     final franjas = horario.franjasPorSemana;
     final apagada = horario.estado != EstadoPlantilla.activa;
 
-    // * Pausada e inactiva se dibujan como tarjeta vacía: borde y sin sombra (design.md 3.3)
+    // * Pausada e inactiva se dibujan como tarjeta vacía: borde y sin sombra 
     return Container(
-      padding: const EdgeInsets.fromLTRB(AppSpace.xl, 18, AppSpace.sm, 18),
+      padding: const EdgeInsets.fromLTRB(20, 18, 8, 18),
       decoration: BoxDecoration(
         color: apagada ? Colors.transparent : tema.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: apagada ? Border.all(color: tema.colorScheme.outline, width: 2) : null,
-        boxShadow: apagada ? null : context.semantica.cardShadow,
+        borderRadius: BorderRadius.circular(AppRadios.tarjeta),
+        border: Border.all(color: tema.colorScheme.outline, width: apagada ? 1.5 : 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,16 +214,16 @@ class _TarjetaHorario extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(horario.nombre, style: tema.textTheme.titleLarge),
-                const SizedBox(height: AppSpace.sm),
+                const SizedBox(height: 8),
                 _ChipDeEstado(estado: horario.estado),
-                const SizedBox(height: AppSpace.md),
+                const SizedBox(height: 12),
                 DiasDeLaSemana(dias: horario.diasSemana),
-                const SizedBox(height: AppSpace.md),
+                const SizedBox(height: 12),
                 Text(
                   '${horario.horaInicio} – ${horario.horaFin} · ${horario.duracionClaseMin} min',
-                  style: tema.textTheme.labelLarge?.copyWith(color: context.semantica.blueText),
+                  style: tema.textTheme.labelLarge?.copyWith(color: context.cockpit.enlace, fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: AppSpace.xs),
+                const SizedBox(height: 4),
                 Text('$vigencia · $franjas franjas por semana', style: tema.textTheme.bodyMedium),
               ],
             ),

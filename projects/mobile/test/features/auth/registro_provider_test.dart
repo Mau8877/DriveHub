@@ -33,6 +33,10 @@ void main() {
     email: 'ana@gmail.com',
     password: '123456789',
     escuelaSlug: 'escuelaexample',
+    ci: 'AB12345',
+    sexo: 'FEMENINO',
+    latitud: -16.4897,
+    longitud: -68.1193,
   );
 
   ProviderContainer crear(RegistroService servicio) {
@@ -73,6 +77,7 @@ void main() {
     test('clasifica cada código del backend', () {
       expect(errorDeRegistro(ApiException(code: 'ERR_IDE_01', message: '')), ErrorRegistro.correoEnUso);
       expect(errorDeRegistro(ApiException(code: 'ERR_IDE_02', message: '')), ErrorRegistro.menorDeEdad);
+      expect(errorDeRegistro(ApiException(code: 'ERR_IDE_19', message: '')), ErrorRegistro.ciEnUso);
       expect(
         errorDeRegistro(ApiException(code: 'ERR_IDE_03', message: '')),
         ErrorRegistro.escuelaNoDisponible,

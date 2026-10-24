@@ -3,7 +3,10 @@ import { Router } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 
 import { ApiError } from '../api/api.types'
+import { escucharEvento } from '@drivehub/mf-contract'
+
 import { AuthApiService } from './auth-api.service'
+import { EVENTO_PERFIL_ACTUALIZADO, type PerfilActualizado } from './eventos'
 import type { SesionRespuesta, UsuarioSesion } from './sesion.types'
 
 /** Se renueva cuando pasó esta fracción de la vida del token de acceso. */
@@ -45,6 +48,14 @@ export class SesionService {
   constructor() {
     // * Si la persona verifica el correo en otra pestaña o ventana, al volver se renueva la
     // * sesión para que el botón "Verificar correo" desaparezca sin esperar a la renovación.
+    // * Los remotos no tocan la sesión: avisan con un evento del navegador cuando la persona cambia
+    // * su nombre o su foto (CU06) y el avatar de la cabecera se actualiza sin recargar.
+    const dejarDeEscuchar = escucharEvento<Partial<PerfilActualizado>>(
+      EVENTO_PERFIL_ACTUALIZADO,
+      (cambios) => this.actualizarPerfil(cambios)
+    )
+    inject(DestroyRef).onDestroy(dejarDeEscuchar)
+
     if (typeof document !== 'undefined') {
       const alVolver = () => {
         if (
@@ -127,6 +138,19 @@ export class SesionService {
     await this.router.navigate(['/login'])
   }
 
+  /** Mezcla en el usuario de la sesión solo los campos del perfil que cambiaron (CU06). Sin sesión no hace nada. */
+  actualizarPerfil(
+    cambios: Partial<Pick<UsuarioSesion, 'nombres' | 'apellidos' | 'fotoUrl'>>
+  ): void {
+    const actual = this._usuario()
+    if (!actual) return
+    const nuevos: Partial<Pick<UsuarioSesion, 'nombres' | 'apellidos' | 'fotoUrl'>> = {}
+    if (cambios.nombres !== undefined) nuevos.nombres = cambios.nombres
+    if (cambios.apellidos !== undefined) nuevos.apellidos = cambios.apellidos
+    if (cambios.fotoUrl !== undefined) nuevos.fotoUrl = cambios.fotoUrl
+    this._usuario.set({ ...actual, ...nuevos })
+  }
+
   /** Olvida la sesión local (token, usuario y temporizador). No llama al backend. */
   limpiar(): void {
     this.cancelarTemporizador()
@@ -157,7 +181,7 @@ export class SesionService {
 
   private establecer(sesion: SesionRespuesta): void {
     this.accessToken.set(sesion.accessToken)
-    this._usuario.set(sesion.usuario)
+    this._usuario.set({ ...sesion.usuario, fotoUrl: sesion.usuario.fotoUrl ?? null })
     this.programarRenovacion(sesion.expiraEnSegundos)
   }
 

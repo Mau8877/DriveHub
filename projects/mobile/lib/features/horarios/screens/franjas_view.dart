@@ -97,7 +97,7 @@ class _FranjasViewState extends ConsumerState<FranjasView> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpace.sm),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             children: [
               IconButton(tooltip: 'Semana anterior', icon: const Icon(Icons.chevron_left), onPressed: semana.anterior),
@@ -125,7 +125,7 @@ class _FranjasViewState extends ConsumerState<FranjasView> {
                 children: [
                   const SizedBox(height: 48),
                   Center(child: Text(mensajeDeError(error), textAlign: TextAlign.center)),
-                  const SizedBox(height: AppSpace.sm),
+                  const SizedBox(height: 8),
                   Center(
                     child: OutlinedButton(
                       onPressed: () => ref.invalidate(franjasListProvider(lunes)),
@@ -185,11 +185,11 @@ class _SemanaConFranjas extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.sm, AppSpace.lg, AppSpace.lg),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       children: [
         Wrap(
-          spacing: AppSpace.sm,
-          runSpacing: AppSpace.sm,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             StatusChip.neutro(context, '${resumen.libres} Libres', Icons.radio_button_unchecked),
             StatusChip.azul(context, '${resumen.reservadas} Reservadas', Icons.check),
@@ -197,7 +197,7 @@ class _SemanaConFranjas extends StatelessWidget {
           ],
         ),
         for (final entrada in porDia.entries) ...[
-          const SizedBox(height: AppSpace.lg),
+          const SizedBox(height: 16),
           _EncabezadoDeDia(
             fecha: entrada.key,
             puedeBloquear: !entrada.key.isBefore(hoy) && entrada.value.any((f) => f.estado == EstadoFranja.libre),
@@ -206,7 +206,7 @@ class _SemanaConFranjas extends StatelessWidget {
             alBloquear: () => alCambiarDia(entrada.key, bloquear: true),
             alDesbloquear: () => alCambiarDia(entrada.key, bloquear: false),
           ),
-          const SizedBox(height: AppSpace.sm),
+          const SizedBox(height: 8),
           _Mosaicos(franjas: entrada.value, ahora: ahora, ocupadas: ocupadas, alAccionar: alAccionar),
         ],
       ],
@@ -257,10 +257,10 @@ class _Mosaicos extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, restricciones) {
-        final ancho = (restricciones.maxWidth - AppSpace.sm) / 2;
+        final ancho = (restricciones.maxWidth - 8) / 2;
         return Wrap(
-          spacing: AppSpace.sm,
-          runSpacing: AppSpace.sm,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             for (final franja in franjas)
               SizedBox(
@@ -292,30 +292,33 @@ class _Mosaico extends StatelessWidget {
     final tema = Theme.of(context);
     final bloqueada = franja.estado == EstadoFranja.bloqueada;
 
-    // * Libre y reservada con sombra; bloqueada gris suave y sin sombra (design.md 3.6)
+    // * Libre y reservada con sombra; bloqueada gris suave y sin sombra 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppSpace.md, horizontal: AppSpace.md),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
         color: switch (franja.estado) {
           EstadoFranja.libre => tema.colorScheme.surface,
-          EstadoFranja.reservada => tema.colorScheme.tertiaryContainer,
-          EstadoFranja.bloqueada => context.semantica.neutralContainer,
+          EstadoFranja.reservada => Color.alphaBlend(
+            context.cockpit.enlace.withValues(alpha: 0.12),
+            tema.colorScheme.surface,
+          ),
+          EstadoFranja.bloqueada => context.cockpit.superficieSuave,
         },
-        borderRadius: BorderRadius.circular(AppRadius.tile),
-        boxShadow: bloqueada ? null : context.semantica.cardShadow,
+        borderRadius: BorderRadius.circular(18),
+        border: bloqueada ? null : Border.all(color: tema.colorScheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '${franja.horaInicio} – ${franja.horaFin}',
-            style: tema.textTheme.titleMedium?.copyWith(color: context.semantica.blueText, fontSize: 17),
+            style: tema.textTheme.titleMedium?.copyWith(color: context.cockpit.enlace, fontSize: 17, fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: AppSpace.xs),
+          const SizedBox(height: 4),
           _EtiquetaEstado(estado: franja.estado),
           if (ocupada)
             const Padding(
-              padding: EdgeInsets.only(top: AppSpace.sm),
+              padding: EdgeInsets.only(top: 8),
               child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
             )
           else if (accion != null)

@@ -1,15 +1,21 @@
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { CUSTOM_ELEMENTS_SCHEMA, Component, OnInit, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
+import '@drivehub/ui'
 
 import { ApiError } from '../../../core/api/api.types'
-import type { EscuelaPublica } from '../types/registro.types'
+import type { DetalleUbicacion } from '@drivehub/ui'
+import type { EscuelaPublica, Sexo } from '../types/registro.types'
 import { type CampoRegistro, mensajeDeError } from '../schemas/registro.mensajes'
 import {
   APELLIDOS_MAX,
+  ciValido,
+  coordenada,
   edadMinima,
   EMAIL_MAX,
   fechaNoFutura,
+  LATITUD_MAX,
+  LONGITUD_MAX,
   NOMBRES_MAX,
   obligatorioConTexto,
   PASSWORD_MAX,
@@ -25,127 +31,160 @@ import { RegistroService } from '../api/registro.service'
  *
  * * La escuela sale de la URL (/register/:escuelaSlug); se consulta para
  * * mostrar su nombre y, si no está disponible, no se muestra el formulario.
+ * * CU08a: pide además CI, sexo y la ubicación en un mapa (<dh-mapa-ubicacion>). El mapa solo
+ * * elige el punto: la dirección la calcula el servidor al registrar.
  */
 @Component({
   selector: 'app-registro',
   imports: [ReactiveFormsModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <section class="flex min-h-svh items-center justify-center p-6">
-      <div class="bg-card border-border w-full max-w-md rounded-lg border p-6">
-        @if (cargandoEscuela()) {
-          <p class="text-muted-foreground text-sm">Cargando escuela…</p>
-        } @else if (registrado()) {
-          <h1 class="mb-1 text-xl font-semibold">¡Cuenta creada!</h1>
-          <p class="text-muted-foreground text-sm" role="status">
+    <dh-auth-layout
+      titulo="Empieza a conducir tu futuro"
+      mensaje="Crea tu cuenta de estudiante y reserva clases en minutos."
+    >
+      @if (cargandoEscuela()) {
+        <p class="dh-sub-auth" role="status">Cargando escuela…</p>
+      } @else if (registrado()) {
+        <div class="dh-state">
+          <div class="dh-icono-grande dh-ok"><dh-icono nombre="check-circle" [tam]="34" /></div>
+          <h1 class="dh-titulo-auth">¡Cuenta creada!</h1>
+          <p class="dh-sub-auth" role="status">
             Tu cuenta fue creada. Ingresa desde la app móvil de DriveHub.
           </p>
-        } @else if (escuelaNoDisponible()) {
-          <h1 class="mb-1 text-xl font-semibold">Registro</h1>
-          <p class="text-destructive text-sm" role="alert">Esta escuela no está disponible.</p>
-        } @else {
-          <h1 class="mb-1 text-xl font-semibold">Registro en {{ escuela()?.nombre }}</h1>
-          <p class="text-muted-foreground mb-4 text-sm">
-            Crea tu cuenta de estudiante para empezar.
-          </p>
+        </div>
+      } @else if (escuelaNoDisponible()) {
+        <h1 class="dh-titulo-auth">Registro</h1>
+        <p class="dh-notice dh-notice-error" role="alert">Esta escuela no está disponible.</p>
+      } @else {
+        <h1 class="dh-titulo-auth">Registro en {{ escuela()?.nombre }}</h1>
+        <p class="dh-sub-auth">Crea tu cuenta de estudiante para empezar.</p>
 
-          <form [formGroup]="form" (ngSubmit)="enviar()" class="flex flex-col gap-4" novalidate>
-            <div class="flex flex-col gap-1">
-              <label for="nombres" class="text-sm font-medium">Nombres</label>
-              <input
-                id="nombres"
-                formControlName="nombres"
-                autocomplete="given-name"
-                class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-              />
-              @if (error('nombres'); as mensaje) {
-                <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-              }
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label for="apellidos" class="text-sm font-medium">Apellidos</label>
-              <input
-                id="apellidos"
-                formControlName="apellidos"
-                autocomplete="family-name"
-                class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-              />
-              @if (error('apellidos'); as mensaje) {
-                <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-              }
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label for="fechaNacimiento" class="text-sm font-medium">Fecha de nacimiento</label>
-              <input
-                id="fechaNacimiento"
-                type="date"
-                formControlName="fechaNacimiento"
-                autocomplete="bday"
-                class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-              />
-              @if (error('fechaNacimiento'); as mensaje) {
-                <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-              }
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label for="email" class="text-sm font-medium">Correo</label>
-              <input
-                id="email"
-                type="email"
-                formControlName="email"
-                autocomplete="email"
-                class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-              />
-              @if (error('email'); as mensaje) {
-                <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-              }
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label for="password" class="text-sm font-medium">Contraseña</label>
-              <input
-                id="password"
-                type="password"
-                formControlName="password"
-                autocomplete="new-password"
-                class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-              />
-              @if (error('password'); as mensaje) {
-                <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-              }
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label for="telefono" class="text-sm font-medium">Teléfono (opcional)</label>
-              <input
-                id="telefono"
-                type="tel"
-                formControlName="telefono"
-                autocomplete="tel"
-                class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-              />
-              @if (error('telefono'); as mensaje) {
-                <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-              }
-            </div>
-
-            @if (errorGeneral(); as mensaje) {
-              <p class="text-destructive text-sm" role="alert">{{ mensaje }}</p>
+        <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+          <div class="dh-field">
+            <label for="nombres" class="dh-label">Nombres</label>
+            <input
+              id="nombres"
+              formControlName="nombres"
+              autocomplete="given-name"
+              class="dh-input"
+            />
+            @if (error('nombres'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
             }
+          </div>
 
-            <button
-              type="submit"
-              [disabled]="enviando()"
-              class="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-            >
-              {{ enviando() ? 'Registrando…' : 'Registrarme' }}
-            </button>
-          </form>
-        }
-      </div>
-    </section>
+          <div class="dh-field">
+            <label for="apellidos" class="dh-label">Apellidos</label>
+            <input
+              id="apellidos"
+              formControlName="apellidos"
+              autocomplete="family-name"
+              class="dh-input"
+            />
+            @if (error('apellidos'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          <div class="dh-field">
+            <label for="fechaNacimiento" class="dh-label">Fecha de nacimiento</label>
+            <input
+              id="fechaNacimiento"
+              type="date"
+              formControlName="fechaNacimiento"
+              autocomplete="bday"
+              class="dh-input"
+            />
+            @if (error('fechaNacimiento'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          <div class="dh-field">
+            <label for="sexo" class="dh-label">Sexo</label>
+            <select id="sexo" formControlName="sexo" class="dh-input">
+              <option value="">Elige una opción</option>
+              <option value="MASCULINO">Masculino</option>
+              <option value="FEMENINO">Femenino</option>
+            </select>
+            @if (error('sexo'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          <div class="dh-field">
+            <label for="ci" class="dh-label">CI</label>
+            <input id="ci" formControlName="ci" autocomplete="off" class="dh-input" />
+            @if (error('ci'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          <div class="dh-field">
+            <label for="email" class="dh-label">Correo</label>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              class="dh-input"
+            />
+            @if (error('email'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          <div class="dh-field">
+            <label for="password" class="dh-label">Contraseña</label>
+            <input
+              id="password"
+              type="password"
+              formControlName="password"
+              autocomplete="new-password"
+              class="dh-input"
+            />
+            @if (error('password'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          <div class="dh-field">
+            <label for="telefono" class="dh-label">Teléfono (opcional)</label>
+            <input
+              id="telefono"
+              type="tel"
+              formControlName="telefono"
+              autocomplete="tel"
+              class="dh-input"
+            />
+            @if (error('telefono'); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          <div class="dh-field">
+            <span class="dh-label">Tu ubicación</span>
+            <dh-mapa-ubicacion
+              [latitud]="form.controls.latitud.value"
+              [longitud]="form.controls.longitud.value"
+              (dh-ubicacion)="alElegirUbicacion($event)"
+            />
+            @if (errorUbicacion(); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
+            }
+          </div>
+
+          @if (errorGeneral(); as mensaje) {
+            <p class="dh-notice dh-notice-error" role="alert">{{ mensaje }}</p>
+          }
+
+          <button type="submit" [disabled]="enviando()" class="dh-btn dh-btn-block">
+            {{ enviando() ? 'Registrando…' : 'Registrarme' }}
+          </button>
+        </form>
+      }
+    </dh-auth-layout>
   `,
 })
 export class Registro implements OnInit {
@@ -170,6 +209,10 @@ export class Registro implements OnInit {
       [Validators.required, Validators.minLength(PASSWORD_MIN), Validators.maxLength(PASSWORD_MAX)],
     ],
     telefono: ['', [Validators.maxLength(TELEFONO_MAX)]],
+    sexo: ['' as Sexo | '', [Validators.required]],
+    ci: ['', [obligatorioConTexto, ciValido]],
+    latitud: [null as number | null, [coordenada(LATITUD_MAX)]],
+    longitud: [null as number | null, [coordenada(LONGITUD_MAX)]],
   })
 
   private get escuelaSlug(): string {
@@ -190,15 +233,31 @@ export class Registro implements OnInit {
   }
 
   /** Mensaje del campo si ya fue tocado y es inválido. */
-  error(campo: CampoRegistro): string | null {
+  error(campo: Exclude<CampoRegistro, 'ubicacion'>): string | null {
     const control = this.form.controls[campo]
     if (!control.touched && !control.dirty) return null
     return mensajeDeError(campo, control.errors) ?? this.errorDelServidor(campo)
   }
 
-  private readonly erroresDelServidor = signal<Partial<Record<CampoRegistro, string>>>({})
+  /** El mapa no es un control: su error sale de las dos coordenadas, una vez tocadas. */
+  errorUbicacion(): string | null {
+    const { latitud, longitud } = this.form.controls
+    if (!latitud.touched && !longitud.touched) return null
+    return mensajeDeError('ubicacion', latitud.errors ?? longitud.errors)
+  }
 
-  private errorDelServidor(campo: CampoRegistro): string | null {
+  alElegirUbicacion(detalle: Event): void {
+    const { latitud, longitud } = (detalle as CustomEvent<DetalleUbicacion>).detail
+    this.form.patchValue({ latitud, longitud })
+    this.form.controls.latitud.markAsTouched()
+    this.form.controls.longitud.markAsTouched()
+  }
+
+  private readonly erroresDelServidor = signal<
+    Partial<Record<Exclude<CampoRegistro, 'ubicacion'>, string>>
+  >({})
+
+  private errorDelServidor(campo: Exclude<CampoRegistro, 'ubicacion'>): string | null {
     return this.erroresDelServidor()[campo] ?? null
   }
 
@@ -222,6 +281,10 @@ export class Registro implements OnInit {
         password: valores.password,
         ...(telefono ? { telefono } : {}),
         escuelaSlug: this.escuelaSlug,
+        ci: valores.ci.trim(),
+        sexo: valores.sexo as Sexo,
+        latitud: valores.latitud as number,
+        longitud: valores.longitud as number,
       })
       .subscribe({
         next: () => {
@@ -247,6 +310,9 @@ export class Registro implements OnInit {
       case 'ERR_IDE_03':
         this.escuelaNoDisponible.set(true)
         break
+      case 'ERR_IDE_19':
+        this.marcarCampo('ci', 'Este CI ya está registrado')
+        break
       case 'ERR_SYS_01':
         this.errorGeneral.set('Revisa los datos ingresados e inténtalo de nuevo.')
         break
@@ -255,7 +321,7 @@ export class Registro implements OnInit {
     }
   }
 
-  private marcarCampo(campo: CampoRegistro, mensaje: string): void {
+  private marcarCampo(campo: Exclude<CampoRegistro, 'ubicacion'>, mensaje: string): void {
     this.form.controls[campo].markAsTouched()
     this.erroresDelServidor.set({ [campo]: mensaje })
   }

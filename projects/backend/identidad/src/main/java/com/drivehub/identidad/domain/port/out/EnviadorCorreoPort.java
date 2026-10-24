@@ -12,4 +12,10 @@ public interface EnviadorCorreoPort {
 
     /** Correo con el enlace para elegir una contraseña nueva (CU04). */
     void enviarRecuperacionContrasena(String destinatario, String nombres, String enlace);
+
+    /** Correo con el enlace para confirmar el cambio de correo; va a la dirección NUEVA (CU06). */
+    void enviarCambioCorreo(String correoNuevo, String nombres, String enlace);
+
+    /** Aviso informativo al correo ANTERIOR de que el correo de la cuenta cambió; sin enlaces (CU06). */
+    void enviarAvisoCambioCorreo(String correoAnterior, String nombres, String correoNuevo);
 }

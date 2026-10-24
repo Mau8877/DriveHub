@@ -1,396 +1,407 @@
 import 'package:flutter/material.dart';
 
-/// Paleta e identidad visual de la app (propuesta B «Cálida y amigable», ver
-/// `docs/design.md`).
+/// Paleta e identidad visual de la app: el diseño "Cockpit" (mockup `diseno-3-cockpit`).
 ///
 /// * Espejo manual de `packages/design-tokens/tokens.css` -- no hay forma de
 /// * compartir el archivo de tokens entre CSS y Dart (ver WIDGETS_UI_MOBILE.md),
 /// * así que todo cambio de paleta ahí se replica acá a mano en el mismo cambio.
-/// * ! Ningún color literal en los widgets: todo sale de `AppColors` (vía el tema).
+/// * Paleta de marca: Gris Asfalto #1E293B (estructura, tipografía), Ámbar / Vial
+/// * #F59E0B (acción clave, resaltados), Azul Técnico #0284C7 (estados), Gris Claro
+/// * #F1F5F9 (fondo), Blanco #FFFFFF (superficies) y Gris Medio #475569 (texto secundario).
+/// * * Legibilidad: el ámbar no tiene contraste sobre blanco, así que el TEXTO de acento usa
+/// * * `ambarTexto` en el modo claro; el ámbar puro queda para fondos de botones y brillos.
 abstract final class AppColors {
   // Marca
   static const asfalto = Color(0xFF1E293B);
   static const ambar = Color(0xFFF59E0B);
-  static const azul = Color(0xFF0284C7);
+  static const azulTecnico = Color(0xFF0284C7);
   static const grisClaro = Color(0xFFF1F5F9);
-  static const blanco = Color(0xFFFFFFFF);
   static const grisMedio = Color(0xFF475569);
 
-  // Claro
+  /// Ámbar oscurecido para texto sobre superficies claras (contraste 5:1 sobre blanco).
+  static const ambarTexto = Color(0xFFB45309);
+
+  /// Azul oscurecido para enlaces y texto sobre superficies claras.
+  static const azulTexto = Color(0xFF0369A1);
+
+  // Modo claro
+  static const lightPrimary = ambar; // acción clave
+  static const lightOnPrimary = asfalto; // sobre ámbar el texto va en asfalto
+  static const lightAccent = azulTecnico;
   static const lightBackground = grisClaro;
-  static const lightSurface = blanco;
-  static const lightOnSurface = asfalto;
-  static const lightOnSurfaceVariant = grisMedio;
-  static final lightOutline = grisMedio.withValues(alpha: .28);
-  static const lightBlueText = Color(0xFF0369A1);
-  static final lightBlueContainer = azul.withValues(alpha: .12);
-  static const lightError = Color(0xFFB91C1C);
-  static final lightErrorContainer = lightError.withValues(alpha: .10);
+  static const lightSurface = Color(0xFFFFFFFF);
+  static const lightTextPrimary = asfalto;
+  static const lightTextSecondary = grisMedio;
   static const lightSuccess = Color(0xFF15803D);
-  static final lightSuccessContainer = lightSuccess.withValues(alpha: .12);
-  static final lightNeutralContainer = asfalto.withValues(alpha: .10);
-  static const lightSegmentActive = asfalto;
+  static const lightError = Color(0xFFDC2626);
+  static const lightWarning = ambar;
+  static const lightInfo = azulTexto;
+  static const lightBorder = Color(0x40475569); // gris medio al 25%
 
-  // Oscuro
-  static const darkBackground = Color(0xFF131B2A);
+  // Modo oscuro (tonos derivados de la misma familia)
+  static const darkPrimary = ambar;
+  static const darkOnPrimary = asfalto;
+  static const darkAccent = Color(0xFF38BDF8);
+  static const darkBackground = Color(0xFF0F172A);
   static const darkSurface = asfalto;
-  static const darkOnSurface = grisClaro;
-  static const darkOnSurfaceVariant = Color(0xFFA3B1C6);
-  static final darkOutline = grisClaro.withValues(alpha: .20);
-  static const darkBlueText = Color(0xFF38BDF8);
-  static final darkBlueContainer = darkBlueText.withValues(alpha: .16);
-  static const darkError = Color(0xFFF87171);
-  static final darkErrorContainer = darkError.withValues(alpha: .14);
+  static const darkTextPrimary = grisClaro;
+  static const darkTextSecondary = Color(0xFFA6B3C6);
   static const darkSuccess = Color(0xFF4ADE80);
-  static final darkSuccessContainer = darkSuccess.withValues(alpha: .14);
-  static final darkNeutralContainer = grisClaro.withValues(alpha: .14);
-  static final darkSegmentActive = grisClaro.withValues(alpha: .20);
-
-  // Compartidos
-  static final amberContainer = ambar.withValues(alpha: .22);
+  static const darkError = Color(0xFFF87171);
+  static const darkWarning = ambar;
+  static const darkInfo = Color(0xFF38BDF8);
+  static const darkBorder = Color(0x1FFFFFFF); // blanco al 12%
 }
 
-abstract final class AppSpace {
-  static const xs = 4.0, sm = 8.0, md = 12.0, lg = 16.0, xl = 20.0, xxl = 24.0;
-}
-
-abstract final class AppRadius {
-  static const card = 28.0,
-      button = 28.0,
-      slot = 26.0,
-      day = 24.0,
-      tile = 22.0,
-      textarea = 24.0,
-      chip = 14.0;
-}
-
-abstract final class AppMotion {
-  static const press = Duration(milliseconds: 100),
-      fast = Duration(milliseconds: 150),
-      standard = Duration(milliseconds: 250),
-      enter = Duration(milliseconds: 300),
-      exit = Duration(milliseconds: 200);
-}
-
-/// Tokens que `ColorScheme` no tiene: éxito, neutros, segmento activo, azul de texto
-/// pequeño y la sombra suave de las tarjetas (vacía en oscuro).
+/// Colores del diseño Cockpit que `ColorScheme` no tiene, disponibles con `context.cockpit`.
 @immutable
-class AppSemantic extends ThemeExtension<AppSemantic> {
-  const AppSemantic({
-    required this.success,
-    required this.successContainer,
-    required this.neutralContainer,
-    required this.segmentActive,
-    required this.onSegmentActive,
-    required this.blueText,
-    required this.cardShadow,
+class CockpitColores extends ThemeExtension<CockpitColores> {
+  /// Texto e iconos de acento (ámbar legible sobre el fondo del modo actual).
+  final Color acento;
+
+  /// Texto de enlaces y de estados informativos.
+  final Color enlace;
+
+  /// Éxito (verde legible sobre superficies del modo actual).
+  final Color exito;
+
+  /// Brillo azul y ámbar del fondo y de los bordes destacados.
+  final Color brilloAzul;
+  final Color brilloAmbar;
+
+  /// Superficie de los botones de la barra y de los chips (un poco distinta de la tarjeta).
+  final Color superficieSuave;
+
+  final Color borde;
+
+  const CockpitColores({
+    required this.acento,
+    required this.enlace,
+    required this.exito,
+    required this.brilloAzul,
+    required this.brilloAmbar,
+    required this.superficieSuave,
+    required this.borde,
   });
 
-  final Color success, successContainer, neutralContainer;
-  final Color segmentActive, onSegmentActive, blueText;
-  final List<BoxShadow> cardShadow;
-
-  static final light = AppSemantic(
-    success: AppColors.lightSuccess,
-    successContainer: AppColors.lightSuccessContainer,
-    neutralContainer: AppColors.lightNeutralContainer,
-    segmentActive: AppColors.lightSegmentActive,
-    onSegmentActive: AppColors.blanco,
-    blueText: AppColors.lightBlueText,
-    cardShadow: [
-      BoxShadow(
-        color: AppColors.asfalto.withValues(alpha: .09),
-        blurRadius: 18,
-        offset: const Offset(0, 6),
-      ),
-    ],
+  static const claro = CockpitColores(
+    acento: AppColors.ambarTexto,
+    enlace: AppColors.azulTexto,
+    exito: AppColors.lightSuccess,
+    // * En claro los brillos del fondo son muy tenues: nunca quedan detrás de texto
+    brilloAzul: Color(0x290284C7),
+    brilloAmbar: Color(0x2EF59E0B),
+    superficieSuave: Color(0xFFE8EEF5),
+    borde: AppColors.lightBorder,
   );
 
-  static final dark = AppSemantic(
-    success: AppColors.darkSuccess,
-    successContainer: AppColors.darkSuccessContainer,
-    neutralContainer: AppColors.darkNeutralContainer,
-    segmentActive: AppColors.darkSegmentActive,
-    onSegmentActive: AppColors.blanco,
-    blueText: AppColors.darkBlueText,
-    cardShadow: const [],
+  static const oscuro = CockpitColores(
+    acento: AppColors.ambar,
+    enlace: AppColors.darkInfo,
+    exito: AppColors.darkSuccess,
+    brilloAzul: Color(0x610284C7),
+    brilloAmbar: Color(0x33F59E0B),
+    superficieSuave: Color(0xFF2B3A52),
+    borde: AppColors.darkBorder,
   );
 
   @override
-  AppSemantic copyWith({
-    Color? success,
-    Color? successContainer,
-    Color? neutralContainer,
-    Color? segmentActive,
-    Color? onSegmentActive,
-    Color? blueText,
-    List<BoxShadow>? cardShadow,
-  }) => AppSemantic(
-    success: success ?? this.success,
-    successContainer: successContainer ?? this.successContainer,
-    neutralContainer: neutralContainer ?? this.neutralContainer,
-    segmentActive: segmentActive ?? this.segmentActive,
-    onSegmentActive: onSegmentActive ?? this.onSegmentActive,
-    blueText: blueText ?? this.blueText,
-    cardShadow: cardShadow ?? this.cardShadow,
-  );
+  CockpitColores copyWith({
+    Color? acento,
+    Color? enlace,
+    Color? exito,
+    Color? brilloAzul,
+    Color? brilloAmbar,
+    Color? superficieSuave,
+    Color? borde,
+  }) {
+    return CockpitColores(
+      acento: acento ?? this.acento,
+      enlace: enlace ?? this.enlace,
+      exito: exito ?? this.exito,
+      brilloAzul: brilloAzul ?? this.brilloAzul,
+      brilloAmbar: brilloAmbar ?? this.brilloAmbar,
+      superficieSuave: superficieSuave ?? this.superficieSuave,
+      borde: borde ?? this.borde,
+    );
+  }
 
   @override
-  AppSemantic lerp(ThemeExtension<AppSemantic>? other, double t) =>
-      t < .5 ? this : (other as AppSemantic? ?? this);
+  CockpitColores lerp(ThemeExtension<CockpitColores>? other, double t) {
+    if (other is! CockpitColores) return this;
+    return CockpitColores(
+      acento: Color.lerp(acento, other.acento, t)!,
+      enlace: Color.lerp(enlace, other.enlace, t)!,
+      exito: Color.lerp(exito, other.exito, t)!,
+      brilloAzul: Color.lerp(brilloAzul, other.brilloAzul, t)!,
+      brilloAmbar: Color.lerp(brilloAmbar, other.brilloAmbar, t)!,
+      superficieSuave: Color.lerp(superficieSuave, other.superficieSuave, t)!,
+      borde: Color.lerp(borde, other.borde, t)!,
+    );
+  }
 }
 
-extension AppTemaContext on BuildContext {
-  /// Los tokens semánticos del tema. Sin el tema de la app (un test con un `MaterialApp`
-  /// pelado) cae a los del modo claro.
-  AppSemantic get semantica =>
-      Theme.of(this).extension<AppSemantic>() ?? AppSemantic.light;
+extension CockpitContext on BuildContext {
+  CockpitColores get cockpit =>
+      Theme.of(this).extension<CockpitColores>() ??
+      (Theme.of(this).brightness == Brightness.dark
+          ? CockpitColores.oscuro
+          : CockpitColores.claro);
+}
+
+/// Radios del diseño: controles `--r`, chips y campos pequeños `--r-sm`, tarjetas `--r-lg`.
+abstract final class AppRadios {
+  static const control = 15.0;
+  static const pequeno = 10.0;
+  static const tarjeta = 24.0;
 }
 
 abstract final class AppTheme {
-  static ThemeData get light => _build(
-    ColorScheme(
-      brightness: Brightness.light,
-      primary: AppColors.asfalto,
-      onPrimary: AppColors.blanco,
-      secondary: AppColors.ambar,
-      onSecondary: AppColors.asfalto,
-      secondaryContainer: AppColors.amberContainer,
-      onSecondaryContainer: AppColors.asfalto,
-      tertiary: AppColors.azul,
-      onTertiary: AppColors.blanco,
-      tertiaryContainer: AppColors.lightBlueContainer,
-      onTertiaryContainer: AppColors.lightBlueText,
-      error: AppColors.lightError,
-      onError: AppColors.blanco,
-      errorContainer: AppColors.lightErrorContainer,
-      onErrorContainer: AppColors.lightError,
+  static ThemeData get light => _construir(
+    brillo: Brightness.light,
+    colorScheme: const ColorScheme.light(
+      primary: AppColors.lightPrimary,
+      onPrimary: AppColors.lightOnPrimary,
+      secondary: AppColors.lightAccent,
+      onSecondary: Colors.white,
       surface: AppColors.lightSurface,
-      onSurface: AppColors.lightOnSurface,
-      onSurfaceVariant: AppColors.lightOnSurfaceVariant,
-      outline: AppColors.lightOutline,
-      outlineVariant: AppColors.lightOutline,
-      surfaceTint: Colors.transparent,
+      onSurface: AppColors.lightTextPrimary,
+      onSurfaceVariant: AppColors.lightTextSecondary,
+      error: AppColors.lightError,
+      onError: Colors.white,
+      outline: AppColors.lightBorder,
+      outlineVariant: AppColors.lightBorder,
     ),
-    AppColors.lightBackground,
-    AppSemantic.light,
+    fondo: AppColors.lightBackground,
+    colores: CockpitColores.claro,
   );
 
-  static ThemeData get dark => _build(
-    ColorScheme(
-      brightness: Brightness.dark,
-      primary: AppColors.grisClaro,
-      onPrimary: AppColors.asfalto,
-      secondary: AppColors.ambar,
+  static ThemeData get dark => _construir(
+    brillo: Brightness.dark,
+    colorScheme: const ColorScheme.dark(
+      primary: AppColors.darkPrimary,
+      onPrimary: AppColors.darkOnPrimary,
+      secondary: AppColors.darkAccent,
       onSecondary: AppColors.asfalto,
-      secondaryContainer: AppColors.amberContainer,
-      onSecondaryContainer: AppColors.grisClaro,
-      tertiary: AppColors.azul,
-      onTertiary: AppColors.blanco,
-      tertiaryContainer: AppColors.darkBlueContainer,
-      onTertiaryContainer: AppColors.darkBlueText,
+      surface: AppColors.darkSurface,
+      onSurface: AppColors.darkTextPrimary,
+      onSurfaceVariant: AppColors.darkTextSecondary,
       error: AppColors.darkError,
       onError: AppColors.asfalto,
-      errorContainer: AppColors.darkErrorContainer,
-      onErrorContainer: AppColors.darkError,
-      surface: AppColors.darkSurface,
-      onSurface: AppColors.darkOnSurface,
-      onSurfaceVariant: AppColors.darkOnSurfaceVariant,
-      outline: AppColors.darkOutline,
-      outlineVariant: AppColors.darkOutline,
-      surfaceTint: Colors.transparent,
+      outline: AppColors.darkBorder,
+      outlineVariant: AppColors.darkBorder,
     ),
-    AppColors.darkBackground,
-    AppSemantic.dark,
+    fondo: AppColors.darkBackground,
+    colores: CockpitColores.oscuro,
   );
 
-  static ThemeData _build(ColorScheme cs, Color fondo, AppSemantic sem) {
-    final text = _textTheme(cs);
-    const pill = StadiumBorder();
+  static ThemeData _construir({
+    required Brightness brillo,
+    required ColorScheme colorScheme,
+    required Color fondo,
+    required CockpitColores colores,
+  }) {
+    final base = ThemeData(brightness: brillo, useMaterial3: true);
+    final controlForma = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppRadios.control),
+    );
+    final bordeCampo = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadios.control),
+      borderSide: BorderSide(color: colores.borde),
+    );
 
-    return ThemeData(
-      useMaterial3: true,
-      brightness: cs.brightness,
-      colorScheme: cs,
+    return base.copyWith(
+      colorScheme: colorScheme,
+      extensions: [colores],
       scaffoldBackgroundColor: fondo,
-      fontFamily: _familia,
-      textTheme: text,
-      extensions: [sem],
+      canvasColor: colorScheme.surface,
+      textTheme: base.textTheme
+          .apply(
+            bodyColor: colorScheme.onSurface,
+            displayColor: colorScheme.onSurface,
+          )
+          .copyWith(
+            // * Títulos de pantalla: peso alto y tracking cerrado, como el h1 del mockup
+            headlineSmall: base.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.6,
+              color: colorScheme.onSurface,
+            ),
+            titleLarge: base.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+              color: colorScheme.onSurface,
+            ),
+            titleMedium: base.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+            ),
+            bodySmall: base.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+      // * La barra es transparente: el título y los botones se leen sobre el fondo de la pantalla
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
+        foregroundColor: colorScheme.onSurface,
         elevation: 0,
         scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: cs.onSurface,
-        titleTextStyle: text.headlineMedium,
         centerTitle: false,
-        toolbarHeight: 64,
+        titleTextStyle: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.4,
+          color: colorScheme.onSurface,
+        ),
       ),
-      // * La barra inferior la dibuja `BarraInferior` (esquinas y sombra); acá solo su contenido
-      navigationBarTheme: NavigationBarThemeData(
-        height: 84,
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
+      // * Superficies opacas con borde fino: nada de transparencias sobre el degradado del fondo
+      cardTheme: CardThemeData(
+        color: colorScheme.surface,
         elevation: 0,
-        indicatorColor: cs.secondary,
-        indicatorShape: const StadiumBorder(),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        iconTheme: WidgetStateProperty.resolveWith(
-          (s) => IconThemeData(
-            size: 24,
-            color: s.contains(WidgetState.selected)
-                ? cs.onSecondary
-                : cs.onSurfaceVariant,
-          ),
-        ),
-        labelTextStyle: WidgetStateProperty.resolveWith(
-          (s) => conPeso(
-            text.labelMedium!.copyWith(
-              fontSize: 12,
-              color: s.contains(WidgetState.selected)
-                  ? cs.onSurface
-                  : cs.onSurfaceVariant,
-            ),
-            s.contains(WidgetState.selected)
-                ? FontWeight.w900
-                : FontWeight.w700,
-          ),
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadios.tarjeta),
+          side: BorderSide(color: colores.borde),
         ),
       ),
-      // * La acción principal es ámbar: `secondary`, no `primary`
+      dividerTheme: DividerThemeData(color: colores.borde, space: 1, thickness: 1),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: colorScheme.surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: bordeCampo,
+        enabledBorder: bordeCampo,
+        disabledBorder: bordeCampo,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadios.control),
+          borderSide: const BorderSide(color: AppColors.ambar, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadios.control),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadios.control),
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
+        ),
+        labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+        floatingLabelStyle: TextStyle(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w700,
+        ),
+        prefixIconColor: WidgetStateColor.resolveWith(
+          (estados) => estados.contains(WidgetState.focused)
+              ? colorScheme.onSurface
+              : colorScheme.onSurfaceVariant,
+        ),
+        suffixIconColor: colorScheme.onSurfaceVariant,
+        errorStyle: TextStyle(color: colorScheme.error, fontSize: 12.5),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(56),
-          shape: pill,
-          backgroundColor: cs.secondary,
-          foregroundColor: cs.onSecondary,
-          disabledBackgroundColor: cs.secondary.withValues(alpha: .38),
-          disabledForegroundColor: cs.onSecondary.withValues(alpha: .38),
-          textStyle: text.labelLarge,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          disabledBackgroundColor: colorScheme.primary.withValues(alpha: 0.45),
+          disabledForegroundColor: colorScheme.onPrimary.withValues(alpha: 0.6),
+          minimumSize: const Size.fromHeight(50),
+          shape: controlForma,
+          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(56),
-          shape: pill,
-          foregroundColor: cs.onSurface,
-          backgroundColor: cs.surface,
-          side: BorderSide(color: cs.onSurface, width: 2),
-          textStyle: text.labelLarge,
+          foregroundColor: colorScheme.onSurface,
+          minimumSize: const Size.fromHeight(50),
+          shape: controlForma,
+          side: BorderSide(color: colores.borde),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          minimumSize: const Size(48, 48),
-          foregroundColor: cs.onTertiaryContainer,
-          textStyle: text.labelMedium!.copyWith(fontSize: 15),
+          foregroundColor: colores.enlace,
+          shape: controlForma,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: cs.surface,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 16,
-        ),
-        border: _borde(Colors.transparent),
-        enabledBorder: _borde(Colors.transparent),
-        focusedBorder: _borde(cs.onSurface),
-        errorBorder: _borde(cs.error),
-        focusedErrorBorder: _borde(cs.error),
-        errorStyle: text.bodyMedium!.copyWith(
-          color: cs.error,
-          fontSize: 13.5,
-          fontWeight: FontWeight.w700,
-        ),
-        hintStyle: text.bodyLarge!.copyWith(color: cs.onSurfaceVariant),
-        labelStyle: text.bodyLarge!.copyWith(color: cs.onSurfaceVariant),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(foregroundColor: colorScheme.onSurface),
       ),
-      cardTheme: CardThemeData(
-        color: cs.surface,
+      // * Barra inferior opaca; la pestaña activa lleva el ámbar de marca (con texto legible)
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: colorScheme.surface,
         surfaceTintColor: Colors.transparent,
+        indicatorColor: Colors.transparent,
+        height: 68,
         elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.card),
-        ),
-      ),
-      segmentedButtonTheme: SegmentedButtonThemeData(
-        style: SegmentedButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
-          shape: pill,
-          side: BorderSide.none,
-          backgroundColor: sem.neutralContainer,
-          foregroundColor: cs.onSurfaceVariant,
-          selectedBackgroundColor: sem.segmentActive,
-          selectedForegroundColor: sem.onSegmentActive,
-          textStyle: text.labelMedium!.copyWith(fontSize: 15),
-        ),
+        iconTheme: WidgetStateProperty.resolveWith((estados) {
+          final activo = estados.contains(WidgetState.selected);
+          return IconThemeData(
+            size: 24,
+            color: activo ? colores.acento : colorScheme.onSurfaceVariant,
+          );
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((estados) {
+          final activo = estados.contains(WidgetState.selected);
+          return TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.1,
+            color: activo ? colores.acento : colorScheme.onSurfaceVariant,
+          );
+        }),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: cs.onSurface,
-        contentTextStyle: text.bodyMedium!.copyWith(color: cs.surface),
-        actionTextColor: cs.secondary,
-        insetPadding: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: brillo == Brightness.dark
+            ? AppColors.grisClaro
+            : AppColors.asfalto,
+        contentTextStyle: TextStyle(
+          color: brillo == Brightness.dark
+              ? AppColors.asfalto
+              : Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        shape: controlForma,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: cs.surface,
+        backgroundColor: colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.card),
+          borderRadius: BorderRadius.circular(AppRadios.tarjeta),
+          side: BorderSide(color: colores.borde),
         ),
-        titleTextStyle: text.titleLarge,
-        contentTextStyle: text.bodyLarge,
-        barrierColor: Colors.black.withValues(alpha: .40),
+        titleTextStyle: base.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: colorScheme.onSurface,
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadios.tarjeta),
+          ),
+        ),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: cs.secondary,
-        linearTrackColor: sem.neutralContainer,
-        circularTrackColor: sem.neutralContainer,
+        color: colores.acento,
+        linearTrackColor: colores.superficieSuave,
       ),
-      dividerTheme: DividerThemeData(color: cs.outline, thickness: 1),
-    );
-  }
-
-  static OutlineInputBorder _borde(Color color) => OutlineInputBorder(
-    borderRadius: BorderRadius.circular(AppRadius.button),
-    borderSide: BorderSide(color: color, width: 2),
-  );
-
-  static const _familia = 'Nunito';
-
-  // * Nunito es una fuente variable (assets/fonts): el peso se fija con el eje `wght`, además
-  // * de `fontWeight`. Para cambiar el peso de un estilo usa `AppTheme.conPeso`, no `copyWith`.
-  static TextStyle conPeso(TextStyle estilo, FontWeight peso) => estilo.copyWith(
-    fontWeight: peso,
-    fontVariations: [FontVariation('wght', peso.value.toDouble())],
-  );
-
-  static TextTheme _textTheme(ColorScheme cs) {
-    TextStyle s(double size, FontWeight peso, double alto, [Color? color]) =>
-        TextStyle(
-          fontFamily: _familia,
-          fontVariations: [FontVariation('wght', peso.value.toDouble())],
-          fontSize: size,
-          fontWeight: peso,
-          height: alto,
-          color: color ?? cs.onSurface,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        );
-
-    return TextTheme(
-      displaySmall: s(30, FontWeight.w900, 1.10),
-      headlineMedium: s(26, FontWeight.w900, 1.10),
-      headlineSmall: s(22, FontWeight.w900, 1.15),
-      titleLarge: s(18, FontWeight.w800, 1.25),
-      titleMedium: s(20, FontWeight.w900, 1.20),
-      bodyLarge: s(16, FontWeight.w600, 1.40),
-      bodyMedium: s(14, FontWeight.w600, 1.40, cs.onSurfaceVariant),
-      labelLarge: s(17, FontWeight.w800, 1.20),
-      labelMedium: s(14, FontWeight.w800, 1.20),
-      labelSmall: s(12.5, FontWeight.w800, 1.20),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          backgroundColor: colores.superficieSuave,
+          foregroundColor: colorScheme.onSurfaceVariant,
+          selectedBackgroundColor: colorScheme.surface,
+          selectedForegroundColor: colorScheme.onSurface,
+          side: BorderSide.none,
+          shape: controlForma,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
     );
   }
 }

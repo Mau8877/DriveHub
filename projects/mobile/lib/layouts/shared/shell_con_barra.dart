@@ -3,8 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_theme.dart';
 import '../../features/auth/providers/sesion_provider.dart';
+import '../../features/perfil/providers/perfil_provider.dart';
+import '../../shared/widgets/aviso_cockpit.dart';
+import '../../shared/widgets/aviso_snack.dart';
+import '../../shared/widgets/avatar_usuario.dart';
+import '../../shared/widgets/cockpit_scaffold.dart';
+import '../../shared/widgets/estado_vacio.dart';
+import '../../shared/widgets/marca_drivehub.dart';
 
 /// Una sección de la barra inferior de un shell.
 class SeccionShell {
@@ -21,11 +27,14 @@ class SeccionShell {
   const SeccionShell(this.label, this.icon, this.casosDeUso, {this.builder});
 }
 
-/// Estructura común de los shells de la app móvil: `AppBar` con "Verificar correo" y
-/// "Cerrar sesión", y `NavigationBar` (Material 3) inferior con las secciones del rol.
+/// Estructura común de los shells de la app móvil (diseño Cockpit): barra superior transparente
+/// y `NavigationBar` inferior con las secciones del rol.
 ///
 /// * Cada rol (`EstudianteShell`, `InstructorShell`) solo declara sus secciones.
-/// * ! No conoce lógica de negocio: el cuerpo de cada sección lo pone su feature.
+/// * La sección "Inicio" lleva la marca, los avisos y el avatar; las demás, su título.
+/// * Con el correo sin verificar, un aviso con el botón "Verificar correo" queda fijo sobre
+/// * "Inicio" y "Perfil". Cerrar sesión vive en Perfil.
+/// ! No conoce lógica de negocio: el cuerpo de cada sección lo pone su feature.
 class ShellConBarra extends ConsumerStatefulWidget {
   final List<SeccionShell> secciones;
 
@@ -34,6 +43,9 @@ class ShellConBarra extends ConsumerStatefulWidget {
   @override
   ConsumerState<ShellConBarra> createState() => _ShellConBarraState();
 }
+
+const _etiquetaInicio = 'Inicio';
+const _etiquetaPerfil = 'Perfil';
 
 class _ShellConBarraState extends ConsumerState<ShellConBarra>
     with WidgetsBindingObserver {
@@ -58,8 +70,15 @@ class _ShellConBarraState extends ConsumerState<ShellConBarra>
   void didChangeAppLifecycleState(AppLifecycleState estado) {
     if (estado == AppLifecycleState.resumed &&
         ref.read(sesionProvider).usuario?.correoVerificado == false) {
-      unawaited(ref.read(sesionProvider.notifier).renovar());
+      unawaited(_renovarYRecargarPerfil());
     }
+  }
+
+  /// * El perfil tiene su propio estado: sin recargarlo, la pestaña "Perfil" seguiría
+  /// * mostrando "Sin verificar" aunque la sesión ya diga que el correo está verificado.
+  Future<void> _renovarYRecargarPerfil() async {
+    await ref.read(sesionProvider.notifier).renovar();
+    await ref.read(perfilProvider.notifier).recargar();
   }
 
   Future<void> _verificarCorreo() async {
@@ -90,148 +109,95 @@ class _ShellConBarraState extends ConsumerState<ShellConBarra>
     }
   }
 
+  int get _indicePerfil =>
+      widget.secciones.indexWhere((s) => s.label == _etiquetaPerfil);
+
+  PreferredSizeWidget _barra(SeccionShell seccion) {
+    if (seccion.label != _etiquetaInicio) {
+      return AppBar(titleSpacing: 20, title: Text(seccion.label));
+    }
+
+    final usuario = ref.watch(sesionProvider).usuario;
+    return AppBar(
+      titleSpacing: 20,
+      title: const LogoDriveHub(tamano: 30),
+      actions: [
+        IconButton(
+          tooltip: 'Avisos',
+          icon: const Icon(Icons.notifications_none),
+          onPressed: () => avisar(context, 'Todavía no tienes avisos nuevos'),
+        ),
+        if (usuario != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 12, left: 4),
+            child: IconButton(
+              tooltip: 'Mi perfil',
+              padding: EdgeInsets.zero,
+              icon: AvatarUsuario(
+                nombres: usuario.nombres,
+                apellidos: usuario.apellidos,
+                fotoUrl: usuario.fotoUrl,
+                radio: 18,
+              ),
+              onPressed: _indicePerfil < 0
+                  ? null
+                  : () => setState(() => _selected = _indicePerfil),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final correoSinVerificar =
         ref.watch(sesionProvider).usuario?.correoVerificado == false;
     final seccionActual = widget.secciones[_selected];
+    final mostrarAviso =
+        correoSinVerificar &&
+        (seccionActual.label == _etiquetaInicio ||
+            seccionActual.label == _etiquetaPerfil);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(seccionActual.label),
-        titleSpacing: AppSpace.lg,
-        actions: [
-          _BotonIconoCircular(
-            icon: Icons.logout,
-            tooltip: 'Cerrar sesión',
-            onPressed: () => ref.read(sesionProvider.notifier).cerrarSesion(),
-          ),
-          const SizedBox(width: AppSpace.lg),
-        ],
-        // * Solo mientras el correo no está verificado; es secundario, nunca ámbar
-        bottom: correoSinVerificar
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(60),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpace.lg,
-                    0,
-                    AppSpace.lg,
-                    AppSpace.sm,
-                  ),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: _verificando ? null : _verificarCorreo,
-                      icon: const Icon(Icons.mail_outline),
-                      label: const Text('Verificar correo'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 48),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpace.lg,
-                        ),
-                      ),
-                    ),
-                  ),
+    return CockpitScaffold(
+      appBar: _barra(seccionActual),
+      body: Column(
+        children: [
+          if (mostrarAviso)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: AvisoCockpit(
+                texto: 'Tu correo no está verificado.',
+                tono: TonoAviso.advertencia,
+                accion: TextButton(
+                  onPressed: _verificando ? null : _verificarCorreo,
+                  child: const Text('Verificar correo'),
                 ),
-              )
-            : null,
-      ),
-      body:
-          seccionActual.builder?.call(context) ??
-          _CuerpoDePrueba(seccion: seccionActual),
-      bottomNavigationBar: _BarraInferior(
-        secciones: widget.secciones,
-        seleccionada: _selected,
-        alElegir: (index) => setState(() => _selected = index),
-      ),
-    );
-  }
-}
-
-/// Botón de ícono circular de 44 dp con la sombra suave de las tarjetas (design.md 3.8).
-class _BotonIconoCircular extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onPressed;
-
-  const _BotonIconoCircular({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          shape: BoxShape.circle,
-          boxShadow: context.semantica.cardShadow,
-        ),
-        child: IconButton(
-          icon: Icon(icon),
-          tooltip: tooltip,
-          onPressed: onPressed,
-          constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-        ),
-      ),
-    );
-  }
-}
-
-/// `NavigationBar` sobre una superficie con esquinas superiores de 28 dp y sombra.
-class _BarraInferior extends StatelessWidget {
-  final List<SeccionShell> secciones;
-  final int seleccionada;
-  final ValueChanged<int> alElegir;
-
-  const _BarraInferior({
-    required this.secciones,
-    required this.seleccionada,
-    required this.alElegir,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final esquema = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: esquema.surface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppRadius.card),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.asfalto.withValues(
-              alpha: esquema.brightness == Brightness.light ? .07 : 0,
+              ),
             ),
-            blurRadius: 14,
-            offset: const Offset(0, -4),
+          Expanded(
+            child:
+                seccionActual.builder?.call(context) ??
+                _CuerpoDePrueba(seccion: seccionActual),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppRadius.card),
-        ),
-        child: NavigationBar(
-          selectedIndex: seleccionada,
-          onDestinationSelected: alElegir,
-          destinations: [
-            for (final seccion in secciones)
-              NavigationDestination(
-                icon: Icon(seccion.icon),
-                label: seccion.label,
-              ),
-          ],
-        ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selected,
+        onDestinationSelected: (index) => setState(() => _selected = index),
+        destinations: [
+          for (final seccion in widget.secciones)
+            NavigationDestination(
+              icon: Icon(seccion.icon),
+              label: seccion.label,
+            ),
+        ],
       ),
     );
   }
 }
 
+/// Lo que muestra una sección que todavía no tiene su pantalla: un estado vacío con el caso de
+/// uso que la va a llenar.
 class _CuerpoDePrueba extends StatelessWidget {
   final SeccionShell seccion;
 
@@ -239,19 +205,18 @@ class _CuerpoDePrueba extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(seccion.label, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Text(
-            'Pantalla de prueba del layout -- acá va el contenido real de "${seccion.label}" (${seccion.casosDeUso}) cuando exista esa feature.',
-            style: Theme.of(context).textTheme.bodyMedium,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+      children: [
+        Card(
+          child: EstadoVacio(
+            icono: seccion.icon,
+            titulo: seccion.label,
+            texto:
+                'Pantalla de prueba del layout -- acá va el contenido real de "${seccion.label}" (${seccion.casosDeUso}) cuando exista esa feature.',
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

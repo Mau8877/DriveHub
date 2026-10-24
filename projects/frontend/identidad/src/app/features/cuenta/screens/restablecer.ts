@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core'
+import { CUSTOM_ELEMENTS_SCHEMA, Component, inject, signal } from '@angular/core'
 import {
   type AbstractControl,
   FormBuilder,
@@ -7,6 +7,7 @@ import {
   Validators,
 } from '@angular/forms'
 import { ActivatedRoute, RouterLink } from '@angular/router'
+import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
 import { ApiError } from '../../../core/api/api.types'
@@ -37,77 +38,77 @@ function confirmacionIgual(grupo: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-restablecer',
   imports: [ReactiveFormsModule, RouterLink],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <section class="flex min-h-svh items-center justify-center p-6">
-      <div class="bg-card border-border w-full max-w-sm rounded-lg border p-6">
-        @switch (estado()) {
-          @case ('hecho') {
-            <h1 class="mb-1 text-xl font-semibold">Contraseña actualizada</h1>
-            <p class="text-muted-foreground mb-4 text-sm" role="status">
+    <dh-auth-layout
+      titulo="Una contraseña nueva"
+      mensaje="Elige una contraseña segura para tu cuenta."
+    >
+      @switch (estado()) {
+        @case ('hecho') {
+          <div class="dh-state">
+            <div class="dh-icono-grande dh-ok"><dh-icono nombre="check-circle" [tam]="34" /></div>
+            <h1 class="dh-titulo-auth">Contraseña actualizada</h1>
+            <p class="dh-sub-auth" role="status">
               Tu contraseña se actualizó. Ya puedes iniciar sesión.
             </p>
-            <a routerLink="/login" class="text-sm font-medium underline">Ir a iniciar sesión</a>
-          }
-          @case ('invalido') {
-            <h1 class="mb-1 text-xl font-semibold">Enlace no válido</h1>
-            <p class="text-destructive mb-4 text-sm" role="alert">
-              Este enlace no es válido o ya venció.
-            </p>
-            <a routerLink="/account/forgot-password" class="text-sm font-medium underline">
+            <a routerLink="/login" class="dh-btn dh-btn-block">Ir a iniciar sesión</a>
+          </div>
+        }
+        @case ('invalido') {
+          <div class="dh-state">
+            <div class="dh-icono-grande dh-mal"><dh-icono nombre="alert" [tam]="34" /></div>
+            <h1 class="dh-titulo-auth">Enlace no válido</h1>
+            <p class="dh-sub-auth" role="alert">Este enlace no es válido o ya venció.</p>
+            <a routerLink="/account/forgot-password" class="dh-btn dh-btn-soft dh-btn-block">
               Pedir un enlace nuevo
             </a>
-          }
-          @default {
-            <h1 class="mb-1 text-xl font-semibold">Nueva contraseña</h1>
-            <p class="text-muted-foreground mb-4 text-sm">
-              Elige la contraseña nueva de tu cuenta.
-            </p>
-
-            <form [formGroup]="form" (ngSubmit)="enviar()" class="flex flex-col gap-4" novalidate>
-              <div class="flex flex-col gap-1">
-                <label for="password" class="text-sm font-medium">Contraseña nueva</label>
-                <input
-                  id="password"
-                  type="password"
-                  formControlName="password"
-                  autocomplete="new-password"
-                  class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-                />
-                @if (error('password'); as mensaje) {
-                  <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-                }
-              </div>
-
-              <div class="flex flex-col gap-1">
-                <label for="confirmacion" class="text-sm font-medium">Confirma la contraseña</label>
-                <input
-                  id="confirmacion"
-                  type="password"
-                  formControlName="confirmacion"
-                  autocomplete="new-password"
-                  class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-                />
-                @if (error('confirmacion'); as mensaje) {
-                  <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-                }
-              </div>
-
-              @if (errorGeneral(); as mensaje) {
-                <p class="text-destructive text-sm" role="alert">{{ mensaje }}</p>
-              }
-
-              <button
-                type="submit"
-                [disabled]="enviando()"
-                class="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-              >
-                {{ enviando() ? 'Guardando…' : 'Cambiar contraseña' }}
-              </button>
-            </form>
-          }
+          </div>
         }
-      </div>
-    </section>
+        @default {
+          <h1 class="dh-titulo-auth">Nueva contraseña</h1>
+          <p class="dh-sub-auth">Elige la contraseña nueva de tu cuenta.</p>
+
+          <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+            <div class="dh-field">
+              <label for="password" class="dh-label">Contraseña nueva</label>
+              <input
+                id="password"
+                type="password"
+                formControlName="password"
+                autocomplete="new-password"
+                class="dh-input"
+              />
+              @if (error('password'); as mensaje) {
+                <p class="dh-error" role="alert">{{ mensaje }}</p>
+              }
+            </div>
+
+            <div class="dh-field">
+              <label for="confirmacion" class="dh-label">Confirma la contraseña</label>
+              <input
+                id="confirmacion"
+                type="password"
+                formControlName="confirmacion"
+                autocomplete="new-password"
+                class="dh-input"
+              />
+              @if (error('confirmacion'); as mensaje) {
+                <p class="dh-error" role="alert">{{ mensaje }}</p>
+              }
+            </div>
+
+            @if (errorGeneral(); as mensaje) {
+              <p class="dh-notice dh-notice-error" role="alert">{{ mensaje }}</p>
+            }
+
+            <button type="submit" [disabled]="enviando()" class="dh-btn dh-btn-block">
+              {{ enviando() ? 'Guardando…' : 'Cambiar contraseña' }}
+            </button>
+          </form>
+        }
+      }
+    </dh-auth-layout>
   `,
 })
 export class Restablecer {

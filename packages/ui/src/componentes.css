@@ -1,0 +1,560 @@
+/*
+ * Clases base de DriveHub (diseño "Asfalto") para las plantillas de Angular y React: botones,
+ * campos, avisos, insignias, tarjetas y cabeceras de página. Son CSS puro con prefijo `dh-` y usan
+ * SOLO las variables de @drivehub/design-tokens: ningún color se define acá.
+ *
+ * Uso, en el CSS de entrada de cada app (después de los tokens):
+ *   @import '@drivehub/ui/componentes.css';
+ *
+ * Los Web Components (<dh-shell>, <dh-gestion>...) ya traen sus estilos; esto es para el HTML
+ * propio de cada pantalla (formularios, tarjetas, páginas).
+ */
+
+/* ============ botones ============ */
+.dh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.65rem;
+  padding: 0 1.15rem;
+  white-space: nowrap;
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--ambar-vial) 70%, transparent);
+  transition: transform 0.2s var(--ease, ease), filter 0.2s, background-color 0.2s;
+}
+.dh-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.dh-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.dh-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.dh-btn:focus-visible,
+.dh-link:focus-visible,
+.dh-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.dh-btn-soft {
+  background: color-mix(in srgb, var(--ambar-vial) 16%, transparent);
+  color: var(--foreground);
+  box-shadow: none;
+}
+.dh-btn-soft:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ambar-vial) 28%, transparent);
+  filter: none;
+}
+.dh-btn-ghost {
+  background: transparent;
+  color: var(--foreground);
+  border-color: var(--border);
+  box-shadow: none;
+}
+.dh-btn-ghost:hover:not(:disabled) {
+  background: var(--accent);
+  filter: none;
+}
+.dh-btn-danger {
+  background: var(--destructive);
+  color: var(--blanco-puro);
+  box-shadow: none;
+}
+.dh-btn-sm {
+  height: 2.1rem;
+  padding: 0 0.8rem;
+  font-size: 0.8125rem;
+  border-radius: calc(var(--radius) * 0.75);
+}
+.dh-btn-block {
+  width: 100%;
+  height: 2.9rem;
+}
+.dh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.35rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--info);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: 0.4rem;
+  transition: background-color 0.2s;
+}
+.dh-link:hover {
+  background: color-mix(in srgb, var(--azul-tecnico) 10%, transparent);
+}
+
+/* ============ formularios ============ */
+.dh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  min-width: 0;
+}
+.dh-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.dh-opt {
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.dh-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.dh-input-ico {
+  position: absolute;
+  left: 0.85rem;
+  display: inline-flex;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+.dh-input-accion {
+  position: absolute;
+  right: 0.35rem;
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 0;
+  border-radius: calc(var(--radius) * 0.7);
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.dh-input-accion:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.dh-input {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 0.9rem;
+  font: inherit;
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.dh-input-wrap > .dh-input-ico + .dh-input {
+  padding-left: 2.6rem;
+}
+.dh-input:hover {
+  border-color: color-mix(in srgb, var(--gris-medio) 55%, transparent);
+}
+.dh-input:focus {
+  outline: none;
+  border-color: var(--ambar-vial);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ambar-vial) 24%, transparent);
+}
+.dh-input[readonly] {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.dh-input::placeholder {
+  color: color-mix(in srgb, var(--gris-medio) 70%, transparent);
+}
+.dh-input.dh-invalido,
+.dh-invalido .dh-input {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--destructive) 14%, transparent);
+}
+.dh-error {
+  margin: 0;
+  color: var(--destructive);
+  font-size: 0.78rem;
+}
+.dh-hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+}
+.dh-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}
+@media (max-width: 680px) {
+  .dh-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+.dh-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0.25rem 0 1.25rem;
+}
+.dh-form-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* ============ avisos e insignias ============ */
+.dh-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 1rem 0;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.8125rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+.dh-notice-info {
+  background: color-mix(in srgb, var(--azul-tecnico) 10%, transparent);
+  border-color: color-mix(in srgb, var(--azul-tecnico) 25%, transparent);
+}
+.dh-notice-warn {
+  background: color-mix(in srgb, var(--ambar-vial) 14%, transparent);
+  border-color: color-mix(in srgb, var(--ambar-vial) 35%, transparent);
+}
+.dh-notice-error {
+  background: color-mix(in srgb, var(--destructive) 10%, transparent);
+  border-color: color-mix(in srgb, var(--destructive) 30%, transparent);
+  color: var(--destructive);
+}
+.dh-notice-ok {
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  border-color: color-mix(in srgb, var(--success) 28%, transparent);
+}
+.dh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.55rem;
+  padding: 0 0.65rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.dh-badge::before {
+  content: '';
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.dh-badge-ok {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
+
+/* ============ tarjetas y páginas ============ */
+.dh-card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.4);
+  box-shadow: var(--shadow-1, 0 1px 2px rgb(30 41 59 / 6%));
+}
+.dh-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: clamp(1rem, 2.4vw, 2rem);
+}
+.dh-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.dh-page-head h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+.dh-page-head p {
+  margin: 0.35rem 0 0;
+  color: var(--muted-foreground);
+}
+.dh-muted {
+  color: var(--muted-foreground);
+}
+.dh-eyebrow {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--info);
+}
+.dh-titulo-auth {
+  margin: 0 0 0.45rem;
+  font-size: 2rem;
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+.dh-sub-auth {
+  margin: 0 0 1.5rem;
+  color: var(--muted-foreground);
+}
+.dh-auth-alt {
+  margin-top: 1.4rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.dh-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+.dh-state .dh-btn {
+  margin-top: 1rem;
+  max-width: 20rem;
+}
+.dh-icono-grande {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-bottom: 1.25rem;
+  border-radius: 1.4rem;
+  background: color-mix(in srgb, var(--azul-tecnico) 13%, transparent);
+  color: var(--info);
+}
+.dh-icono-grande.dh-ok {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+.dh-icono-grande.dh-mal {
+  background: color-mix(in srgb, var(--destructive) 13%, transparent);
+  color: var(--destructive);
+}
+.dh-acordeon {
+  overflow: hidden;
+}
+.dh-acordeon > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.1rem 1.5rem;
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 0.2s;
+}
+.dh-acordeon > summary::-webkit-details-marker {
+  display: none;
+}
+.dh-acordeon > summary:hover {
+  background: var(--accent);
+}
+.dh-acordeon > summary > .dh-acordeon-texto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+.dh-acordeon > summary small {
+  color: var(--muted-foreground);
+}
+.dh-acordeon > summary > dh-icono:last-child {
+  transition: transform 0.3s var(--ease, ease);
+}
+.dh-acordeon[open] > summary > dh-icono:last-child {
+  transform: rotate(180deg);
+}
+.dh-acordeon > .dh-acordeon-cuerpo {
+  padding: 0 1.5rem 1.4rem;
+}
+.dh-acordeon-ico {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--ambar-vial) 18%, transparent);
+}
+.dh-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ============ perfil de la cuenta (CU06) ============ */
+.dh-perfil-grid {
+  display: grid;
+  grid-template-columns: 20rem minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.dh-perfil-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.5rem;
+  text-align: center;
+  position: sticky;
+  top: calc(var(--dh-header-alto, 4rem) + 1rem);
+}
+.dh-perfil-card h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.dh-perfil-card p {
+  margin: 0;
+}
+app-foto-perfil {
+  display: block;
+  width: 100%;
+}
+.dh-foto-bloque {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+.dh-foto {
+  display: grid;
+  place-items: center;
+  width: 7.5rem;
+  height: 7.5rem;
+  margin-bottom: 0.6rem;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 2.2rem;
+  font-weight: 800;
+  box-shadow: 0 0 0 4px var(--card), 0 0 0 6px color-mix(in srgb, var(--ambar-vial) 55%, transparent);
+  transition: transform 0.3s var(--ease, ease);
+}
+.dh-foto:hover {
+  transform: scale(1.04) rotate(-2deg);
+}
+.dh-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dh-foto-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+.dh-ro {
+  display: grid;
+  gap: 0.8rem;
+  width: 100%;
+  margin: 1.1rem 0 0;
+  padding-top: 1.1rem;
+  text-align: left;
+  border-top: 1px solid var(--border);
+}
+.dh-ro dt {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.dh-ro dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.15rem 0 0;
+  word-break: break-all;
+}
+.dh-perfil-main {
+  display: grid;
+  gap: 1.25rem;
+}
+.dh-perfil-main > .dh-card:not(.dh-acordeon) {
+  padding: 1.35rem 1.5rem;
+}
+.dh-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.dh-card-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+@media (max-width: 900px) {
+  .dh-perfil-grid {
+    grid-template-columns: 1fr;
+  }
+  .dh-perfil-card {
+    position: static;
+  }
+}
+
+/* ============ utilidades mínimas (los remotos no dependen de que el shell compile sus clases de Tailwind) ============ */
+.dh-texto-sm {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.dh-mb {
+  margin-bottom: 0.75rem;
+}
+.dh-pila {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.dh-pendiente {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+.dh-pendiente-ico {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--ambar-vial) 18%, transparent);
+}

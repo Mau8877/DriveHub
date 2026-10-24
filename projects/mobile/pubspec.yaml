@@ -39,6 +39,10 @@ dependencies:
   flutter_riverpod: ^2.6.1
   flutter_dotenv: ^6.0.1
   flutter_secure_storage: ^11.0.0
+  image_picker: ^1.2.4
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  geolocator: ^14.1.2
 
 dev_dependencies:
   flutter_test:
@@ -67,12 +71,6 @@ flutter:
   # flutter_dotenv no puede bundlear el archivo y falla en runtime.
   assets:
     - .env
-
-  # Nunito (SIL OFL, ver assets/fonts/OFL.txt): fuente variable, el peso lo da el eje wght.
-  fonts:
-    - family: Nunito
-      fonts:
-        - asset: assets/fonts/Nunito.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

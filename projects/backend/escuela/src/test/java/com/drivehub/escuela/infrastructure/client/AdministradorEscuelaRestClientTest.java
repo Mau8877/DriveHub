@@ -92,7 +92,8 @@ class AdministradorEscuelaRestClientTest {
     }
 
     private DatosAdministrador datos() {
-        return new DatosAdministrador("Marta", "Gómez", LocalDate.of(1985, 5, 5), "marta@gmail.com", CLAVE, null);
+        return new DatosAdministrador("Marta", "Gómez", LocalDate.of(1985, 5, 5), "marta@gmail.com", CLAVE, null,
+            "MG98765", "FEMENINO", new java.math.BigDecimal("-16.4897"), new java.math.BigDecimal("-68.1193"));
     }
 
     private void responde(int estado, String json) {
@@ -120,6 +121,10 @@ class AdministradorEscuelaRestClientTest {
         assertThat(cuerpo.get())
             .contains("\"escuelaCodigo\":\"" + ESCUELA + "\"", "\"email\":\"marta@gmail.com\"",
                 "\"fechaNacimiento\":\"1985-05-05\"", "\"nombres\":\"Marta\"");
+        // * CU08a: CI, sexo y ubicación viajan a Identidad; la dirección la calcula él
+        assertThat(cuerpo.get())
+            .contains("\"ci\":\"MG98765\"", "\"sexo\":\"FEMENINO\"", "\"latitud\":-16.4897", "\"longitud\":-68.1193")
+            .doesNotContain("direccion");
     }
 
     @Test
@@ -227,5 +232,21 @@ class AdministradorEscuelaRestClientTest {
             responde(200, "{}");
             cliente.revertirAdministrador(ESCUELA);
         }).doesNotThrowAnyException();
+    }
+
+    @Test
+    void crearAdministrador_conCiEnUso_lanzaConflictConErrIde19() {
+        responde(409, error("ERR_IDE_19", "Ya existe una cuenta con ese CI"));
+
+        assertThatThrownBy(() -> cliente.crearAdministrador(ESCUELA, datos()))
+            .isInstanceOfSatisfying(ConflictException.class, ex -> {
+                assertThat(ex.getErrorCode()).isEqualTo("ERR_IDE_19");
+                assertThat(ex.getMessage()).isEqualTo("Ya existe una cuenta con ese CI");
+            });
+    }
+
+    @Test
+    void datosAdministrador_nuncaMuestraLaContrasenaNiElCiNiLasCoordenadasEnSuTexto() {
+        assertThat(datos().toString()).doesNotContain(CLAVE).doesNotContain("MG98765").doesNotContain("-16.4897");
     }
 }

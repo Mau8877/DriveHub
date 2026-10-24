@@ -1,0 +1,33 @@
+{
+  "name": "@drivehub/ui",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Armazón y componentes de interfaz compartidos por todos los micro-frontends (Angular y React) como Web Components: <dh-shell>, <dh-sidebar>, <dh-header>, <dh-auth-layout> y <dh-avatar>, más las clases base (botones, campos, tarjetas)",
+  "type": "module",
+  "sideEffects": [
+    "./src/*.js",
+    "*.css"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./componentes.css": "./src/componentes.css",
+    "./desarrollo": {
+      "types": "./src/desarrollo.d.ts",
+      "default": "./src/desarrollo.js"
+    }
+  },
+  "dependencies": {
+    "leaflet": "1.9.4",
+    "lit": "^3.3.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.0",
+    "vitest": "^5.0.0"
+  }
+}

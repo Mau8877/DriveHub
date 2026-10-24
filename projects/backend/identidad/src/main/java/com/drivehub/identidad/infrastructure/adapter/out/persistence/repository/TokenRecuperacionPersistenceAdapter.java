@@ -31,7 +31,8 @@ public class TokenRecuperacionPersistenceAdapter implements TokenRecuperacionRep
         UsuarioModel usuario = usuarioJpaRepository.findByCodigo(token.getUsuarioCodigo())
             .orElseThrow(() -> new IllegalStateException("No existe el usuario del enlace"));
         TokenRecuperacionModel guardado = tokenJpaRepository.save(
-            new TokenRecuperacionModel(usuario, token.getTipo(), token.getTokenHash(), token.getExpiraEn()));
+            new TokenRecuperacionModel(usuario, token.getTipo(), token.getTokenHash(), token.getExpiraEn(),
+                token.getCorreoNuevo()));
         return aDominio(guardado, usuario.getCodigo());
     }
 
@@ -65,6 +66,7 @@ public class TokenRecuperacionPersistenceAdapter implements TokenRecuperacionRep
             .tokenHash(model.getTokenHash())
             .expiraEn(model.getExpiraEn())
             .usado(model.isUsado())
+            .correoNuevo(model.getCorreoNuevo())
             .build();
     }
 }

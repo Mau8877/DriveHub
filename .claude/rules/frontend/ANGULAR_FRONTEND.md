@@ -25,7 +25,7 @@ src/
     │   ├── sesion/             # SesionService: el ÚNICO lugar donde vive el access token
     │   ├── api/                # apiInterceptor (Bearer + desempaquetado del sobre) y tipos
     │   └── federacion/         # RemoteHost (monta remotos React), carga de remotos React, matcher por prefijo
-    ├── layout/                 # ShellLayout (menú lateral, cabecera, avisos) y NAV_ITEMS
+    ├── layout/                 # ShellLayout (usa <dh-shell> de @drivehub/ui; decide menú, migas y usuario) y NAV_ITEMS
     └── features/               # Pantallas propias del shell, una carpeta por feature (inicio, login, no-encontrado)
 public/
 ├── federation.manifest.json    # URLs de los remotos Angular
@@ -92,6 +92,14 @@ de la carpeta.
   Las reglas de validación de un campo deben coincidir con las del mismo
   campo en mobile y en los remotos React (ver
   [FORMULARIOS_MOBILE.md](../mobile/FORMULARIOS_MOBILE.md#consistencia-de-reglas-de-negocio-con-el-frontend-web)).
+- **Armazón y formularios**: el menú, la cabecera, la pantalla de acceso y las clases base (`dh-btn`,
+  `dh-input`, `dh-field`, `dh-card`, `dh-page`...) vienen de `@drivehub/ui` (ver
+  [UI_FRONTEND.md](UI_FRONTEND.md)): no se escribe otro layout ni se estilan botones o campos a mano.
+  Tampoco se usan controles nativos que el navegador dibuja (`<select>`, selector de fecha,
+  `confirm()`...): se usa el de `@drivehub/ui` (`<dh-select>`, `<dh-dialogo>`) y, si no existe, se crea
+  ahí para todos (ver "Nada de componentes nativos" en esa rule).
+  Los componentes que usan `<dh-...>` declaran `schemas: [CUSTOM_ELEMENTS_SCHEMA]` e importan
+  `'@drivehub/ui'`. `@drivehub/ui` va en `skip` de `federation.config.mjs` (las cuatro apps a la vez).
 - **Estilos**: Tailwind 4 con las clases de los tokens (`bg-primary`,
   `text-muted-foreground`, `border-border`...), nunca colores o tamaños
   arbitrarios — mismo criterio que

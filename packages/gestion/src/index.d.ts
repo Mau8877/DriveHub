@@ -20,6 +20,12 @@ export interface Columna {
   insignias?: Record<string, Insignia>
   /** Texto atenuado (datos de apoyo como el slug). */
   secundaria?: boolean
+  /** Columna principal: el texto va en negrita y, si hay `icono`, con su ficha de icono a la izquierda. */
+  principal?: boolean
+  /** Nombre de un icono de `@drivehub/ui` (ej. `school`); solo con `principal`. */
+  icono?: string
+  /** Muestra el valor como código (ej. el slug). */
+  codigo?: boolean
   /** Ancho CSS de la columna (ej. '10rem'). Por defecto, corto para insignias y fechas; el resto reparte lo que sobra. */
   ancho?: string
 }
@@ -28,6 +34,8 @@ export interface Filtro {
   /** Parámetro de la API, tal cual (ej. `filter[estado]`). */
   clave: string
   titulo: string
+  /** Texto de la opción que quita el filtro (por defecto `Todas`). */
+  todas?: string
   opciones: { valor: string; etiqueta: string }[]
 }
 
@@ -39,13 +47,17 @@ export interface MensajesCampo {
   patron?: string
   fechaNoFutura?: string
   edadMinima?: string
+  /** `seleccion`: el valor no está entre las opciones. */
+  opcion?: string
+  /** `ubicacion`: las coordenadas están incompletas o fuera de rango. */
+  ubicacion?: string
 }
 
 export interface Campo {
   /** Campo del cuerpo (admite puntos: `administrador.nombres` arma un objeto anidado). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono'
+  tipo?: 'texto' | 'email' | 'password' | 'fecha' | 'telefono' | 'seleccion' | 'ubicacion'
   requerido?: boolean
   /** Largo mínimo y máximo del texto. */
   min?: number
@@ -60,6 +72,23 @@ export interface Campo {
   /** Se muestra pero no se edita ni se envía. */
   soloLectura?: boolean
   ayuda?: string
+  /** Con otro campo `mitad` a continuación, los dos comparten fila. */
+  mitad?: boolean
+  /** `seleccion`: opciones fijas del esquema. */
+  opciones?: { valor: string; etiqueta: string }[]
+  /**
+   * `seleccion`: opciones traídas de la API (`GET /{recurso}` con `pageSize` 100). `valor` y `etiqueta`
+   * son nombres de campo de cada elemento (ej. `sigla` y `descripcion`).
+   */
+  opcionesDe?: { recurso: string; valor: string; etiqueta: string; params?: Record<string, string> }
+  /** `seleccion`: valor preseleccionado al crear. */
+  porDefecto?: string
+  /**
+   * `ubicacion`: campo del registro cargado cuyo valor se muestra bajo el mapa como dirección (solo
+   * lectura). El campo escribe `latitud` y `longitud` en el cuerpo con el prefijo de su ruta
+   * (`administrador.ubicacion` escribe `administrador.latitud` y `administrador.longitud`).
+   */
+  direccionDe?: string
 }
 
 export interface Seccion {
@@ -73,8 +102,12 @@ export interface Accion {
   metodo: 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   /** Relativa al recurso; `{id}` se reemplaza por el identificador (ej. `{id}/reactivar`). */
   ruta: string
-  /** Si existe, pide confirmación en la misma fila con ese texto (ej. "¿Desactivar?"). */
+  /** Si existe, pide confirmación en un diálogo con ese título (ej. "¿Desactivar la escuela?"). */
   confirmar?: string
+  /** Texto de apoyo del diálogo de confirmación. */
+  confirmarTexto?: string
+  /** Nombre de un icono de `@drivehub/ui` que se muestra junto a la etiqueta. */
+  icono?: string
   mensajeExito: string
   visibleSi?: Condicion
   tono?: 'peligro'
@@ -101,10 +134,44 @@ export interface Editar {
   metodo?: 'PATCH' | 'PUT'
   secciones: Seccion[]
   mensajeExito: string
+  /** Icono del botón "Editar" (por defecto `edit`). */
+  icono?: string
   /** El botón "Editar" solo aparece en las filas que cumplen esto. */
   visibleSi?: Condicion
   /** Si el registro cargado cumple esto, no se muestra el formulario sino el mensaje. */
   bloqueo?: { campo: string; valor: unknown; mensaje: string }
+}
+
+/** Un dato del panel de detalle: mismo significado que en `Columna` (`tipo`, `insignias`). */
+export interface CampoDetalle {
+  /** Campo del registro (admite puntos). */
+  campo: string
+  titulo: string
+  tipo?: 'texto' | 'fecha' | 'insignia'
+  /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
+  insignias?: Record<string, Insignia>
+  /** Con otro campo `mitad` a continuación, los dos comparten fila. */
+  mitad?: boolean
+}
+
+export interface SeccionDetalle {
+  titulo?: string
+  campos: CampoDetalle[]
+}
+
+/** Panel lateral de solo lectura con los datos de un registro (sin formulario ni "Guardar"). */
+export interface Detalle {
+  titulo?: string
+  descripcion?: string
+  /** Ruta (relativa al recurso, con `{id}`) para cargar el registro; por defecto `{id}`. */
+  cargar?: string
+  /** Icono del botón (por defecto `eye`). */
+  icono?: string
+  /** Texto del botón (por defecto "Ver detalles"). */
+  etiqueta?: string
+  /** El botón solo aparece en las filas que cumplen esto. */
+  visibleSi?: Condicion
+  secciones: SeccionDetalle[]
 }
 
 export interface EsquemaGestion {
@@ -122,6 +189,8 @@ export interface EsquemaGestion {
   porPagina?: number
   crear?: Crear
   editar?: Editar
+  /** Si existe, cada fila tiene un botón que abre el registro en un panel de solo lectura. */
+  detalle?: Detalle
   acciones?: Accion[]
   /** Errores de negocio del backend que se muestran bajo un campo del formulario. */
   erroresDeCampo?: Record<string, { campo: string; mensaje: string }>

@@ -110,4 +110,18 @@ describe('apiInterceptor del remoto', () => {
 
     await expect(respuesta).rejects.toBeInstanceOf(ApiError)
   })
+
+  it('un cuerpo FormData se envía tal cual y sin fijar Content-Type (el navegador pone el boundary)', async () => {
+    const cuerpo = new FormData()
+    cuerpo.append('archivo', new File([new Uint8Array([1])], 'f.png', { type: 'image/png' }))
+
+    const respuesta = firstValueFrom(http.put(`${BASE}/usuarios/me/foto`, cuerpo))
+    const req = backend.expectOne(`${BASE}/usuarios/me/foto`)
+    expect(req.request.body).toBe(cuerpo)
+    expect(req.request.headers.has('Content-Type')).toBe(false)
+    expect(req.request.headers.get('Authorization')).toBe('Bearer token-viejo')
+    req.flush(OK)
+
+    await respuesta
+  })
 })

@@ -1,4 +1,5 @@
-import { Component } from '@angular/core'
+import { CUSTOM_ELEMENTS_SCHEMA, Component } from '@angular/core'
+import '@drivehub/ui'
 
 /**
  * Pantalla inicial del remoto Escuela.
@@ -8,11 +9,21 @@ import { Component } from '@angular/core'
  */
 @Component({
   selector: 'app-inicio',
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <section class="p-6">
-      <h1 class="mb-1 text-2xl font-semibold">Escuela</h1>
-      <p class="text-muted-foreground">Autos, estudiantes, docentes y asignaciones.</p>
-      <p class="text-muted-foreground mt-4 text-sm">Casos de uso pendientes: CU07 a CU11.</p>
+    <section class="dh-page">
+      <div class="dh-page-head">
+        <div>
+          <h1>Escuela</h1>
+          <p>Autos, estudiantes, docentes y asignaciones.</p>
+        </div>
+      </div>
+      <div class="dh-card dh-pendiente">
+        <span class="dh-pendiente-ico">
+          <dh-icono nombre="car" [tam]="22" />
+        </span>
+        <p class="dh-muted dh-texto-sm">Casos de uso pendientes: CU07 a CU11.</p>
+      </div>
     </section>
   `,
 })

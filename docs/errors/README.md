@@ -52,9 +52,17 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IDE_08`](identidad/ERRORES_IDENTIDAD.md#err_ide_08) — El rol no puede usar esta plataforma (403)
 - [`ERR_IDE_09`](identidad/ERRORES_IDENTIDAD.md#err_ide_09) — Sesión renovable inválida, vencida o ya usada (401)
 - [`ERR_IDE_10`](identidad/ERRORES_IDENTIDAD.md#err_ide_10) — El correo de la cuenta ya está verificado (409)
-- [`ERR_IDE_11`](identidad/ERRORES_IDENTIDAD.md#err_ide_11) — Enlace de verificación o recuperación inválido, vencido o ya usado (400)
+- [`ERR_IDE_11`](identidad/ERRORES_IDENTIDAD.md#err_ide_11) — Enlace de verificación, recuperación o cambio de correo inválido, vencido o ya usado (400)
 - [`ERR_IDE_12`](identidad/ERRORES_IDENTIDAD.md#err_ide_12) — La escuela ya tiene un Administrador (409)
 - [`ERR_IDE_13`](identidad/ERRORES_IDENTIDAD.md#err_ide_13) — El Administrador ya inició sesión y no se puede revertir (409)
+- [`ERR_IDE_14`](identidad/ERRORES_IDENTIDAD.md#err_ide_14) — La contraseña actual no es correcta (400)
+- [`ERR_IDE_15`](identidad/ERRORES_IDENTIDAD.md#err_ide_15) — La contraseña nueva es igual a la actual (400)
+- [`ERR_IDE_16`](identidad/ERRORES_IDENTIDAD.md#err_ide_16) — La foto de perfil no es una imagen válida (400)
+- [`ERR_IDE_17`](identidad/ERRORES_IDENTIDAD.md#err_ide_17) — La foto de perfil pesa más de 5 MB (400)
+- [`ERR_IDE_18`](identidad/ERRORES_IDENTIDAD.md#err_ide_18) — El correo nuevo es igual al actual (409)
+- [`ERR_IDE_19`](identidad/ERRORES_IDENTIDAD.md#err_ide_19) — El CI ya está registrado (409)
+- [`ERR_IDE_20`](identidad/ERRORES_IDENTIDAD.md#err_ide_20) — El estudiante no existe en la escuela (404)
+- [`ERR_IDE_21`](identidad/ERRORES_IDENTIDAD.md#err_ide_21) — La categoría de licencia no existe (400)
 
 ### Escuela (`ESC`)
 
@@ -64,6 +72,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_04`](escuela/ERRORES_ESCUELA.md#err_esc_04) — La escuela ya estaba inactiva (409)
 - [`ERR_ESC_05`](escuela/ERRORES_ESCUELA.md#err_esc_05) — La escuela ya estaba activa (409)
 - [`ERR_ESC_06`](escuela/ERRORES_ESCUELA.md#err_esc_06) — La escuela está inactiva y no se puede editar (409)
+- [`ERR_ESC_07`](escuela/ERRORES_ESCUELA.md#err_esc_07) — La categoría de licencia no existe (404)
 
 ### Académico (`ACA`)
 

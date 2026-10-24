@@ -7,7 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * Enlace enviado por correo: restablecer la contraseña (CU04) o verificar el correo (CU04b).
+ * Enlace enviado por correo: restablecer la contraseña (CU04) o verificar el correo (CU04b)
+ * o confirmar el cambio de correo (CU06).
  * Vigencia corta y un solo uso.
  */
 @Getter
@@ -20,4 +21,6 @@ public class TokenRecuperacion {
     private final String tokenHash;
     private final Instant expiraEn;
     private final boolean usado;
+    // * Dirección a la que pasará la cuenta; solo en los enlaces CAMBIO_CORREO (CU06)
+    private final String correoNuevo;
 }

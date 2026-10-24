@@ -47,10 +47,16 @@ public class TokenRecuperacionModel extends BaseModel {
     @Column(name = "usado", nullable = false)
     private boolean usado;
 
-    public TokenRecuperacionModel(UsuarioModel usuario, TipoTokenCorreo tipo, String tokenHash, Instant expiraEn) {
+    // * Solo en CAMBIO_CORREO (CU06): la dirección nueva que todavía no es la de la cuenta
+    @Column(name = "correo_nuevo", length = 120)
+    private String correoNuevo;
+
+    public TokenRecuperacionModel(UsuarioModel usuario, TipoTokenCorreo tipo, String tokenHash, Instant expiraEn,
+            String correoNuevo) {
         this.usuario = usuario;
         this.tipo = tipo;
         this.tokenHash = tokenHash;
         this.expiraEn = expiraEn;
+        this.correoNuevo = correoNuevo;
     }
 }

@@ -12,6 +12,7 @@ final registroServiceProvider = Provider<RegistroService>((ref) => RegistroServi
 /// campo que corresponde.
 enum ErrorRegistro {
   correoEnUso,
+  ciEnUso,
   menorDeEdad,
   escuelaNoDisponible,
   validacion,
@@ -24,6 +25,8 @@ ErrorRegistro errorDeRegistro(Object error) {
     switch (error.code) {
       case 'ERR_IDE_01':
         return ErrorRegistro.correoEnUso;
+      case 'ERR_IDE_19':
+        return ErrorRegistro.ciEnUso;
       case 'ERR_IDE_02':
         return ErrorRegistro.menorDeEdad;
       case 'ERR_IDE_03':

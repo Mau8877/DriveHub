@@ -54,11 +54,13 @@ com.drivehub.escuela
     └── config/                   # SecurityConfig y beans de Spring
 ```
 
-Lo que ya existe: `domain/entity` (CategoriaLicencia, Estudiante,
-Instructor, Vehiculo, MantenimientoVehiculo, AsignacionVehiculo,
-AsignacionAlumno y sus enums) y los Models JPA de las 8 tablas del diseño.
+Lo que ya existe: `domain/entity` (CategoriaLicencia, Instructor,
+Vehiculo, MantenimientoVehiculo, AsignacionVehiculo, AsignacionAlumno y
+sus enums) y los Models JPA de las tablas del diseño. El estudiante no
+tiene tabla ni entidad en Escuela: es una cuenta con su perfil en
+Identidad (CU08a) y Escuela lo referencia por su `codigo_usuario`.
 Casos de uso, implementaciones de repositorio y controllers se crean con
-cada caso de uso (CU07 a CU11).
+cada caso de uso (CU07, CU09 a CU11).
 
 ## Reglas
 
@@ -82,9 +84,10 @@ cada caso de uso (CU07 a CU11).
   y `infrastructure/persistence/model/VehiculoModel` (JPA). La
   implementación del repositorio traduce entre ambos; el id interno Long
   existe solo en el Model JPA, la entidad se identifica por su `codigo`.
-- **Perfiles de persona**: `Estudiante` e `Instructor` guardan el
-  `usuarioCodigo` de Identidad (la persona). Es el valor con el que los
-  demás servicios los referencian (ver
+- **Perfiles de persona**: `Instructor` guarda el `usuarioCodigo` de
+  Identidad (la persona), que es quien tiene los datos personales y el CI
+  en su `perfil`. El estudiante ni siquiera tiene entidad en Escuela. Es el
+  valor con el que los demás servicios lo referencian (ver
   [MICROSERVICIOS.md](../MICROSERVICIOS.md#identificadores)).
 
 ## Tests

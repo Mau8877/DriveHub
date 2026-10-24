@@ -1,3 +1,4 @@
+import { icono } from '@drivehub/ui'
 import { LitElement, html, nothing } from 'lit'
 
 import { ErrorApi, solicitar } from './cliente-api.js'
@@ -30,8 +31,26 @@ function cumple(condicion, fila) {
   return true
 }
 
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+/** '2026-05-04...' -> '04 may 2026' (formato del diseño; sin depender del idioma del navegador). */
+function formatearFecha(valor) {
+  const fecha = new Date(valor)
+  if (Number.isNaN(fecha.getTime())) return String(valor)
+  return `${String(fecha.getUTCDate()).padStart(2, '0')} ${MESES[fecha.getUTCMonth()]} ${fecha.getUTCFullYear()}`
+}
+
 function camposDe(secciones) {
   return secciones.flatMap((seccion) => seccion.campos)
+}
+
+/**
+ * Prefijo del cuerpo donde un campo `ubicacion` escribe `latitud` y `longitud`: la ruta del campo
+ * sin su último tramo ('administrador.ubicacion' -> 'administrador.'; 'ubicacion' -> '').
+ */
+function prefijoDe(campo) {
+  const i = campo.campo.lastIndexOf('.')
+  return i < 0 ? '' : campo.campo.slice(0, i + 1)
 }
 
 /**
@@ -72,6 +91,7 @@ export class DhGestion extends LitElement {
     _verPassword: { state: true },
     _cargandoRegistro: { state: true },
     _bloqueo: { state: true },
+    _opciones: { state: true },
   }
 
   static styles = estilos
@@ -81,6 +101,12 @@ export class DhGestion extends LitElement {
     this.esquema = null
     this._reiniciar()
     this._temporizador = null
+    this._temporizadorAviso = null
+    this._tecla = (e) => {
+      if (e.key !== 'Escape') return
+      if (this._confirmando) this._confirmando = null
+      else if (this._vista !== 'lista') this._cerrarDrawer()
+    }
     this._idEditando = null
     this._manuales = new Set()
   }
@@ -105,6 +131,15 @@ export class DhGestion extends LitElement {
     this._verPassword = {}
     this._cargandoRegistro = false
     this._bloqueo = null
+    this._opciones = {}
+  }
+
+  updated(cambios) {
+    // * El aviso (toast) se va solo a los pocos segundos
+    if (cambios.has('_aviso') && this._aviso) {
+      clearTimeout(this._temporizadorAviso)
+      this._temporizadorAviso = setTimeout(() => (this._aviso = null), 3600)
+    }
   }
 
   willUpdate(cambios) {
@@ -114,8 +149,15 @@ export class DhGestion extends LitElement {
     }
   }
 
+  connectedCallback() {
+    super.connectedCallback()
+    document.addEventListener('keydown', this._tecla)
+  }
+
   disconnectedCallback() {
+    document.removeEventListener('keydown', this._tecla)
     clearTimeout(this._temporizador)
+    clearTimeout(this._temporizadorAviso)
     super.disconnectedCallback()
   }
 
@@ -198,7 +240,7 @@ export class DhGestion extends LitElement {
   }
 
   _alPulsarAccion(accion, fila) {
-    if (accion.confirmar) this._confirmando = { id: fila[this._id], accion: accion.id }
+    if (accion.confirmar) this._confirmando = { accion, fila }
     else this._ejecutarAccion(accion, fila)
   }
 
@@ -206,7 +248,45 @@ export class DhGestion extends LitElement {
 
   _abrirCrear() {
     this._prepararFormulario('crear')
+    const valores = {}
+    camposDe(this.esquema.crear.secciones).forEach((campo) => {
+      if (campo.porDefecto !== undefined) valores[campo.campo] = campo.porDefecto
+    })
+    this._valores = valores
     this._vista = 'crear'
+    this._cargarOpciones(camposDe(this.esquema.crear.secciones))
+  }
+
+  /** Trae de la API las opciones de los campos `seleccion` que las piden con `opcionesDe`. */
+  async _cargarOpciones(campos) {
+    const esquema = this.esquema
+    const remotos = campos.filter((c) => c.tipo === 'seleccion' && c.opcionesDe)
+    if (remotos.length === 0) return
+    this._opciones = {
+      ...this._opciones,
+      ...Object.fromEntries(remotos.map((c) => [c.campo, { estado: 'cargando', items: [] }])),
+    }
+    await Promise.all(
+      remotos.map(async (campo) => {
+        const origen = campo.opcionesDe
+        let resultado
+        try {
+          const { data } = await solicitar('GET', origen.recurso, {
+            params: { page: 1, pageSize: 100, ...(origen.params ?? {}) },
+          })
+          resultado = {
+            estado: 'ok',
+            items: (data ?? []).map((item) => ({
+              valor: String(leer(item, origen.valor) ?? ''),
+              etiqueta: String(leer(item, origen.etiqueta) ?? leer(item, origen.valor) ?? ''),
+            })),
+          }
+        } catch {
+          resultado = { estado: 'error', items: [] }
+        }
+        if (esquema === this.esquema) this._opciones = { ...this._opciones, [campo.campo]: resultado }
+      })
+    )
   }
 
   async _abrirEditar(fila) {
@@ -215,12 +295,16 @@ export class DhGestion extends LitElement {
     this._vista = 'editar'
     const editar = this.esquema.editar
     this._cargandoRegistro = true
+    this._cargarOpciones(camposDe(editar.secciones))
     try {
       const ruta = (editar.cargar ?? '{id}').replace('{id}', encodeURIComponent(this._idEditando))
       const { data } = await solicitar('GET', `${this.esquema.recurso}/${ruta}`)
       const valores = {}
       camposDe(editar.secciones).forEach((campo) => {
-        valores[campo.campo] = leer(data, campo.campo) ?? ''
+        valores[campo.campo] =
+          campo.tipo === 'ubicacion'
+            ? { latitud: leer(data, `${prefijoDe(campo)}latitud`) ?? null, longitud: leer(data, `${prefijoDe(campo)}longitud`) ?? null }
+            : (leer(data, campo.campo) ?? '')
       })
       this._valores = valores
       this._registro = data
@@ -231,6 +315,32 @@ export class DhGestion extends LitElement {
       this._bloqueo = error instanceof ErrorApi ? error.message : 'No pudimos cargar el registro.'
     } finally {
       this._cargandoRegistro = false
+    }
+  }
+
+  /** Abre el panel de solo lectura: carga el registro y lo muestra sin formulario. */
+  async _abrirDetalle(fila) {
+    const esquema = this.esquema
+    const id = fila[this._id]
+    this._idDetalle = id
+    this._registro = null
+    this._vista = 'detalle'
+    this._cargandoRegistro = true
+    try {
+      const ruta = (esquema.detalle.cargar ?? '{id}').replace('{id}', encodeURIComponent(id))
+      const { data } = await solicitar('GET', `${esquema.recurso}/${ruta}`)
+      // * Si cerró el panel o abrió otro mientras cargaba, esta respuesta ya no corresponde
+      if (esquema !== this.esquema || this._idDetalle !== id || this._vista !== 'detalle') return
+      this._registro = data
+    } catch (error) {
+      if (esquema !== this.esquema || this._idDetalle !== id || this._vista !== 'detalle') return
+      this._aviso = {
+        tipo: 'error',
+        texto: error instanceof ErrorApi ? error.message : 'No pudimos cargar el registro.',
+      }
+      this._vista = 'lista'
+    } finally {
+      if (this._idDetalle === id) this._cargandoRegistro = false
     }
   }
 
@@ -245,6 +355,10 @@ export class DhGestion extends LitElement {
     this._registro = null
     this._manuales = new Set()
     this._modo = modo
+  }
+
+  _cerrarDrawer() {
+    this._vista = 'lista'
   }
 
   _volverALista(aviso) {
@@ -267,6 +381,14 @@ export class DhGestion extends LitElement {
       }
     })
     this._valores = valores
+    const errores = { ...this._erroresServidor }
+    delete errores[campo.campo]
+    this._erroresServidor = errores
+  }
+
+  _alUbicar(campo, detalle) {
+    this._valores = { ...this._valores, [campo.campo]: { latitud: detalle.latitud, longitud: detalle.longitud } }
+    this._tocados = new Set(this._tocados).add(campo.campo)
     const errores = { ...this._erroresServidor }
     delete errores[campo.campo]
     this._erroresServidor = errores
@@ -295,6 +417,14 @@ export class DhGestion extends LitElement {
 
     const cuerpo = {}
     campos.forEach((campo) => {
+      if (campo.tipo === 'ubicacion') {
+        const punto = this._valores[campo.campo]
+        if (punto?.latitud !== undefined && punto?.latitud !== null && punto?.longitud !== undefined && punto?.longitud !== null) {
+          escribir(cuerpo, `${prefijoDe(campo)}latitud`, Number(punto.latitud))
+          escribir(cuerpo, `${prefijoDe(campo)}longitud`, Number(punto.longitud))
+        }
+        return
+      }
       const texto = String(this._valores[campo.campo] ?? '').trim()
       if (texto === '' && !campo.requerido) return
       // * Las contraseñas no se recortan: los espacios cuentan
@@ -335,7 +465,12 @@ export class DhGestion extends LitElement {
 
   render() {
     if (!this.esquema) return nothing
-    return this._vista === 'lista' ? this._renderLista() : this._renderFormulario()
+    return html`
+      ${this._renderLista()}
+      ${this._vista === 'lista' ? nothing : this._vista === 'detalle' ? this._renderDetalle() : this._renderDrawer()}
+      ${this._confirmando ? this._renderDialogo() : nothing}
+      ${this._aviso ? this._renderToast() : nothing}
+    `
   }
 
   _renderLista() {
@@ -349,36 +484,19 @@ export class DhGestion extends LitElement {
           </div>
           ${esquema.crear
             ? html`<button type="button" class="boton" @click=${() => this._abrirCrear()}>
-                ${esquema.crear.etiqueta}
+                ${icono('plus', 18)}<span>${esquema.crear.etiqueta}</span>
               </button>`
             : nothing}
         </div>
 
-        ${this._aviso
-          ? html`<p
-              class="aviso ${this._aviso.tipo === 'error' ? 'error' : ''}"
-              role=${this._aviso.tipo === 'error' ? 'alert' : 'status'}
-            >
-              ${this._aviso.texto}
-            </p>`
-          : nothing}
-        ${this._renderFiltros()}
-
-        <div class="tarjeta">
-          ${this._cargando
-            ? html`<p class="estado">Cargando…</p>`
-            : this._errorCarga
-              ? html`<div class="estado error" role="alert">
-                  <p>${this._errorCarga}</p>
-                  <button type="button" class="enlace" @click=${() => this._cargar()}>Reintentar</button>
-                </div>`
-              : this._filas.length === 0
-                ? html`<p class="estado">
-                    ${this._hayFiltros()
-                      ? (esquema.mensajes?.sinResultados ?? 'Sin resultados.')
-                      : (esquema.mensajes?.vacio ?? 'Todavía no hay registros.')}
-                  </p>`
-                : this._renderTabla()}
+        <div class="tarjeta gestion">
+          ${this._renderFiltros()}
+          ${this._errorCarga
+            ? html`<div class="estado error" role="alert">
+                <p>${this._errorCarga}</p>
+                <button type="button" class="enlace" @click=${() => this._cargar()}>Reintentar</button>
+              </div>`
+            : html`${this._renderTabla()}${this._renderPie()}`}
         </div>
       </section>
     `
@@ -388,55 +506,106 @@ export class DhGestion extends LitElement {
     const esquema = this.esquema
     if (!esquema.busqueda && !esquema.filtros?.length) return nothing
     return html`
-      <div class="tarjeta filtros">
+      <div class="barra">
         ${esquema.busqueda
-          ? html`<input
-              type="search"
-              aria-label="Buscar"
-              placeholder=${esquema.busqueda.placeholder ?? 'Buscar'}
-              .value=${this._busqueda}
-              @input=${(e) => this._alBuscar(e.target.value)}
-            />`
+          ? html`<label class="buscador">
+              ${icono('search', 18)}
+              <span class="solo-lectores">Buscar</span>
+              <input
+                type="search"
+                placeholder=${esquema.busqueda.placeholder ?? 'Buscar'}
+                autocomplete="off"
+                .value=${this._busqueda}
+                @input=${(e) => this._alBuscar(e.target.value)}
+              />
+            </label>`
           : nothing}
-        ${(esquema.filtros ?? []).map(
-          (filtro) => html`<select
-            aria-label=${filtro.titulo}
-            .value=${this._filtros[filtro.clave] ?? ''}
-            @change=${(e) => this._alFiltrar(filtro.clave, e.target.value)}
-          >
-            <option value="">${filtro.titulo}: todos</option>
-            ${filtro.opciones.map((o) => html`<option value=${o.valor}>${o.etiqueta}</option>`)}
-          </select>`
-        )}
+        ${(esquema.filtros ?? []).map((filtro) => this._renderFiltro(filtro))}
       </div>
     `
   }
 
+  _renderFiltro(filtro) {
+    const actual = this._filtros[filtro.clave] ?? ''
+    // * Pocas opciones: control segmentado (como el diseño). Muchas: lista desplegable
+    if (filtro.opciones.length > 4) {
+      return html`<dh-select
+        class="filtro-lista"
+        .etiqueta=${filtro.titulo}
+        .valor=${actual}
+        .placeholder=${`${filtro.titulo}: todos`}
+        .opciones=${filtro.opciones}
+        @dh-cambio=${(e) => this._alFiltrar(filtro.clave, e.detail.valor)}
+      ></dh-select>`
+    }
+    const opciones = [{ valor: '', etiqueta: filtro.todas ?? 'Todas' }, ...filtro.opciones]
+    return html`<div class="segmentos" role="group" aria-label=${filtro.titulo}>
+      ${opciones.map(
+        (o) => html`<button
+          type="button"
+          aria-pressed=${String(actual === o.valor)}
+          @click=${() => this._alFiltrar(filtro.clave, o.valor)}
+        >
+          ${o.etiqueta}
+        </button>`
+      )}
+    </div>`
+  }
+
   _renderTabla() {
     const esquema = this.esquema
-    return html`
-      <div class="contenedor-tabla">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col" class="nro">Nro</th>
-              ${esquema.columnas.map((c) => html`<th scope="col" style=${anchoColumna(c)}>${c.titulo}</th>`)}
-              <th scope="col">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${this._filas.map(
-              (fila, i) => html`<tr>
-                <td class="nro">${(this._pagina - 1) * (esquema.porPagina ?? 20) + i + 1}</td>
-                ${esquema.columnas.map((c) => html`<td class=${c.secundaria ? 'secundaria' : ''}>${this._celda(c, fila)}</td>`)}
-                <td>${this._renderAcciones(fila)}</td>
-              </tr>`
-            )}
-          </tbody>
-        </table>
-      </div>
-      ${this._renderPie()}
-    `
+    const porPagina = esquema.porPagina ?? 20
+    const columnas = esquema.columnas.length + 2
+    let cuerpo
+    if (this._cargando) {
+      cuerpo = Array.from({ length: 6 }).map(
+        () => html`<tr class="esqueleto"><td colspan=${columnas}><span class="brillo"></span></td></tr>`
+      )
+    } else if (this._filas.length === 0) {
+      const filtrado = this._hayFiltros()
+      cuerpo = html`<tr>
+        <td colspan=${columnas}>
+          <div class="vacio">
+            ${icono('search', 28)}
+            <b>${filtrado ? 'Sin resultados' : 'Todavía no hay registros'}</b>
+            <p>
+              ${filtrado
+                ? (esquema.mensajes?.sinResultados ?? 'Prueba con otro texto o quita los filtros.')
+                : (esquema.mensajes?.vacio ?? 'Crea el primero para empezar.')}
+            </p>
+          </div>
+        </td>
+      </tr>`
+    } else {
+      cuerpo = this._filas.map(
+        (fila, i) => html`<tr style=${`--i:${i}`}>
+          <td class="nro" data-label="Nro">${(this._pagina - 1) * porPagina + i + 1}</td>
+          ${esquema.columnas.map(
+            (c) => html`<td
+              class=${[c.principal ? 'principal' : '', c.secundaria ? 'secundaria' : ''].join(' ').trim()}
+              data-label=${c.titulo}
+            >
+              ${this._celda(c, fila)}
+            </td>`
+          )}
+          <td class="derecha">${this._renderAcciones(fila)}</td>
+        </tr>`
+      )
+    }
+    return html`<div class="contenedor-tabla">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col" class="nro">Nro</th>
+            ${esquema.columnas.map((c) => html`<th scope="col" style=${anchoColumna(c)}>${c.titulo}</th>`)}
+            <th scope="col" class="derecha">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cuerpo}
+        </tbody>
+      </table>
+    </div>`
   }
 
   _celda(columna, fila) {
@@ -445,9 +614,14 @@ export class DhGestion extends LitElement {
       const insignia = columna.insignias?.[valor]
       return html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
     }
-    if (columna.tipo === 'fecha') {
-      return valor ? new Date(valor).toLocaleDateString('es') : ''
+    if (columna.tipo === 'fecha') return valor ? formatearFecha(valor) : ''
+    if (columna.principal) {
+      return html`<span class="principal-celda">
+        ${columna.icono ? html`<span class="icono-fila">${icono(columna.icono, 18)}</span>` : nothing}
+        <span class="nombre">${valor ?? ''}</span>
+      </span>`
     }
+    if (columna.codigo) return html`<code>${valor ?? ''}</code>`
     return valor ?? ''
   }
 
@@ -455,25 +629,18 @@ export class DhGestion extends LitElement {
     const esquema = this.esquema
     const id = fila[this._id]
     const trabajando = this._trabajando === id
-    if (this._confirmando?.id === id) {
-      const accion = (esquema.acciones ?? []).find((a) => a.id === this._confirmando.accion)
-      return html`<span class="acciones">
-        <span>${accion.confirmar}</span>
-        <button
-          type="button"
-          class="enlace peligro"
-          ?disabled=${trabajando}
-          @click=${() => this._ejecutarAccion(accion, fila)}
-        >
-          Confirmar
-        </button>
-        <button type="button" class="enlace" @click=${() => (this._confirmando = null)}>Cancelar</button>
-      </span>`
-    }
     const puedeEditar = esquema.editar && cumple(esquema.editar.visibleSi, fila)
+    const puedeVer = esquema.detalle && cumple(esquema.detalle.visibleSi, fila)
     return html`<span class="acciones">
+      ${puedeVer
+        ? html`<button type="button" class="enlace" @click=${() => this._abrirDetalle(fila)}>
+            ${icono(esquema.detalle.icono ?? 'eye', 16)}<span>${esquema.detalle.etiqueta ?? 'Ver detalles'}</span>
+          </button>`
+        : nothing}
       ${puedeEditar
-        ? html`<button type="button" class="enlace" @click=${() => this._abrirEditar(fila)}>Editar</button>`
+        ? html`<button type="button" class="enlace" @click=${() => this._abrirEditar(fila)}>
+            ${icono(esquema.editar.icono ?? 'edit', 16)}<span>Editar</span>
+          </button>`
         : nothing}
       ${(esquema.acciones ?? [])
         .filter((a) => cumple(a.visibleSi, fila))
@@ -484,7 +651,7 @@ export class DhGestion extends LitElement {
             ?disabled=${trabajando}
             @click=${() => this._alPulsarAccion(a, fila)}
           >
-            ${a.etiqueta}
+            ${a.icono ? icono(a.icono, 16) : nothing}<span>${a.etiqueta}</span>
           </button>`
         )}
     </span>`
@@ -492,65 +659,220 @@ export class DhGestion extends LitElement {
 
   _renderPie() {
     const meta = this._meta
-    if (!meta) return nothing
+    if (this._cargando || !meta) return nothing
+    const desde = (meta.page - 1) * meta.pageSize + 1
+    const hasta = Math.min(meta.page * meta.pageSize, meta.totalItems)
+    const botones = []
+    for (let p = 1; p <= meta.totalPages; p++) {
+      botones.push(html`<button
+        type="button"
+        class="pagina-btn"
+        aria-current=${p === meta.page ? 'page' : nothing}
+        @click=${() => this._irAPagina(p)}
+      >
+        ${p}
+      </button>`)
+    }
     return html`<div class="pie">
-      <span>Página ${meta.page} de ${meta.totalPages} · ${meta.totalItems} en total</span>
-      <span class="botones">
-        <button type="button" class="boton secundario" ?disabled=${meta.page <= 1} @click=${() => this._irAPagina(meta.page - 1)}>
-          Anterior
-        </button>
+      <span class="secundaria">
+        ${meta.totalItems ? `Mostrando ${desde}–${hasta} de ${meta.totalItems}` : '0 resultados'}
+      </span>
+      <div class="paginas">
         <button
           type="button"
-          class="boton secundario"
+          class="pagina-btn"
+          aria-label="Página anterior"
+          ?disabled=${meta.page <= 1}
+          @click=${() => this._irAPagina(meta.page - 1)}
+        >
+          ${icono('chevron-left', 16)}
+        </button>
+        ${botones}
+        <button
+          type="button"
+          class="pagina-btn"
+          aria-label="Página siguiente"
           ?disabled=${meta.page >= meta.totalPages}
           @click=${() => this._irAPagina(meta.page + 1)}
         >
-          Siguiente
+          ${icono('chevron-right', 16)}
         </button>
-      </span>
+      </div>
     </div>`
   }
 
-  _renderFormulario() {
+  // ------------------------------------------------------------------ drawer, diálogo y aviso
+
+  _renderDrawer() {
     const creando = this._vista === 'crear'
     const definicion = creando ? this.esquema.crear : this.esquema.editar
+    const titulo =
+      definicion.titulo ?? (creando ? this.esquema.crear.etiqueta : `Editar ${this.esquema.nombreSingular ?? 'registro'}`)
+    const numerar = definicion.secciones.length > 1
     return html`
-      <section class="pagina">
-        <div class="cabecera">
-          <div>
-            <h1>${definicion.titulo ?? (creando ? this.esquema.crear.etiqueta : `Editar ${this.esquema.nombreSingular ?? 'registro'}`)}</h1>
-            ${definicion.descripcion ? html`<p class="descripcion">${definicion.descripcion}</p>` : nothing}
-          </div>
-        </div>
-        ${this._cargandoRegistro
-          ? html`<p class="estado">Cargando…</p>`
-          : this._bloqueo
-            ? html`<div class="tarjeta estado" role="alert">
-                <p>${this._bloqueo}</p>
-                <button type="button" class="enlace" @click=${() => this._volverALista()}>Volver al listado</button>
+      <div class="fondo" @mousedown=${(e) => e.target === e.currentTarget && this._cerrarDrawer()}>
+        <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-titulo">
+          <header class="drawer-cabeza">
+            <div>
+              <h2 id="drawer-titulo">${titulo}</h2>
+              ${definicion.descripcion ? html`<p class="secundaria">${definicion.descripcion}</p>` : nothing}
+            </div>
+            <button type="button" class="icono-btn" aria-label="Cerrar" @click=${() => this._cerrarDrawer()}>
+              ${icono('x', 20)}
+            </button>
+          </header>
+          ${this._cargandoRegistro
+            ? html`<div class="drawer-cuerpo" aria-busy="true">
+                <span class="brillo"></span><span class="brillo"></span><span class="brillo"></span>
               </div>`
-            : html`<form @submit=${(e) => this._enviar(e)} novalidate>
-                ${definicion.secciones.map((seccion) => this._renderSeccion(seccion))}
-                ${this._errorGeneral ? html`<p class="error-campo" role="alert">${this._errorGeneral}</p>` : nothing}
-                <div class="pie-formulario">
-                  <button type="submit" class="boton" ?disabled=${this._enviando}>
-                    ${this._enviando ? 'Guardando…' : (definicion.etiquetaEnviar ?? (creando ? 'Crear' : 'Guardar'))}
-                  </button>
-                  <button type="button" class="enlace" @click=${() => this._volverALista()}>Cancelar</button>
-                </div>
-              </form>`}
-      </section>
+            : this._bloqueo
+              ? html`<div class="drawer-cuerpo">
+                  <p class="aviso-caja error" role="alert">${icono('alert', 18)}<span>${this._bloqueo}</span></p>
+                  <div class="drawer-pie">
+                    <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cerrar</button>
+                  </div>
+                </div>`
+              : html`<form class="drawer-cuerpo" @submit=${(e) => this._enviar(e)} novalidate>
+                  ${definicion.secciones.map((seccion, i) => this._renderSeccion(seccion, numerar ? i + 1 : null))}
+                  ${this._errorGeneral
+                    ? html`<p class="aviso-caja error" role="alert">${icono('alert', 18)}<span>${this._errorGeneral}</span></p>`
+                    : nothing}
+                  <div class="drawer-pie">
+                    <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cancelar</button>
+                    <button type="submit" class="boton" ?disabled=${this._enviando}>
+                      ${this._enviando ? 'Guardando…' : (definicion.etiquetaEnviar ?? (creando ? 'Crear' : 'Guardar'))}
+                    </button>
+                  </div>
+                </form>`}
+        </aside>
+      </div>
     `
   }
 
-  _renderSeccion(seccion) {
-    return html`<fieldset class="tarjeta">
+  /** Panel de solo lectura (`detalle` del esquema): mismo drawer, sin formulario ni "Guardar". */
+  _renderDetalle() {
+    const detalle = this.esquema.detalle
+    const titulo = detalle.titulo ?? `Detalle de ${this.esquema.nombreSingular ?? 'registro'}`
+    return html`
+      <div class="fondo" @mousedown=${(e) => e.target === e.currentTarget && this._cerrarDrawer()}>
+        <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-titulo">
+          <header class="drawer-cabeza">
+            <div>
+              <h2 id="drawer-titulo">${titulo}</h2>
+              ${detalle.descripcion ? html`<p class="secundaria">${detalle.descripcion}</p>` : nothing}
+            </div>
+            <button type="button" class="icono-btn" aria-label="Cerrar" @click=${() => this._cerrarDrawer()}>
+              ${icono('x', 20)}
+            </button>
+          </header>
+          <div class="drawer-cuerpo" aria-busy=${String(this._cargandoRegistro)}>
+            ${this._cargandoRegistro || !this._registro
+              ? html`<span class="brillo"></span><span class="brillo"></span><span class="brillo"></span>`
+              : detalle.secciones.map((seccion) => this._renderSeccionDetalle(seccion))}
+            <div class="drawer-pie">
+              <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cerrar</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    `
+  }
+
+  _renderSeccionDetalle(seccion) {
+    // * Igual que en los formularios: los campos `mitad` que van seguidos comparten fila (de a dos)
+    const bloques = []
+    seccion.campos.forEach((campo) => {
+      const ultimo = bloques[bloques.length - 1]
+      if (campo.mitad && ultimo?.par && ultimo.campos.length < 2) ultimo.campos.push(campo)
+      else bloques.push({ par: !!campo.mitad, campos: [campo] })
+    })
+    return html`<fieldset>
       ${seccion.titulo ? html`<legend>${seccion.titulo}</legend>` : nothing}
-      ${seccion.campos.map((campo) => this._renderCampo(campo))}
+      ${bloques.map((b) =>
+        b.par && b.campos.length === 2
+          ? html`<div class="grid-2">${b.campos.map((c) => this._renderDato(c))}</div>`
+          : b.campos.map((c) => this._renderDato(c))
+      )}
+    </fieldset>`
+  }
+
+  _renderDato(campo) {
+    const valor = leer(this._registro, campo.campo)
+    const vacio = valor === undefined || valor === null || valor === ''
+    let contenido = '—'
+    if (!vacio) {
+      if (campo.tipo === 'insignia') {
+        const insignia = campo.insignias?.[valor]
+        contenido = html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
+      } else if (campo.tipo === 'fecha') {
+        contenido = formatearFecha(valor)
+      } else {
+        contenido = String(valor)
+      }
+    }
+    return html`<div class="dato">
+      <span class="dato-titulo">${campo.titulo}</span>
+      <span class="dato-valor ${vacio ? 'sin-valor' : ''}">${contenido}</span>
+    </div>`
+  }
+
+  _renderDialogo() {
+    const { accion, fila } = this._confirmando
+    const peligro = accion.tono === 'peligro'
+    return html`
+      <div class="fondo centrado" @mousedown=${(e) => e.target === e.currentTarget && (this._confirmando = null)}>
+        <div class="dialogo" role="alertdialog" aria-modal="true" aria-labelledby="dialogo-titulo">
+          <div class="dialogo-ico ${peligro ? 'peligro' : ''}">${icono(peligro ? 'alert' : 'info', 22)}</div>
+          <h2 id="dialogo-titulo">${accion.confirmar}</h2>
+          ${accion.confirmarTexto ? html`<p>${accion.confirmarTexto}</p>` : nothing}
+          <div class="dialogo-acciones">
+            <button type="button" class="boton secundario" @click=${() => (this._confirmando = null)}>Cancelar</button>
+            <button
+              type="button"
+              class="boton ${peligro ? 'peligro' : ''}"
+              ?disabled=${this._trabajando !== null}
+              @click=${() => this._ejecutarAccion(accion, fila)}
+            >
+              ${accion.etiqueta}
+            </button>
+          </div>
+        </div>
+      </div>
+    `
+  }
+
+  _renderToast() {
+    const error = this._aviso.tipo === 'error'
+    return html`<div class="avisos">
+      <p class="toast ${error ? 'error' : ''}" role=${error ? 'alert' : 'status'}>
+        ${icono(error ? 'alert' : 'check-circle', 18)}<span>${this._aviso.texto}</span>
+      </p>
+    </div>`
+  }
+
+  _renderSeccion(seccion, numero) {
+    // * Los campos marcados `mitad` que van seguidos comparten fila (de a dos)
+    const bloques = []
+    seccion.campos.forEach((campo) => {
+      const ultimo = bloques[bloques.length - 1]
+      if (campo.mitad && ultimo?.par && ultimo.campos.length < 2) ultimo.campos.push(campo)
+      else bloques.push({ par: !!campo.mitad, campos: [campo] })
+    })
+    return html`<fieldset>
+      ${seccion.titulo
+        ? html`<legend>${numero ? html`<span class="paso">${numero}</span>` : nothing}${seccion.titulo}</legend>`
+        : nothing}
+      ${bloques.map((b) =>
+        b.par && b.campos.length === 2
+          ? html`<div class="grid-2">${b.campos.map((c) => this._renderCampo(c))}</div>`
+          : b.campos.map((c) => this._renderCampo(c))
+      )}
     </fieldset>`
   }
 
   _renderCampo(campo) {
+    if (campo.tipo === 'seleccion') return this._renderSeleccion(campo)
+    if (campo.tipo === 'ubicacion') return this._renderUbicacion(campo)
     const id = `campo-${campo.campo.replace('.', '-')}`
     const error = this._errorDe(campo)
     const esPassword = campo.tipo === 'password'
@@ -562,26 +884,91 @@ export class DhGestion extends LitElement {
       id=${id}
       type=${tipo}
       autocomplete=${esPassword ? 'new-password' : 'off'}
+      maxlength=${campo.max ?? nothing}
       .value=${String(this._valores[campo.campo] ?? '')}
       ?readonly=${campo.soloLectura}
       aria-invalid=${error ? 'true' : 'false'}
       @input=${(e) => this._alEscribir(campo, e.target.value)}
       @blur=${() => this._tocar(campo)}
     />`
-    return html`<div class="campo">
-      <label for=${id}>${campo.titulo}${campo.requerido ? '' : ' (opcional)'}</label>
+    return html`<div class="campo ${error ? 'con-error' : ''}">
+      <label for=${id}
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</label
+      >
       ${esPassword
-        ? html`<div class="con-boton">
+        ? html`<div class="con-ojo">
             ${entrada}
             <button
               type="button"
-              class="boton secundario"
+              class="ojo"
+              aria-label=${this._verPassword[campo.campo] ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               @click=${() => (this._verPassword = { ...this._verPassword, [campo.campo]: !this._verPassword[campo.campo] })}
             >
-              ${this._verPassword[campo.campo] ? 'Ocultar' : 'Mostrar'}
+              ${icono(this._verPassword[campo.campo] ? 'eye-off' : 'eye', 18)}
             </button>
           </div>`
         : entrada}
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
+  /** Lista de opciones de un campo `seleccion`: fijas del esquema o traídas de la API. */
+  _opcionesDe(campo) {
+    if (campo.opciones) return { estado: 'ok', items: campo.opciones }
+    return this._opciones[campo.campo] ?? { estado: 'ok', items: [] }
+  }
+
+  _renderSeleccion(campo) {
+    const id = `campo-${campo.campo.replace('.', '-')}`
+    const error = this._errorDe(campo)
+    const { estado, items } = this._opcionesDe(campo)
+    const actual = String(this._valores[campo.campo] ?? '')
+    // * Lista propia (<dh-select>), no el <select> nativo: ver UI_FRONTEND.md
+    return html`<div class="campo ${error ? 'con-error' : ''}">
+      <span class="etiqueta-campo"
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</span
+      >
+      <dh-select
+        id=${id}
+        .etiqueta=${campo.titulo}
+        .valor=${actual}
+        .opciones=${items}
+        .placeholder=${estado === 'cargando' ? 'Cargando…' : 'Elige una opción'}
+        ?deshabilitado=${campo.soloLectura || estado === 'cargando'}
+        ?invalido=${!!error}
+        @dh-cambio=${(e) => {
+          this._alEscribir(campo, e.detail.valor)
+          this._tocar(campo)
+        }}
+        @dh-blur=${() => this._tocar(campo)}
+      ></dh-select>
+      ${estado === 'error'
+        ? html`<span class="error-campo" role="alert">
+            No pudimos cargar las opciones.
+            <button type="button" class="enlace" @click=${() => this._cargarOpciones([campo])}>Reintentar</button>
+          </span>`
+        : nothing}
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
+  _renderUbicacion(campo) {
+    const error = this._errorDe(campo)
+    const punto = this._valores[campo.campo] ?? {}
+    const direccion = campo.direccionDe && this._registro ? leer(this._registro, campo.direccionDe) : ''
+    return html`<div class="campo ${error ? 'con-error' : ''}">
+      <span class="etiqueta-campo"
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</span
+      >
+      <dh-mapa-ubicacion
+        .latitud=${punto.latitud ?? null}
+        .longitud=${punto.longitud ?? null}
+        .direccion=${direccion ?? ''}
+        ?deshabilitado=${campo.soloLectura}
+        @dh-ubicacion=${(e) => this._alUbicar(campo, e.detail)}
+      ></dh-mapa-ubicacion>
       ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
       ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
     </div>`

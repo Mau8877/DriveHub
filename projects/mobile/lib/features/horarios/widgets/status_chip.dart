@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 
-/// Chip informativo de estado: siempre ícono y texto, nunca solo color (design.md 3.6).
+/// Chip informativo de estado: siempre ícono y texto, nunca solo color (diseño Cockpit).
 ///
 /// * No es tocable. Los colores se toman del tema, no se pasan literales.
 class StatusChip extends StatelessWidget {
@@ -23,8 +23,8 @@ class StatusChip extends StatelessWidget {
   factory StatusChip.exito(BuildContext context, String label) => StatusChip(
     icon: Icons.check,
     label: label,
-    fondo: context.semantica.successContainer,
-    color: context.semantica.success,
+    fondo: _tinte(context, context.cockpit.exito),
+    color: context.cockpit.exito,
   );
 
   /// Estado neutro: libre, bloqueada, inactiva.
@@ -38,21 +38,26 @@ class StatusChip extends StatelessWidget {
     return StatusChip(
       icon: icon,
       label: label,
-      fondo: context.semantica.neutralContainer,
+      fondo: context.cockpit.superficieSuave,
       color: atenuado ? esquema.onSurfaceVariant : esquema.onSurface,
     );
   }
 
   /// Estado azul: reservada, en curso.
   factory StatusChip.azul(BuildContext context, String label, IconData icon) {
-    final esquema = Theme.of(context).colorScheme;
     return StatusChip(
       icon: icon,
       label: label,
-      fondo: esquema.tertiaryContainer,
-      color: esquema.onTertiaryContainer,
+      fondo: _tinte(context, context.cockpit.enlace),
+      color: context.cockpit.enlace,
     );
   }
+
+  /// Fondo tenue del color, sobre la superficie opaca (nunca una transparencia sobre el degradado).
+  static Color _tinte(BuildContext context, Color color) => Color.alphaBlend(
+    color.withValues(alpha: 0.12),
+    Theme.of(context).colorScheme.surface,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +66,8 @@ class StatusChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: fondo,
-        borderRadius: BorderRadius.circular(AppRadius.chip),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -71,9 +77,10 @@ class StatusChip extends StatelessWidget {
           Flexible(
             child: Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: color),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

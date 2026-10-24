@@ -6,6 +6,8 @@
  * * CSS puro (sin Tailwind): cualquier app puede consumirlo. El mapeo a
  * * clases de Tailwind (bg-primary, text-foreground...) vive en theme.css.
  * * Los tokens atraviesan el Shadow DOM: los Web Components (@drivehub/gestion) los usan igual.
+ * * Diseño "Asfalto" (menú de asfalto, tarjetas nítidas, ámbar solo en lo importante): el aspecto de
+ *   los componentes vive en @drivehub/ui y @drivehub/gestion; acá solo están sus variables.
  * * Paleta de marca (ver la tabla de abajo). Un cambio de color se hace SOLO acá y, en el mismo
  * * cambio, en projects/mobile/lib/core/theme/app_theme.dart (espejo manual de esta paleta).
  * * Modo oscuro: clase .dark en <html>. Hoy ninguna app lo activa; sus valores son tonos
@@ -21,7 +23,11 @@
  */
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.65rem;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Sombras de las tarjetas y de las ventanas flotantes (menús, paneles). */
+  --shadow-1: 0 1px 2px rgb(30 41 59 / 6%), 0 2px 6px -2px rgb(30 41 59 / 6%);
+  --shadow-2: 0 10px 30px -8px rgb(30 41 59 / 22%), 0 4px 10px -4px rgb(30 41 59 / 12%);
   --font-sans: 'Inter Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
 
   /* Paleta de marca: los demás tokens se arman con estos. */
@@ -80,6 +86,8 @@
 }
 
 .dark {
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-2: 0 14px 34px -10px rgb(0 0 0 / 60%);
   --background: #0f172a;
   --foreground: var(--gris-claro);
   --card: var(--gris-asfalto);

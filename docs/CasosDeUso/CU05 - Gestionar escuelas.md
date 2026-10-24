@@ -11,6 +11,8 @@
 
 > El PDF de diseño llama a este caso de uso "Gestionar roles y permisos"; estaba equivocado. El CU05 del proyecto es este (ver [CASOS_DE_USO.md](../../.claude/rules/CASOS_DE_USO.md)).
 
+> **Modificado por [CU08a: Perfil de la persona](CU08a%20-%20Perfil%20de%20la%20persona.md).** Al crear una escuela, los datos del Administrador incluyen además CI, sexo y ubicación en un mapa, y se guardan en su perfil; un CI ya registrado se rechaza con `ERR_IDE_19`. Donde este documento contradiga a CU08a, manda CU08a.
+
 **Descripción:**
 El Super admin tiene en su menú la opción "Gestionar escuelas". Ahí ve el listado de todas las escuelas de la plataforma (activas e inactivas), con búsqueda, filtro por estado y paginación. Desde el listado crea una escuela nueva: completa los datos de la escuela y los de su Administrador (incluida la contraseña inicial) y el sistema crea ambas cosas juntas; si algo falla, no queda nada a medias. También puede cambiar el nombre de una escuela, desactivarla y volver a activarla. Desactivar una escuela es reversible (borrado lógico): mientras está inactiva, nadie de esa escuela, empezando por su Administrador, puede iniciar sesión y verá que la escuela está inactiva; al reactivarla todos recuperan el acceso con sus mismas credenciales.
 

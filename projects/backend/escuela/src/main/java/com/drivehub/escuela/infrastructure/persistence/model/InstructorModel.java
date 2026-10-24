@@ -30,10 +30,6 @@ public class InstructorModel extends BaseModel {
     private UUID usuarioCodigo;
 
     @Setter
-    @Column(name = "ci", nullable = false, unique = true, length = 15)
-    private String ci;
-
-    @Setter
     @Column(name = "nro_licencia", nullable = false, unique = true, length = 30)
     private String nroLicencia;
 

@@ -3,7 +3,10 @@
  *
  * * No tiene campo de rol a propósito: el backend asigna siempre ESTUDIANTE.
  * * `fechaNacimiento` viaja como yyyy-MM-dd (lo que entrega <input type="date">).
+ * * CU08a: suma CI, sexo y la ubicación elegida en el mapa. No hay dirección: la calcula el servidor.
  */
+export type Sexo = 'MASCULINO' | 'FEMENINO'
+
 export interface RegistroEstudianteRequest {
   nombres: string
   apellidos: string
@@ -12,6 +15,10 @@ export interface RegistroEstudianteRequest {
   password: string
   telefono?: string
   escuelaSlug: string
+  ci: string
+  sexo: Sexo
+  latitud: number
+  longitud: number
 }
 
 /** Cuenta recién creada (sin contraseña ni sesión). */

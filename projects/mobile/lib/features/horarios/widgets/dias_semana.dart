@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../models/fechas.dart';
 
-/// Los siete círculos L M X J V S D donde se eligen los días de un horario (design.md 3.2).
+/// Los siete círculos L M X J V S D donde se eligen los días de un horario .
 ///
 /// * Cada círculo mide 44 dp, se alterna con un toque y lleva la clave `dia1` (lunes) a `dia7`.
-/// * El elegido usa `segmentActive`; el resto, la superficie con borde suave.
+/// * El elegido va en ámbar con texto asfalto; el resto, la superficie con borde suave.
 class SelectorDeDias extends StatelessWidget {
   final Set<int> seleccionados;
   final ValueChanged<int> alAlternar;
@@ -16,8 +15,8 @@ class SelectorDeDias extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: AppSpace.sm,
-      runSpacing: AppSpace.sm,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         for (var dia = 1; dia <= 7; dia++)
           _CirculoDeDia(dia: dia, elegido: seleccionados.contains(dia), alTocar: () => alAlternar(dia)),
@@ -36,7 +35,6 @@ class _CirculoDeDia extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final esquema = Theme.of(context).colorScheme;
-    final semantica = context.semantica;
 
     return Semantics(
       button: true,
@@ -47,21 +45,21 @@ class _CirculoDeDia extends StatelessWidget {
           key: Key('dia$dia'),
           onTap: alTocar,
           child: AnimatedContainer(
-            duration: AppMotion.fast,
+            duration: const Duration(milliseconds: 150),
             curve: Curves.easeOut,
             width: 44,
             height: 44,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: elegido ? semantica.segmentActive : esquema.surface,
+              color: elegido ? esquema.primary : esquema.surface,
               border: Border.all(color: elegido ? Colors.transparent : esquema.outline, width: 2),
             ),
             child: Text(
               letraDeDia(dia),
               style: Theme.of(
                 context,
-              ).textTheme.labelMedium?.copyWith(color: elegido ? semantica.onSegmentActive : esquema.onSurface),
+              ).textTheme.labelMedium?.copyWith(color: elegido ? esquema.onPrimary : esquema.onSurface, fontWeight: FontWeight.w800),
             ),
           ),
         ),
@@ -79,7 +77,6 @@ class DiasDeLaSemana extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final esquema = Theme.of(context).colorScheme;
-    final semantica = context.semantica;
     final nombres = dias.map(nombreDeDiaCapitalizado).join(', ');
 
     return Semantics(
@@ -96,14 +93,15 @@ class DiasDeLaSemana extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: dias.contains(dia) ? semantica.segmentActive : Colors.transparent,
+                  color: dias.contains(dia) ? esquema.primary : Colors.transparent,
                   border: Border.all(color: dias.contains(dia) ? Colors.transparent : esquema.outline, width: 1.5),
                 ),
                 child: Text(
                   letraDeDia(dia),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     fontSize: 12,
-                    color: dias.contains(dia) ? semantica.onSegmentActive : esquema.onSurfaceVariant,
+                    color: dias.contains(dia) ? esquema.onPrimary : esquema.onSurfaceVariant,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),

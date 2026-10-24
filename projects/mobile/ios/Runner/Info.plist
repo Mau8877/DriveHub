@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Para marcar dónde vives en tu perfil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Para elegir tu foto de perfil</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Para sacarte una foto de perfil</string>
 </dict>
 </plist>

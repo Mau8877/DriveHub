@@ -66,7 +66,11 @@ class UsuarioControllerTest {
               "fechaNacimiento": "2000-01-01",
               "email": "ana@gmail.com",
               "password": "123456789",
-              "escuelaSlug": "escuelaexample"%s
+              "escuelaSlug": "escuelaexample",
+              "ci": "AB12345",
+              "sexo": "FEMENINO",
+              "latitud": -16.4897,
+              "longitud": -68.1193%s
             }
             """.formatted(campoExtra);
     }
@@ -179,7 +183,11 @@ class UsuarioControllerTest {
               "email": "marta@gmail.com",
               "password": "123456789",
               "telefono": "70000000",
-              "escuelaCodigo": "%s"
+              "escuelaCodigo": "%s",
+              "ci": "MG98765",
+              "sexo": "FEMENINO",
+              "latitud": -16.4897,
+              "longitud": -68.1193
             }
             """.formatted(ESCUELA);
     }
@@ -272,5 +280,77 @@ class UsuarioControllerTest {
 
         mockMvc.perform(delete(RUTA_ADMIN).with(jwt()).param("escuelaCodigo", ESCUELA.toString()))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_IDE_13"));
+    }
+
+    @Test
+    void registrar_sinCi_responde400ConErrSys01() throws Exception {
+        enviar(cuerpo("").replace("\"ci\": \"AB12345\",", ""))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        verify(registrarEstudiante, never()).registrar(any());
+    }
+
+    @Test
+    void registrar_conCiConSimbolosOMuyCorto_responde400ConErrSys01() throws Exception {
+        enviar(cuerpo("").replace("AB12345", "AB 12#"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        enviar(cuerpo("").replace("AB12345", "AB12"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        verify(registrarEstudiante, never()).registrar(any());
+    }
+
+    @Test
+    void registrar_conSexoFueraDelEnum_responde400ConErrSys01() throws Exception {
+        enviar(cuerpo("").replace("FEMENINO", "OTRO"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        verify(registrarEstudiante, never()).registrar(any());
+    }
+
+    @Test
+    void registrar_conCoordenadasIncompletasOFueraDeRango_responde400ConErrSys01() throws Exception {
+        enviar(cuerpo("").replace("\"longitud\": -68.1193", "\"longitud\": null"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        enviar(cuerpo("").replace("-16.4897", "-91.5"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        verify(registrarEstudiante, never()).registrar(any());
+    }
+
+    @Test
+    void registrar_conCiRepetido_responde409ConErrIde19() throws Exception {
+        when(registrarEstudiante.registrar(any())).thenThrow(
+            new com.drivehub.identidad.common.exception.ConflictException(
+                IdentidadErrorCodes.CI_EN_USO, "Ya existe una cuenta con ese CI"));
+
+        enviar(cuerpo(""))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_IDE_19"));
+    }
+
+    @Test
+    void registrar_pasaCiSexoYUbicacionAlComando() throws Exception {
+        when(registrarEstudiante.registrar(any())).thenReturn(Usuario.builder()
+            .codigo(UUID.randomUUID()).email("ana@gmail.com").nombres("Ana").apellidos("Pérez").build());
+
+        enviar(cuerpo("")).andExpect(status().isCreated());
+
+        ArgumentCaptor<RegistrarEstudianteComando> comando = ArgumentCaptor.forClass(RegistrarEstudianteComando.class);
+        verify(registrarEstudiante).registrar(comando.capture());
+        assertThat(comando.getValue().ci()).isEqualTo("AB12345");
+        assertThat(comando.getValue().sexo()).isEqualTo(com.drivehub.identidad.domain.model.SexoPersona.FEMENINO);
+        assertThat(comando.getValue().latitud()).isEqualByComparingTo("-16.4897");
+        assertThat(comando.getValue().longitud()).isEqualByComparingTo("-68.1193");
+    }
+
+    @Test
+    void crearAdministrador_sinCiNiUbicacion_responde400ConErrSys01() throws Exception {
+        crearAdmin(cuerpoAdmin().replace("\"ci\": \"MG98765\",", "").replace("\"latitud\": -16.4897,", ""))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        verify(crearAdministradorEscuela, never()).crear(any());
     }
 }

@@ -1,12 +1,18 @@
 package com.drivehub.identidad.infrastructure.adapter.in.web;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import com.drivehub.identidad.domain.model.SexoPersona;
+
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -14,6 +20,7 @@ import jakarta.validation.constraints.Size;
  *
  * * No tiene campo de rol: la cuenta siempre se crea como ADMIN_ESCUELA.
  * * Las reglas de los datos personales son las mismas del registro del estudiante.
+ * * CU08a: suma CI, sexo y la ubicación; la dirección la calcula el servidor.
  */
 public record CrearAdministradorEscuelaRequest(
         @NotBlank(message = "Los nombres son obligatorios")
@@ -41,6 +48,24 @@ public record CrearAdministradorEscuelaRequest(
         String telefono,
 
         @NotNull(message = "La escuela es obligatoria")
-        UUID escuelaCodigo
+        UUID escuelaCodigo,
+
+        @NotBlank(message = "El CI es obligatorio")
+        @Size(min = 5, max = 15, message = "El CI debe tener entre 5 y 15 caracteres")
+        @Pattern(regexp = "[A-Za-z0-9-]+", message = "El CI solo admite letras, números y guion")
+        String ci,
+
+        @NotNull(message = "El sexo es obligatorio")
+        SexoPersona sexo,
+
+        @NotNull(message = "La ubicación es obligatoria")
+        @DecimalMin(value = "-90", message = "La latitud no es válida")
+        @DecimalMax(value = "90", message = "La latitud no es válida")
+        BigDecimal latitud,
+
+        @NotNull(message = "La ubicación es obligatoria")
+        @DecimalMin(value = "-180", message = "La longitud no es válida")
+        @DecimalMax(value = "180", message = "La longitud no es válida")
+        BigDecimal longitud
 ) {
 }

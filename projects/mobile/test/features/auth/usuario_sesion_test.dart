@@ -35,4 +35,22 @@ void main() {
     expect(usuario.toJson()['correoVerificado'], isTrue);
     expect(UsuarioSesion.fromJson(usuario.toJson()).correoVerificado, isTrue);
   });
+
+  test('una sesión guardada antes de CU06 se lee sin foto', () {
+    expect(UsuarioSesion.fromJson(json).fotoUrl, isNull);
+  });
+
+  test('conserva la fotoUrl del JSON y toJson la devuelve', () {
+    final usuario = UsuarioSesion.fromJson({
+      ...json,
+      'fotoUrl': 'http://minio/f.png',
+    });
+
+    expect(usuario.fotoUrl, 'http://minio/f.png');
+    expect(usuario.toJson()['fotoUrl'], 'http://minio/f.png');
+    expect(
+      UsuarioSesion.fromJson(usuario.toJson()).fotoUrl,
+      'http://minio/f.png',
+    );
+  });
 }

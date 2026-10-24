@@ -41,6 +41,8 @@ public class SecurityConfig {
                     "/api/v1/auth/logout").permitAll()
                 // * Confirmar el correo (CU04b): el enlace se abre fuera de la sesión
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/verificar-correo/confirmar").permitAll()
+                // * Confirmar el cambio de correo (CU06): el enlace llega al correo nuevo y se abre fuera de la sesión
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/cambiar-correo/confirmar").permitAll()
                 // * Recuperar la contraseña (CU04): se usa sin sesión
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/recuperar", "/api/v1/auth/restablecer").permitAll()
                 .anyRequest().authenticated()

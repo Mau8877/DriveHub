@@ -28,9 +28,12 @@ const _secciones = [
   SeccionShell('Inicio', Icons.home_outlined, 'resumen'),
   SeccionShell('Clases', Icons.event_note_outlined, 'CU13 a CU16'),
   SeccionShell('Propia', Icons.star_outline, 'CU99', builder: _construirPropia),
+  SeccionShell('Perfil', Icons.person_outline, 'CU06', builder: _construirPerfil),
 ];
 
 Widget _construirPropia(BuildContext context) => const Text('cuerpo propio');
+
+Widget _construirPerfil(BuildContext context) => const Text('cuerpo del perfil');
 
 Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
   final sesion = SesionFalsa(EstadoSesion.conSesion(usuario));
@@ -44,17 +47,57 @@ Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
 }
 
 void main() {
-  testWidgets('el botón Cerrar sesión llama a cerrarSesion una vez', (
-    tester,
-  ) async {
-    final sesion = await _montar(tester, usuarioDePrueba);
+  group('Barra superior', () {
+    testWidgets('Inicio lleva la marca, los avisos y el avatar; no hay botón de salir', (
+      tester,
+    ) async {
+      await _montar(tester, _verificado);
 
-    expect(find.byTooltip('Cerrar sesión'), findsOneWidget);
+      expect(find.byTooltip('Avisos'), findsOneWidget);
+      expect(find.byTooltip('Mi perfil'), findsOneWidget);
+      // * Cerrar sesión vive en Perfil (con confirmación), no en la barra
+      expect(find.byTooltip('Cerrar sesión'), findsNothing);
+    });
 
-    await tester.tap(find.byTooltip('Cerrar sesión'));
-    await tester.pump();
+    testWidgets('el botón de avisos dice que no hay avisos nuevos', (
+      tester,
+    ) async {
+      await _montar(tester, _verificado);
 
-    expect(sesion.cierres, 1);
+      await tester.tap(find.byTooltip('Avisos'));
+      await tester.pump();
+
+      expect(find.text('Todavía no tienes avisos nuevos'), findsOneWidget);
+    });
+
+    testWidgets('tocar el avatar abre la sección Perfil', (tester) async {
+      await _montar(tester, _verificado);
+
+      await tester.tap(find.byTooltip('Mi perfil'));
+      await tester.pump();
+
+      expect(find.text('cuerpo del perfil'), findsOneWidget);
+    });
+
+    testWidgets('las demás secciones llevan su título en la barra', (
+      tester,
+    ) async {
+      await _montar(tester, _verificado);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Clases'),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.text('Clases')),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Avisos'), findsNothing);
+    });
   });
 
   group('Secciones', () {
@@ -63,7 +106,7 @@ void main() {
     ) async {
       await _montar(tester, _verificado);
 
-      expect(find.byType(NavigationDestination), findsNWidgets(3));
+      expect(find.byType(NavigationDestination), findsNWidgets(4));
     });
 
     testWidgets('sin pantalla propia muestra el cuerpo de prueba con sus CU', (

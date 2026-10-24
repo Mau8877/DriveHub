@@ -1,4 +1,5 @@
-import { Component } from '@angular/core'
+import { CUSTOM_ELEMENTS_SCHEMA, Component } from '@angular/core'
+import '@drivehub/ui'
 
 /**
  * Pantalla inicial del remoto Pagos.
@@ -8,11 +9,21 @@ import { Component } from '@angular/core'
  */
 @Component({
   selector: 'app-inicio',
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <section class="p-6">
-      <h1 class="mb-1 text-2xl font-semibold">Pagos</h1>
-      <p class="text-muted-foreground">Planes de pago y cuotas.</p>
-      <p class="text-muted-foreground mt-4 text-sm">Casos de uso pendientes: CU25.</p>
+    <section class="dh-page">
+      <div class="dh-page-head">
+        <div>
+          <h1>Pagos</h1>
+          <p>Planes de pago y cuotas.</p>
+        </div>
+      </div>
+      <div class="dh-card dh-pendiente">
+        <span class="dh-pendiente-ico">
+          <dh-icono nombre="wallet" [tam]="22" />
+        </span>
+        <p class="dh-muted dh-texto-sm">Casos de uso pendientes: CU25.</p>
+      </div>
     </section>
   `,
 })

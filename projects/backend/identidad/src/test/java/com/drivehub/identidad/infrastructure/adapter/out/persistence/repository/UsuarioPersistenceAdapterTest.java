@@ -16,8 +16,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.drivehub.identidad.PostgresIntegrationTestBase;
 import com.drivehub.identidad.common.exception.ConflictException;
 import com.drivehub.identidad.common.exception.IdentidadErrorCodes;
+import com.drivehub.identidad.CiDePrueba;
 import com.drivehub.identidad.domain.model.Dispositivo;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.model.RefreshToken;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.RolNombres;
@@ -52,7 +54,7 @@ class UsuarioPersistenceAdapterTest extends PostgresIntegrationTestBase {
 
     private Usuario nuevoEstudiante(String email, Rol rol) {
         return Usuario.builder()
-            .email(email).passwordHash("$2a$hash").nombres("Ana").apellidos("Pérez")
+            .email(email).passwordHash("$2a$hash").ci(CiDePrueba.unico()).sexo(SexoPersona.MASCULINO).nombres("Ana").apellidos("Pérez")
             .fechaNacimiento(LocalDate.of(2000, 1, 1)).escuelaCodigo(UUID.randomUUID())
             .estado(EstadoUsuario.ACTIVO).intentosFallidos(0).roles(Set.of(rol)).build();
     }
@@ -145,7 +147,7 @@ class UsuarioPersistenceAdapterTest extends PostgresIntegrationTestBase {
     private Usuario nuevoAdministrador(String email, UUID escuela) {
         Rol admin = rolRepository.buscarPorNombre(RolNombres.ADMIN_ESCUELA).orElseThrow();
         return usuarioRepository.guardar(Usuario.builder()
-            .email(email).passwordHash("$2a$hash").nombres("Marta").apellidos("Gómez")
+            .email(email).passwordHash("$2a$hash").ci(CiDePrueba.unico()).sexo(SexoPersona.MASCULINO).nombres("Marta").apellidos("Gómez")
             .fechaNacimiento(LocalDate.of(1985, 5, 5)).escuelaCodigo(escuela)
             .estado(EstadoUsuario.ACTIVO).intentosFallidos(0).roles(Set.of(admin)).build());
     }
@@ -196,5 +198,86 @@ class UsuarioPersistenceAdapterTest extends PostgresIntegrationTestBase {
         }
         // * El correo quedó libre: se puede volver a crear la cuenta
         assertThat(nuevoAdministrador("admin-borra@gmail.com", escuela)).isNotNull();
+    }
+
+    private Usuario conPerfilCompleto(String email, String ci) {
+        Rol estudiante = rolRepository.buscarPorNombre(RolNombres.ESTUDIANTE).orElseThrow();
+        return Usuario.builder().email(email).passwordHash("$2a$hash").escuelaCodigo(UUID.randomUUID())
+            .perfil(com.drivehub.identidad.domain.model.Perfil.builder()
+                .nombres("Ana").apellidos("Pérez").telefono("0991234567").fechaNacimiento(LocalDate.of(2000, 1, 1))
+                .ci(ci).sexo(SexoPersona.FEMENINO).direccion("Av. Arce 2345, La Paz")
+                .latitud(new java.math.BigDecimal("-16.489700")).longitud(new java.math.BigDecimal("-68.119300"))
+                .categoriaSigla("SIN").build())
+            .estado(EstadoUsuario.ACTIVO).intentosFallidos(0).roles(Set.of(estudiante)).build();
+    }
+
+    @Test
+    void guardar_creaElPerfilJuntoConLaCuentaYLoLeeCompleto() {
+        usuarioRepository.guardar(conPerfilCompleto("perfil-guardar@gmail.com", "PG10001"));
+
+        Usuario leido = usuarioRepository.buscarPorEmail("perfil-guardar@gmail.com").orElseThrow();
+
+        assertThat(leido.getPerfil().getCi()).isEqualTo("PG10001");
+        assertThat(leido.getPerfil().getSexo()).isEqualTo(SexoPersona.FEMENINO);
+        assertThat(leido.getPerfil().getDireccion()).isEqualTo("Av. Arce 2345, La Paz");
+        assertThat(leido.getPerfil().getLatitud()).isEqualByComparingTo("-16.4897");
+        assertThat(leido.getPerfil().getCategoriaSigla()).isEqualTo("SIN");
+        assertThat(leido.getNombres()).isEqualTo("Ana");
+    }
+
+    @Test
+    void guardar_conCiRepetido_lanzaErrIde19YNoDejaLaCuentaGuardada() {
+        usuarioRepository.guardar(conPerfilCompleto("perfil-ci1@gmail.com", "PG20001"));
+
+        assertThatThrownBy(() -> usuarioRepository.guardar(conPerfilCompleto("perfil-ci2@gmail.com", "PG20001")))
+            .isInstanceOfSatisfying(ConflictException.class, ex ->
+                assertThat(ex.getErrorCode()).isEqualTo(IdentidadErrorCodes.CI_EN_USO));
+        assertThat(usuarioRepository.existePorEmail("perfil-ci2@gmail.com")).isFalse();
+    }
+
+    @Test
+    void existePorCi_yExistePorCiDeOtro_distinguenLaCuentaPropia() {
+        Usuario guardado = usuarioRepository.guardar(conPerfilCompleto("perfil-existe@gmail.com", "PG30001"));
+
+        assertThat(usuarioRepository.existePorCi("PG30001")).isTrue();
+        assertThat(usuarioRepository.existePorCi("PG30002")).isFalse();
+        assertThat(usuarioRepository.existePorCiDeOtro("PG30001", guardado.getCodigo())).isFalse();
+        assertThat(usuarioRepository.existePorCiDeOtro("PG30001", UUID.randomUUID())).isTrue();
+    }
+
+    @Test
+    void actualizar_cambiaLosDatosDelPerfilSinTocarLosDeAcceso() {
+        Usuario guardado = usuarioRepository.guardar(conPerfilCompleto("perfil-act@gmail.com", "PG40001"));
+
+        usuarioRepository.actualizar(guardado.toBuilder().perfil(guardado.getPerfil().toBuilder()
+            .nombres("Luisa").ci("PG40002").direccion(null).build()).build());
+
+        Usuario leido = usuarioRepository.buscarPorCodigo(guardado.getCodigo()).orElseThrow();
+        assertThat(leido.getPerfil().getNombres()).isEqualTo("Luisa");
+        assertThat(leido.getPerfil().getCi()).isEqualTo("PG40002");
+        assertThat(leido.getPerfil().getDireccion()).isNull();
+        assertThat(leido.getPasswordHash()).isEqualTo("$2a$hash");
+        assertThat(leido.getEmail()).isEqualTo("perfil-act@gmail.com");
+    }
+
+    @Test
+    void actualizar_conCiDeOtraCuenta_lanzaErrIde19() {
+        usuarioRepository.guardar(conPerfilCompleto("perfil-dup1@gmail.com", "PG50001"));
+        Usuario otro = usuarioRepository.guardar(conPerfilCompleto("perfil-dup2@gmail.com", "PG50002"));
+
+        assertThatThrownBy(() -> usuarioRepository.actualizar(otro.toBuilder()
+                .perfil(otro.getPerfil().toBuilder().ci("PG50001").build()).build()))
+            .isInstanceOfSatisfying(ConflictException.class, ex ->
+                assertThat(ex.getErrorCode()).isEqualTo(IdentidadErrorCodes.CI_EN_USO));
+    }
+
+    @Test
+    void eliminarDefinitivamente_tambienBorraElPerfil() {
+        Usuario guardado = usuarioRepository.guardar(conPerfilCompleto("perfil-borrar@gmail.com", "PG60001"));
+
+        usuarioRepository.eliminarDefinitivamente(guardado.getCodigo());
+
+        assertThat(usuarioRepository.existePorCi("PG60001")).isFalse();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM perfil WHERE ci = 'PG60001'", Integer.class)).isZero();
     }
 }

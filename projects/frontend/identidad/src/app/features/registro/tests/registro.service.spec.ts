@@ -16,6 +16,10 @@ const DATOS: RegistroEstudianteRequest = {
   email: 'ana@gmail.com',
   password: '123456789',
   escuelaSlug: 'escuelaexample',
+  ci: 'AB12345',
+  sexo: 'FEMENINO' as const,
+  latitud: -16.4897,
+  longitud: -68.1193,
 }
 
 describe('RegistroService', () => {

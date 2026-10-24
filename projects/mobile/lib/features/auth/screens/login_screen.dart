@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_client.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/aviso_cockpit.dart';
+import '../../../shared/widgets/cockpit_scaffold.dart';
+import '../../../shared/widgets/indicador_boton.dart';
+import '../../../shared/widgets/marca_drivehub.dart';
 import '../providers/sesion_provider.dart';
 import '../validators/registro_validators.dart';
-import '../widgets/auto_ilustracion.dart';
 
 /// Por qué se llegó al login sin que la persona lo pidiera.
 const _mensajesDeMotivo = {
@@ -89,210 +91,134 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final motivo = _mensajesDeMotivo[ref.watch(sesionProvider).motivo];
+
     final tema = Theme.of(context);
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Cabecera(tema: tema),
-            Padding(
-              padding: const EdgeInsets.all(AppSpace.xl),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (widget.cuentaCreada) ...[
-                      _aviso(
-                        context,
-                        'Tu cuenta fue creada. Inicia sesión para continuar.',
-                      ),
-                      const SizedBox(height: AppSpace.lg),
-                    ],
-                    if (motivo != null) ...[
-                      _aviso(context, motivo),
-                      const SizedBox(height: AppSpace.lg),
-                    ],
-                    Text('Iniciar sesión', style: tema.textTheme.headlineSmall),
-                    const SizedBox(height: AppSpace.lg),
-                    _Etiqueta('Correo', tema),
-                    TextFormField(
-                      key: const Key('campoEmail'),
-                      controller: _email,
-                      decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.mail_outline),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      autocorrect: false,
-                      autofillHints: const [AutofillHints.email],
-                      textInputAction: TextInputAction.next,
-                      validator: validarEmail,
+    return CockpitScaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: LogoDriveHub(tamano: 34),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    'Iniciar sesión',
+                    style: tema.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1,
                     ),
-                    const SizedBox(height: AppSpace.md),
-                    _Etiqueta('Contraseña', tema),
-                    TextFormField(
-                      key: const Key('campoPassword'),
-                      controller: _password,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _verPassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tu autoescuela, en tu bolsillo.',
+                    style: tema.textTheme.bodyMedium?.copyWith(
+                      color: tema.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (widget.cuentaCreada) ...[
+                    const AvisoCockpit(
+                      texto: 'Tu cuenta fue creada. Inicia sesión para continuar.',
+                      tono: TonoAviso.exito,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (motivo != null) ...[
+                    AvisoCockpit(texto: motivo, tono: TonoAviso.advertencia),
+                    const SizedBox(height: 16),
+                  ],
+                  TextFormField(
+                    key: const Key('campoEmail'),
+                    controller: _email,
+                    decoration: const InputDecoration(
+                      labelText: 'Correo',
+                      prefixIcon: Icon(Icons.mail_outline),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    autocorrect: false,
+                    textInputAction: TextInputAction.next,
+                    validator: validarEmail,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    key: const Key('campoPassword'),
+                    controller: _password,
+                    decoration: InputDecoration(
+                      labelText: 'Contraseña',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _verPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                        tooltip: _verPassword
+                            ? 'Ocultar contraseña'
+                            : 'Mostrar contraseña',
+                        onPressed: () =>
+                            setState(() => _verPassword = !_verPassword),
+                      ),
+                    ),
+                    obscureText: !_verPassword,
+                    onFieldSubmitted: (_) => _enviar(),
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'La contraseña es obligatoria'
+                        : null,
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      key: const Key('botonOlvideContrasena'),
+                      onPressed: () => context.go('/forgot-password'),
+                      child: const Text('¿Olvidaste tu contraseña?'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton(
+                    key: const Key('botonIngresar'),
+                    onPressed: _enviando ? null : _enviar,
+                    child: _enviando
+                        ? const IndicadorBoton()
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('Ingresar'),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward, size: 18),
+                            ],
                           ),
-                          tooltip: _verPassword
-                              ? 'Ocultar contraseña'
-                              : 'Mostrar contraseña',
-                          onPressed: () =>
-                              setState(() => _verPassword = !_verPassword),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '¿Eres estudiante nuevo?',
+                        style: tema.textTheme.bodyMedium?.copyWith(
+                          color: tema.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      obscureText: !_verPassword,
-                      autofillHints: const [AutofillHints.password],
-                      onFieldSubmitted: (_) => _enviar(),
-                      validator: (v) => (v == null || v.isEmpty)
-                          ? 'La contraseña es obligatoria'
-                          : null,
-                    ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        key: const Key('botonOlvideContrasena'),
-                        onPressed: () => context.go('/forgot-password'),
-                        child: const Text('¿Olvidaste tu contraseña?'),
+                      TextButton(
+                        onPressed: () => context.go('/register'),
+                        child: const Text('Crear cuenta'),
                       ),
-                    ),
-                    const SizedBox(height: AppSpace.sm),
-                    FilledButton(
-                      key: const Key('botonIngresar'),
-                      onPressed: _enviando ? null : _enviar,
-                      child: _enviando
-                          ? const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                                SizedBox(width: AppSpace.sm),
-                                Text('Ingresando…'),
-                              ],
-                            )
-                          : const Text('Ingresar'),
-                    ),
-                    const SizedBox(height: AppSpace.md),
-                    OutlinedButton(
-                      onPressed: () => context.go('/register'),
-                      child: const Text('Crear cuenta'),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _aviso(BuildContext context, String texto) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpace.lg),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(AppRadius.textarea),
-      ),
-      child: Text(texto),
-    );
-  }
-}
-
-/// Bloque ámbar de arriba: logo, saludo e ilustración (design.md 6.1).
-class _Cabecera extends StatelessWidget {
-  final ThemeData tema;
-
-  const _Cabecera({required this.tema});
-
-  @override
-  Widget build(BuildContext context) {
-    final esquema = tema.colorScheme;
-    return Container(
-      height: 330,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpace.xxl,
-        AppSpace.xxl,
-        AppSpace.xxl,
-        AppSpace.xl,
-      ),
-      decoration: BoxDecoration(
-        color: esquema.secondary,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(56)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.directions_car_filled_outlined,
-                  color: esquema.onSecondary,
-                  size: 32,
-                ),
-                const SizedBox(width: AppSpace.sm),
-                Text(
-                  'DriveHub',
-                  style: tema.textTheme.headlineMedium?.copyWith(
-                    color: esquema.onSecondary,
-                    fontSize: 30,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpace.xxl),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 230),
-              child: Text(
-                '¡Qué bueno verte de nuevo!',
-                style: AppTheme.conPeso(
-                  tema.textTheme.headlineSmall!.copyWith(
-                    color: esquema.onSecondary,
-                    fontSize: 24,
-                  ),
-                  FontWeight.w800,
-                ),
-              ),
-            ),
-            const Spacer(),
-            const Align(
-              alignment: Alignment.bottomRight,
-              child: AutoIlustracion(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Etiqueta extends StatelessWidget {
-  final String texto;
-  final ThemeData tema;
-
-  const _Etiqueta(this.texto, this.tema);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 0, 0, 6),
-      child: Text(texto, style: tema.textTheme.labelMedium),
     );
   }
 }

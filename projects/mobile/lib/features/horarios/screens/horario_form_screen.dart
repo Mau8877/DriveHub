@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/cockpit_scaffold.dart';
 import '../models/crear_plantilla_horario_request.dart';
 import '../models/fechas.dart';
 import '../providers/horarios_provider.dart';
@@ -171,10 +172,10 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
       cantidadDias: _dias.length,
     );
 
-    return Scaffold(
+    return CockpitScaffold(
       appBar: AppBar(title: const Text('Nuevo horario')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.md, AppSpace.lg, AppSpace.lg),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: Form(
           key: _formKey,
           autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -190,19 +191,19 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
                 decoration: const InputDecoration(hintText: 'Por ejemplo, Mañanas entre semana'),
                 validator: validarNombre,
               ),
-              const SizedBox(height: AppSpace.lg),
+              const SizedBox(height: 16),
               _Etiqueta('¿Qué días atiendes?', tema),
               SelectorDeDias(seleccionados: _dias, alAlternar: _alternarDia),
               if (errorDeDias != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: AppSpace.sm),
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     errorDeDias,
                     key: const Key('errorDias'),
                     style: tema.textTheme.bodyMedium?.copyWith(color: tema.colorScheme.error),
                   ),
                 ),
-              const SizedBox(height: AppSpace.lg),
+              const SizedBox(height: 16),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -215,7 +216,7 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
                       validador: validarHoraInicio,
                     ),
                   ),
-                  const SizedBox(width: AppSpace.md),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: _campoHora(
                       etiqueta: 'Hasta las',
@@ -229,7 +230,7 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpace.lg),
+              const SizedBox(height: 16),
               _Etiqueta('Duración de cada clase', tema),
               SegmentedButton<int>(
                 key: const Key('campoDuracion'),
@@ -239,7 +240,7 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
                 selected: {_duracion},
                 onSelectionChanged: (elegida) => setState(() => _duracion = elegida.first),
               ),
-              const SizedBox(height: AppSpace.lg),
+              const SizedBox(height: 16),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -252,7 +253,7 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
                       validador: (_) => validarVigenteDesde(_vigenteDesde, hoy: _hoy),
                     ),
                   ),
-                  const SizedBox(width: AppSpace.md),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: _campoFecha(
                       etiqueta: 'Hasta (opcional)',
@@ -265,10 +266,10 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpace.lg),
+              const SizedBox(height: 16),
               _VistaPrevia(vista: vista),
               if (_errorGeneral != null) ...[
-                const SizedBox(height: AppSpace.lg),
+                const SizedBox(height: 16),
                 Text(
                   _errorGeneral!,
                   key: const Key('errorGeneral'),
@@ -281,7 +282,7 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.sm, AppSpace.lg, AppSpace.lg),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: FilledButton(
             key: const Key('botonGuardarHorario'),
             onPressed: _enviando ? null : _guardar,
@@ -290,7 +291,7 @@ class _HorarioFormScreenState extends ConsumerState<HorarioFormScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                      SizedBox(width: AppSpace.sm),
+                      SizedBox(width: 8),
                       Text('Guardando…'),
                     ],
                   )
@@ -385,19 +386,23 @@ class _VistaPrevia extends StatelessWidget {
 
     return Container(
       key: const Key('vistaPrevia'),
-      padding: const EdgeInsets.all(AppSpace.lg),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: tema.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(AppRadius.textarea),
+        color: Color.alphaBlend(
+          AppColors.ambar.withValues(alpha: 0.14),
+          tema.colorScheme.surface,
+        ),
+        borderRadius: BorderRadius.circular(AppRadios.control),
+        border: Border.all(color: AppColors.ambar.withValues(alpha: 0.45)),
       ),
       child: Row(
         children: [
-          Icon(Icons.schedule, color: tema.colorScheme.onSecondaryContainer),
-          const SizedBox(width: AppSpace.md),
+          Icon(Icons.schedule, color: context.cockpit.acento),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               texto,
-              style: tema.textTheme.bodyMedium?.copyWith(color: tema.colorScheme.onSecondaryContainer),
+              style: tema.textTheme.bodyMedium?.copyWith(color: tema.colorScheme.onSurface),
             ),
           ),
         ],

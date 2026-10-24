@@ -12,6 +12,9 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.drivehub.identidad.common.response.ApiResponse;
@@ -50,6 +53,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleParametroInvalido(Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("ERR_SYS_01", "Falta un parámetro o no es válido"));
+    }
+
+    // * La foto de perfil (CU06) supera el límite de la petición: Spring lo corta antes de llegar al controller.
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Object>> handleArchivoDemasiadoGrande(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(IdentidadErrorCodes.FOTO_DEMASIADO_GRANDE, "La foto pesa más de 5 MB"));
+    }
+
+    // * Una petición que no es multipart, o a la que le falta la parte esperada (ej. `archivo`), es 400, no 500.
+    @ExceptionHandler({MultipartException.class, MissingServletRequestPartException.class})
+    public ResponseEntity<ApiResponse<Object>> handleMultipartInvalido(Exception ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("ERR_SYS_01", "Falta el archivo o la petición no es válida"));
     }
 
     // * Un @PreAuthorize que niega el acceso es 403, no 500 (sin esto lo captura el catch-all).

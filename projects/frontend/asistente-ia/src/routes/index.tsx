@@ -8,10 +8,16 @@ export const Route = createFileRoute('/')({
 // TODO: los casos de uso de este micro-frontend (CU41, CU43).
 function Inicio() {
   return (
-    <section className="p-6">
-      <h1 className="mb-1 text-2xl font-semibold">Asistente IA</h1>
-      <p className="text-muted-foreground">IA local web y agentes n8n.</p>
-      <p className="text-muted-foreground mt-4 text-sm">Casos de uso pendientes: CU41, CU43.</p>
+    <section className="dh-page">
+      <div className="dh-page-head">
+        <div>
+          <h1>Asistente IA</h1>
+          <p>IA local web y agentes n8n.</p>
+        </div>
+      </div>
+      <div className="dh-card p-5">
+        <p className="dh-muted m-0 text-sm">Casos de uso pendientes: CU41, CU43.</p>
+      </div>
     </section>
   )
 }

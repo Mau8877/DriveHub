@@ -11,8 +11,11 @@ const int nombresMax = 80;
 const int apellidosMax = 80;
 const int emailMax = 120;
 const int telefonoMax = 20;
+const int ciMin = 5;
+const int ciMax = 15;
 
 final RegExp _formatoEmail = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+final RegExp _formatoCi = RegExp(r'^[A-Za-z0-9-]+$');
 
 String? _obligatorio(String? valor, String mensaje) {
   if (valor == null || valor.trim().isEmpty) return mensaje;
@@ -56,6 +59,30 @@ String? validarTelefono(String? valor) {
   if (valor == null || valor.isEmpty) return null;
   if (valor.length > telefonoMax) {
     return 'El teléfono no puede superar $telefonoMax caracteres';
+  }
+  return null;
+}
+
+/// CI (CU08a): de [ciMin] a [ciMax] caracteres, solo letras, números y guion, sin espacios.
+String? validarCi(String? valor) {
+  final obligatorio = _obligatorio(valor, 'El CI es obligatorio');
+  if (obligatorio != null) return obligatorio;
+  final ci = valor!.trim();
+  if (ci.length < ciMin || ci.length > ciMax || !_formatoCi.hasMatch(ci)) {
+    return 'El CI debe tener entre $ciMin y $ciMax caracteres: letras, números y guion';
+  }
+  return null;
+}
+
+String? validarSexo(String? valor) {
+  return (valor == null || valor.isEmpty) ? 'Elige tu sexo' : null;
+}
+
+/// El punto del mapa: obligatorio, con las dos coordenadas y dentro de rango.
+String? validarUbicacion(double? latitud, double? longitud) {
+  if (latitud == null || longitud == null) return 'Elige tu ubicación en el mapa';
+  if (latitud < -90 || latitud > 90 || longitud < -180 || longitud > 180) {
+    return 'La ubicación no es válida';
   }
   return null;
 }
