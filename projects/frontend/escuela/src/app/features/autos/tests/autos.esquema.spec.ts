@@ -47,6 +47,16 @@ describe('esquema de autos', () => {
     expect(ESQUEMA_AUTOS.editar?.bloqueo).toMatchObject({ campo: 'estado', valor: 'BAJA' })
   })
 
+  it('la foto sale como miniatura en la tabla y se sube con la firma del backend al crear y editar', () => {
+    expect(ESQUEMA_AUTOS.columnas[0]).toMatchObject({ campo: 'imagenUrl', tipo: 'imagen' })
+    const deEditar = ESQUEMA_AUTOS.editar!.secciones.flatMap((s) => s.campos)
+
+    for (const foto of [campo('imagenUrl'), deEditar.find((c) => c.campo === 'imagenUrl')!]) {
+      expect(foto).toMatchObject({ tipo: 'imagen', firma: 'vehiculos/firma-imagen' })
+      expect(foto.requerido).toBeUndefined()
+    }
+  })
+
   it('la placa en uso cae bajo el campo placa', () => {
     expect(ESQUEMA_AUTOS.erroresDeCampo).toMatchObject({ ERR_ESC_07: { campo: 'placa' } })
   })

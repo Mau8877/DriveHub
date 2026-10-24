@@ -11,6 +11,7 @@ const anioMaximo = () => new Date().getFullYear() + 1
  * * tienen que seguir iguales a las del backend, que es la fuente de verdad.
  * * Los códigos de `erroresDeCampo` son los del backend: ERR_ESC_07 (placa en uso).
  * * La categoría de licencia no se gestiona en este caso de uso.
+ * * La foto se sube directo a Cloudinary con una firma del backend (`vehiculos/firma-imagen`).
  */
 export const ESQUEMA_AUTOS: EsquemaGestion = {
   recurso: 'vehiculos',
@@ -18,6 +19,7 @@ export const ESQUEMA_AUTOS: EsquemaGestion = {
   descripcion: 'Flota de autos de la escuela.',
   nombreSingular: 'auto',
   columnas: [
+    { campo: 'imagenUrl', titulo: 'Foto', tipo: 'imagen' },
     { campo: 'placa', titulo: 'Placa', ancho: '8rem' },
     { campo: 'marca', titulo: 'Marca' },
     { campo: 'modelo', titulo: 'Modelo' },
@@ -113,6 +115,13 @@ export const ESQUEMA_AUTOS: EsquemaGestion = {
             max: 9999999,
             mensajes: { min: 'El kilometraje no puede ser negativo' },
           },
+          {
+            campo: 'imagenUrl',
+            titulo: 'Foto',
+            tipo: 'imagen',
+            firma: 'vehiculos/firma-imagen',
+            ayuda: 'Se sube a Cloudinary. Imagen de hasta 5 MB.',
+          },
           { campo: 'soatVence', titulo: 'Vencimiento del SOAT', tipo: 'fecha' },
           { campo: 'inspeccionVence', titulo: 'Vencimiento de la inspección', tipo: 'fecha' },
         ],
@@ -178,6 +187,13 @@ export const ESQUEMA_AUTOS: EsquemaGestion = {
             max: 9999999,
             ayuda: 'No puede ser menor al kilometraje actual.',
             mensajes: { min: 'El kilometraje no puede ser negativo' },
+          },
+          {
+            campo: 'imagenUrl',
+            titulo: 'Foto',
+            tipo: 'imagen',
+            firma: 'vehiculos/firma-imagen',
+            ayuda: 'Se sube a Cloudinary. Imagen de hasta 5 MB.',
           },
           { campo: 'soatVence', titulo: 'Vencimiento del SOAT', tipo: 'fecha' },
           { campo: 'inspeccionVence', titulo: 'Vencimiento de la inspección', tipo: 'fecha' },
