@@ -14,6 +14,7 @@ cabecera ni pantalla de acceso.
 | `<dh-shell>` | Armazón completo: menú + cabecera + contenido. Es lo que usa el shell y lo que usa cualquier remoto que corra suelto |
 | `<dh-sidebar>` | Menú lateral (grupos, iconos, colapsable, cajón en móvil). Con dos ítems que coinciden con la ruta (`/escuela` y `/escuela/estudiantes`) queda activo solo el de la ruta más específica |
 | `<dh-select>` | Lista desplegable propia: reemplaza al `<select>` nativo (`valor`, `opciones`, `placeholder`, `sinVacio`, `etiqueta`, `deshabilitado`, `invalido`; eventos `dh-cambio` `{ valor }` y `dh-blur`). Teclado completo, se abre hacia arriba si abajo no entra y no la recorta el scroll de un panel |
+| `<dh-fecha>` | Selector de fecha propio: reemplaza al `<input type="date">` nativo (`valor` `yyyy-MM-dd`, `min`, `max`, `placeholder`, `etiqueta`, `deshabilitado`, `invalido`; eventos `dh-cambio` `{ valor }` y `dh-blur`). Se escribe (`dd/mm/aaaa`, las barras se ponen solas) o se elige en un calendario con vistas de días, meses y años (una fecha de nacimiento se elige en tres clics). Lo escrito no se limita a `min`/`max`: eso apaga días del calendario y la validación es del formulario |
 | `<dh-header>` | Cabecera: migas, buscador opcional, avisos, menú de la cuenta |
 | `<dh-auth-layout>` | Pantallas públicas (login, registro, recuperar...): arte + formulario |
 | `<dh-dialogo>` | Diálogo de confirmación (`abierto`, `titulo`, `texto`, `aceptar`, `peligro`, `ocupado`; eventos `dh-aceptar` y `dh-cancelar`). Nadie dibuja su propio "¿estás seguro?" |
@@ -34,7 +35,8 @@ todas las apps (Angular y React, shell y remotos) usan ese.
 | --- | --- |
 | `<select>` / `<option>` / `<datalist>` | `<dh-select>` |
 | `window.confirm()`, `alert()`, `prompt()` y `<dialog>` | `<dh-dialogo>` (avisos: el toast del componente o `dh-notice-*`) |
-| `<input type="date">`, `time`, `datetime-local`, `month`, `week` | Pendiente: se crea al primer caso que lo pida (ver abajo) |
+| `<input type="date">` | `<dh-fecha>` |
+| `<input type="time">`, `datetime-local`, `month`, `week` | Se crea al primer caso que lo pida (la hora es `<dh-hora>`, si hace falta) |
 | `<input type="color">`, `range`, `file` con su selector a la vista | Se crea al primer caso que lo pida |
 
 **Se sigue usando nativo** (el navegador solo dibuja el campo y se estiliza entero con `dh-input`):
@@ -58,12 +60,14 @@ todas las apps (Angular y React, shell y remotos) usan ese.
 No se crea un componente propio "solo para esta pantalla": si falta una variante, se amplía el del
 paquete para todos.
 
-**Deuda conocida (usos nativos que todavía quedan):**
+**En formularios reactivos de Angular**, `<dh-select>` y `<dh-fecha>` se conectan con `formControlName`
+mediante la directiva `DhValor` (`identidad/src/app/core/forms/dh-valor.directive.ts`): el control
+guarda el `valor` del componente y `dh-blur` lo marca como tocado. Hoy solo `identidad` usa formularios
+reactivos con estos componentes; cuando una segunda app Angular los necesite, la directiva pasa a un
+paquete en `packages/` (no se copia).
 
-- `<select>` nativo en `identidad` (`registro.ts` y `perfil.ts`): son formularios reactivos de Angular y
-  necesitan un adaptador para usar `<dh-select>` con `formControlName`.
-- `<input type="date">` en `<dh-gestion>` y en `identidad` (fecha de nacimiento): falta `<dh-fecha>`.
-- Mobile (Flutter) tiene sus propios widgets: no usa este paquete.
+**Deuda conocida (usos nativos que todavía quedan):** ninguno en la web. Mobile (Flutter) tiene sus
+propios widgets: no usa este paquete.
 
 ## Cómo se personaliza (sin tocar el paquete)
 
