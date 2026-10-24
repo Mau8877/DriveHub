@@ -54,3 +54,38 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 - **Significado:** Se intentó editar el nombre de una escuela inactiva: primero hay que
   reactivarla (CU05).
 - **Dónde se lanza:** `EditarEscuelaUseCase.ejecutar()`
+
+## `ERR_ESC_07`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Ya existe un auto con esa placa. La placa es única en toda la plataforma,
+  también frente a autos de otra escuela o dados de baja (CU07). También se responde si dos
+  registros simultáneos con la misma placa chocan: el segundo pierde.
+- **Dónde se lanza:** `RegistrarVehiculoUseCase.ejecutar()` y `VehiculoRepositoryImpl.guardar()`
+
+## `ERR_ESC_08`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El auto pedido no existe en la escuela de quien lo pide. Un auto de otra
+  escuela se responde igual, para no revelar qué autos existen (CU07).
+- **Dónde se lanza:** `ObtenerVehiculoUseCase.ejecutar()`, `EditarVehiculoUseCase.ejecutar()` y
+  `CambiarEstadoVehiculoUseCase.ejecutar()`
+
+## `ERR_ESC_09`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El cambio no es posible desde el estado actual del auto (CU07): editar o
+  cambiar de estado un auto dado de baja, enviar a mantenimiento uno que no está disponible,
+  habilitar uno que no está en mantenimiento, o dar de baja uno que ya lo está.
+- **Dónde se lanza:** `EditarVehiculoUseCase.ejecutar()` y `CambiarEstadoVehiculoUseCase.ejecutar()`
+
+## `ERR_ESC_10`
+
+- **HTTP:** 403
+- **Excepción:** `ForbiddenException`
+- **Significado:** El token de acceso no trae la escuela de la cuenta (claim `escuela`), así
+  que no hay escuela sobre la cual operar (CU07). Un Administrador de escuela siempre la trae.
+- **Dónde se lanza:** `VehiculoController.escuelaDe()`

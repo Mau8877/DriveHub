@@ -64,6 +64,10 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_04`](escuela/ERRORES_ESCUELA.md#err_esc_04) — La escuela ya estaba inactiva (409)
 - [`ERR_ESC_05`](escuela/ERRORES_ESCUELA.md#err_esc_05) — La escuela ya estaba activa (409)
 - [`ERR_ESC_06`](escuela/ERRORES_ESCUELA.md#err_esc_06) — La escuela está inactiva y no se puede editar (409)
+- [`ERR_ESC_07`](escuela/ERRORES_ESCUELA.md#err_esc_07) — Ya existe un auto con esa placa (409)
+- [`ERR_ESC_08`](escuela/ERRORES_ESCUELA.md#err_esc_08) — El auto no existe en la escuela (404)
+- [`ERR_ESC_09`](escuela/ERRORES_ESCUELA.md#err_esc_09) — Cambio no permitido desde el estado actual del auto (409)
+- [`ERR_ESC_10`](escuela/ERRORES_ESCUELA.md#err_esc_10) — El token no trae la escuela de la cuenta (403)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su

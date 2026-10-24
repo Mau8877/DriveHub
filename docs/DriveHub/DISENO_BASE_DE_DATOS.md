@@ -217,7 +217,7 @@ Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b) y resta
 
 ## 3. Escuela — PostgreSQL
 
-Escuelas (tenants), personas de la escuela, flota y asignaciones. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05).
+Escuelas (tenants), personas de la escuela, flota y asignaciones. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261024100000__vehiculo_escuela_codigo.sql` (CU07).
 
 ```mermaid
 erDiagram
@@ -328,11 +328,12 @@ Categorías que enseña cada instructor.
 
 ### `vehiculo`
 
-Flota (CU07).
+Flota (CU07). Es la primera tabla de Escuela con `escuela_codigo` (tenant): las demás lo suman con sus casos de uso.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
-| `placa` | `VARCHAR(10) NOT NULL UNIQUE` | |
+| `escuela_codigo` | `UUID NOT NULL` | → `escuela.codigo_escuela`, sin FK. Es el claim `escuela` del JWT; toda consulta del repositorio filtra por él. Índice `idx_vehiculo_escuela_codigo` |
+| `placa` | `VARCHAR(10) NOT NULL UNIQUE` | Única en toda la plataforma, no por escuela |
 | `marca` | `VARCHAR(40) NOT NULL` | |
 | `modelo` | `VARCHAR(40) NOT NULL` | |
 | `anio` | `SMALLINT` | |
@@ -952,7 +953,7 @@ Todas por **código público**, sin FK física.
 
 ### Pendiente de diseñar
 
-- **Filtro por tenant.** Falta `escuela_codigo` en las tablas de Escuela (`estudiante`, `instructor`, `vehiculo`…), Pagos, Académico, Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. Se diseña antes de CU07 y CU08; el claim ya viaja en el token (CU02).
+- **Filtro por tenant.** `vehiculo` ya tiene `escuela_codigo` (CU07), con el filtro explícito en su repositorio a partir del claim `escuela`; falta en las demás tablas de Escuela (`estudiante`, `instructor`…), Pagos, Académico, Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. Se diseña antes de CU07 y CU08; el claim ya viaja en el token (CU02).
 - **Estado de la saga reserva-pago:** dueño por decidir ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 - **Valores de `severidad`** de los indicadores del tablero (se fijan con CU40).
 - **Job de limpieza** de `refresh_token` vencidos.
