@@ -142,6 +142,38 @@ export interface Editar {
   bloqueo?: { campo: string; valor: unknown; mensaje: string }
 }
 
+/** Un dato del panel de detalle: mismo significado que en `Columna` (`tipo`, `insignias`). */
+export interface CampoDetalle {
+  /** Campo del registro (admite puntos). */
+  campo: string
+  titulo: string
+  tipo?: 'texto' | 'fecha' | 'insignia'
+  /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
+  insignias?: Record<string, Insignia>
+  /** Con otro campo `mitad` a continuación, los dos comparten fila. */
+  mitad?: boolean
+}
+
+export interface SeccionDetalle {
+  titulo?: string
+  campos: CampoDetalle[]
+}
+
+/** Panel lateral de solo lectura con los datos de un registro (sin formulario ni "Guardar"). */
+export interface Detalle {
+  titulo?: string
+  descripcion?: string
+  /** Ruta (relativa al recurso, con `{id}`) para cargar el registro; por defecto `{id}`. */
+  cargar?: string
+  /** Icono del botón (por defecto `eye`). */
+  icono?: string
+  /** Texto del botón (por defecto "Ver detalles"). */
+  etiqueta?: string
+  /** El botón solo aparece en las filas que cumplen esto. */
+  visibleSi?: Condicion
+  secciones: SeccionDetalle[]
+}
+
 export interface EsquemaGestion {
   /** Recurso de la API: `escuelas` es `{apiBaseUrl}/escuelas`. */
   recurso: string
@@ -157,6 +189,8 @@ export interface EsquemaGestion {
   porPagina?: number
   crear?: Crear
   editar?: Editar
+  /** Si existe, cada fila tiene un botón que abre el registro en un panel de solo lectura. */
+  detalle?: Detalle
   acciones?: Accion[]
   /** Errores de negocio del backend que se muestran bajo un campo del formulario. */
   erroresDeCampo?: Record<string, { campo: string; mensaje: string }>

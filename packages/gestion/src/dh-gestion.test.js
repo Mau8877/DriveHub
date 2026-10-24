@@ -730,4 +730,223 @@ describe('<dh-gestion>', () => {
 
     expect(mapa().deshabilitado).toBe(true)
   })
+
+  // ------------------------------------------------------------------ detalle de solo lectura
+
+  const DETALLE = {
+    titulo: 'Datos del estudiante',
+    secciones: [
+      {
+        campos: [
+          { campo: 'nombreCompleto', titulo: 'Nombre' },
+          { campo: 'fechaNacimiento', titulo: 'Nacimiento', tipo: 'fecha', mitad: true },
+          { campo: 'edad', titulo: 'Edad', mitad: true },
+          { campo: 'estado', titulo: 'Estado', tipo: 'insignia', insignias: { ACTIVO: { etiqueta: 'Activo', tono: 'exito' } } },
+          { campo: 'telefono', titulo: 'Teléfono' },
+        ],
+      },
+    ],
+  }
+  const FICHA = { codigo: 'e1', nombreCompleto: 'Ana Pérez', fechaNacimiento: '2000-05-04', edad: 26, estado: 'ACTIVO', telefono: null }
+
+  async function montarConDetalle(detalle = DETALLE, esquema = {}) {
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = { ...structuredClone(ESQUEMA_PERFIL), detalle, ...esquema }
+    await asentar(el)
+  }
+
+  async function abrirDetalle(ficha = FICHA) {
+    await montarConDetalle()
+    fetch.mockResolvedValueOnce(sobre(ficha))
+    boton('Ver detalles').click()
+    await asentar(el)
+  }
+
+  it('sin detalle en el esquema no hay botón "Ver detalles"', async () => {
+    await montarPerfil()
+
+    expect(boton('Ver detalles')).toBeUndefined()
+  })
+
+  it('con detalle aparece "Ver detalles" en cada fila, con el icono del esquema', async () => {
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE, { ...ESTUDIANTE, codigo: 'e2' }]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = { ...structuredClone(ESQUEMA_PERFIL), detalle: DETALLE }
+    await asentar(el)
+
+    const botones = Array.from(el.shadowRoot.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Ver detalles')
+    expect(botones).toHaveLength(2)
+    expect(botones[0].querySelector('svg')).not.toBeNull()
+  })
+
+  it('visibleSi limita el botón a las filas que lo cumplen', async () => {
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE, { ...ESTUDIANTE, codigo: 'e2', categoriaSigla: 'SIN' }]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = { ...structuredClone(ESQUEMA_PERFIL), detalle: { ...DETALLE, visibleSi: { campo: 'categoriaSigla', igual: 'B' } } }
+    await asentar(el)
+
+    const botones = Array.from(el.shadowRoot.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Ver detalles')
+    expect(botones).toHaveLength(1)
+  })
+
+  it('la etiqueta del botón se puede cambiar desde el esquema', async () => {
+    await montarConDetalle({ ...DETALLE, etiqueta: 'Ver ficha' })
+
+    expect(boton('Ver ficha')).toBeDefined()
+    expect(boton('Ver detalles')).toBeUndefined()
+  })
+
+  it('al pulsarlo pide {recurso}/{id} y abre el panel lateral con el título del esquema', async () => {
+    await abrirDetalle()
+
+    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/estudiantes/e1')
+    expect(fetch.mock.calls[1][1].method).toBe('GET')
+    const drawer = el.shadowRoot.querySelector('aside.drawer')
+    expect(drawer).not.toBeNull()
+    expect(drawer.querySelector('h2').textContent).toBe('Datos del estudiante')
+    expect(el.shadowRoot.querySelectorAll('tbody tr')).toHaveLength(1)
+  })
+
+  it('cargar cambia la ruta con {id}', async () => {
+    await montarConDetalle({ ...DETALLE, cargar: 'por-codigo/{id}' })
+    fetch.mockResolvedValueOnce(sobre(FICHA))
+
+    boton('Ver detalles').click()
+    await asentar(el)
+
+    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/estudiantes/por-codigo/e1')
+  })
+
+  it('muestra cada dato con su formato: fecha 04 may 2026, insignia con su etiqueta y "—" si está vacío', async () => {
+    await abrirDetalle({ ...FICHA, fechaNacimiento: '2026-05-04' })
+
+    const t = el.shadowRoot.querySelector('aside.drawer').textContent.replace(/\s+/g, ' ')
+    expect(t).toContain('Nombre Ana Pérez')
+    expect(t).toContain('Nacimiento 04 may 2026')
+    expect(t).toContain('Edad 26')
+    expect(t).toContain('Estado Activo')
+    expect(t).toContain('Teléfono —')
+    expect(el.shadowRoot.querySelector('aside.drawer .insignia.exito').textContent.trim()).toBe('Activo')
+  })
+
+  it('un valor sin etiqueta de insignia se muestra tal cual', async () => {
+    await abrirDetalle({ ...FICHA, estado: 'OTRO' })
+
+    expect(el.shadowRoot.querySelector('aside.drawer .insignia').textContent.trim()).toBe('OTRO')
+  })
+
+  it('los campos "mitad" consecutivos comparten fila', async () => {
+    await abrirDetalle()
+
+    const par = el.shadowRoot.querySelector('aside.drawer .grid-2')
+    expect(par.querySelectorAll('.dato')).toHaveLength(2)
+    expect(par.textContent).toContain('Nacimiento')
+    expect(par.textContent).toContain('Edad')
+  })
+
+  it('es de solo lectura: sin formulario, sin Guardar y sin campos de entrada', async () => {
+    await abrirDetalle()
+
+    const drawer = el.shadowRoot.querySelector('aside.drawer')
+    expect(drawer.querySelector('form')).toBeNull()
+    expect(drawer.querySelector('input, select, textarea')).toBeNull()
+    expect(drawer.querySelector('button[type="submit"]')).toBeNull()
+    expect(Array.from(drawer.querySelectorAll('button')).map((b) => b.textContent.trim()).filter(Boolean)).toEqual(['Cerrar'])
+  })
+
+  it('mientras carga muestra el esqueleto y después los datos', async () => {
+    await montarConDetalle()
+    let resolver
+    fetch.mockReturnValueOnce(new Promise((r) => (resolver = r)))
+
+    boton('Ver detalles').click()
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('aside.drawer .brillo')).not.toBeNull()
+    expect(el.shadowRoot.querySelector('aside.drawer .dato')).toBeNull()
+
+    resolver(sobre(FICHA))
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('aside.drawer .brillo')).toBeNull()
+    expect(el.shadowRoot.querySelector('aside.drawer .dato')).not.toBeNull()
+  })
+
+  it('se cierra con Cerrar, con la X y con Escape', async () => {
+    await abrirDetalle()
+    boton('Cerrar').click()
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+
+    fetch.mockResolvedValueOnce(sobre(FICHA))
+    boton('Ver detalles').click()
+    await asentar(el)
+    el.shadowRoot.querySelector('aside.drawer button[aria-label="Cerrar"]').click()
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+
+    fetch.mockResolvedValueOnce(sobre(FICHA))
+    boton('Ver detalles').click()
+    await asentar(el)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+  })
+
+  it('un clic en el fondo lo cierra', async () => {
+    await abrirDetalle()
+
+    el.shadowRoot.querySelector('.fondo').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+  })
+
+  it('si la carga falla muestra el aviso de error y cierra el panel', async () => {
+    await montarConDetalle()
+    fetch.mockResolvedValueOnce(falla(404, 'ERR_IDE_20', 'El estudiante no existe'))
+
+    boton('Ver detalles').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+    expect(el.shadowRoot.querySelector('.toast.error').textContent).toContain('El estudiante no existe')
+  })
+
+  it('si se cierra antes de que llegue la respuesta, esa respuesta no reabre ni pisa nada', async () => {
+    await montarConDetalle()
+    let resolver
+    fetch.mockReturnValueOnce(new Promise((r) => (resolver = r)))
+
+    boton('Ver detalles').click()
+    await asentar(el)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await asentar(el)
+    resolver(sobre(FICHA))
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+  })
+
+  it('convive con crear y editar en el mismo esquema: cada botón abre lo suyo', async () => {
+    await montarConDetalle()
+    expect(boton('Ver detalles')).toBeDefined()
+    expect(boton('Editar')).toBeDefined()
+    expect(boton('Nuevo estudiante')).toBeDefined()
+
+    fetch.mockResolvedValueOnce(sobre(FICHA))
+    boton('Ver detalles').click()
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('aside.drawer form')).toBeNull()
+    boton('Cerrar').click()
+    await asentar(el)
+
+    fetch.mockResolvedValueOnce(lista(CATEGORIAS))
+    fetch.mockResolvedValueOnce(sobre(ESTUDIANTE))
+    boton('Editar').click()
+    await asentar(el)
+    expect(el.shadowRoot.querySelector('aside.drawer form')).not.toBeNull()
+  })
 })

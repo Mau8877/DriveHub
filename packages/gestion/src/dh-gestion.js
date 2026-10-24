@@ -318,6 +318,32 @@ export class DhGestion extends LitElement {
     }
   }
 
+  /** Abre el panel de solo lectura: carga el registro y lo muestra sin formulario. */
+  async _abrirDetalle(fila) {
+    const esquema = this.esquema
+    const id = fila[this._id]
+    this._idDetalle = id
+    this._registro = null
+    this._vista = 'detalle'
+    this._cargandoRegistro = true
+    try {
+      const ruta = (esquema.detalle.cargar ?? '{id}').replace('{id}', encodeURIComponent(id))
+      const { data } = await solicitar('GET', `${esquema.recurso}/${ruta}`)
+      // * Si cerró el panel o abrió otro mientras cargaba, esta respuesta ya no corresponde
+      if (esquema !== this.esquema || this._idDetalle !== id || this._vista !== 'detalle') return
+      this._registro = data
+    } catch (error) {
+      if (esquema !== this.esquema || this._idDetalle !== id || this._vista !== 'detalle') return
+      this._aviso = {
+        tipo: 'error',
+        texto: error instanceof ErrorApi ? error.message : 'No pudimos cargar el registro.',
+      }
+      this._vista = 'lista'
+    } finally {
+      if (this._idDetalle === id) this._cargandoRegistro = false
+    }
+  }
+
   _prepararFormulario(modo) {
     this._valores = {}
     this._tocados = new Set()
@@ -441,7 +467,7 @@ export class DhGestion extends LitElement {
     if (!this.esquema) return nothing
     return html`
       ${this._renderLista()}
-      ${this._vista === 'lista' ? nothing : this._renderDrawer()}
+      ${this._vista === 'lista' ? nothing : this._vista === 'detalle' ? this._renderDetalle() : this._renderDrawer()}
       ${this._confirmando ? this._renderDialogo() : nothing}
       ${this._aviso ? this._renderToast() : nothing}
     `
@@ -604,7 +630,13 @@ export class DhGestion extends LitElement {
     const id = fila[this._id]
     const trabajando = this._trabajando === id
     const puedeEditar = esquema.editar && cumple(esquema.editar.visibleSi, fila)
+    const puedeVer = esquema.detalle && cumple(esquema.detalle.visibleSi, fila)
     return html`<span class="acciones">
+      ${puedeVer
+        ? html`<button type="button" class="enlace" @click=${() => this._abrirDetalle(fila)}>
+            ${icono(esquema.detalle.icono ?? 'eye', 16)}<span>${esquema.detalle.etiqueta ?? 'Ver detalles'}</span>
+          </button>`
+        : nothing}
       ${puedeEditar
         ? html`<button type="button" class="enlace" @click=${() => this._abrirEditar(fila)}>
             ${icono(esquema.editar.icono ?? 'edit', 16)}<span>Editar</span>
@@ -715,6 +747,73 @@ export class DhGestion extends LitElement {
         </aside>
       </div>
     `
+  }
+
+  /** Panel de solo lectura (`detalle` del esquema): mismo drawer, sin formulario ni "Guardar". */
+  _renderDetalle() {
+    const detalle = this.esquema.detalle
+    const titulo = detalle.titulo ?? `Detalle de ${this.esquema.nombreSingular ?? 'registro'}`
+    return html`
+      <div class="fondo" @mousedown=${(e) => e.target === e.currentTarget && this._cerrarDrawer()}>
+        <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-titulo">
+          <header class="drawer-cabeza">
+            <div>
+              <h2 id="drawer-titulo">${titulo}</h2>
+              ${detalle.descripcion ? html`<p class="secundaria">${detalle.descripcion}</p>` : nothing}
+            </div>
+            <button type="button" class="icono-btn" aria-label="Cerrar" @click=${() => this._cerrarDrawer()}>
+              ${icono('x', 20)}
+            </button>
+          </header>
+          <div class="drawer-cuerpo" aria-busy=${String(this._cargandoRegistro)}>
+            ${this._cargandoRegistro || !this._registro
+              ? html`<span class="brillo"></span><span class="brillo"></span><span class="brillo"></span>`
+              : detalle.secciones.map((seccion) => this._renderSeccionDetalle(seccion))}
+            <div class="drawer-pie">
+              <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cerrar</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    `
+  }
+
+  _renderSeccionDetalle(seccion) {
+    // * Igual que en los formularios: los campos `mitad` que van seguidos comparten fila (de a dos)
+    const bloques = []
+    seccion.campos.forEach((campo) => {
+      const ultimo = bloques[bloques.length - 1]
+      if (campo.mitad && ultimo?.par && ultimo.campos.length < 2) ultimo.campos.push(campo)
+      else bloques.push({ par: !!campo.mitad, campos: [campo] })
+    })
+    return html`<fieldset>
+      ${seccion.titulo ? html`<legend>${seccion.titulo}</legend>` : nothing}
+      ${bloques.map((b) =>
+        b.par && b.campos.length === 2
+          ? html`<div class="grid-2">${b.campos.map((c) => this._renderDato(c))}</div>`
+          : b.campos.map((c) => this._renderDato(c))
+      )}
+    </fieldset>`
+  }
+
+  _renderDato(campo) {
+    const valor = leer(this._registro, campo.campo)
+    const vacio = valor === undefined || valor === null || valor === ''
+    let contenido = '—'
+    if (!vacio) {
+      if (campo.tipo === 'insignia') {
+        const insignia = campo.insignias?.[valor]
+        contenido = html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
+      } else if (campo.tipo === 'fecha') {
+        contenido = formatearFecha(valor)
+      } else {
+        contenido = String(valor)
+      }
+    }
+    return html`<div class="dato">
+      <span class="dato-titulo">${campo.titulo}</span>
+      <span class="dato-valor ${vacio ? 'sin-valor' : ''}">${contenido}</span>
+    </div>`
   }
 
   _renderDialogo() {

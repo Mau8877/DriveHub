@@ -546,6 +546,26 @@ export const estilos = css`
     border-top: 1px solid var(--border);
   }
 
+  /* Detalle de solo lectura */
+  .dato {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+    min-width: 0;
+  }
+  .dato-titulo {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+  .dato-valor {
+    overflow-wrap: anywhere;
+  }
+  .dato-valor.sin-valor {
+    color: var(--muted-foreground);
+  }
+
   /* Campos */
   .campo {
     display: flex;
