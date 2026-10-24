@@ -233,8 +233,16 @@ services:
       - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
       - MINIO_URL=http://drivehub-minio:9000
+      # URL con la que el NAVEGADOR abre los archivos (el bucket es de lectura pública).
+      - MINIO_PUBLIC_URL=http://localhost:9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
+      - IDENTIDAD_URL=http://drivehub-identidad:8081
     depends_on:
       mongo:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - drivehub-network
@@ -330,8 +338,8 @@ services:
       - frontend_nm_gestion:/app/packages/gestion/node_modules
     command: >
       sh -c "corepack enable pnpm &&
-      pnpm install --filter shell --filter identidad --filter escuela --filter @drivehub/gestion &&
-      pnpm --filter shell --filter identidad --filter escuela --parallel run dev"
+      pnpm install --filter shell --filter identidad --filter escuela --filter contenido --filter @drivehub/gestion &&
+      pnpm --filter shell --filter identidad --filter escuela --filter contenido --parallel run dev"
     ports:
       - '4200:4200'
       - '4201:4201'
