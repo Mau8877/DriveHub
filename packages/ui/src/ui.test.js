@@ -167,6 +167,338 @@ describe('dh-sidebar', () => {
   })
 })
 
+describe('dh-select', () => {
+  const OPCIONES = [
+    { valor: 'M', etiqueta: 'Masculino' },
+    { valor: 'F', etiqueta: 'Femenino' },
+    { valor: 'O', etiqueta: 'Ñandú' },
+  ]
+  const disparador = (el) => q(el, 'button.disparador')
+  const lista = (el) => q(el, 'ul[role="listbox"]')
+  const items = (el) => qa(el, 'li[role="option"]')
+  const teclear = (el, key, extra = {}) =>
+    disparador(el).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true, ...extra }))
+  const eventos = (el, nombre) => {
+    const recibidos = []
+    el.addEventListener(nombre, (e) => recibidos.push(e.detail))
+    return recibidos
+  }
+
+  it('muestra la etiqueta de la opción elegida o, si no hay, el placeholder', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, valor: 'F' })
+    expect(q(el, '.texto').textContent).toBe('Femenino')
+    expect(q(el, '.texto').classList.contains('vacio')).toBe(false)
+
+    el.valor = ''
+    await el.updateComplete
+    expect(q(el, '.texto').textContent).toBe('Elige una opción')
+    expect(q(el, '.texto').classList.contains('vacio')).toBe(true)
+  })
+
+  it('es un combobox accesible: nombre, aria-expanded y lista con role listbox', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, etiqueta: 'Sexo' })
+    expect(disparador(el).getAttribute('role')).toBe('combobox')
+    expect(disparador(el).getAttribute('aria-label')).toBe('Sexo')
+    expect(disparador(el).getAttribute('aria-expanded')).toBe('false')
+    expect(lista(el)).toBeNull()
+
+    disparador(el).click()
+    await el.updateComplete
+
+    expect(disparador(el).getAttribute('aria-expanded')).toBe('true')
+    expect(lista(el)).not.toBeNull()
+    expect(items(el).map((i) => i.textContent.trim())).toEqual(['Elige una opción', 'Masculino', 'Femenino', 'Ñandú'])
+    expect(items(el)[0].getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('no usa un <select> nativo', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    disparador(el).click()
+    await el.updateComplete
+
+    expect(el.shadowRoot.querySelector('select, option')).toBeNull()
+  })
+
+  it('elegir con el clic emite dh-cambio, cierra la lista y muestra la elegida', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    const cambios = eventos(el, 'dh-cambio')
+    disparador(el).click()
+    await el.updateComplete
+
+    items(el)[2].click()
+    await el.updateComplete
+
+    expect(cambios).toEqual([{ valor: 'F' }])
+    expect(el.valor).toBe('F')
+    expect(lista(el)).toBeNull()
+    expect(q(el, '.texto').textContent).toBe('Femenino')
+  })
+
+  it('elegir lo que ya estaba elegido no emite nada', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, valor: 'M' })
+    const cambios = eventos(el, 'dh-cambio')
+    disparador(el).click()
+    await el.updateComplete
+
+    items(el)[1].click()
+    await el.updateComplete
+
+    expect(cambios).toEqual([])
+  })
+
+  it('la primera opción (el placeholder) quita la elección', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, valor: 'M' })
+    const cambios = eventos(el, 'dh-cambio')
+    disparador(el).click()
+    await el.updateComplete
+
+    items(el)[0].click()
+    await el.updateComplete
+
+    expect(cambios).toEqual([{ valor: '' }])
+    expect(q(el, '.texto').textContent).toBe('Elige una opción')
+  })
+
+  it('con sin-vacio no ofrece quitar la elección', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, sinVacio: true })
+    disparador(el).click()
+    await el.updateComplete
+
+    expect(items(el).map((i) => i.textContent.trim())).toEqual(['Masculino', 'Femenino', 'Ñandú'])
+  })
+
+  it('marca la opción elegida y resalta la activa al abrir', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, valor: 'F' })
+    disparador(el).click()
+    await el.updateComplete
+
+    expect(items(el)[2].getAttribute('aria-selected')).toBe('true')
+    expect(items(el)[2].classList.contains('activa')).toBe(true)
+    expect(items(el)[2].querySelector('.marca')).not.toBeNull()
+    expect(items(el)[1].getAttribute('aria-selected')).toBe('false')
+  })
+
+  it('teclado: flechas abren y mueven, Enter elige', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    const cambios = eventos(el, 'dh-cambio')
+
+    teclear(el, 'ArrowDown')
+    await el.updateComplete
+    expect(lista(el)).not.toBeNull()
+    expect(items(el)[0].classList.contains('activa')).toBe(true)
+
+    teclear(el, 'ArrowDown')
+    teclear(el, 'ArrowDown')
+    await el.updateComplete
+    expect(items(el)[2].classList.contains('activa')).toBe(true)
+
+    teclear(el, 'ArrowUp')
+    await el.updateComplete
+    expect(items(el)[1].classList.contains('activa')).toBe(true)
+
+    teclear(el, 'Enter')
+    await el.updateComplete
+    expect(cambios).toEqual([{ valor: 'M' }])
+    expect(lista(el)).toBeNull()
+  })
+
+  it('teclado: Home y End van a la primera y a la última; las flechas no se pasan de los extremos', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    teclear(el, 'ArrowDown')
+    await el.updateComplete
+
+    teclear(el, 'End')
+    await el.updateComplete
+    expect(items(el)[3].classList.contains('activa')).toBe(true)
+    teclear(el, 'ArrowDown')
+    await el.updateComplete
+    expect(items(el)[3].classList.contains('activa')).toBe(true)
+
+    teclear(el, 'Home')
+    await el.updateComplete
+    expect(items(el)[0].classList.contains('activa')).toBe(true)
+    teclear(el, 'ArrowUp')
+    await el.updateComplete
+    expect(items(el)[0].classList.contains('activa')).toBe(true)
+  })
+
+  it('Enter y Espacio abren la lista cerrada', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+
+    teclear(el, 'Enter')
+    await el.updateComplete
+    expect(lista(el)).not.toBeNull()
+    teclear(el, 'Escape')
+    await el.updateComplete
+    teclear(el, ' ')
+    await el.updateComplete
+    expect(lista(el)).not.toBeNull()
+  })
+
+  it('Escape cierra la lista sin que llegue a quien escucha Escape más arriba (como un panel)', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    const arriba = vi.fn()
+    document.addEventListener('keydown', arriba)
+    disparador(el).click()
+    await el.updateComplete
+
+    teclear(el, 'Escape')
+    await el.updateComplete
+
+    expect(lista(el)).toBeNull()
+    expect(arriba).not.toHaveBeenCalled()
+
+    // * Con la lista cerrada, Escape sigue su camino
+    teclear(el, 'Escape')
+    expect(arriba).toHaveBeenCalledTimes(1)
+    document.removeEventListener('keydown', arriba)
+  })
+
+  it('Tab cierra la lista', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    disparador(el).click()
+    await el.updateComplete
+
+    teclear(el, 'Tab')
+    await el.updateComplete
+
+    expect(lista(el)).toBeNull()
+  })
+
+  it('escribir salta a la opción que empieza con esas letras, sin tildes ni mayúsculas', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    const cambios = eventos(el, 'dh-cambio')
+
+    teclear(el, 'f')
+    await el.updateComplete
+    expect(cambios).toEqual([{ valor: 'F' }])
+
+    // * Pasan más de 600 ms entre una letra y otra: es una búsqueda nueva
+    await new Promise((r) => setTimeout(r, 700))
+    teclear(el, 'n')
+    await el.updateComplete
+    expect(cambios).toEqual([{ valor: 'F' }, { valor: 'O' }])
+  })
+
+  it('escribir con la lista abierta mueve la opción activa en vez de elegir', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    const cambios = eventos(el, 'dh-cambio')
+    teclear(el, 'ArrowDown')
+    await el.updateComplete
+
+    teclear(el, 'm')
+    await el.updateComplete
+
+    expect(cambios).toEqual([])
+    expect(items(el)[1].classList.contains('activa')).toBe(true)
+  })
+
+  it('deshabilitado no se abre ni responde al teclado', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, deshabilitado: true })
+    expect(disparador(el).disabled).toBe(true)
+
+    disparador(el).click()
+    teclear(el, 'ArrowDown')
+    await el.updateComplete
+
+    expect(lista(el)).toBeNull()
+  })
+
+  it('un clic fuera cierra la lista y uno dentro de la lista no', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    disparador(el).click()
+    await el.updateComplete
+
+    lista(el).dispatchEvent(new Event('pointerdown', { bubbles: true, composed: true }))
+    await el.updateComplete
+    expect(lista(el)).not.toBeNull()
+
+    document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    await el.updateComplete
+    expect(lista(el)).toBeNull()
+  })
+
+  it('cambiar el tamaño de la ventana cierra la lista (queda mal posicionada)', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    disparador(el).click()
+    await el.updateComplete
+
+    window.dispatchEvent(new Event('resize'))
+    await el.updateComplete
+
+    expect(lista(el)).toBeNull()
+  })
+
+  it('un segundo clic en el control cierra la lista', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    disparador(el).click()
+    await el.updateComplete
+    disparador(el).click()
+    await el.updateComplete
+
+    expect(lista(el)).toBeNull()
+  })
+
+  it('cuando el foco sale emite dh-blur y cierra la lista', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    const salidas = []
+    el.addEventListener('dh-blur', () => salidas.push(true))
+    disparador(el).click()
+    await el.updateComplete
+
+    disparador(el).dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }))
+    await el.updateComplete
+
+    expect(salidas).toHaveLength(1)
+    expect(lista(el)).toBeNull()
+  })
+
+  it('invalido pone el borde de error y avisa con aria-invalid', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, invalido: true })
+
+    expect(el.hasAttribute('invalido')).toBe(true)
+    expect(disparador(el).getAttribute('aria-invalid')).toBe('true')
+  })
+
+  it('la lista se posiciona con fixed según el control y se abre hacia abajo si entra', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    vi.spyOn(disparador(el), 'getBoundingClientRect').mockReturnValue({ top: 100, bottom: 144, left: 20, width: 300, height: 44, right: 320 })
+    disparador(el).click()
+    await el.updateComplete
+
+    const estilo = lista(el).getAttribute('style')
+    expect(lista(el).classList.contains('arriba')).toBe(false)
+    expect(estilo).toContain('left: 20px')
+    expect(estilo).toContain('width: 300px')
+    expect(estilo).toContain('top: 148px')
+  })
+
+  it('se abre hacia arriba cuando abajo no entra y arriba hay más lugar', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES })
+    const alto = window.innerHeight
+    vi.spyOn(disparador(el), 'getBoundingClientRect').mockReturnValue({ top: alto - 60, bottom: alto - 16, left: 20, width: 300, height: 44, right: 320 })
+    disparador(el).click()
+    await el.updateComplete
+
+    expect(lista(el).classList.contains('arriba')).toBe(true)
+    expect(lista(el).getAttribute('style')).toContain('bottom: 64px')
+  })
+
+  it('sin opciones y sin opción vacía muestra "Sin opciones"', async () => {
+    const el = await crear('dh-select', { opciones: [], sinVacio: true })
+    disparador(el).click()
+    await el.updateComplete
+
+    expect(lista(el).textContent).toContain('Sin opciones')
+  })
+
+  it('un valor numérico se compara como texto con el de las opciones', async () => {
+    const el = await crear('dh-select', { opciones: [{ valor: 1, etiqueta: 'Uno' }], valor: '1' })
+
+    expect(q(el, '.texto').textContent).toBe('Uno')
+  })
+})
+
 describe('dh-header', () => {
   it('dibuja las migas: enlaces salvo la última, que es la página actual', async () => {
     const el = await crear('dh-header', { migas: [{ etiqueta: 'Inicio', ruta: '/' }, { etiqueta: 'Escuelas' }] })

@@ -97,6 +97,31 @@ export class DhMapaUbicacion extends HTMLElement {
   centro: [number, number]
 }
 
+/** Detalle del evento `dh-cambio` de <dh-select>. */
+export interface DetalleCambio {
+  valor: string
+}
+
+export interface OpcionSelect {
+  valor: string
+  etiqueta: string
+}
+
+/**
+ * Lista desplegable propia (reemplaza al `<select>` nativo). Emite `dh-cambio` ({@link DetalleCambio})
+ * al elegir y `dh-blur` cuando el foco sale. Con `sinVacio` no ofrece quitar la elección.
+ */
+export class DhSelect extends HTMLElement {
+  valor: string
+  opciones: OpcionSelect[]
+  placeholder: string
+  sinVacio: boolean
+  /** Nombre accesible del control. */
+  etiqueta: string
+  deshabilitado: boolean
+  invalido: boolean
+}
+
 export class DhSidebar extends HTMLElement {
   items: ItemNavegacion[]
   activo: string
@@ -153,6 +178,7 @@ declare global {
     'dh-dialogo': DhDialogo
     'dh-icono': DhIcono
     'dh-mapa-ubicacion': DhMapaUbicacion
+    'dh-select': DhSelect
     'dh-sidebar': DhSidebar
     'dh-header': DhHeader
     'dh-shell': DhShell

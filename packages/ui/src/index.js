@@ -4,6 +4,7 @@ import { DhDialogo } from './dh-dialogo.js'
 import { DhHeader } from './dh-header.js'
 import { DhIcono } from './dh-icono.js'
 import { DhMapaUbicacion } from './dh-mapa-ubicacion.js'
+import { DhSelect } from './dh-select.js'
 import { DhShell } from './dh-shell.js'
 import { DhSidebar } from './dh-sidebar.js'
 
@@ -12,6 +13,7 @@ const COMPONENTES = {
   'dh-dialogo': DhDialogo,
   'dh-icono': DhIcono,
   'dh-mapa-ubicacion': DhMapaUbicacion,
+  'dh-select': DhSelect,
   'dh-sidebar': DhSidebar,
   'dh-header': DhHeader,
   'dh-shell': DhShell,
@@ -30,6 +32,6 @@ export function registrarUi() {
 
 registrarUi()
 
-export { DhAuthLayout, DhAvatar, DhDialogo, DhHeader, DhIcono, DhMapaUbicacion, DhShell, DhSidebar }
+export { DhAuthLayout, DhAvatar, DhDialogo, DhHeader, DhIcono, DhMapaUbicacion, DhSelect, DhShell, DhSidebar }
 export { ICONOS, icono } from './iconos.js'
 export { iniciales } from './dh-avatar.js'
