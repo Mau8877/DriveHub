@@ -102,6 +102,11 @@ export interface DetalleCambio {
   valor: string
 }
 
+/** Detalle del evento `dh-cambio` de <dh-select multiple>: los valores elegidos, en el orden de `opciones`. */
+export interface DhCambioMultiple {
+  valores: string[]
+}
+
 export interface OpcionSelect {
   valor: string
   etiqueta: string
@@ -116,6 +121,10 @@ export class DhSelect extends HTMLElement {
   opciones: OpcionSelect[]
   placeholder: string
   sinVacio: boolean
+  /** Elige varios valores (`valores`) y los muestra como fichas; emite `dh-cambio` con {@link DhCambioMultiple}. */
+  multiple: boolean
+  /** Valores elegidos en modo `multiple`. */
+  valores: string[]
   /** Nombre accesible del control. */
   etiqueta: string
   deshabilitado: boolean

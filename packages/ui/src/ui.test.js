@@ -499,6 +499,176 @@ describe('dh-select', () => {
   })
 })
 
+describe('dh-select multiple', () => {
+  const OPCIONES = [
+    { valor: 'A', etiqueta: 'Moto' },
+    { valor: 'B', etiqueta: 'Auto' },
+    { valor: 'C', etiqueta: 'Camión' },
+    { valor: 'D', etiqueta: 'Bus' },
+  ]
+  const disparador = (el) => q(el, '.disparador')
+  const lista = (el) => q(el, 'ul[role="listbox"]')
+  const items = (el) => qa(el, 'li[role="option"]')
+  const fichas = (el) => qa(el, '.ficha:not(.mas)').map((f) => f.textContent.trim())
+  const teclear = (el, key) =>
+    disparador(el).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true }))
+  const eventos = (el) => {
+    const recibidos = []
+    el.addEventListener('dh-cambio', (e) => recibidos.push(e.detail))
+    return recibidos
+  }
+
+  it('elegir opciones las alterna y el menú sigue abierto', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true })
+    const cambios = eventos(el)
+    disparador(el).click()
+    await el.updateComplete
+
+    items(el)[1].click()
+    await el.updateComplete
+    expect(lista(el)).not.toBeNull()
+    expect(fichas(el)).toEqual(['Auto'])
+
+    items(el)[1].click()
+    await el.updateComplete
+    expect(fichas(el)).toEqual([])
+    expect(cambios).toEqual([{ valores: ['B'] }, { valores: [] }])
+  })
+
+  it('no ofrece la opción vacía y marca el estado de cada opción', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['C'] })
+    disparador(el).click()
+    await el.updateComplete
+
+    expect(items(el).map((i) => i.textContent.trim())).toEqual(['Moto', 'Auto', 'Camión', 'Bus'])
+    expect(items(el).map((i) => i.getAttribute('aria-selected'))).toEqual(['false', 'false', 'true', 'false'])
+    expect(lista(el).getAttribute('aria-multiselectable')).toBe('true')
+    expect(items(el)[2].querySelector('.casilla.marcada')).not.toBeNull()
+  })
+
+  it('el evento trae los valores en el orden de las opciones, no en el de elección', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true })
+    const cambios = eventos(el)
+    disparador(el).click()
+    await el.updateComplete
+
+    items(el)[3].click()
+    items(el)[0].click()
+    await el.updateComplete
+
+    expect(cambios.at(-1)).toEqual({ valores: ['A', 'D'] })
+    expect(fichas(el)).toEqual(['Moto', 'Bus'])
+  })
+
+  it('la × de una ficha la quita sin abrir el menú', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['A', 'B'] })
+    const cambios = eventos(el)
+
+    qa(el, '.ficha button')[0].click()
+    await el.updateComplete
+
+    expect(lista(el)).toBeNull()
+    expect(fichas(el)).toEqual(['Auto'])
+    expect(cambios).toEqual([{ valores: ['B'] }])
+  })
+
+  it('sin nada elegido muestra el placeholder; con más de tres fichas corta con +N', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, placeholder: 'Categorías' })
+    expect(q(el, '.texto').textContent).toBe('Categorías')
+
+    el.valores = ['A', 'B', 'C', 'D']
+    await el.updateComplete
+    expect(fichas(el)).toEqual(['Moto', 'Auto', 'Camión'])
+    expect(q(el, '.ficha.mas').textContent.trim()).toBe('+1')
+  })
+
+  it('los valores que no están en las opciones se ignoran', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['B', 'X'] })
+    const cambios = eventos(el)
+    expect(fichas(el)).toEqual(['Auto'])
+
+    disparador(el).click()
+    await el.updateComplete
+    items(el)[0].click()
+    await el.updateComplete
+
+    expect(cambios).toEqual([{ valores: ['A', 'B'] }])
+  })
+
+  it('con el teclado, Espacio y Enter alternan la opción activa y Backspace quita la última ficha', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true })
+    const cambios = eventos(el)
+
+    teclear(el, 'ArrowDown')
+    await el.updateComplete
+    expect(lista(el)).not.toBeNull()
+
+    teclear(el, ' ')
+    teclear(el, 'ArrowDown')
+    teclear(el, 'Enter')
+    await el.updateComplete
+    expect(fichas(el)).toEqual(['Moto', 'Auto'])
+
+    teclear(el, 'Escape')
+    await el.updateComplete
+    expect(lista(el)).toBeNull()
+
+    teclear(el, 'Backspace')
+    await el.updateComplete
+    expect(fichas(el)).toEqual(['Moto'])
+    expect(cambios.at(-1)).toEqual({ valores: ['A'] })
+  })
+
+  it('Backspace con el menú abierto no quita fichas', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['A'] })
+    disparador(el).click()
+    await el.updateComplete
+
+    teclear(el, 'Backspace')
+    await el.updateComplete
+
+    expect(fichas(el)).toEqual(['Moto'])
+  })
+
+  it('deshabilitado no se abre ni deja quitar fichas', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['A'], deshabilitado: true })
+    const cambios = eventos(el)
+
+    disparador(el).click()
+    teclear(el, 'Backspace')
+    qa(el, '.ficha button')[0].click()
+    await el.updateComplete
+
+    expect(lista(el)).toBeNull()
+    expect(disparador(el).getAttribute('aria-disabled')).toBe('true')
+    expect(cambios).toEqual([])
+    expect(fichas(el)).toEqual(['Moto'])
+  })
+
+  it('es un combobox accesible y no usa un <select> nativo', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, etiqueta: 'Categorías', invalido: true })
+
+    expect(disparador(el).getAttribute('role')).toBe('combobox')
+    expect(disparador(el).getAttribute('aria-label')).toBe('Categorías')
+    expect(disparador(el).getAttribute('aria-invalid')).toBe('true')
+    expect(el.shadowRoot.querySelector('select, option')).toBeNull()
+  })
+
+  it('cuando el foco sale emite dh-blur', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true })
+    const salidas = []
+    el.addEventListener('dh-blur', () => salidas.push(true))
+    disparador(el).click()
+    await el.updateComplete
+
+    disparador(el).dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }))
+    await el.updateComplete
+
+    expect(salidas).toHaveLength(1)
+    expect(lista(el)).toBeNull()
+  })
+})
+
 describe('dh-fecha', () => {
   const entrada = (el) => q(el, 'input')
   const calendario = (el) => q(el, '.calendario')

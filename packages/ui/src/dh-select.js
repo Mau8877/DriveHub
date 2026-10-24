@@ -6,6 +6,7 @@ import { icono } from './iconos.js'
 const ESPERA_TECLAS_MS = 600
 const ALTO_MAXIMO_REM = 16
 const MARGEN_PX = 8
+const MAX_FICHAS = 3
 
 /** Para buscar al escribir: minúsculas y sin tildes ("Árbol" se encuentra con "ar"). */
 function normalizar(texto) {
@@ -26,16 +27,20 @@ function normalizar(texto) {
  *                  primera opción de la lista, con la que se quita la elección
  *   sinVacio       (atributo `sin-vacio`) no ofrece la opción de quitar la elección
  *   etiqueta       nombre accesible del control (lo que diría su <label>)
+ *   multiple       elige varios valores (`valores`): el menú queda abierto al elegir, cada opción se
+ *                  alterna y lo elegido se ve como fichas con una `×`. Ignora `valor` y `sinVacio`
+ *   valores        valores elegidos en modo `multiple`
  *   deshabilitado  no se abre ni se elige
  *   invalido       borde de error
  *
  * Eventos (burbujean y atraviesan el Shadow DOM)
- *   dh-cambio   { valor }   eligió una opción
+ *   dh-cambio   { valor }   eligió una opción (con `multiple`: { valores }, en el orden de `opciones`)
  *   dh-blur                 el foco salió del control (para marcar el campo como tocado)
  *
  * Teclado: Enter, Espacio o flechas abren; flechas, Inicio y Fin se mueven; Enter elige; Escape
  * cierra (sin llegar a quien escuche Escape más arriba, como el panel que contiene el campo);
- * escribir salta a la opción que empieza con esas letras.
+ * escribir salta a la opción que empieza con esas letras. Con `multiple`, Enter y Espacio alternan la
+ * opción activa y Backspace (con el menú cerrado) quita la última ficha.
  *
  * * La lista se posiciona con `position: fixed` según el control: así no la recorta el
  * * `overflow` de un panel con scroll, y se abre hacia arriba si abajo no entra.
@@ -48,6 +53,8 @@ export class DhSelect extends LitElement {
     opciones: { type: Array },
     placeholder: { type: String },
     sinVacio: { type: Boolean, attribute: 'sin-vacio' },
+    multiple: { type: Boolean },
+    valores: { type: Array },
     etiqueta: { type: String },
     deshabilitado: { type: Boolean, reflect: true },
     invalido: { type: Boolean, reflect: true },
@@ -104,6 +111,71 @@ export class DhSelect extends LitElement {
       }
       .texto.vacio {
         color: var(--muted-foreground);
+      }
+      div.disparador {
+        cursor: pointer;
+      }
+      div.disparador[aria-disabled='true'] {
+        cursor: not-allowed;
+        background: var(--muted);
+        color: var(--muted-foreground);
+      }
+      div.disparador:focus-visible {
+        outline: none;
+      }
+      .fichas {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 0.3rem;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .ficha {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        flex: none;
+        padding: 0.12rem 0.3rem 0.12rem 0.55rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: var(--accent);
+        color: var(--accent-foreground);
+        border-radius: 999px;
+      }
+      .ficha.mas {
+        padding: 0.12rem 0.55rem;
+        background: var(--muted);
+        color: var(--muted-foreground);
+      }
+      .ficha button {
+        display: grid;
+        place-items: center;
+        width: 1.1rem;
+        height: 1.1rem;
+        padding: 0;
+        color: inherit;
+        background: transparent;
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      .ficha button:hover {
+        background: color-mix(in srgb, var(--foreground) 12%, transparent);
+      }
+      .casilla {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 1.1rem;
+        height: 1.1rem;
+        color: var(--primary-foreground);
+        border: 1px solid var(--input);
+        border-radius: 0.3rem;
+      }
+      .casilla.marcada {
+        background: var(--primary);
+        border-color: var(--primary);
       }
       .flecha {
         display: grid;
@@ -174,6 +246,8 @@ export class DhSelect extends LitElement {
     this.opciones = []
     this.placeholder = 'Elige una opción'
     this.sinVacio = false
+    this.multiple = false
+    this.valores = []
     this.etiqueta = ''
     this.deshabilitado = false
     this.invalido = false
@@ -201,11 +275,23 @@ export class DhSelect extends LitElement {
   /** La primera opción es el placeholder (quita la elección), salvo con `sin-vacio`. */
   get _items() {
     const reales = this.opciones ?? []
-    return this.sinVacio ? reales : [{ valor: '', etiqueta: this.placeholder, vacio: true }, ...reales]
+    return this.sinVacio || this.multiple ? reales : [{ valor: '', etiqueta: this.placeholder, vacio: true }, ...reales]
   }
 
   get _elegida() {
     return (this.opciones ?? []).find((o) => String(o.valor) === String(this.valor ?? ''))
+  }
+
+  /** Las opciones elegidas en modo `multiple`, en el orden de `opciones` (lo desconocido se ignora). */
+  get _marcadas() {
+    const elegidos = new Set((this.valores ?? []).map(String))
+    return (this.opciones ?? []).filter((o) => elegidos.has(String(o.valor)))
+  }
+
+  _esElegida(item) {
+    return this.multiple
+      ? this._marcadas.some((o) => String(o.valor) === String(item.valor))
+      : String(item.valor) === String(this.valor ?? '')
   }
 
   _escuchar(activar) {
@@ -234,7 +320,7 @@ export class DhSelect extends LitElement {
       ...(haciaArriba ? { abajo: window.innerHeight - caja.top + 4 } : { superior: caja.bottom + 4 }),
       alto: Math.min(altoMaximo, espacio),
     }
-    const elegida = this._items.findIndex((o) => String(o.valor) === String(this.valor ?? ''))
+    const elegida = this._items.findIndex((o) => this._esElegida(o))
     this._activo = elegida >= 0 ? elegida : 0
     this._abierto = true
     this._escuchar(true)
@@ -249,6 +335,10 @@ export class DhSelect extends LitElement {
   _elegir(indice) {
     const item = this._items[indice]
     if (!item) return
+    if (this.multiple) {
+      this._alternar(String(item.valor))
+      return
+    }
     this._cerrar()
     const valor = String(item.valor ?? '')
     if (valor !== String(this.valor ?? '')) {
@@ -256,6 +346,14 @@ export class DhSelect extends LitElement {
       this.dispatchEvent(new CustomEvent('dh-cambio', { detail: { valor }, bubbles: true, composed: true }))
     }
     this.renderRoot.querySelector('.disparador')?.focus()
+  }
+
+  /** Con `multiple`: marca o desmarca un valor y avisa con todos los valores, en el orden de `opciones`. */
+  _alternar(valor) {
+    const actuales = this._marcadas.map((o) => String(o.valor))
+    const nuevos = actuales.includes(valor) ? actuales.filter((v) => v !== valor) : [...actuales, valor]
+    this.valores = (this.opciones ?? []).map((o) => String(o.valor)).filter((v) => nuevos.includes(v))
+    this.dispatchEvent(new CustomEvent('dh-cambio', { detail: { valores: this.valores }, bubbles: true, composed: true }))
   }
 
   _mover(delta) {
@@ -305,6 +403,15 @@ export class DhSelect extends LitElement {
       case 'Tab':
         this._cerrar()
         return
+      case 'Backspace': {
+        if (!this.multiple || abierto) return
+        const ultima = this._marcadas.at(-1)
+        if (ultima) {
+          e.preventDefault()
+          this._alternar(String(ultima.valor))
+        }
+        return
+      }
       default:
         if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) this._buscar(e.key)
     }
@@ -322,7 +429,7 @@ export class DhSelect extends LitElement {
     const encontrado = orden.find((i) => normalizar(items[i].etiqueta).startsWith(this._buscado))
     if (encontrado === undefined) return
     if (this._abierto) this._activo = encontrado
-    else this._elegir(encontrado)
+    else if (!this.multiple) this._elegir(encontrado)
   }
 
   _alSalir(e) {
@@ -335,6 +442,7 @@ export class DhSelect extends LitElement {
   // ------------------------------------------------------------------ render
 
   render() {
+    if (this.multiple) return this._renderMultiple()
     const elegida = this._elegida
     return html`
       <button
@@ -358,6 +466,53 @@ export class DhSelect extends LitElement {
     `
   }
 
+  _renderMultiple() {
+    const marcadas = this._marcadas
+    const visibles = marcadas.slice(0, MAX_FICHAS)
+    const resto = marcadas.length - visibles.length
+    return html`
+      <div
+        class="disparador"
+        role="combobox"
+        tabindex=${this.deshabilitado ? '-1' : '0'}
+        aria-haspopup="listbox"
+        aria-expanded=${String(this._abierto)}
+        aria-controls="lista"
+        aria-label=${this.etiqueta || nothing}
+        aria-invalid=${this.invalido ? 'true' : nothing}
+        aria-disabled=${this.deshabilitado ? 'true' : 'false'}
+        @click=${() => (this._abierto ? this._cerrar() : this._abrir())}
+        @keydown=${(e) => this._alTeclear(e)}
+        @focusout=${(e) => this._alSalir(e)}
+      >
+        ${marcadas.length === 0
+          ? html`<span class="texto vacio">${this.placeholder}</span>`
+          : html`<span class="fichas">
+              ${visibles.map(
+                (o) => html`<span class="ficha">
+                  ${o.etiqueta}
+                  <button
+                    type="button"
+                    tabindex="-1"
+                    aria-label=${`Quitar ${o.etiqueta}`}
+                    ?disabled=${this.deshabilitado}
+                    @click=${(e) => {
+                      e.stopPropagation()
+                      this._alternar(String(o.valor))
+                    }}
+                  >
+                    ${icono('x', 12)}
+                  </button>
+                </span>`,
+              )}
+              ${resto > 0 ? html`<span class="ficha mas">+${resto}</span>` : nothing}
+            </span>`}
+        <span class="flecha">${icono('chevron-down', 18)}</span>
+      </div>
+      ${this._abierto ? this._renderLista() : nothing}
+    `
+  }
+
   _renderLista() {
     const p = this._posicion
     const estilo = [
@@ -367,11 +522,11 @@ export class DhSelect extends LitElement {
       p.arriba ? `bottom: ${p.abajo}px` : `top: ${p.superior}px`,
     ].join('; ')
     const items = this._items
-    return html`<ul id="lista" class="lista ${p.arriba ? 'arriba' : ''}" role="listbox" style=${estilo}>
+    return html`<ul id="lista" class="lista ${p.arriba ? 'arriba' : ''}" role="listbox" aria-multiselectable=${this.multiple ? 'true' : nothing} style=${estilo}>
       ${items.length === 0
         ? html`<li class="sin-opciones" role="presentation">Sin opciones</li>`
         : items.map((o, i) => {
-            const elegida = String(o.valor) === String(this.valor ?? '')
+            const elegida = this._esElegida(o)
             return html`<li
               class="opcion ${i === this._activo ? 'activa' : ''} ${elegida ? 'elegida' : ''} ${o.vacio ? 'placeholder' : ''}"
               role="option"
@@ -381,7 +536,11 @@ export class DhSelect extends LitElement {
               @click=${() => this._elegir(i)}
             >
               <span>${o.etiqueta}</span>
-              ${elegida ? html`<span class="marca">${icono('check', 16)}</span>` : nothing}
+              ${this.multiple
+                ? html`<span class="casilla ${elegida ? 'marcada' : ''}">${elegida ? icono('check', 12) : nothing}</span>`
+                : elegida
+                  ? html`<span class="marca">${icono('check', 16)}</span>`
+                  : nothing}
             </li>`
           })}
     </ul>`
