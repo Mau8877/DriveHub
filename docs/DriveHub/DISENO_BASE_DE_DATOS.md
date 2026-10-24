@@ -677,14 +677,15 @@ Evaluación práctica durante la clase.
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoPregunta` | UUID | Único |
-| `categoria`, `tema` | string | Índice compuesto `idx_pregunta_categoria_tema_activa (categoria, tema, activa)` |
+| `escuelaCodigo` | UUID | Escuela (tenant) dueña de la pregunta, el claim `escuela` del JWT, sin relación física. Todo listado y toda consulta filtran por él (CU19) |
+| `categoria`, `tema` | string | Índice compuesto `idx_pregunta_escuela_categoria_tema_activa (escuelaCodigo, categoria, tema, activa)`: CU20 arma el simulacro con preguntas activas por categoría y tema de la escuela |
 | `tipo` | enum | `OPCION_UNICA`, `OPCION_MULTIPLE`, `VERDADERO_FALSO` |
 | `enunciado` | string | |
 | `imagenUrl` | string | Opcional |
-| `opciones` | array | `[{ id (letra), texto, correcta }]` |
+| `opciones` | array | `[{ id (letra), texto, correcta }]`. El `id` (A, B, C…) lo asigna el servicio por orden. De 2 a 6 opciones (exactamente 2 en `VERDADERO_FALSO`); 1 correcta en `OPCION_UNICA` y `VERDADERO_FALSO`, 1 o más en `OPCION_MULTIPLE` |
 | `explicacion` | string | Se muestra al corregir |
 | `dificultad` | int | 1 a 3 |
-| `activa` | boolean | |
+| `activa` | boolean | Una pregunta no se borra: se desactiva y deja de entrar en los simulacros nuevos (CU19) |
 | `creadaPorCodigo` | UUID | Persona de Identidad |
 
 ### `simulacros_config` (CU20)
@@ -955,7 +956,7 @@ Todas por **código público**, sin FK física.
 
 ### Pendiente de diseñar
 
-- **Filtro por tenant.** `vehiculo` (CU07) y `manuales` (CU32) ya tienen `escuela_codigo`, con el filtro explícito en su repositorio a partir del claim `escuela`; falta en las demás tablas de Escuela (`estudiante`, `instructor`…), Pagos, Académico, Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. Se diseña antes de CU07 y CU08; el claim ya viaja en el token (CU02).
+- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; falta en las demás tablas de Escuela (`estudiante`, `instructor`…), Pagos, el resto de Académico (`simulacros_config` en CU20, `intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. Se diseña antes de CU07 y CU08; el claim ya viaja en el token (CU02).
 - **Estado de la saga reserva-pago:** dueño por decidir ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 - **Valores de `severidad`** de los indicadores del tablero (se fijan con CU40).
 - **Job de limpieza** de `refresh_token` vencidos.

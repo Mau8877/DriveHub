@@ -24,7 +24,7 @@ prefijo del código dice qué servicio lo produjo:
 | `IDE` | Identidad | [`identidad/`](identidad/ERRORES_IDENTIDAD.md) |
 | `ESC` | Escuela | [`escuela/`](escuela/ERRORES_ESCUELA.md) |
 | `PAG` | Pagos | `pagos/` (sin errores todavía) |
-| `ACA` | Académico | `academico/` (sin errores todavía) |
+| `ACA` | Académico | [`academico/`](academico/ERRORES_ACADEMICO.md) |
 | `CON` | Contenido | [`contenido/`](contenido/ERRORES_CONTENIDO.md) |
 | `NOT` | Notificaciones | `notificaciones/` (sin errores todavía) |
 | `IA` | Asistente IA | `asistente-ia/` (sin errores todavía) |
@@ -68,6 +68,12 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_08`](escuela/ERRORES_ESCUELA.md#err_esc_08) — El auto no existe en la escuela (404)
 - [`ERR_ESC_09`](escuela/ERRORES_ESCUELA.md#err_esc_09) — Cambio no permitido desde el estado actual del auto (409)
 - [`ERR_ESC_10`](escuela/ERRORES_ESCUELA.md#err_esc_10) — El token no trae la escuela de la cuenta (403)
+
+### Académico (`ACA`)
+
+- [`ERR_ACA_01`](academico/ERRORES_ACADEMICO.md#err_aca_01) — La pregunta no existe en la escuela (404)
+- [`ERR_ACA_02`](academico/ERRORES_ACADEMICO.md#err_aca_02) — La pregunta ya estaba en ese estado (409)
+- [`ERR_ACA_03`](academico/ERRORES_ACADEMICO.md#err_aca_03) — El token no trae la escuela de la cuenta (403)
 
 ### Contenido (`CON`)
 
