@@ -122,6 +122,27 @@ export class DhSelect extends HTMLElement {
   invalido: boolean
 }
 
+/**
+ * Selector de fecha propio (reemplaza al `<input type="date">` nativo). `valor`, `min` y `max` son
+ * 'yyyy-MM-dd'. Se puede escribir (dd/mm/aaaa) o elegir en el calendario. Emite `dh-cambio`
+ * ({@link DetalleCambio}) al elegir, escribir una fecha válida o borrarla (`''`), y `dh-blur` al salir.
+ */
+export class DhFecha extends HTMLElement {
+  valor: string
+  min: string
+  max: string
+  placeholder: string
+  /** Nombre accesible del control. */
+  etiqueta: string
+  deshabilitado: boolean
+  invalido: boolean
+}
+
+/** 'yyyy-MM-dd' -> 'dd/MM/yyyy' ('' si no es una fecha real). */
+export declare function formatearFecha(valor: string): string
+/** 'dd/MM/yyyy' -> 'yyyy-MM-dd', o null si no es una fecha real. */
+export declare function analizarFecha(texto: string): string | null
+
 export class DhSidebar extends HTMLElement {
   items: ItemNavegacion[]
   activo: string
@@ -179,6 +200,7 @@ declare global {
     'dh-icono': DhIcono
     'dh-mapa-ubicacion': DhMapaUbicacion
     'dh-select': DhSelect
+    'dh-fecha': DhFecha
     'dh-sidebar': DhSidebar
     'dh-header': DhHeader
     'dh-shell': DhShell
