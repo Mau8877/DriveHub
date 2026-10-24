@@ -13,12 +13,57 @@ cabecera ni pantalla de acceso.
 | --- | --- |
 | `<dh-shell>` | Armazón completo: menú + cabecera + contenido. Es lo que usa el shell y lo que usa cualquier remoto que corra suelto |
 | `<dh-sidebar>` | Menú lateral (grupos, iconos, colapsable, cajón en móvil). Con dos ítems que coinciden con la ruta (`/escuela` y `/escuela/estudiantes`) queda activo solo el de la ruta más específica |
+| `<dh-select>` | Lista desplegable propia: reemplaza al `<select>` nativo (`valor`, `opciones`, `placeholder`, `sinVacio`, `etiqueta`, `deshabilitado`, `invalido`; eventos `dh-cambio` `{ valor }` y `dh-blur`). Teclado completo, se abre hacia arriba si abajo no entra y no la recorta el scroll de un panel |
 | `<dh-header>` | Cabecera: migas, buscador opcional, avisos, menú de la cuenta |
 | `<dh-auth-layout>` | Pantallas públicas (login, registro, recuperar...): arte + formulario |
 | `<dh-dialogo>` | Diálogo de confirmación (`abierto`, `titulo`, `texto`, `aceptar`, `peligro`, `ocupado`; eventos `dh-aceptar` y `dh-cancelar`). Nadie dibuja su propio "¿estás seguro?" |
 | `<dh-avatar>`, `<dh-icono>` | Avatar con iniciales/foto e iconos (`ICONOS` en `iconos.js`) |
 | `@drivehub/ui/componentes.css` | Clases base: `dh-btn*`, `dh-field`, `dh-label`, `dh-input*`, `dh-error`, `dh-notice-*`, `dh-badge*`, `dh-card`, `dh-page`, `dh-page-head`, `dh-state`, `dh-acordeon*`, y las del perfil: `dh-perfil-grid`, `dh-perfil-card`, `dh-foto`, `dh-foto-acciones`, `dh-ro`, `dh-perfil-main`, `dh-card-head` |
 | `@drivehub/ui/desarrollo` | `montarShellSuelto(elemento, props)`: lo usan los `main.tsx` de React para correr un remoto fuera del shell |
+
+## Nada de componentes nativos: se crea el nuestro
+
+Un control cuyo aspecto o menú **lo dibuja el navegador** se ve distinto en cada navegador y sistema,
+no sigue el diseño Asfalto y no se puede cambiar con los tokens. Por eso, **si se está usando o se
+piensa usar un componente nativo de ese tipo, no se usa: se crea el nuestro en `packages/ui`** y
+todas las apps (Angular y React, shell y remotos) usan ese.
+
+**Se reemplaza** (el navegador dibuja su menú o ventana):
+
+| Nativo | Nuestro |
+| --- | --- |
+| `<select>` / `<option>` / `<datalist>` | `<dh-select>` |
+| `window.confirm()`, `alert()`, `prompt()` y `<dialog>` | `<dh-dialogo>` (avisos: el toast del componente o `dh-notice-*`) |
+| `<input type="date">`, `time`, `datetime-local`, `month`, `week` | Pendiente: se crea al primer caso que lo pida (ver abajo) |
+| `<input type="color">`, `range`, `file` con su selector a la vista | Se crea al primer caso que lo pida |
+
+**Se sigue usando nativo** (el navegador solo dibuja el campo y se estiliza entero con `dh-input`):
+`<input>` de texto (`text`, `email`, `password`, `tel`, `search`, `number`, `url`), `<textarea>`,
+`<button>`, `<a>` y los `checkbox`/`radio` mientras no haya una variante propia en `componentes.css`.
+
+**Cómo se agrega un componente propio** (todo en el mismo cambio):
+
+1. `packages/ui/src/dh-{nombre}.js` (Lit, Shadow DOM): solo tokens de `@drivehub/design-tokens`, nunca
+   colores propios; teclado y roles ARIA completos; si emite algo, eventos `dh-*` que burbujean y
+   atraviesan el Shadow DOM (`composed`). Lo que se despliega sobre otros paneles usa
+   `position: fixed` para que no lo recorte el `overflow` de un panel con scroll.
+2. Registrarlo en `src/index.js` (`COMPONENTES` y el `export`) y tiparlo en `src/index.d.ts`.
+3. Tests en `ui.test.js` (abrir, elegir, teclado, accesibilidad, casos borde). Un componente sin tests no se
+   suma.
+4. Una fila en la tabla de piezas de esta rule y, si es de formularios, usarlo ya en
+   `<dh-gestion>` ([GESTION_FRONTEND.md](GESTION_FRONTEND.md)).
+5. Reemplazar los usos nativos que ya existan; los que no se puedan en ese cambio quedan anotados
+   abajo como deuda, con su motivo.
+
+No se crea un componente propio "solo para esta pantalla": si falta una variante, se amplía el del
+paquete para todos.
+
+**Deuda conocida (usos nativos que todavía quedan):**
+
+- `<select>` nativo en `identidad` (`registro.ts` y `perfil.ts`): son formularios reactivos de Angular y
+  necesitan un adaptador para usar `<dh-select>` con `formControlName`.
+- `<input type="date">` en `<dh-gestion>` y en `identidad` (fecha de nacimiento): falta `<dh-fecha>`.
+- Mobile (Flutter) tiene sus propios widgets: no usa este paquete.
 
 ## Cómo se personaliza (sin tocar el paquete)
 

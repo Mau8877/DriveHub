@@ -95,6 +95,9 @@ de la carpeta.
 - **Armazón y formularios**: el menú, la cabecera, la pantalla de acceso y las clases base (`dh-btn`,
   `dh-input`, `dh-field`, `dh-card`, `dh-page`...) vienen de `@drivehub/ui` (ver
   [UI_FRONTEND.md](UI_FRONTEND.md)): no se escribe otro layout ni se estilan botones o campos a mano.
+  Tampoco se usan controles nativos que el navegador dibuja (`<select>`, selector de fecha,
+  `confirm()`...): se usa el de `@drivehub/ui` (`<dh-select>`, `<dh-dialogo>`) y, si no existe, se crea
+  ahí para todos (ver "Nada de componentes nativos" en esa rule).
   Los componentes que usan `<dh-...>` declaran `schemas: [CUSTOM_ELEMENTS_SCHEMA]` e importan
   `'@drivehub/ui'`. `@drivehub/ui` va en `skip` de `federation.config.mjs` (las cuatro apps a la vez).
 - **Estilos**: Tailwind 4 con las clases de los tokens (`bg-primary`,

@@ -44,6 +44,9 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
 - **Crear y editar** se abren en un **drawer** a la derecha (desde abajo en móvil) sobre el listado,
   que sigue visible; secciones numeradas, campos `mitad` en dos columnas, contraseña con ojo,
   pie fijo con Cancelar y Guardar. Se cierra con la X, Escape o un clic en el fondo.
+- **Listas desplegables** (campos `seleccion` y filtros con más de 4 opciones): son `<dh-select>` de
+  `@drivehub/ui`, nunca un `<select>` nativo (ver "Nada de componentes nativos" en
+  [UI_FRONTEND.md](UI_FRONTEND.md)).
 - **Detalle de solo lectura** (`detalle` en el esquema): un botón "Ver detalles" por fila abre el mismo
   drawer sin formulario ni "Guardar", con secciones de campos (`texto`, `fecha`, `insignia`; un valor
   vacío se muestra "—") y un solo botón "Cerrar". Sirve para mostrar un registro sin ofrecer editarlo.

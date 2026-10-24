@@ -119,6 +119,9 @@ de asumir un criterio propio. Puntos que se suelen olvidar:
 - **Una base por servicio**: nadie lee la base de otro.
 - **Un recurso HTTP nuevo** se registra en el gateway y en
   [MICROSERVICIOS.md](rules/MICROSERVICIOS.md) en el mismo cambio.
+- **Nada de controles nativos del navegador** (`<select>`, selector de fecha, `confirm()`...): si se usa
+  o se piensa usar uno, se crea el nuestro en `packages/ui` y lo usan todas las apps
+  ([UI_FRONTEND.md](rules/frontend/UI_FRONTEND.md#nada-de-componentes-nativos-se-crea-el-nuestro)).
 - **No anticipar trabajo de casos de uso**: los servicios y apps tienen hoy
   su estructura, sus Models y sus migraciones; controllers, servicios y
   pantallas se crean con cada caso de uso, a partir de su Historia de
