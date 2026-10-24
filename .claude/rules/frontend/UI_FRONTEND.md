@@ -12,7 +12,7 @@ cabecera ni pantalla de acceso.
 | Elemento | Para qué |
 | --- | --- |
 | `<dh-shell>` | Armazón completo: menú + cabecera + contenido. Es lo que usa el shell y lo que usa cualquier remoto que corra suelto |
-| `<dh-sidebar>` | Menú lateral (grupos, iconos, colapsable, cajón en móvil) |
+| `<dh-sidebar>` | Menú lateral (grupos, iconos, colapsable, cajón en móvil). Con dos ítems que coinciden con la ruta (`/escuela` y `/escuela/estudiantes`) queda activo solo el de la ruta más específica |
 | `<dh-header>` | Cabecera: migas, buscador opcional, avisos, menú de la cuenta |
 | `<dh-auth-layout>` | Pantallas públicas (login, registro, recuperar...): arte + formulario |
 | `<dh-dialogo>` | Diálogo de confirmación (`abierto`, `titulo`, `texto`, `aceptar`, `peligro`, `ocupado`; eventos `dh-aceptar` y `dh-cancelar`). Nadie dibuja su propio "¿estás seguro?" |

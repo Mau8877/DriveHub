@@ -36,8 +36,8 @@ el espejo de las rutas de
 
 | Servicio | Recursos (`/api/v1/...`) |
 | --- | --- |
-| `identidad` | `auth`, `usuarios`, `roles`, `permisos` |
-| `escuela` | `escuelas`, `estudiantes`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
+| `identidad` | `auth`, `usuarios`, `estudiantes`, `roles`, `permisos` |
+| `escuela` | `escuelas`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
 | `pagos` | `planes-pago`, `inscripciones-plan`, `cuotas`, `pagos`, `comprobantes` |
 | `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
 | `contenido` | `manuales`, `tutoriales` |
@@ -93,6 +93,7 @@ existen son:
 | --- | --- | --- |
 | Identidad → Escuela | Consultar la escuela por slug o por codigo y si está activa | CU01, CU02 |
 | Escuela → Identidad | Crear al Administrador de una escuela y, si algo falla, revertirlo | CU05 |
+| Identidad → Escuela | Validar que una categoría de licencia existe (reenvía el Bearer del Administrador) | CU08 |
 
 Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
 Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque

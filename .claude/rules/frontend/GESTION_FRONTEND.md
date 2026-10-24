@@ -44,6 +44,9 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
 - **Crear y editar** se abren en un **drawer** a la derecha (desde abajo en móvil) sobre el listado,
   que sigue visible; secciones numeradas, campos `mitad` en dos columnas, contraseña con ojo,
   pie fijo con Cancelar y Guardar. Se cierra con la X, Escape o un clic en el fondo.
+- **Detalle de solo lectura** (`detalle` en el esquema): un botón "Ver detalles" por fila abre el mismo
+  drawer sin formulario ni "Guardar", con secciones de campos (`texto`, `fecha`, `insignia`; un valor
+  vacío se muestra "—") y un solo botón "Cerrar". Sirve para mostrar un registro sin ofrecer editarlo.
 - **Confirmar** una acción (`confirmar` en el esquema) abre un **diálogo**, no una fila inline.
 - **Avisos** de éxito o error como toast abajo a la derecha, que se va solo.
 
