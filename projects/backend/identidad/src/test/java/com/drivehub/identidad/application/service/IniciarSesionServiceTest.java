@@ -32,6 +32,7 @@ import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.in.IniciarSesionComando;
 import com.drivehub.identidad.domain.port.in.SesionEmitida;
+import com.drivehub.identidad.domain.port.out.AlmacenFotosPort;
 import com.drivehub.identidad.domain.port.out.EmisorTokenAccesoPort;
 import com.drivehub.identidad.domain.port.out.EscuelaConsultaPort;
 import com.drivehub.identidad.domain.port.out.EscuelaRef;
@@ -58,13 +59,16 @@ class IniciarSesionServiceTest {
     private EmisorTokenAccesoPort emisorToken;
     @Mock
     private GeneradorTokenOpacoPort generadorToken;
+    @Mock
+    private AlmacenFotosPort almacenFotos;
 
     private IniciarSesionService servicio;
 
     @BeforeEach
     void crearServicio() {
         Clock reloj = Clock.fixed(AHORA, ZoneOffset.UTC);
-        SesionEmisora emisora = new SesionEmisora(escuelaConsulta, refreshTokenRepository, emisorToken, generadorToken, 15, 7);
+        SesionEmisora emisora = new SesionEmisora(escuelaConsulta, refreshTokenRepository, emisorToken, generadorToken,
+            new PerfilArmador(almacenFotos, escuelaConsulta), 15, 7);
         servicio = new IniciarSesionService(usuarioRepository, refreshTokenRepository, passwordHasher, emisora, reloj, 5, 15);
     }
 
@@ -103,6 +107,45 @@ class IniciarSesionServiceTest {
     private void esperaCodigo(IniciarSesionComando comando, String codigo) {
         assertThatThrownBy(() -> servicio.iniciar(comando))
             .isInstanceOfSatisfying(BusinessException.class, ex -> assertThat(ex.getErrorCode()).isEqualTo(codigo));
+    }
+
+    @Test
+    void iniciar_conFoto_devuelveLaUrlFirmada() {
+        Usuario conFoto = cuenta(RolNombres.ADMIN_ESCUELA, ESCUELA, EstadoUsuario.ACTIVO, 0, null).toBuilder()
+            .fotoUrl("usuarios/u/a.png").build();
+        cuentaExiste(conFoto);
+        passwordCorrecta();
+        escuela(true);
+        emisionDisponible();
+        when(almacenFotos.urlDeLectura("usuarios/u/a.png")).thenReturn("http://minio/firmada");
+
+        assertThat(servicio.iniciar(login(Dispositivo.WEB)).fotoUrl()).isEqualTo("http://minio/firmada");
+    }
+
+    @Test
+    void iniciar_sinFoto_laUrlViajaNula() {
+        cuentaExiste(cuenta(RolNombres.ADMIN_ESCUELA, ESCUELA, EstadoUsuario.ACTIVO, 0, null));
+        passwordCorrecta();
+        escuela(true);
+        emisionDisponible();
+
+        assertThat(servicio.iniciar(login(Dispositivo.WEB)).fotoUrl()).isNull();
+    }
+
+    @Test
+    void iniciar_siElAlmacenamientoFalla_iniciaSesionSinLaUrlDeLaFoto() {
+        Usuario conFoto = cuenta(RolNombres.ADMIN_ESCUELA, ESCUELA, EstadoUsuario.ACTIVO, 0, null).toBuilder()
+            .fotoUrl("usuarios/u/a.png").build();
+        cuentaExiste(conFoto);
+        passwordCorrecta();
+        escuela(true);
+        emisionDisponible();
+        when(almacenFotos.urlDeLectura("usuarios/u/a.png")).thenThrow(new IllegalStateException("MinIO caído"));
+
+        SesionEmitida sesion = servicio.iniciar(login(Dispositivo.WEB));
+
+        assertThat(sesion.accessToken()).isEqualTo("jwt");
+        assertThat(sesion.fotoUrl()).isNull();
     }
 
     @Test

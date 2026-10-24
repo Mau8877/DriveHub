@@ -22,7 +22,8 @@ function nuevoElemento() {
 }
 
 describe('mount', () => {
-  it('monta el remoto en el elemento que le pasa el shell', async () => {
+  // * La primera carga trae <dh-gestion> y @drivehub/ui: en frío tarda más que el tiempo por defecto
+  it('monta el remoto en el elemento que le pasa el shell', { timeout: 20000 }, async () => {
     const elemento = nuevoElemento()
 
     mount(elemento, props)

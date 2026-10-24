@@ -23,7 +23,7 @@ import com.drivehub.identidad.domain.port.out.RefreshTokenRepositoryPort;
 /**
  * Lo que comparten iniciar y renovar sesión (CU02): comprobar que la escuela y
  * la plataforma permiten entrar, y emitir el token de acceso con una sesión
- * renovable nueva.
+ * renovable nueva y la URL de la foto de la cuenta (CU06).
  */
 @Component
 public class SesionEmisora {
@@ -32,6 +32,7 @@ public class SesionEmisora {
     private final RefreshTokenRepositoryPort refreshTokenRepository;
     private final EmisorTokenAccesoPort emisorTokenAcceso;
     private final GeneradorTokenOpacoPort generadorTokenOpaco;
+    private final PerfilArmador perfilArmador;
     private final Duration accessTtl;
     private final Duration refreshTtl;
 
@@ -40,12 +41,14 @@ public class SesionEmisora {
             RefreshTokenRepositoryPort refreshTokenRepository,
             EmisorTokenAccesoPort emisorTokenAcceso,
             GeneradorTokenOpacoPort generadorTokenOpaco,
+            PerfilArmador perfilArmador,
             @Value("${app.auth.access-ttl-minutos:15}") long accessTtlMinutos,
             @Value("${app.auth.refresh-ttl-dias:7}") long refreshTtlDias) {
         this.escuelaConsulta = escuelaConsulta;
         this.refreshTokenRepository = refreshTokenRepository;
         this.emisorTokenAcceso = emisorTokenAcceso;
         this.generadorTokenOpaco = generadorTokenOpaco;
+        this.perfilArmador = perfilArmador;
         this.accessTtl = Duration.ofMinutes(accessTtlMinutos);
         this.refreshTtl = Duration.ofDays(refreshTtlDias);
     }
@@ -84,7 +87,8 @@ public class SesionEmisora {
             .revocado(false)
             .build());
         String accessToken = emisorTokenAcceso.emitir(usuario, ahora);
-        return new SesionEmitida(accessToken, accessTtl.toSeconds(), refreshEnClaro, usuario);
+        return new SesionEmitida(accessToken, accessTtl.toSeconds(), refreshEnClaro, usuario,
+            perfilArmador.urlDeFoto(usuario));
     }
 
     private ForbiddenException escuelaSuspendida() {

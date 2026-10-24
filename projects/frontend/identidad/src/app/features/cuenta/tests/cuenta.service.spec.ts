@@ -26,6 +26,18 @@ describe('CuentaService', () => {
 
   afterEach(() => http.verify())
 
+  it('confirmarCambioCorreo manda el token a /auth/cambiar-correo/confirmar sin Authorization', async () => {
+    const respuesta = firstValueFrom(servicio.confirmarCambioCorreo('xyz'))
+
+    const req = http.expectOne(`${BASE}/auth/cambiar-correo/confirmar`)
+    expect(req.request.method).toBe('POST')
+    expect(req.request.body).toEqual({ token: 'xyz' })
+    expect(req.request.headers.has('Authorization')).toBe(false)
+    req.flush({ status: 'success', data: null, message: 'ok', timestamp: 'x' })
+
+    expect(await respuesta).toBeNull()
+  })
+
   it('confirmarCorreo manda el token a /auth/verificar-correo/confirmar y entrega null', async () => {
     const respuesta = firstValueFrom(servicio.confirmarCorreo('abc123'))
 

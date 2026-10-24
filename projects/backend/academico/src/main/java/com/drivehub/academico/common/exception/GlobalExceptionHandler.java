@@ -8,6 +8,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -37,19 +38,18 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("ERR_SYS_01", message));
     }
 
-    // * Un parámetro de ruta o de query con formato inválido (ej. un codigo que no es UUID, un estado
-    // * desconocido) es 400, no 500.
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    // * Entrada mal formada que no llega al service: JSON ilegible o con una fecha inválida, un parámetro de
+    // * URL con tipo incorrecto (fecha, estado, UUID) o un parámetro obligatorio ausente. Es un error del
+    // * cliente (400), no del servidor: sin esto lo captura el catch-all y responde 500.
+    // * El mensaje es genérico a propósito: el detalle del parseo es técnico y no se expone.
+    @ExceptionHandler({
+        HttpMessageNotReadableException.class,
+        MethodArgumentTypeMismatchException.class,
+        MissingServletRequestParameterException.class
+    })
+    public ResponseEntity<ApiResponse<Object>> handleSolicitudMalFormada(Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("ERR_SYS_01", "El valor de '" + ex.getName() + "' no es válido"));
-    }
-
-    // * Cuerpo ilegible o con un valor inválido (ej. un tipo de pregunta que no existe): es 400, no 500.
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Object>> handleCuerpoIlegible(HttpMessageNotReadableException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("ERR_SYS_01", "El cuerpo de la petición no es válido"));
+                .body(ApiResponse.error("ERR_SYS_01", "La solicitud no es válida"));
     }
 
     // * Un @PreAuthorize que niega el acceso es 403, no 500 (sin esto lo captura el catch-all).

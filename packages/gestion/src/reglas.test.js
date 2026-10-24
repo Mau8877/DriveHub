@@ -92,7 +92,7 @@ describe('validar números y selecciones', () => {
 
   it('una selección solo acepta una de sus opciones', () => {
     expect(validar(seleccion, 'MANUAL')).toBeNull()
-    expect(validar(seleccion, 'CVT')).toBe('Elige una opción')
+    expect(validar(seleccion, 'CVT')).toBe('Elige una opción de la lista')
     expect(validar(seleccion, '')).toBe('Este campo es obligatorio')
   })
 })
@@ -101,6 +101,63 @@ describe('edadEnAnios', () => {
   it('cuenta años cumplidos', () => {
     expect(edadEnAnios('2000-10-22', new Date(2026, 9, 21))).toBe(25)
     expect(edadEnAnios('2000-10-21', new Date(2026, 9, 21))).toBe(26)
+  })
+
+  describe('campo seleccion', () => {
+    const sexo = {
+      campo: 'sexo',
+      titulo: 'Sexo',
+      tipo: 'seleccion',
+      requerido: true,
+      opciones: [
+        { valor: 'MASCULINO', etiqueta: 'Masculino' },
+        { valor: 'FEMENINO', etiqueta: 'Femenino' },
+      ],
+    }
+
+    it('requerido sin valor falla con el mensaje del esquema o el de siempre', () => {
+      expect(validar(sexo, '')).toBe('Este campo es obligatorio')
+      expect(validar({ ...sexo, mensajes: { requerido: 'Elige tu sexo' } }, '')).toBe('Elige tu sexo')
+    })
+
+    it('un valor que no está entre las opciones fijas falla', () => {
+      expect(validar(sexo, 'OTRO')).toBe('Elige una opción de la lista')
+      expect(validar(sexo, 'FEMENINO')).toBeNull()
+    })
+
+    it('con opciones traídas de la API (sin lista fija) acepta cualquier valor no vacío', () => {
+      const categoria = { campo: 'categoriaSigla', titulo: 'Categoría', tipo: 'seleccion', opcionesDe: { recurso: 'x', valor: 'a', etiqueta: 'b' } }
+
+      expect(validar(categoria, 'B')).toBeNull()
+    })
+  })
+
+  describe('campo ubicacion', () => {
+    const ubicacion = { campo: 'ubicacion', titulo: 'Ubicación', tipo: 'ubicacion', requerido: true }
+
+    it('requerido sin punto falla', () => {
+      expect(validar(ubicacion, undefined)).toBe('Elige la ubicación en el mapa')
+      expect(validar(ubicacion, { latitud: null, longitud: null })).toBe('Elige la ubicación en el mapa')
+      expect(validar({ ...ubicacion, mensajes: { requerido: 'Elige tu ubicación en el mapa' } }, null)).toBe(
+        'Elige tu ubicación en el mapa'
+      )
+    })
+
+    it('no requerido y sin punto es válido', () => {
+      expect(validar({ ...ubicacion, requerido: false }, null)).toBeNull()
+    })
+
+    it('un punto completo y en rango es válido, incluidos los límites', () => {
+      expect(validar(ubicacion, { latitud: -16.4897, longitud: -68.1193 })).toBeNull()
+      expect(validar(ubicacion, { latitud: -90, longitud: 180 })).toBeNull()
+    })
+
+    it('una sola coordenada o una fuera de rango falla', () => {
+      expect(validar(ubicacion, { latitud: -16.5, longitud: null })).toBe('La ubicación no es válida')
+      expect(validar(ubicacion, { latitud: 90.1, longitud: 0 })).toBe('La ubicación no es válida')
+      expect(validar(ubicacion, { latitud: 0, longitud: -180.5 })).toBe('La ubicación no es válida')
+      expect(validar(ubicacion, { latitud: 'abc', longitud: 1 })).toBe('La ubicación no es válida')
+    })
   })
 })
 

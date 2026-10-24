@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.drivehub.identidad.domain.model.EstadoUsuario;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.out.EnviadorCorreoPort;
@@ -75,7 +76,7 @@ class RecuperacionContrasenaIntegrationTest extends PostgresIntegrationTestBase 
 
     private Usuario crear(boolean verificado, EstadoUsuario estado) {
         String email = "recup-" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com";
-        return usuarios.guardar(Usuario.builder().email(email).passwordHash(hasher.hashear(PASSWORD)).nombres("Ana")
+        return usuarios.guardar(Usuario.builder().email(email).passwordHash(hasher.hashear(PASSWORD)).ci(CiDePrueba.unico()).sexo(SexoPersona.MASCULINO).nombres("Ana")
             .apellidos("Pérez").fechaNacimiento(LocalDate.of(1995, 5, 5)).estado(estado).intentosFallidos(0)
             .correoVerificado(verificado)
             .roles(Set.of(roles.buscarPorNombre(RolNombres.SUPER_ADMIN).orElseThrow(),

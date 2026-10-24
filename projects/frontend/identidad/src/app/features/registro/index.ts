@@ -1,7 +1,21 @@
 /**
  * Lo único de la feature `registro` que otras features pueden importar.
  *
- * * `cuenta` reusa los límites de correo y contraseña para que las reglas de un mismo
+ * * `cuenta` y `perfil` reusan los límites y validadores de los campos para que las reglas de un mismo
  * * campo no se desalineen entre pantallas.
  */
-export { EMAIL_MAX, PASSWORD_MAX, PASSWORD_MIN } from './schemas/registro.reglas'
+export {
+  APELLIDOS_MAX,
+  CI_MAX,
+  CI_MIN,
+  ciValido,
+  edadMinima,
+  EMAIL_MAX,
+  fechaNoFutura,
+  NOMBRES_MAX,
+  obligatorioConTexto,
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+  TELEFONO_MAX,
+} from './schemas/registro.reglas'
+export { type CampoRegistro, mensajeDeError } from './schemas/registro.mensajes'

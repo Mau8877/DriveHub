@@ -33,7 +33,7 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_BACKEND.md](.
 
 `PreguntaResponse`: `codigo`, `categoria`, `tema`, `tipo`, `enunciado`, `opciones[{ id, texto, correcta }]`, `explicacion`, `dificultad`, `activa`, `creadoEn`. El id interno Long nunca sale.
 
-Códigos de error nuevos: `ERR_ACA_01` a `ERR_ACA_03` ([docs/errors](../../../errors/academico/ERRORES_ACADEMICO.md)).
+Códigos de error nuevos: `ERR_ACA_14` a `ERR_ACA_16` ([docs/errors](../../../errors/academico/ERRORES_ACADEMICO.md)).
 
 ## Orden de ejecución
 

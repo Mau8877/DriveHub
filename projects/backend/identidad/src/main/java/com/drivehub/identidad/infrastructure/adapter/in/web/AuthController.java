@@ -97,7 +97,7 @@ public class AuthController {
     private ResponseEntity<ApiResponse<SesionResponse>> respuesta(SesionEmitida sesion, Dispositivo dispositivo, String mensaje) {
         boolean esWeb = dispositivo == Dispositivo.WEB;
         SesionResponse cuerpo = new SesionResponse(
-            sesion.accessToken(), sesion.expiraEnSegundos(), aUsuarioResponse(sesion.usuario()),
+            sesion.accessToken(), sesion.expiraEnSegundos(), aUsuarioResponse(sesion),
             esWeb ? null : sesion.refreshToken());
 
         ResponseEntity.BodyBuilder respuesta = ResponseEntity.ok();
@@ -107,11 +107,12 @@ public class AuthController {
         return respuesta.body(ApiResponse.success(cuerpo, mensaje));
     }
 
-    private SesionResponse.UsuarioSesionResponse aUsuarioResponse(Usuario usuario) {
+    private SesionResponse.UsuarioSesionResponse aUsuarioResponse(SesionEmitida sesion) {
+        Usuario usuario = sesion.usuario();
         List<String> roles = usuario.getRoles().stream().map(Rol::getNombre).sorted().toList();
         return new SesionResponse.UsuarioSesionResponse(
             usuario.getCodigo(), usuario.getNombres(), usuario.getApellidos(), roles, usuario.getEscuelaCodigo(),
-            usuario.isCorreoVerificado());
+            usuario.isCorreoVerificado(), sesion.fotoUrl());
     }
 
     ResponseCookie cookie(String valor, Duration vida) {

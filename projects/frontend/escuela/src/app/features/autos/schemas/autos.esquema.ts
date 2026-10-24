@@ -9,7 +9,7 @@ const anioMaximo = () => new Date().getFullYear() + 1
  *
  * * Las reglas de los campos (placa de 5 a 10 caracteres, año de 1980 al próximo, kilometraje >= 0)
  * * tienen que seguir iguales a las del backend, que es la fuente de verdad.
- * * Los códigos de `erroresDeCampo` son los del backend: ERR_ESC_07 (placa en uso).
+ * * Los códigos de `erroresDeCampo` son los del backend: ERR_ESC_08 (placa en uso).
  * * La categoría de licencia no se gestiona en este caso de uso.
  * * La foto se sube directo a Cloudinary con una firma del backend (`vehiculos/firma-imagen`).
  */
@@ -239,7 +239,7 @@ export const ESQUEMA_AUTOS: EsquemaGestion = {
     },
   ],
   erroresDeCampo: {
-    ERR_ESC_07: { campo: 'placa', mensaje: 'Ya existe un auto con esa placa' },
+    ERR_ESC_08: { campo: 'placa', mensaje: 'Ya existe un auto con esa placa' },
   },
   mensajes: {
     vacio: 'Todavía no hay autos registrados.',

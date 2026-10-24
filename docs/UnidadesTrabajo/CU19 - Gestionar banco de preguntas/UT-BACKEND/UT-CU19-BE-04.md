@@ -22,7 +22,7 @@ La web necesita una API para gestionar el banco de la escuela de quien inició s
 
 ## Alcance
 
-- `PreguntaController` delgado (seis endpoints, ver README); la escuela y el autor salen del token (`ERR_ACA_03` si falta); `filter[...]` con `@RequestParam(name = "filter[x]")`.
+- `PreguntaController` delgado (seis endpoints, ver README); la escuela y el autor salen del token (`ERR_ACA_16` si falta); `filter[...]` con `@RequestParam(name = "filter[x]")`.
 - `docs/errors/academico/ERRORES_ACADEMICO.md` y su índice en `docs/errors/README.md`.
 - `PreguntaSeeder` (`@Profile("dev")`, idempotente por enunciado): 12 preguntas de `escuelaexample`, los tres tipos, cuatro categorías, tres dificultades.
 - Tests: `PreguntaControllerTest` (`@WebMvcTest`), `GestionPreguntasIntegrationTest` (MongoDB real, un método por criterio de aceptación) y `PreguntaSeederTest`.
@@ -41,4 +41,4 @@ Con el stack levantado, un Administrador crea, lista, edita, desactiva y activa 
 ## Validación
 
 1. `./mvnw test` (39 tests) y `./mvnw checkstyle:check` en `academico`.
-2. `docker compose up -d academico`; por el gateway con `adminexample@gmail.com`: el listado trae 12, crear 201, opción única sin correcta 400, desactivar dos veces 409 `ERR_ACA_02`, código inexistente 404 `ERR_ACA_01`, sin token 401 y `superadmin@gmail.com` 403.
+2. `docker compose up -d academico`; por el gateway con `adminexample@gmail.com`: el listado trae 12, crear 201, opción única sin correcta 400, desactivar dos veces 409 `ERR_ACA_15`, código inexistente 404 `ERR_ACA_14`, sin token 401 y `superadmin@gmail.com` 403.

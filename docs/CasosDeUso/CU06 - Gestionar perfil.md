@@ -9,6 +9,8 @@
 **Objetivo:** Mantener al día los datos personales, la foto, la contraseña y el correo de la propia cuenta.
 **Plataforma:** Web y Móvil
 
+> **Modificado por [CU08a: Perfil de la persona](CU08a%20-%20Perfil%20de%20la%20persona.md).** Los datos personales pasan a una tabla `perfil` y se suman CI, sexo y ubicación en un mapa (la dirección la calcula el servidor); la persona los edita todos salvo su categoría de licencia, que solo ve. Un CI ya registrado se rechaza con `ERR_IDE_19`. Donde este documento contradiga a CU08a, manda CU08a.
+
 **Descripción:**
 En la barra superior de la web, el menú del avatar tiene la opción **"Editar perfil"** (en la app, la pestaña "Perfil" de la barra inferior). Al elegirla, la persona ve su perfil: nombres, apellidos, fecha de nacimiento, teléfono, foto, correo, y, solo de lectura, su rol, su escuela y si su correo está verificado. Desde ahí puede editar sus datos personales (nombres, apellidos, teléfono y fecha de nacimiento), subir, reemplazar o quitar su foto, cambiar su contraseña y cambiar su correo. Toda foto que se sube pasa antes por una revisión básica: solo se admiten imágenes JPG, PNG o WebP de hasta 5 MB y 4000×4000 píxeles, y se rechaza cualquier archivo que no sea realmente una imagen legible del formato que dice ser. Cambiar la contraseña exige la actual y cierra las sesiones de los demás dispositivos, conservando la actual. Cambiar el correo exige la contraseña actual y no tiene efecto hasta que la persona abre el enlace que el sistema envía al correo nuevo.
 

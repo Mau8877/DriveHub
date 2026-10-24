@@ -156,7 +156,7 @@ class VehiculoControllerTest {
 
         crear(cuerpoCrear()).andExpect(status().isConflict())
             .andExpect(jsonPath("$.status").value("failed"))
-            .andExpect(jsonPath("$.error").value("ERR_ESC_07"));
+            .andExpect(jsonPath("$.error").value("ERR_ESC_08"));
     }
 
     @Test
@@ -188,7 +188,7 @@ class VehiculoControllerTest {
             .thenThrow(new NotFoundException(EscuelaErrorCodes.VEHICULO_NO_ENCONTRADO, "no existe"));
 
         mockMvc.perform(get(RUTA + "/" + CODIGO).with(sesion()))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_08"));
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
         mockMvc.perform(get(RUTA + "/no-es-uuid").with(sesion()))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_SYS_01"));
     }
@@ -248,6 +248,6 @@ class VehiculoControllerTest {
             .thenThrow(new ConflictException(EscuelaErrorCodes.TRANSICION_VEHICULO_INVALIDA, "no se puede"));
 
         mockMvc.perform(post(RUTA + "/" + CODIGO + "/habilitar").with(sesion()))
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_10"));
     }
 }

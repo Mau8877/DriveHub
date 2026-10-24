@@ -24,9 +24,9 @@ Tres casos de uso con `@PreAuthorize("hasRole('ADMIN_ESCUELA')")`.
 
 - DTOs: `RegistrarVehiculoInput`, `ListarVehiculosInput`, `VehiculoOutput` (reusa `PaginaOutput`).
 - `ReglasVehiculo` (paquete-privada): validaciones compartidas con editar (placa `^[A-Z0-9-]{5,10}$`, marca y modelo hasta 40, color hasta 20, año de 1980 al próximo, km >= 0) y el mapeo a `VehiculoOutput`.
-- `RegistrarVehiculoUseCase`: normaliza la placa a mayúsculas, valida, rechaza placa en uso (`ERR_ESC_07`), guarda `DISPONIBLE` con km 0 por defecto y registra `INFO`.
+- `RegistrarVehiculoUseCase`: normaliza la placa a mayúsculas, valida, rechaza placa en uso (`ERR_ESC_08`), guarda `DISPONIBLE` con km 0 por defecto y registra `INFO`.
 - `ListarVehiculosUseCase`: página 1 y 20 por página por defecto (máximo 100), sin log por lectura.
-- `ObtenerVehiculoUseCase`: 404 `ERR_ESC_08` si no existe en la escuela.
+- `ObtenerVehiculoUseCase`: 404 `ERR_ESC_09` si no existe en la escuela.
 
 Archivos esperados (crear/tocar): los tres casos de uso, `ReglasVehiculo`, los tres DTOs y sus tests (`RegistrarVehiculoUseCaseTest`, `ListarYObtenerVehiculosUseCaseTest`).
 

@@ -1,27 +1,29 @@
-import { Component } from '@angular/core'
-import { RouterLink } from '@angular/router'
+import { CUSTOM_ELEMENTS_SCHEMA, Component } from '@angular/core'
+import '@drivehub/ui'
 
 /**
- * Pantalla inicial del remoto Escuela: la puerta a sus secciones.
+ * Pantalla inicial del remoto Escuela.
  *
- * TODO: se suman los accesos a estudiantes, docentes y asignaciones a medida que se implementen
- * TODO: sus casos de uso (CU08 a CU11).
+ * TODO: se reemplaza por las pantallas reales a medida que se implementen
+ * TODO: los casos de uso de este micro-frontend (CU07 a CU11).
  */
 @Component({
   selector: 'app-inicio',
-  imports: [RouterLink],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <section class="p-6">
-      <h1 class="mb-1 text-2xl font-semibold">Escuela</h1>
-      <p class="text-muted-foreground">Autos, estudiantes, docentes y asignaciones.</p>
-      <nav class="mt-4 flex gap-3">
-        <a
-          routerLink="autos"
-          class="border-border bg-card hover:bg-muted rounded-lg border px-4 py-3 text-sm font-medium"
-        >
-          Autos
-        </a>
-      </nav>
+    <section class="dh-page">
+      <div class="dh-page-head">
+        <div>
+          <h1>Escuela</h1>
+          <p>Autos, estudiantes, docentes y asignaciones.</p>
+        </div>
+      </div>
+      <div class="dh-card dh-pendiente">
+        <span class="dh-pendiente-ico">
+          <dh-icono nombre="car" [tam]="22" />
+        </span>
+        <p class="dh-muted dh-texto-sm">Casos de uso pendientes: CU07 a CU11.</p>
+      </div>
     </section>
   `,
 })

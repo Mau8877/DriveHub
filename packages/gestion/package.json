@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@drivehub/mf-contract": "workspace:*",
+    "@drivehub/ui": "workspace:*",
     "lit": "^3.3.0"
   },
   "devDependencies": {

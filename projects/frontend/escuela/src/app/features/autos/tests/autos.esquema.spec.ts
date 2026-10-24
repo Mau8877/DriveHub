@@ -61,7 +61,7 @@ describe('esquema de autos', () => {
   })
 
   it('la placa en uso cae bajo el campo placa', () => {
-    expect(ESQUEMA_AUTOS.erroresDeCampo).toMatchObject({ ERR_ESC_07: { campo: 'placa' } })
+    expect(ESQUEMA_AUTOS.erroresDeCampo).toMatchObject({ ERR_ESC_08: { campo: 'placa' } })
   })
 
   it('la placa admite de 5 a 10 letras, números y guiones', () => {

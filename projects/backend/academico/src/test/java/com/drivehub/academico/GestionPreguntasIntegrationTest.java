@@ -141,7 +141,7 @@ class GestionPreguntasIntegrationTest {
 
         // * Una pregunta de otra escuela es, para quien la pide, una que no existe
         mockMvc.perform(get(RUTA + "/" + deA).with(admin(ESCUELA_B)))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ACA_01"));
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ACA_14"));
         mockMvc.perform(patch(RUTA + "/" + deA).with(admin(ESCUELA_B)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"tema\":\"Hackeado\"}"))
             .andExpect(status().isNotFound());
@@ -202,11 +202,11 @@ class GestionPreguntasIntegrationTest {
         UUID codigo = crearYObtenerCodigo(ESCUELA_A, "Pregunta para desactivar", "Estado");
 
         mockMvc.perform(post(RUTA + "/" + codigo + "/activar").with(admin(ESCUELA_A)))
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ACA_02"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ACA_15"));
         mockMvc.perform(post(RUTA + "/" + codigo + "/desactivar").with(admin(ESCUELA_A)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.activa").value(false));
         mockMvc.perform(post(RUTA + "/" + codigo + "/desactivar").with(admin(ESCUELA_A)))
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ACA_02"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ACA_15"));
         mockMvc.perform(post(RUTA + "/" + codigo + "/activar").with(admin(ESCUELA_A)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.activa").value(true));
     }

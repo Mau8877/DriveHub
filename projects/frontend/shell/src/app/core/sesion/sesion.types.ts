@@ -16,7 +16,12 @@ export interface UsuarioSesion {
   escuelaCodigo: string | null
   /** El correo se verificó con el enlace enviado (CU04b); no bloquea nada, solo la recuperación. */
   correoVerificado: boolean
+  /** URL prefirmada de la foto de perfil (CU06), o null si no tiene; se renueva con la sesión. */
+  fotoUrl: string | null
 }
+
+/** Lo que manda el backend: omite `fotoUrl` cuando la cuenta no tiene foto. */
+export type UsuarioSesionRespuesta = Omit<UsuarioSesion, 'fotoUrl'> & { fotoUrl?: string | null }
 
 /**
  * En la web el refresh token NO viene aquí: viaja en una cookie HttpOnly que
@@ -25,5 +30,5 @@ export interface UsuarioSesion {
 export interface SesionRespuesta {
   accessToken: string
   expiraEnSegundos: number
-  usuario: UsuarioSesion
+  usuario: UsuarioSesionRespuesta
 }

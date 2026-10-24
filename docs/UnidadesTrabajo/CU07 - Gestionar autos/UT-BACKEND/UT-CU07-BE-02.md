@@ -25,7 +25,7 @@ La entidad `Vehiculo`, la regla de transiciones de estado y el repositorio filtr
 - `EstadoVehiculo.permiteIrA(destino)`: `DISPONIBLE ⇄ MANTENIMIENTO`, ambos `→ BAJA`, `BAJA` final.
 - `Vehiculo`: sumar `escuelaCodigo` y `creadoEn`, y `toBuilder = true`.
 - `domain/repository/VehiculoRepository` (`existePorPlaca`, `guardar`, `buscarPorCodigo(escuela, codigo)`, `listar(escuela, filtro, pagina, tamano)`, `actualizar`) y `FiltroVehiculos(busqueda, estado)`.
-- `VehiculoJpaRepository` (listado en SQL nativo con `CAST(:x AS text)` para los nulos) y `VehiculoRepositoryImpl`: la placa repetida en una carrera se traduce a `ConflictException(ERR_ESC_07)`; `actualizar` solo copia los campos editables y el estado, nunca placa, transmisión ni escuela; la búsqueda escapa `%`, `_` y `\`.
+- `VehiculoJpaRepository` (listado en SQL nativo con `CAST(:x AS text)` para los nulos) y `VehiculoRepositoryImpl`: la placa repetida en una carrera se traduce a `ConflictException(ERR_ESC_08)`; `actualizar` solo copia los campos editables y el estado, nunca placa, transmisión ni escuela; la búsqueda escapa `%`, `_` y `\`.
 - Constante `PLACA_EN_USO` y las otras tres en `EscuelaErrorCodes`.
 
 Archivos esperados (crear/tocar): `EstadoVehiculo`, `Vehiculo`, `VehiculoRepository`, `FiltroVehiculos`, `VehiculoJpaRepository`, `VehiculoRepositoryImpl`, `EscuelaErrorCodes`, `EstadoVehiculoTest`.

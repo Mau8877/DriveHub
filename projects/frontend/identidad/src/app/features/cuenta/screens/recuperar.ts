@@ -1,6 +1,7 @@
-import { Component, inject, signal } from '@angular/core'
+import { CUSTOM_ELEMENTS_SCHEMA, Component, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { RouterLink } from '@angular/router'
+import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
 import { EMAIL_MAX } from '../../registro'
@@ -19,62 +20,54 @@ const MENSAJE_ENVIADO =
 @Component({
   selector: 'app-recuperar',
   imports: [ReactiveFormsModule, RouterLink],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <section class="flex min-h-svh items-center justify-center p-6">
-      <div class="bg-card border-border w-full max-w-sm rounded-lg border p-6">
-        <h1 class="mb-1 text-xl font-semibold">Recuperar contraseña</h1>
-        <p class="text-muted-foreground mb-4 text-sm">
-          Ingresa tu correo y te enviaremos un enlace para elegir una contraseña nueva.
+    <dh-auth-layout
+      titulo="Recupera tu acceso"
+      mensaje="Te enviamos un enlace seguro para elegir una contraseña nueva."
+    >
+      <h1 class="dh-titulo-auth">Recuperar contraseña</h1>
+      <p class="dh-sub-auth">
+        Ingresa tu correo y te enviaremos un enlace para elegir una contraseña nueva.
+      </p>
+
+      @if (enviado()) {
+        <p class="dh-notice dh-notice-ok" role="status">
+          <dh-icono nombre="mail" [tam]="18" />
+          <span>{{ mensajeEnviado }}</span>
         </p>
-
-        @if (enviado()) {
-          <p
-            class="bg-secondary text-secondary-foreground mb-4 rounded-md px-3 py-2 text-sm"
-            role="status"
-          >
-            {{ mensajeEnviado }}
-          </p>
-        } @else {
-          <form
-            [formGroup]="form"
-            (ngSubmit)="enviar()"
-            class="mb-4 flex flex-col gap-4"
-            novalidate
-          >
-            <div class="flex flex-col gap-1">
-              <label for="email" class="text-sm font-medium">Correo</label>
-              <input
-                id="email"
-                type="email"
-                formControlName="email"
-                autocomplete="email"
-                class="border-border bg-background rounded-md border px-3 py-2 text-sm"
-              />
-              @if (error(); as mensaje) {
-                <p class="text-destructive text-xs" role="alert">{{ mensaje }}</p>
-              }
-            </div>
-
-            @if (errorGeneral(); as mensaje) {
-              <p class="text-destructive text-sm" role="alert">{{ mensaje }}</p>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+          <div class="dh-field">
+            <label for="email" class="dh-label">Correo</label>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              class="dh-input"
+            />
+            @if (error(); as mensaje) {
+              <p class="dh-error" role="alert">{{ mensaje }}</p>
             }
+          </div>
 
-            <button
-              type="submit"
-              [disabled]="enviando()"
-              class="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-            >
-              {{ enviando() ? 'Enviando…' : 'Enviar enlace' }}
-            </button>
-          </form>
-        }
+          @if (errorGeneral(); as mensaje) {
+            <p class="dh-notice dh-notice-error" role="alert">{{ mensaje }}</p>
+          }
 
-        <p class="text-muted-foreground mb-4 text-xs">
-          La recuperación solo funciona si verificaste tu correo desde la aplicación.
-        </p>
-        <a routerLink="/login" class="text-sm font-medium underline">Volver a iniciar sesión</a>
-      </div>
-    </section>
+          <button type="submit" [disabled]="enviando()" class="dh-btn dh-btn-block">
+            {{ enviando() ? 'Enviando…' : 'Enviar enlace' }}
+          </button>
+        </form>
+      }
+
+      <p class="dh-notice dh-notice-warn">
+        <dh-icono nombre="alert" [tam]="18" />
+        <span>La recuperación solo funciona si verificaste tu correo desde la aplicación.</span>
+      </p>
+      <p class="dh-auth-alt"><a routerLink="/login" class="dh-link">Volver a iniciar sesión</a></p>
+    </dh-auth-layout>
   `,
 })
 export class Recuperar {

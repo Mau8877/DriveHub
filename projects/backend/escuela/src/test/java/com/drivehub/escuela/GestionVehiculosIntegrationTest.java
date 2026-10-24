@@ -121,7 +121,7 @@ class GestionVehiculosIntegrationTest {
 
         // * La placa es única en toda la plataforma: otra escuela tampoco puede repetirla
         registrar(admin(ESCUELA_B), "REG-001").andExpect(status().isConflict())
-            .andExpect(jsonPath("$.error").value("ERR_ESC_07"));
+            .andExpect(jsonPath("$.error").value("ERR_ESC_08"));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM vehiculo WHERE placa = 'REG-001'", Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT escuela_codigo FROM vehiculo WHERE placa = 'REG-001'", UUID.class))
             .isEqualTo(ESCUELA_A);
@@ -140,7 +140,7 @@ class GestionVehiculosIntegrationTest {
 
         // * Un auto de otra escuela es, para quien lo pide, uno que no existe
         mockMvc.perform(get(RUTA + "/" + deA).with(admin(ESCUELA_B)))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_08"));
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
         mockMvc.perform(patch(RUTA + "/" + deA).with(admin(ESCUELA_B)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"color\":\"Azul\"}"))
             .andExpect(status().isNotFound());
@@ -188,7 +188,7 @@ class GestionVehiculosIntegrationTest {
         UUID codigo = registrarYObtenerCodigo(ESCUELA_A, "EST-001");
 
         mockMvc.perform(post(RUTA + "/" + codigo + "/habilitar").with(admin(ESCUELA_A)))
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_10"));
         mockMvc.perform(post(RUTA + "/" + codigo + "/enviar-a-mantenimiento").with(admin(ESCUELA_A)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.estado").value("MANTENIMIENTO"));
         mockMvc.perform(post(RUTA + "/" + codigo + "/habilitar").with(admin(ESCUELA_A)))
@@ -198,10 +198,10 @@ class GestionVehiculosIntegrationTest {
 
         // * De baja no se edita ni va a mantenimiento, pero sigue en el listado y se puede reactivar
         mockMvc.perform(post(RUTA + "/" + codigo + "/enviar-a-mantenimiento").with(admin(ESCUELA_A)))
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_10"));
         mockMvc.perform(patch(RUTA + "/" + codigo).with(admin(ESCUELA_A)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"color\":\"Azul\"}"))
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_10"));
         mockMvc.perform(get(RUTA).with(admin(ESCUELA_A)).param("filter[estado]", "BAJA"))
             .andExpect(jsonPath("$.data[?(@.placa=='EST-001')]").isNotEmpty());
         mockMvc.perform(post(RUTA + "/" + codigo + "/habilitar").with(admin(ESCUELA_A)))

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../shared/widgets/cockpit_scaffold.dart';
 import '../providers/health_provider.dart';
 
 /// Pantalla de diagnóstico -- prueba de punta a punta el camino completo
@@ -33,7 +34,7 @@ class HealthCheckScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final health = ref.watch(healthCheckProvider);
 
-    return Scaffold(
+    return CockpitScaffold(
       appBar: AppBar(title: const Text('Diagnóstico de conexión')),
       body: Padding(
         padding: const EdgeInsets.all(20),

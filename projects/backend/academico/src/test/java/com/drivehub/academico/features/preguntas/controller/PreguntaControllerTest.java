@@ -175,7 +175,7 @@ class PreguntaControllerTest {
             .thenThrow(new NotFoundException(AcademicoErrorCodes.PREGUNTA_NO_ENCONTRADA, "no existe"));
 
         mockMvc.perform(get(RUTA + "/" + CODIGO).with(sesion()))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ACA_01"));
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ACA_14"));
         mockMvc.perform(get(RUTA + "/no-es-uuid").with(sesion()))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_SYS_01"));
     }
@@ -201,6 +201,6 @@ class PreguntaControllerTest {
         mockMvc.perform(post(RUTA + "/" + CODIGO + "/desactivar").with(sesion()))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.activa").value(false));
         mockMvc.perform(post(RUTA + "/" + CODIGO + "/activar").with(sesion()))
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ACA_02"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ACA_15"));
     }
 }

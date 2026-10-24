@@ -8,6 +8,11 @@
 | **Microservicio** | `shell` |
 | **Depende de** | UT-CU06-FE-01 |
 
+> **Actualización:** el menú del avatar ya no es el componente `AvatarMenu` del shell: pasó a la
+> cabecera compartida `<dh-header>` de `@drivehub/ui` (menú de la cuenta con "Editar perfil" y
+> "Cerrar sesión"), que usa el shell y cualquier micro-frontend. Ver
+> [UI_FRONTEND.md](../../../../.claude/rules/frontend/UI_FRONTEND.md).
+
 ## Antes de implementar
 
 [ANGULAR_FRONTEND.md](../../../../.claude/rules/frontend/ANGULAR_FRONTEND.md), [TAILWIND_STYLES_FRONTEND.md](../../../../.claude/rules/frontend/TAILWIND_STYLES_FRONTEND.md)

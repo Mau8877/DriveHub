@@ -57,6 +57,14 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 
 ## `ERR_ESC_07`
 
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** La categoría de licencia pedida por sigla no existe en el catálogo (CU08).
+  Identidad usa este 404 para saber que la categoría que eligió el Administrador no es válida.
+- **Dónde se lanza:** `ObtenerCategoriaLicenciaUseCase.ejecutar()`
+
+## `ERR_ESC_08`
+
 - **HTTP:** 409
 - **Excepción:** `ConflictException`
 - **Significado:** Ya existe un auto con esa placa. La placa es única en toda la plataforma,
@@ -64,7 +72,7 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
   registros simultáneos con la misma placa chocan: el segundo pierde.
 - **Dónde se lanza:** `RegistrarVehiculoUseCase.ejecutar()` y `VehiculoRepositoryImpl.guardar()`
 
-## `ERR_ESC_08`
+## `ERR_ESC_09`
 
 - **HTTP:** 404
 - **Excepción:** `NotFoundException`
@@ -73,7 +81,7 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 - **Dónde se lanza:** `ObtenerVehiculoUseCase.ejecutar()`, `EditarVehiculoUseCase.ejecutar()` y
   `CambiarEstadoVehiculoUseCase.ejecutar()`
 
-## `ERR_ESC_09`
+## `ERR_ESC_10`
 
 - **HTTP:** 409
 - **Excepción:** `ConflictException`
@@ -82,7 +90,7 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
   habilitar uno que no está en mantenimiento ni de baja, o dar de baja uno que ya lo está.
 - **Dónde se lanza:** `EditarVehiculoUseCase.ejecutar()` y `CambiarEstadoVehiculoUseCase.ejecutar()`
 
-## `ERR_ESC_10`
+## `ERR_ESC_11`
 
 - **HTTP:** 403
 - **Excepción:** `ForbiddenException`

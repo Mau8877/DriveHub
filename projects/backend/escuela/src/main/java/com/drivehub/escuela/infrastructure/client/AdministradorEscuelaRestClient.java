@@ -1,5 +1,6 @@
 package com.drivehub.escuela.infrastructure.client;
 
+import java.math.BigDecimal;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.UUID;
@@ -57,7 +58,8 @@ public class AdministradorEscuelaRestClient implements AdministradorEscuelaGatew
     @Override
     public AdministradorCreado crearAdministrador(UUID escuelaCodigo, DatosAdministrador datos) {
         PeticionCrear cuerpo = new PeticionCrear(datos.nombres(), datos.apellidos(), datos.fechaNacimiento().toString(),
-            datos.email(), datos.password(), datos.telefono(), escuelaCodigo);
+            datos.email(), datos.password(), datos.telefono(), escuelaCodigo, datos.ci(), datos.sexo(),
+            datos.latitud(), datos.longitud());
         try {
             SobreAdministrador sobre = restClient.post()
                 .uri(RUTA)
@@ -130,8 +132,10 @@ public class AdministradorEscuelaRestClient implements AdministradorEscuelaGatew
     }
 
     // * Cuerpo de la petición a Identidad. La fecha viaja como texto ISO (yyyy-MM-dd).
+    // * CU08a: suma CI, sexo y la ubicación; Identidad calcula la dirección.
     private record PeticionCrear(String nombres, String apellidos, String fechaNacimiento, String email,
-            String password, String telefono, UUID escuelaCodigo) {
+            String password, String telefono, UUID escuelaCodigo, String ci, String sexo, BigDecimal latitud,
+            BigDecimal longitud) {
 
         @Override
         public String toString() {

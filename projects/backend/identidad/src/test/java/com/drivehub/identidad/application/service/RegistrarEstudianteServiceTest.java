@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -22,13 +23,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.drivehub.identidad.common.exception.BusinessException;
 import com.drivehub.identidad.common.exception.IdentidadErrorCodes;
+import com.drivehub.identidad.domain.model.CategoriaNombres;
 import com.drivehub.identidad.domain.model.EstadoUsuario;
 import com.drivehub.identidad.domain.model.Rol;
 import com.drivehub.identidad.domain.model.RolNombres;
+import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.in.RegistrarEstudianteComando;
 import com.drivehub.identidad.domain.port.out.EscuelaConsultaPort;
 import com.drivehub.identidad.domain.port.out.EscuelaRef;
+import com.drivehub.identidad.domain.port.out.GeocodificadorInversoPort;
 import com.drivehub.identidad.domain.port.out.PasswordHasherPort;
 import com.drivehub.identidad.domain.port.out.RolRepositoryPort;
 import com.drivehub.identidad.domain.port.out.UsuarioRepositoryPort;
@@ -38,6 +42,8 @@ class RegistrarEstudianteServiceTest {
 
     private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
     private static final UUID ESCUELA_CODIGO = UUID.randomUUID();
+    private static final BigDecimal LA_PAZ_LAT = new BigDecimal("-16.489700");
+    private static final BigDecimal LA_PAZ_LON = new BigDecimal("-68.119300");
 
     @Mock
     private UsuarioRepositoryPort usuarioRepository;
@@ -47,19 +53,22 @@ class RegistrarEstudianteServiceTest {
     private EscuelaConsultaPort escuelaConsulta;
     @Mock
     private PasswordHasherPort passwordHasher;
+    @Mock
+    private GeocodificadorInversoPort geocodificador;
 
     private RegistrarEstudianteService servicio;
 
     @BeforeEach
     void crearServicio() {
         Clock reloj = Clock.fixed(HOY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
-        servicio = new RegistrarEstudianteService(
-            usuarioRepository, rolRepository, escuelaConsulta, passwordHasher, reloj, 18);
+        servicio = new RegistrarEstudianteService(escuelaConsulta, new AltaEstudiante(
+            usuarioRepository, rolRepository, passwordHasher, geocodificador, reloj, 18));
     }
 
     private RegistrarEstudianteComando comando(LocalDate nacimiento, String email, String slug) {
         return new RegistrarEstudianteComando(
-            " Ana ", "Pérez", nacimiento, email, "123456789", null, slug);
+            " Ana ", "Pérez", nacimiento, email, "123456789", null, slug,
+            " ab 12345 ", SexoPersona.FEMENINO, LA_PAZ_LAT, LA_PAZ_LON);
     }
 
     private void escuelaYRolDisponibles() {
@@ -129,5 +138,51 @@ class RegistrarEstudianteServiceTest {
                 assertThat(ex.getErrorCode()).isEqualTo(IdentidadErrorCodes.CORREO_EN_USO));
         verify(usuarioRepository, never()).guardar(any());
         verify(passwordHasher, never()).hashear(any());
+    }
+
+    @Test
+    void registrar_conDatosValidos_creaElPerfilConCiSexoUbicacionYCategoriaSinCategoria() {
+        escuelaYRolDisponibles();
+        when(geocodificador.direccionDe(LA_PAZ_LAT, LA_PAZ_LON)).thenReturn(Optional.of("Av. Arce 2345, La Paz"));
+
+        servicio.registrar(comando(LocalDate.of(2000, 1, 1), "ana@gmail.com", "escuelaexample"));
+
+        ArgumentCaptor<Usuario> capturado = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepository).guardar(capturado.capture());
+        var perfil = capturado.getValue().getPerfil();
+        assertThat(perfil.getCi()).isEqualTo("AB12345");
+        assertThat(perfil.getSexo()).isEqualTo(SexoPersona.FEMENINO);
+        assertThat(perfil.getLatitud()).isEqualByComparingTo(LA_PAZ_LAT);
+        assertThat(perfil.getLongitud()).isEqualByComparingTo(LA_PAZ_LON);
+        assertThat(perfil.getDireccion()).isEqualTo("Av. Arce 2345, La Paz");
+        assertThat(perfil.getCategoriaSigla()).isEqualTo(CategoriaNombres.SIN_CATEGORIA);
+    }
+
+    @Test
+    void registrar_cuandoElGeocodificadorNoResponde_guardaElPuntoConLaDireccionEnBlanco() {
+        escuelaYRolDisponibles();
+        when(geocodificador.direccionDe(LA_PAZ_LAT, LA_PAZ_LON)).thenReturn(Optional.empty());
+
+        servicio.registrar(comando(LocalDate.of(2000, 1, 1), "ana@gmail.com", "escuelaexample"));
+
+        ArgumentCaptor<Usuario> capturado = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepository).guardar(capturado.capture());
+        assertThat(capturado.getValue().getPerfil().getDireccion()).isNull();
+        assertThat(capturado.getValue().getPerfil().getLatitud()).isEqualByComparingTo(LA_PAZ_LAT);
+    }
+
+    @Test
+    void registrar_conCiRepetido_lanzaErrIde19YNoGuardaNada() {
+        when(escuelaConsulta.buscarActivaPorSlug("escuelaexample"))
+            .thenReturn(Optional.of(new EscuelaRef(ESCUELA_CODIGO, "escuelaexample", "Escuela Example")));
+        when(usuarioRepository.existePorEmail("ana@gmail.com")).thenReturn(false);
+        when(usuarioRepository.existePorCi("AB12345")).thenReturn(true);
+
+        assertThatThrownBy(() -> servicio.registrar(comando(LocalDate.of(2000, 1, 1), "ana@gmail.com", "escuelaexample")))
+            .isInstanceOfSatisfying(BusinessException.class, ex ->
+                assertThat(ex.getErrorCode()).isEqualTo(IdentidadErrorCodes.CI_EN_USO));
+        verify(usuarioRepository, never()).guardar(any());
+        verify(passwordHasher, never()).hashear(any());
+        verify(geocodificador, never()).direccionDe(any(), any());
     }
 }

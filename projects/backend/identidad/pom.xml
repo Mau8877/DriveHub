@@ -19,7 +19,22 @@
 		     esta versión, así que se fija acá para que todos los módulos de
 		     Testcontainers (abajo) usen la misma versión entre sí. -->
 		<testcontainers.version>1.21.3</testcontainers.version>
+		<!-- SDK de S3 (CU06): firma URLs sin consultar a MinIO y admite un endpoint de firma distinto del de escritura. -->
+		<awssdk.version>2.34.0</awssdk.version>
+		<!-- Plugin de ImageIO para decodificar WebP (el JDK no lo trae), CU06. -->
+		<twelvemonkeys.version>3.12.0</twelvemonkeys.version>
 	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>${awssdk.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -77,6 +92,30 @@
 			<artifactId>logstash-logback-encoder</artifactId>
 			<version>8.1</version>
 		</dependency>
+		<!-- Fotos de perfil en MinIO (CU06): cliente HTTP liviano en lugar de Apache/Netty -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>software.amazon.awssdk</groupId>
+					<artifactId>apache-client</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>software.amazon.awssdk</groupId>
+					<artifactId>netty-nio-client</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>url-connection-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.twelvemonkeys.imageio</groupId>
+			<artifactId>imageio-webp</artifactId>
+			<version>${twelvemonkeys.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -111,6 +150,12 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>postgresql</artifactId>
+			<version>${testcontainers.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>minio</artifactId>
 			<version>${testcontainers.version}</version>
 			<scope>test</scope>
 		</dependency>

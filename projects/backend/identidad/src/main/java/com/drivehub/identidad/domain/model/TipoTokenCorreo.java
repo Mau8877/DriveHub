@@ -5,5 +5,6 @@ package com.drivehub.identidad.domain.model;
  */
 public enum TipoTokenCorreo {
     RECUPERACION,
-    VERIFICACION
+    VERIFICACION,
+    CAMBIO_CORREO
 }

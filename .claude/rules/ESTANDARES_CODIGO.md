@@ -97,7 +97,7 @@ de aceptarlo.
   `CONVENCIONES_GIT.md`), `scope-enum` (`BACK`/`FRONT`/`MOBILE`/`INFRA`/`DOCS`/`REPO`),
   `type-empty`/`scope-empty`/`subject-empty` (a diferencia de Conventional
   Commits estándar, acá el scope es **obligatorio**, nunca opcional), y
-  `header-max-length` (100).
+  `header-max-length` (500).
 - Se puede probar sin hacer un commit real: `echo "feat[BACK]: algo" | pnpm exec commitlint`.
 
 ## Comentarios

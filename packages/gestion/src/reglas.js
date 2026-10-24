@@ -52,20 +52,21 @@ function fechaComoTexto(fecha) {
  * @returns {string | null}
  */
 export function validar(campo, valor, hoy = new Date()) {
+  const mensajes = campo.mensajes ?? {}
+  if (campo.tipo === 'ubicacion') return validarUbicacion(campo, valor)
   // * Una lista de filas (opciones de respuesta) se valida por filas, no como texto
   if (campo.tipo === 'opciones') return validarOpciones(campo, valor)
+
   const texto = String(valor ?? '').trim()
-  const mensajes = campo.mensajes ?? {}
 
   if (texto === '') {
     return campo.requerido ? (mensajes.requerido ?? 'Este campo es obligatorio') : null
   }
 
-  if (campo.tipo === 'numero') return validarNumero(campo, texto, mensajes)
-  if (campo.tipo === 'seleccion' && !(campo.opciones ?? []).some((o) => o.valor === texto)) {
-    return mensajes.requerido ?? 'Elige una opción'
+  if (campo.tipo === 'seleccion' && campo.opciones && !campo.opciones.some((o) => o.valor === texto)) {
+    return mensajes.opcion ?? 'Elige una opción de la lista'
   }
-
+  if (campo.tipo === 'numero') return validarNumero(campo, texto, mensajes)
   if (campo.min !== undefined && texto.length < campo.min) {
     return mensajes.min ?? largoPorDefecto(campo)
   }
@@ -135,4 +136,23 @@ function largoPorDefecto(campo) {
   return campo.max !== undefined
     ? `No puede superar ${campo.max} caracteres`
     : `Debe tener al menos ${campo.min} caracteres`
+}
+
+/** Un punto del mapa: `{ latitud, longitud }` con las dos coordenadas y dentro de rango. */
+function validarUbicacion(campo, valor) {
+  const mensajes = campo.mensajes ?? {}
+  const latitud = valor?.latitud
+  const longitud = valor?.longitud
+  const hayLatitud = latitud !== undefined && latitud !== null && latitud !== ''
+  const hayLongitud = longitud !== undefined && longitud !== null && longitud !== ''
+  if (!hayLatitud && !hayLongitud) {
+    return campo.requerido ? (mensajes.requerido ?? 'Elige la ubicación en el mapa') : null
+  }
+  const lat = Number(latitud)
+  const lon = Number(longitud)
+  const completa = hayLatitud && hayLongitud && Number.isFinite(lat) && Number.isFinite(lon)
+  if (!completa || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return mensajes.ubicacion ?? 'La ubicación no es válida'
+  }
+  return null
 }

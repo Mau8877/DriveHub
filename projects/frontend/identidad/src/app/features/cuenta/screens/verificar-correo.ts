@@ -1,5 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { CUSTOM_ELEMENTS_SCHEMA, Component, OnInit, inject, signal } from '@angular/core'
 import { ActivatedRoute, RouterLink } from '@angular/router'
+import '@drivehub/ui'
 import { firstValueFrom } from 'rxjs'
 
 import { CuentaService } from '../api/cuenta.service'
@@ -16,32 +17,43 @@ type Estado = 'verificando' | 'verificado' | 'invalido'
 @Component({
   selector: 'app-verificar-correo',
   imports: [RouterLink],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <section class="flex min-h-svh items-center justify-center p-6">
-      <div class="bg-card border-border w-full max-w-md rounded-lg border p-6">
-        @switch (estado()) {
-          @case ('verificando') {
-            <h1 class="mb-1 text-xl font-semibold">Verificando tu correo…</h1>
-            <p class="text-muted-foreground text-sm" role="status">Un momento, por favor.</p>
-          }
-          @case ('verificado') {
-            <h1 class="mb-1 text-xl font-semibold">Tu correo quedó verificado</h1>
-            <p class="text-muted-foreground mb-4 text-sm" role="status">
+    <dh-auth-layout
+      titulo="Verifica tu correo"
+      mensaje="Con el correo verificado puedes recuperar tu contraseña cuando la olvides."
+    >
+      @switch (estado()) {
+        @case ('verificando') {
+          <div class="dh-state">
+            <div class="dh-icono-grande"><dh-icono nombre="mail" [tam]="34" /></div>
+            <h1 class="dh-titulo-auth">Verificando tu correo…</h1>
+            <p class="dh-sub-auth" role="status">Un momento, por favor.</p>
+          </div>
+        }
+        @case ('verificado') {
+          <div class="dh-state">
+            <div class="dh-icono-grande dh-ok"><dh-icono nombre="check-circle" [tam]="34" /></div>
+            <h1 class="dh-titulo-auth">Tu correo quedó verificado</h1>
+            <p class="dh-sub-auth" role="status">
               Ya puedes recuperar tu contraseña con este correo si la olvidas.
             </p>
-            <a routerLink="/login" class="text-sm font-medium underline">Ir a iniciar sesión</a>
-          }
-          @case ('invalido') {
-            <h1 class="mb-1 text-xl font-semibold">Enlace no válido</h1>
-            <p class="text-destructive mb-4 text-sm" role="alert">
+            <a routerLink="/login" class="dh-btn dh-btn-block">Ir a iniciar sesión</a>
+          </div>
+        }
+        @case ('invalido') {
+          <div class="dh-state">
+            <div class="dh-icono-grande dh-mal"><dh-icono nombre="alert" [tam]="34" /></div>
+            <h1 class="dh-titulo-auth">Enlace no válido</h1>
+            <p class="dh-sub-auth" role="alert">
               Este enlace no es válido o ya venció. Inicia sesión y vuelve a pedir la verificación
               desde la barra superior.
             </p>
-            <a routerLink="/login" class="text-sm font-medium underline">Ir a iniciar sesión</a>
-          }
+            <a routerLink="/login" class="dh-btn dh-btn-soft dh-btn-block">Ir a iniciar sesión</a>
+          </div>
         }
-      </div>
-    </section>
+      }
+    </dh-auth-layout>
   `,
 })
 export class VerificarCorreo implements OnInit {

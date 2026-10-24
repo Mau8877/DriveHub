@@ -90,6 +90,35 @@ class SesionNotifier extends Notifier<EstadoSesion> {
     }
   }
 
+  /// Reemplaza en la sesión los datos del perfil que cambiaron (CU06) para que la barra y el
+  /// avatar se actualicen al instante, sin tocar los tokens ni el temporizador. Solo cambia lo
+  /// indicado: `fotoUrl` pone una foto nueva y `quitarFoto` la borra. Sin sesión no hace nada.
+  Future<void> actualizarUsuario({
+    String? nombres,
+    String? apellidos,
+    String? fotoUrl,
+    bool quitarFoto = false,
+  }) async {
+    final actual = state.usuario;
+    if (!state.conSesionActiva || actual == null) return;
+    final nuevo = UsuarioSesion(
+      codigo: actual.codigo,
+      nombres: nombres ?? actual.nombres,
+      apellidos: apellidos ?? actual.apellidos,
+      roles: actual.roles,
+      escuelaCodigo: actual.escuelaCodigo,
+      correoVerificado: actual.correoVerificado,
+      fotoUrl: quitarFoto ? null : (fotoUrl ?? actual.fotoUrl),
+    );
+    state = EstadoSesion.conSesion(nuevo);
+    final refresh = _refreshToken;
+    if (refresh != null) {
+      await ref
+          .read(sesionStorageProvider)
+          .guardar(SesionGuardada(refreshToken: refresh, usuario: nuevo));
+    }
+  }
+
   /// Cierra la sesión (CU03): avisa al backend y borra todo lo local.
   ///
   /// * El borrado local no depende del backend: si falla (red, 429, 5xx) igual

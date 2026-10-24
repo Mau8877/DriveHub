@@ -10,6 +10,13 @@ public interface UsuarioRepositoryPort {
     /** El correo ya viene normalizado (sin espacios y en minúsculas). */
     boolean existePorEmail(String email);
 
+    /** Si otra cuenta ya usa ese CI (CU08a). El CI ya viene normalizado (sin espacios y en mayúsculas). */
+    boolean existePorCi(String ci);
+
+    /** Si una cuenta distinta a la de ese código ya usa ese CI (CU08a: editar el perfil propio). */
+    boolean existePorCiDeOtro(String ci, UUID usuarioCodigo);
+
+    /** Guarda la cuenta y su perfil juntos, en la misma transacción (CU08a). */
     Usuario guardar(Usuario usuario);
 
     /** El correo ya viene normalizado. Devuelve la cuenta con sus roles. */
@@ -24,11 +31,31 @@ public interface UsuarioRepositoryPort {
     Optional<Usuario> buscarAdministradorDeEscuela(UUID escuelaCodigo);
 
     /**
+     * Las cuentas con rol ESTUDIANTE de esa escuela (CU08), con su perfil, de la más reciente a la
+     * más antigua (`created_at DESC, id DESC`). Nunca trae a una persona de otra escuela.
+     * Los roles de las cuentas devueltas no se cargan.
+     *
+     * @param pagina 1-indexada
+     */
+    PaginaUsuarios listarEstudiantesDeEscuela(UUID escuelaCodigo, FiltroEstudiantes filtro, int pagina, int tamano);
+
+    /**
+     * La cuenta ESTUDIANTE con ese código dentro de esa escuela (CU08). Vacío si no existe, si no
+     * es un estudiante o si es de otra escuela: no se distinguen. Los roles no se cargan.
+     */
+    Optional<Usuario> buscarEstudianteDeEscuela(UUID escuelaCodigo, UUID codigo);
+
+    /**
      * Borra la cuenta y todo lo que cuelga de ella (roles, sesiones, enlaces de correo), de forma
      * FÍSICA. Solo para revertir la creación de un Administrador sin uso (CU05).
      */
     void eliminarDefinitivamente(UUID usuarioCodigo);
 
-    /** Persiste el estado de acceso: intentos fallidos, estado, bloqueo y último ingreso. */
+    /**
+     * Persiste los datos de la cuenta que cambian después de crearla: estado de acceso (intentos,
+     * estado, bloqueo, último ingreso), contraseña, correo y su verificación, y los datos del
+     * perfil (nombres, apellidos, teléfono, fecha de nacimiento, foto, CI, sexo, ubicación y categoría).
+     * Los roles y la escuela no.
+     */
     Usuario actualizar(Usuario usuario);
 }

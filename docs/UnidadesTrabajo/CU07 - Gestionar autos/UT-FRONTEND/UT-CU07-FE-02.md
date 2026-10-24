@@ -22,7 +22,7 @@ La pantalla `/escuela/autos` lista, registra, edita y cambia el estado de los au
 
 ## Alcance
 
-- `features/autos/schemas/autos.esquema.ts`: recurso `vehiculos`; columnas, búsqueda, filtro `filter[estado]`; formulario de registro (placa, marca, modelo, año, color, transmisión, km, vencimientos) y de edición (placa y transmisión de solo lectura, `bloqueo` si está de baja); acciones `enviar-a-mantenimiento`, `habilitar` y `dar-de-baja` (esta con confirmación) con su `visibleSi`; `ERR_ESC_07` bajo el campo placa.
+- `features/autos/schemas/autos.esquema.ts`: recurso `vehiculos`; columnas, búsqueda, filtro `filter[estado]`; formulario de registro (placa, marca, modelo, año, color, transmisión, km, vencimientos) y de edición (placa y transmisión de solo lectura, `bloqueo` si está de baja); acciones `enviar-a-mantenimiento`, `habilitar` y `dar-de-baja` (esta con confirmación) con su `visibleSi`; `ERR_ESC_08` bajo el campo placa.
 - `features/autos/screens/autos-gestion.ts`: anfitrión delgado de `<dh-gestion>`.
 - `app.routes.ts`: ruta hija `autos` con `loadComponent`. `inicio.ts`: enlace "Autos".
 - Tests: `autos.esquema.spec.ts`, `autos-gestion.spec.ts` y el de `app.spec.ts`.

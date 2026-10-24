@@ -66,7 +66,7 @@ class AuthControllerTest {
     private SesionEmitida sesion() {
         Usuario usuario = Usuario.builder().codigo(UUID.randomUUID()).nombres("Ana").apellidos("Pérez")
             .escuelaCodigo(UUID.randomUUID()).roles(Set.of(Rol.builder().nombre("ADMIN_ESCUELA").build())).build();
-        return new SesionEmitida("jwt-de-acceso", 900, "refresh-en-claro", usuario);
+        return new SesionEmitida("jwt-de-acceso", 900, "refresh-en-claro", usuario, null);
     }
 
     private ResultActions enviar(String ruta, String json) throws Exception {
@@ -94,6 +94,26 @@ class AuthControllerTest {
 
         String cookie = respuesta.andReturn().getResponse().getHeader(HttpHeaders.SET_COOKIE);
         assertThat(cookie).contains("refreshToken=refresh-en-claro", "HttpOnly", "SameSite=Lax", "Path=/api/v1/auth", "Max-Age=604800");
+    }
+
+    @Test
+    void login_sinFoto_elCampoFotoUrlNoViaja() throws Exception {
+        when(iniciarSesion.iniciar(any())).thenReturn(sesion());
+
+        enviar("/api/v1/auth/login", login("WEB"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.usuario.fotoUrl").doesNotExist());
+    }
+
+    @Test
+    void login_conFoto_incluyeLaUrlFirmadaEnElUsuario() throws Exception {
+        SesionEmitida conFoto = new SesionEmitida("jwt-de-acceso", 900, "refresh-en-claro", sesion().usuario(),
+            "http://minio/firmada");
+        when(iniciarSesion.iniciar(any())).thenReturn(conFoto);
+
+        enviar("/api/v1/auth/login", login("WEB"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.usuario.fotoUrl").value("http://minio/firmada"));
     }
 
     @Test

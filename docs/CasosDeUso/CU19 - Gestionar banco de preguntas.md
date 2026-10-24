@@ -52,10 +52,10 @@ El Administrador de escuela tiene en su menú la opción "Exámenes". Ahí ve el
 
 - **A1 (F1 paso 4, F2 paso 3):** Falta un dato obligatorio o su formato es inválido (enunciado de menos de 5 o más de 500 caracteres, tema de menos de 2 o más de 80, categoría o tipo fuera de la lista, dificultad fuera de 1 a 3, explicación de más de 500, una opción sin texto) → el cliente indica cada campo y no envía; si llega igual, el sistema responde 400 `ERR_SYS_01`.
 - **A2 (F1 paso 4, F2 paso 3):** Las opciones no cumplen el tipo (opción única o verdadero o falso sin exactamente una correcta, opción múltiple sin ninguna correcta, verdadero o falso sin exactamente 2 opciones, menos de 2 o más de 6 opciones, opciones repetidas) → 400 `ERR_SYS_01` con el motivo; no se crea ni cambia nada.
-- **A3 (F2, F3, F4):** La pregunta no existe o es de otra escuela → 404 `ERR_ACA_01` (no se revela si existe en otra escuela).
-- **A4 (F3, F4):** La pregunta ya estaba desactivada (al desactivar) o ya estaba activa (al activar) → 409 `ERR_ACA_02`.
+- **A3 (F2, F3, F4):** La pregunta no existe o es de otra escuela → 404 `ERR_ACA_14` (no se revela si existe en otra escuela).
+- **A4 (F3, F4):** La pregunta ya estaba desactivada (al desactivar) o ya estaba activa (al activar) → 409 `ERR_ACA_15`.
 - **A5 (cualquier flujo):** La persona no es Administrador de escuela → 403 `ERR_SYS_05`; sin sesión o con sesión vencida → 401 `ERR_SYS_04`.
-- **A6 (cualquier flujo):** El token no trae la escuela de la cuenta → 403 `ERR_ACA_03`.
+- **A6 (cualquier flujo):** El token no trae la escuela de la cuenta → 403 `ERR_ACA_16`.
 - **A7 (cualquier flujo):** Se superó el límite de peticiones → 429 (`ERR_SYS_02`).
 
 ## Reglas de negocio
@@ -87,8 +87,8 @@ El Administrador de escuela tiene en su menú la opción "Exámenes". Ahí ve el
 - **CA04:** Dadas opciones que no cumplen su tipo (cantidad de opciones o de correctas, repetidas), el sistema debe responder 400 `ERR_SYS_01` con el motivo, sin crear ni cambiar nada.
 - **CA05:** Dado un cambio de datos, el sistema debe modificar solo los campos enviados; si cambia el tipo o las opciones, debe revisar el conjunto completo.
 - **CA06:** Dada una pregunta activa, desactivarla debe dejarla desactivada y sacarla de los simulacros nuevos; activarla debe devolverla.
-- **CA07:** Dada una pregunta ya desactivada (o ya activa), el sistema debe responder 409 `ERR_ACA_02` al desactivar (o al activar) sin cambiar nada.
-- **CA08:** Dada una pregunta de otra escuela o inexistente, el sistema debe responder 404 `ERR_ACA_01` a cualquier operación.
+- **CA07:** Dada una pregunta ya desactivada (o ya activa), el sistema debe responder 409 `ERR_ACA_15` al desactivar (o al activar) sin cambiar nada.
+- **CA08:** Dada una pregunta de otra escuela o inexistente, el sistema debe responder 404 `ERR_ACA_14` a cualquier operación.
 - **CA09:** Dada una persona que no es Administrador de escuela, el sistema debe responder 403 a cualquier operación, y 401 si no hay sesión válida.
 - **CA10:** Dado el menú de la web, la opción "Exámenes" debe verse solo para el Administrador de escuela.
 - **CA11:** Dado el formulario, el Administrador debe poder agregar y quitar opciones (de 2 a 6) y marcar cuáles son correctas sin salir de la pantalla.

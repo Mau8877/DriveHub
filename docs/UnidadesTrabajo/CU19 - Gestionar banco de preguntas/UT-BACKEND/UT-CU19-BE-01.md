@@ -23,7 +23,7 @@ La pregunta sabe a qué escuela pertenece, el servicio tiene su catálogo de err
 ## Alcance
 
 - `Pregunta`: campo `escuelaCodigo` (UUID) y setter de `creadaPorCodigo`; el índice compuesto pasa a `idx_pregunta_escuela_categoria_tema_activa (escuelaCodigo, categoria, tema, activa)`.
-- `AcademicoErrorCodes` (`ERR_ACA_01` a `ERR_ACA_03` y `ERR_SYS_01`).
+- `AcademicoErrorCodes` (`ERR_ACA_14` a `ERR_ACA_16` y `ERR_SYS_01`).
 - `GlobalExceptionHandler`: 400 `ERR_SYS_01` para `HttpMessageNotReadableException` (cuerpo ilegible o enumeración desconocida) y `MethodArgumentTypeMismatchException` (código que no es UUID, filtro con valor inválido).
 - `docs/DriveHub/DISENO_BASE_DE_DATOS.md`: campo, índice y reglas de opciones.
 

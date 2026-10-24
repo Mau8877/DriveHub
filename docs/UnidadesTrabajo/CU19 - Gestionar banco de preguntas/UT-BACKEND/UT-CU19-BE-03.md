@@ -24,7 +24,7 @@ Las reglas de una pregunta (opciones según el tipo, estado, aislamiento) tienen
 
 - DTOs `CrearPreguntaRequest`, `EditarPreguntaRequest`, `OpcionRequest` y `PreguntaResponse` (validaciones de cada campo con mensajes en español).
 - `ReglasPregunta`: enunciado de 5 a 500, tema de 2 a 80, categoría `GENERAL|[A-Z]{1,3}`, dificultad de 1 a 3, explicación de hasta 500; opciones de 2 a 6 (2 en verdadero o falso), 1 correcta (o 1 o más en múltiple), sin repetidas, ids A a F por orden. Todo con `ERR_SYS_01`.
-- `PreguntaService`: `@PreAuthorize("hasRole('ADMIN_ESCUELA')")`; `crear` (activa, con la escuela y el autor), `listar` (20 por defecto, 100 máximo), `obtener`, `editar` (parcial, revalida el conjunto si cambia el tipo o las opciones), `cambiarActiva` (`ERR_ACA_02` si ya estaba así), `ERR_ACA_01` si no existe en la escuela. `INFO` por cada cambio y `WARN` por cada rechazo, con `module` y `errorCode`.
+- `PreguntaService`: `@PreAuthorize("hasRole('ADMIN_ESCUELA')")`; `crear` (activa, con la escuela y el autor), `listar` (20 por defecto, 100 máximo), `obtener`, `editar` (parcial, revalida el conjunto si cambia el tipo o las opciones), `cambiarActiva` (`ERR_ACA_15` si ya estaba así), `ERR_ACA_14` si no existe en la escuela. `INFO` por cada cambio y `WARN` por cada rechazo, con `module` y `errorCode`.
 
 Archivos esperados (crear/tocar): `dto/*`, `service/PreguntaService.java`, `service/ReglasPregunta.java` y `PreguntaServiceTest.java`.
 

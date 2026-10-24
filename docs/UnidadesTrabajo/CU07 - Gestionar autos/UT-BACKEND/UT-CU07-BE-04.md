@@ -22,8 +22,8 @@ Editar los campos permitidos y mover el auto entre estados respetando las transi
 
 ## Alcance
 
-- `EditarVehiculoInput` y `EditarVehiculoUseCase`: un campo nulo no se toca; no hay parámetro para placa, transmisión ni estado; rechaza el auto de baja (`ERR_ESC_09`) y un kilometraje menor al actual (`ERR_SYS_01`).
-- `CambiarEstadoVehiculoUseCase.ejecutar(escuela, codigo, destino)`: 404 `ERR_ESC_08`; transición no permitida `ERR_ESC_09`; `INFO` con estado de origen y destino.
+- `EditarVehiculoInput` y `EditarVehiculoUseCase`: un campo nulo no se toca; no hay parámetro para placa, transmisión ni estado; rechaza el auto de baja (`ERR_ESC_10`) y un kilometraje menor al actual (`ERR_SYS_01`).
+- `CambiarEstadoVehiculoUseCase.ejecutar(escuela, codigo, destino)`: 404 `ERR_ESC_09`; transición no permitida `ERR_ESC_10`; `INFO` con estado de origen y destino.
 
 Archivos esperados (crear/tocar): los dos casos de uso, `EditarVehiculoInput` y sus tests (`EditarVehiculoUseCaseTest`, `CambiarEstadoVehiculoUseCaseTest`).
 

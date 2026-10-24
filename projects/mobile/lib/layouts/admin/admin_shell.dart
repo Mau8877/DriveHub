@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../shared/widgets/cockpit_scaffold.dart';
+
 /// Shell del rol Admin -- AppBar + `NavigationDrawer` (Material 3, tres
 /// secciones). Equivalente mobile de `AdminLayout` en el frontend web (ver
 /// ARQUITECTURA_FRONTEND.md#layouts-por-rol): un Drawer calza mejor que un
@@ -32,7 +34,7 @@ class _AdminShellState extends State<AdminShell> {
   Widget build(BuildContext context) {
     final seccionActual = _secciones[_selected];
 
-    return Scaffold(
+    return CockpitScaffold(
       appBar: AppBar(title: const Text('App Admin')),
       drawer: NavigationDrawer(
         selectedIndex: _selected,

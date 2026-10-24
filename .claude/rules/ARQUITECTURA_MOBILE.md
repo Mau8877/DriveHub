@@ -21,12 +21,16 @@ lib/
 ├── core/
 │   ├── network/     # ApiClient (Dio + interceptor de sobre), ya implementado (ver CONSUMO_API_MOBILE.md)
 │   ├── routing/     # GoRouter único, con el redirect global -- todavía vacío (ver NAVEGACION_MOBILE.md)
-│   └── theme/       # AppColors/AppTheme, ya implementado con la paleta de marca (espejo de design-tokens)
+│   └── theme/       # AppColors/AppTheme/CockpitColores (diseño Cockpit, espejo de design-tokens) y temaProvider (apariencia)
 ├── layouts/
-│   └── {rol}/       # Shell por rol (AdminShell, UsuarioShell, ya scaffoldeados como ejemplo)
+│   ├── inicio_por_rol.dart  # Elige el shell de /inicio según los roles de la sesión
+│   ├── shared/      # ShellConBarra: AppBar + barra inferior común a los shells por rol
+│   └── {rol}/       # Shell por rol (EstudianteShell, InstructorShell; AdminShell sin usar)
 ├── shared/
-│   └── widgets/     # Widgets usados por 2+ features (ver WIDGETS_UI_MOBILE.md) -- no existe todavía
+│   └── widgets/     # Piezas del diseño Cockpit y widgets de 2+ features (ver WIDGETS_UI_MOBILE.md)
 ├── features/
+│   ├── inicio/      # Pestaña Inicio del shell (saludo, tarjeta de próxima clase, accesos): estado vacío hasta sus casos de uso
+│   ├── clases/      # Pestaña Clases/Agenda del shell: estado vacío hasta los casos de uso de Académico
 │   ├── health/      # Feature de diagnóstico end-to-end (service+provider+screen) contra el backend real
 │   └── {feature}/   # Un feature de negocio (ver estructura abajo)
 └── main.dart         # Entry point, monta MaterialApp + ProviderScope (sin GoRouter todavía)
@@ -47,11 +51,13 @@ mejor lugar para un chequeo de conectividad, mismo criterio que
 
 `layouts/{rol}/` sigue el mismo patrón que
 [ARQUITECTURA_FRONTEND.md](ARQUITECTURA_FRONTEND.md#estructura-de-src) del
-lado web: un shell delgado por rol (`AdminShell`, `UsuarioShell`, ya
-scaffoldeados) que no conoce lógica de negocio, solo la navegación de
-nivel superior de ese rol. Ninguno está conectado a `core/routing/`
-todavía (esa carpeta sigue vacía) — quedan disponibles para montarse
-cuando el proyecto defina su propio `GoRouter`.
+lado web: un shell delgado por rol (`EstudianteShell`, `InstructorShell`)
+que no conoce lógica de negocio, solo declara las secciones de la barra
+inferior de ese rol (máximo 5) sobre el `ShellConBarra` común. `/inicio`
+monta `InicioPorRol`, que elige el shell según los roles de la sesión.
+Una sección nueva se agrega al shell del rol con el primer caso de uso que
+la necesite; mientras no tenga pantalla muestra un cuerpo de prueba.
+`AdminShell` sigue sin conectarse: la app móvil no es para administradores.
 
 ## Estructura de un feature (`lib/features/{feature}/`)
 

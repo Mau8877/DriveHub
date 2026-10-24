@@ -100,6 +100,44 @@ class SmtpCorreoAdapterTest {
     }
 
     @Test
+    void enviarCambioCorreo_vaAlCorreoNuevoConElEnlaceYSuVigencia() throws Exception {
+        String enlace = "http://localhost:4200/account/change-email?token=cambio123";
+
+        adaptador.enviarCambioCorreo("nuevo@gmail.com", "Ana", enlace);
+
+        ArgumentCaptor<MimeMessage> enviado = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(enviado.capture());
+        MimeMessage mensaje = enviado.getValue();
+        assertThat(((InternetAddress) mensaje.getRecipients(Message.RecipientType.TO)[0]).getAddress())
+            .isEqualTo("nuevo@gmail.com");
+        assertThat(((InternetAddress) mensaje.getFrom()[0]).getAddress()).isEqualTo("no-reply@drivehub.local");
+        assertThat(mensaje.getSubject()).isEqualTo("Confirma tu nuevo correo en DriveHub");
+        assertThat(cuerpo(mensaje)).contains("Hola Ana").contains(enlace).contains("24 horas");
+    }
+
+    @Test
+    void enviarAvisoCambioCorreo_vaAlCorreoAnteriorYNoTieneNingunEnlace() throws Exception {
+        adaptador.enviarAvisoCambioCorreo("viejo@gmail.com", "Ana", "nuevo@gmail.com");
+
+        ArgumentCaptor<MimeMessage> enviado = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(enviado.capture());
+        MimeMessage mensaje = enviado.getValue();
+        assertThat(((InternetAddress) mensaje.getRecipients(Message.RecipientType.TO)[0]).getAddress())
+            .isEqualTo("viejo@gmail.com");
+        assertThat(mensaje.getSubject()).isEqualTo("El correo de tu cuenta de DriveHub cambió");
+        assertThat(cuerpo(mensaje)).contains("Hola Ana").contains("nuevo@gmail.com").contains("contacta a tu escuela")
+            .doesNotContain("http").doesNotContain("href");
+    }
+
+    @Test
+    void enviarCambioCorreo_siFallaElEnvio_laExcepcionSePropaga() {
+        doThrow(new MailSendException("SMTP caido")).when(sender).send(org.mockito.ArgumentMatchers.any(MimeMessage.class));
+
+        assertThatThrownBy(() -> adaptador.enviarCambioCorreo("nuevo@gmail.com", "Ana", ENLACE))
+            .isInstanceOf(MailSendException.class);
+    }
+
+    @Test
     void enviarVerificacionCorreo_siFallaElEnvio_laExcepcionSePropaga() {
         doThrow(new MailSendException("SMTP caido")).when(sender).send(org.mockito.ArgumentMatchers.any(MimeMessage.class));
 

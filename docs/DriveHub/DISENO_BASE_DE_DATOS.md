@@ -13,7 +13,7 @@
 > Reglas de implementación (ids, nombres, migraciones, soft delete):
 > [PERSISTENCIA_BD_BACKEND.md](../../.claude/rules/backend/PERSISTENCIA_BD_BACKEND.md).
 
-Última revisión: 2026-10-19 (hasta CU02).
+Última revisión: 2026-10-21 (se agregó CU12 en Académico).
 
 ## Contenido
 
@@ -83,7 +83,7 @@ Las líneas punteadas son **referencias por código, sin FK**: se validan al esc
 
 ## 2. Identidad — PostgreSQL
 
-Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02), `V20261020120000__correo_verificado_y_tipo_token.sql` (CU04b).
+Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02), `V20261020120000__correo_verificado_y_tipo_token.sql` (CU04b), `V20261021120000__cambio_de_correo.sql` (CU06), `V20261023100000__crear_perfil.sql` (CU08a), `V20261023120000__extension_unaccent.sql` (CU08).
 
 ```mermaid
 erDiagram
@@ -93,6 +93,7 @@ erDiagram
     permiso ||--o{ rol_permiso : "pertenece a"
     usuario ||--o{ refresh_token : "sesiones"
     usuario ||--o{ token_recuperacion : "recuperaciones"
+    usuario ||--|| perfil : "datos de la persona"
 
     usuario {
         bigint id PK
@@ -100,6 +101,14 @@ erDiagram
         varchar email UK
         uuid escuela_codigo "NULL = Super admin"
         varchar estado
+    }
+    perfil {
+        bigint id PK
+        uuid codigo_perfil UK
+        bigint usuario_id FK, UK
+        varchar ci UK
+        varchar sexo
+        varchar categoria_sigla "Escuela"
     }
     rol {
         bigint id PK
@@ -130,23 +139,42 @@ erDiagram
 
 ### `usuario`
 
-Cuenta de acceso. `codigo_usuario` es la **persona única** en toda la plataforma. CU01, CU02, CU06.
+Cuenta de acceso. `codigo_usuario` es la **persona única** en toda la plataforma. CU01, CU02, CU06. Los datos de la persona (nombres, contacto, CI, sexo, ubicación) están en [`perfil`](#perfil) desde CU08a.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `email` | `VARCHAR(120) NOT NULL UNIQUE` | Login. Único en **toda** la plataforma, guardado en minúsculas |
 | `password_hash` | `VARCHAR(255) NOT NULL` | BCrypt, nunca en claro |
-| `nombres` | `VARCHAR(80) NOT NULL` | |
-| `apellidos` | `VARCHAR(80) NOT NULL` | |
-| `telefono` | `VARCHAR(20)` | |
-| `foto_url` | `TEXT` | Clave del archivo en el bucket `drivehub-identidad` |
-| `fecha_nacimiento` | `DATE NOT NULL` | Para validar la edad mínima (18) al registrarse. *CU01* |
 | `escuela_codigo` | `UUID` | Escuela (tenant) de la cuenta, **sin FK** → `escuela.codigo_escuela`. `NULL` para el Super admin. Índice `idx_usuario_escuela_codigo`. *CU01* |
 | `estado` | `VARCHAR(12) NOT NULL DEFAULT 'ACTIVO'` | `CHECK IN ('ACTIVO','INACTIVO','BLOQUEADO')` |
 | `intentos_fallidos` | `INT NOT NULL DEFAULT 0` | Se reinicia en un login correcto. Bloqueo al 5.º fallo. *CU02* |
 | `bloqueado_hasta` | `TIMESTAMPTZ` | Fin del bloqueo (15 min); se levanta solo. *CU02* |
 | `correo_verificado` | `BOOLEAN NOT NULL DEFAULT FALSE` | El correo se verificó con el enlace enviado. Todas las cuentas, también las existentes, empiezan en `false`. No bloquea el login: solo condiciona la recuperación de contraseña. *CU04b* |
 | `ultimo_login` | `TIMESTAMPTZ` | |
+
+### `perfil`
+
+Datos de la persona, 1 a 1 con `usuario`, para **todos** los roles (Super admin, Administrador, Instructor y Estudiante). *CU08a*
+
+| Columna | Tipo | Notas |
+| --- | --- | --- |
+| `codigo_perfil` | `UUID NOT NULL UNIQUE` | Público solo dentro del servicio: la persona se identifica por `codigo_usuario` |
+| `usuario_id` | `BIGINT NOT NULL UNIQUE REFERENCES usuario(id)` | El 1 a 1 |
+| `nombres` | `VARCHAR(80) NOT NULL` | |
+| `apellidos` | `VARCHAR(80) NOT NULL` | |
+| `telefono` | `VARCHAR(20)` | |
+| `foto_url` | `TEXT` | **Clave** del objeto en el bucket privado `drivehub-identidad` (`usuarios/{codigo_usuario}/{uuid v7}.{ext}`), no una URL: la URL de lectura se firma al responder. `NULL` si no tiene foto. *CU06* |
+| `fecha_nacimiento` | `DATE NOT NULL` | Para validar la edad mínima (18) al registrarse. *CU01* |
+| `ci` | `VARCHAR(15) NOT NULL UNIQUE` | Documento de identidad: único en toda la plataforma, sin espacios y en mayúsculas |
+| `sexo` | `VARCHAR(10) NOT NULL` | `CHECK IN ('MASCULINO','FEMENINO')` |
+| `direccion` | `VARCHAR(300)` | La calcula el servidor desde `latitud` y `longitud` (geocodificación inversa); en blanco si no se pudo. `NULL` para el Super admin |
+| `latitud` | `NUMERIC(9,6)` | Punto elegido en el mapa, `CHECK BETWEEN -90 AND 90`. Van juntas con `longitud` (`CHECK ((latitud IS NULL) = (longitud IS NULL))`) |
+| `longitud` | `NUMERIC(9,6)` | `CHECK BETWEEN -180 AND 180` |
+| `categoria_sigla` | `VARCHAR(3)` | → `escuela.categoria_licencia.sigla`, sin FK. Solo el estudiante la tiene (arranca en `SIN`) y solo la escuela la cambia |
+
+`ci` y `sexo` son `NOT NULL` para todos; `direccion`, las coordenadas y la categoría son nulables en la base y el caso de uso las exige según el rol (el Super admin no tiene ubicación). La migración rellena las cuentas anteriores con valores provisionales (`ci = 'X' + id`, `sexo = 'MASCULINO'`, `direccion = 'X'`).
+
+**Extensión `unaccent`** (CU08, `V20261023120000`): la búsqueda de estudiantes por nombre compara `unaccent(lower(nombres || ' ' || apellidos))`, así "jose" encuentra a "José". Solo habilita la extensión: no crea tablas ni índices.
 
 ### `rol`
 
@@ -201,27 +229,27 @@ Sesiones renovables (CU02, CU03). **Solo el hash SHA-256**: el valor en claro lo
 
 ### `token_recuperacion`
 
-Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b) y restablecer la contraseña (CU04). Solo se guarda el hash.
+Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b), restablecer la contraseña (CU04) y confirmar el cambio de correo (CU06). Solo se guarda el hash.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `usuario_id` | `BIGINT NOT NULL REFERENCES usuario(id)` | Índice `idx_token_recuperacion_usuario_id` |
-| `tipo` | `VARCHAR(20) NOT NULL DEFAULT 'RECUPERACION'` | `CHECK IN ('RECUPERACION','VERIFICACION')`. Un enlace de un tipo no sirve para el otro. *CU04b* |
+| `tipo` | `VARCHAR(20) NOT NULL DEFAULT 'RECUPERACION'` | `CHECK IN ('RECUPERACION','VERIFICACION','CAMBIO_CORREO')`. Un enlace de un tipo no sirve para los otros. *CU04b, CU06* |
+| `correo_nuevo` | `VARCHAR(120)` | Dirección a la que pasará la cuenta al confirmar el enlace. Solo en `CAMBIO_CORREO` (`CHECK (tipo = 'CAMBIO_CORREO') = (correo_nuevo IS NOT NULL)`). El correo de la cuenta no cambia hasta confirmar. *CU06* |
 | `token_hash` | `VARCHAR(64) NOT NULL UNIQUE` | |
 | `expira_en` | `TIMESTAMPTZ NOT NULL` | |
 | `usado` | `BOOLEAN NOT NULL DEFAULT FALSE` | |
 
-**Datos sembrados:** los 4 roles (migración). En el perfil `dev`, además, `superadmin@gmail.com` (`SUPER_ADMIN`, sin escuela) y `adminexample@gmail.com` (`ADMIN_ESCUELA` de `escuelaexample`), ambos con contraseña `123123123`.
+**Datos sembrados:** los 4 roles (migración). En el perfil `dev`, además, `superadmin@gmail.com` (`SUPER_ADMIN`, sin escuela) y `adminexample@gmail.com` (`ADMIN_ESCUELA` de `escuelaexample`) e `instructorexample@gmail.com` (`INSTRUCTOR` de `escuelaexample`), todos con contraseña `123123123`.
 
 ---
 
 ## 3. Escuela — PostgreSQL
 
-Escuelas (tenants), personas de la escuela, flota y asignaciones. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261024100000__vehiculo_escuela_codigo.sql` y `V20261024110000__vehiculo_imagen_url.sql` (CU07).
+Escuelas (tenants), instructores, flota, categorías de licencia y asignaciones. El **estudiante no tiene tabla propia** (CU08a): es una cuenta con su perfil en [Identidad](#2-identidad--postgresql) y Escuela lo referencia por su `codigo_usuario`. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261023100000__escuela_sin_estudiante_y_categorias.sql` (CU08a), `V20261024100000__vehiculo_escuela_codigo.sql` y `V20261024110000__vehiculo_imagen_url.sql` (CU07).
 
 ```mermaid
 erDiagram
-    categoria_licencia ||--o{ estudiante : "categoría"
     categoria_licencia ||--o{ vehiculo : "categoría"
     categoria_licencia ||--o{ instructor_categoria : "habilita"
     instructor ||--o{ instructor_categoria : "enseña"
@@ -229,7 +257,6 @@ erDiagram
     vehiculo ||--o{ asignacion_vehiculo : "asignado"
     instructor ||--o{ asignacion_vehiculo : "usa"
     instructor ||--o{ asignacion_alumno : "tiene alumnos"
-    estudiante ||--o{ asignacion_alumno : "es asignado"
 
     escuela {
         bigint id PK
@@ -241,16 +268,9 @@ erDiagram
         bigint id PK
         varchar sigla UK
     }
-    estudiante {
-        bigint id PK
-        uuid usuario_codigo UK "Identidad"
-        varchar ci UK
-        bigint categoria_id FK
-    }
     instructor {
         bigint id PK
         uuid usuario_codigo UK "Identidad"
-        varchar ci UK
         varchar nro_licencia UK
     }
     vehiculo {
@@ -260,7 +280,7 @@ erDiagram
     }
 ```
 
-> `escuela` aún **no** se relaciona con las demás tablas de este servicio: el `escuela_codigo` en `estudiante`, `instructor`, `vehiculo`... se agrega con el diseño del filtro por tenant (antes de CU07 y CU08). Ver [sección 10](#10-diferencias-con-el-pdf-y-pendientes).
+> `escuela` aún **no** se relaciona con las demás tablas de este servicio: el `escuela_codigo` en `instructor`, `vehiculo`... se agrega con el diseño del filtro por tenant (antes de CU07). Ver [sección 10](#10-diferencias-con-el-pdf-y-pendientes).
 
 ### `escuela`
 
@@ -288,20 +308,7 @@ Catálogo (A, B, C…). `sigla` es el valor que usan los demás servicios.
 | `edad_minima` | `SMALLINT` | |
 | `clases_minimas` | `SMALLINT` | Mínimo de clases prácticas para rendir el examen |
 
-### `estudiante`
-
-Perfil del estudiante (CU08).
-
-| Columna | Tipo | Notas |
-| --- | --- | --- |
-| `usuario_codigo` | `UUID NOT NULL UNIQUE` | → `identidad.usuario.codigo_usuario`, sin FK |
-| `ci` | `VARCHAR(15) NOT NULL UNIQUE` | |
-| `fecha_nacimiento` | `DATE` | |
-| `direccion` | `VARCHAR(200)` | |
-| `categoria_id` | `BIGINT REFERENCES categoria_licencia(id)` | Índice `idx_estudiante_categoria_id` |
-| `estado` | `VARCHAR(12) NOT NULL DEFAULT 'ACTIVO'` | `CHECK IN ('ACTIVO','EGRESADO','RETIRADO')` |
-| `fecha_inscripcion` | `DATE` | |
-| `observaciones` | `TEXT` | |
+Sembrada por migración (CU08a), en este orden: `P` Particular, `M` Motocicleta, `A` Profesional A, `B` Profesional B, `C` Profesional C y `SIN` Sin categoría (con la que arranca todo estudiante). `edad_minima` y `clases_minimas` quedan sin definir hasta confirmar los valores. **Las siglas y descripciones están pendientes de confirmar con el equipo.**
 
 ### `instructor`
 
@@ -309,8 +316,7 @@ Perfil del instructor (CU09).
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
-| `usuario_codigo` | `UUID NOT NULL UNIQUE` | → `identidad.usuario.codigo_usuario`, sin FK |
-| `ci` | `VARCHAR(15) NOT NULL UNIQUE` | |
+| `usuario_codigo` | `UUID NOT NULL UNIQUE` | → `identidad.usuario.codigo_usuario`, sin FK. El CI y los datos personales están en el `perfil` de Identidad |
 | `nro_licencia` | `VARCHAR(30) NOT NULL UNIQUE` | |
 | `licencia_vence` | `DATE` | |
 | `estado` | `VARCHAR(12) NOT NULL DEFAULT 'ACTIVO'` | `CHECK IN ('ACTIVO','INACTIVO','LICENCIA')` |
@@ -376,10 +382,10 @@ Instructor asignado a cada estudiante. Un estudiante tiene un solo instructor vi
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `instructor_id` | `BIGINT NOT NULL REFERENCES instructor(id)` | Índice `idx_asignacion_alumno_instructor_id` |
-| `estudiante_id` | `BIGINT NOT NULL REFERENCES estudiante(id)` | |
+| `estudiante_codigo` | `UUID NOT NULL` | → `identidad.usuario.codigo_usuario` del estudiante, sin FK (CU08a) |
 | `fecha_inicio` | `DATE NOT NULL` | |
 | `fecha_fin` | `DATE` | `NULL` = vigente |
-| | `UNIQUE (estudiante_id) WHERE fecha_fin IS NULL AND deleted_at IS NULL` | `uq_asignacion_alumno_vigente` |
+| | `UNIQUE (estudiante_codigo) WHERE fecha_fin IS NULL AND deleted_at IS NULL` | `uq_asignacion_alumno_vigente` |
 
 ---
 
@@ -569,14 +575,20 @@ Horario semanal base del instructor.
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoPlantillaHorario` | UUID | Único |
+| `escuelaCodigo` | UUID | → Escuela `escuela.codigo_escuela`. Se toma del claim `escuela` del JWT al crear (es el dato, no el filtro por tenant) |
 | `instructorCodigo` | UUID | → Identidad. Índice |
-| `vehiculoCodigo` | UUID | → Escuela `vehiculo.codigo_vehiculo` |
-| `diaSemana` | int | 1 (lunes) a 7 (domingo) |
+| `vehiculoCodigo` | UUID | → Escuela `vehiculo.codigo_vehiculo`. **Vacío** hasta que CU10 asigne autos a instructores |
+| `nombre` | string | Hasta 60 caracteres. No es único |
+| `diasSemana` | array de int | 1 (lunes) a 7 (domingo), sin repetir y ordenado. La ventana de horas es la misma para todos los días |
 | `horaInicio`, `horaFin` | string | `HH:mm` |
 | `duracionClaseMin` | int | Ej. 60 |
 | `vigenteDesde` | date | |
 | `vigenteHasta` | date | Opcional |
-| `activa` | boolean | |
+| `estado` | enum | `ACTIVA`, `PAUSADA`, `INACTIVA`. Pausar y reanudar son reversibles; desactivar (`INACTIVA`) es definitivo |
+
+Un horario no se edita: se crea, se pausa o reanuda y se desactiva. Dos horarios **activos** del mismo instructor no pueden cruzarse (algún día en común, horas y vigencias que se solapan); los pausados no cuentan.
+
+Los documentos creados antes del refactor (con `diaSemana` y `activa`) se convierten al arrancar el servicio (`HorariosMigracion`): `diasSemana = [diaSemana]`, `nombre` armado con el día y la ventana, y `estado` según `activa`.
 
 ### `franjas` (CU11, CU12, CU14, CU16)
 
@@ -585,14 +597,17 @@ Horario concreto reservable. Reservar es un `findOneAndUpdate` de `LIBRE` a `RES
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoFranja` | UUID | Único |
+| `escuelaCodigo` | UUID | → Escuela `escuela.codigo_escuela`. Del claim `escuela` del JWT al crear |
 | `plantillaId` | long | Opcional → `plantillas_horario._id` |
-| `instructorCodigo`, `vehiculoCodigo` | UUID | Identidad / Escuela |
+| `instructorCodigo`, `vehiculoCodigo` | UUID | Identidad / Escuela. `vehiculoCodigo` queda vacío hasta CU10 |
 | `fecha` | date | |
 | `horaInicio`, `horaFin` | string | `HH:mm` |
 | `estado` | enum | `LIBRE`, `RESERVADA`, `BLOQUEADA` |
 | `reservaId` | long | Opcional → `reservas._id` |
 
-Índices únicos: `uq_franja_instructor_fecha_hora (instructorCodigo, fecha, horaInicio)` y `uq_franja_vehiculo_fecha_hora (vehiculoCodigo, fecha, horaInicio)`.
+Índices únicos: `uq_franja_instructor_fecha_hora (instructorCodigo, fecha, horaInicio)` y `uq_franja_vehiculo_fecha_hora (vehiculoCodigo, fecha, horaInicio)`. Este último es **parcial** (`partialFilterExpression: { vehiculoCodigo: { $exists: true } }`): sin ese filtro, las franjas sin vehículo de dos instructores distintos en la misma fecha y hora chocarían entre sí. Si una base de desarrollo ya tenía el índice sin filtro, hay que borrarlo una vez (`db.franjas.dropIndex('uq_franja_vehiculo_fecha_hora')`) para que se cree el parcial.
+
+Las franjas se generan desde el horario para 28 días contando hoy, y una tarea diaria completa las que falten. Al pausar o desactivar un horario sus franjas futuras `LIBRE`/`BLOQUEADA` se **borran físicamente** (son datos derivados; un borrado lógico seguiría ocupando la clave única del instructor).
 
 ### `solicitudes_clase` (CU13)
 
@@ -925,7 +940,7 @@ Todas por **código público**, sin FK física.
 | Desde | Campo | Hacia | Dueño del dato |
 | --- | --- | --- | --- |
 | `identidad.usuario` | `escuela_codigo` | `escuela.escuela.codigo_escuela` | Escuela |
-| `escuela.estudiante` / `instructor` | `usuario_codigo` | `identidad.usuario.codigo_usuario` | Identidad |
+| `escuela.instructor` / `asignacion_alumno` | `usuario_codigo` / `estudiante_codigo` | `identidad.usuario.codigo_usuario` | Identidad |
 | `pagos.plan_pago` | `categoria_sigla` | `escuela.categoria_licencia.sigla` | Escuela |
 | `pagos.inscripcion_plan` / `pago` | `estudiante_codigo` | `identidad.usuario.codigo_usuario` | Identidad |
 | `pagos.pago` | `reserva_codigo` | `academico.reservas.codigoReserva` | Académico |
@@ -950,13 +965,14 @@ Todas por **código público**, sin FK física.
 | `fecha_nacimiento`, `escuela_codigo` | `identidad.usuario` | Edad mínima del registro (CU01) y escuela de la cuenta |
 | `bloqueado_hasta` | `identidad.usuario` | Bloqueo temporal de 15 minutos (CU02) |
 | `correo_verificado`; `token_recuperacion.tipo` | `identidad.usuario`, `identidad.token_recuperacion` | Verificar el correo (CU04b) y distinguir esos enlaces de los de recuperación |
+| `token_recuperacion.correo_nuevo` y tipo `CAMBIO_CORREO` | `identidad.token_recuperacion` | Guardar la dirección nueva mientras se espera la confirmación del cambio de correo (CU06) |
 | `permiso.clave` y `categoria_licencia.sigla` | `identidad`, `escuela` | Evitar chocar con el `codigo` UUID público |
 | `created_at`/`updated_at`/`deleted_at` en vez de `creado_en`/`actualizado_en` | todas las tablas | Se unificó con `BaseModel` |
 | Código público UUID v7 (no ULID) en DynamoDB | `notificaciones`, `asistente-ia` | Igual de ordenable por tiempo |
 
 ### Pendiente de diseñar
 
-- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; falta en las demás tablas de Escuela (`estudiante`, `instructor`…), Pagos, el resto de Académico (`simulacros_config` en CU20, `intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. Se diseña antes de CU07 y CU08; el claim ya viaja en el token (CU02).
+- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Falta en las demás tablas de Escuela (`instructor`…), Pagos, el resto de Académico (`simulacros_config` en CU20, `intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
 - **Estado de la saga reserva-pago:** dueño por decidir ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 - **Valores de `severidad`** de los indicadores del tablero (se fijan con CU40).
 - **Job de limpieza** de `refresh_token` vencidos.

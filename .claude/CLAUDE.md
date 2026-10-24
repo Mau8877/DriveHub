@@ -27,6 +27,7 @@ projects/
 └── mobile/                  # Flutter (estudiante e instructor)
 packages/
 ├── design-tokens/           # Variables CSS + tema Tailwind comunes a toda la web
+├── ui/                      # <dh-shell>, <dh-sidebar>, <dh-header>, <dh-auth-layout> y clases base: el diseño Asfalto
 └── mf-contract/             # Contrato shell <-> remotos (sesión, mount/unmount, eventos)
 infrastructure/              # nginx, postgres (init), minio, prometheus, grafana
 ```
@@ -118,6 +119,9 @@ de asumir un criterio propio. Puntos que se suelen olvidar:
 - **Una base por servicio**: nadie lee la base de otro.
 - **Un recurso HTTP nuevo** se registra en el gateway y en
   [MICROSERVICIOS.md](rules/MICROSERVICIOS.md) en el mismo cambio.
+- **Nada de controles nativos del navegador** (`<select>`, selector de fecha, `confirm()`...): si se usa
+  o se piensa usar uno, se crea el nuestro en `packages/ui` y lo usan todas las apps
+  ([UI_FRONTEND.md](rules/frontend/UI_FRONTEND.md#nada-de-componentes-nativos-se-crea-el-nuestro)).
 - **No anticipar trabajo de casos de uso**: los servicios y apps tienen hoy
   su estructura, sus Models y sus migraciones; controllers, servicios y
   pantallas se crean con cada caso de uso, a partir de su Historia de
@@ -138,7 +142,11 @@ Cuando el trabajo esté listo para commitear, Claude debe:
    `feat[BACK]: pagos -- ...`).
 2. Proponerle a la persona el/los mensajes de commit listos para usar
    (idealmente en un bloque de código para copiar/pegar), explicando
-   brevemente qué agrupa cada uno si hay más de uno.
+   brevemente qué agrupa cada uno si hay más de uno. Cuando se entregan
+   comandos `git add`/`git commit`, **se encadenan con `;`, nunca con
+   `&&`**: la terminal de la persona es PowerShell 5.1, que no entiende
+   `&&`. Un comando por bloque de código, con su `git add` y su
+   `git commit -m "..."` en la misma línea separados por `;`.
 3. Dejar que la persona misma corra `git add`/`git commit` — Claude no lo
    ejecuta como entrega final salvo que se lo pidan explícitamente.
 

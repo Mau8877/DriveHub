@@ -63,12 +63,12 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 ## Flujos alternativos y excepciones
 
 - **A1 (F1 paso 4, F2 paso 4):** Falta un dato obligatorio o su formato es inválido (placa de menos de 5 o más de 10 caracteres o con símbolos, marca o modelo vacíos, año fuera de rango, kilometraje negativo, transmisión desconocida) → el cliente indica cada campo y no envía; si llega igual, el sistema responde 400 `ERR_SYS_01`.
-- **A2 (F1 paso 4):** La placa ya está registrada → 409 `ERR_ESC_07`; no se crea nada.
+- **A2 (F1 paso 4):** La placa ya está registrada → 409 `ERR_ESC_08`; no se crea nada.
 - **A3 (F2 paso 4):** El kilometraje nuevo es menor al actual → 400 `ERR_SYS_01`.
-- **A4 (F2, F3, F4, F5):** El auto no existe o es de otra escuela → 404 `ERR_ESC_08` (no se revela si existe en otra escuela).
-- **A5 (F2, F3, F4, F5):** El cambio no es posible desde el estado actual (editar un auto de baja, enviar a mantenimiento uno que no está disponible, habilitar uno que no está en mantenimiento ni de baja, dar de baja uno que ya lo está) → 409 `ERR_ESC_09`.
+- **A4 (F2, F3, F4, F5):** El auto no existe o es de otra escuela → 404 `ERR_ESC_09` (no se revela si existe en otra escuela).
+- **A5 (F2, F3, F4, F5):** El cambio no es posible desde el estado actual (editar un auto de baja, enviar a mantenimiento uno que no está disponible, habilitar uno que no está en mantenimiento ni de baja, dar de baja uno que ya lo está) → 409 `ERR_ESC_10`.
 - **A6 (cualquier flujo):** La persona no es Administrador de escuela → 403; sin sesión o con sesión vencida → 401.
-- **A7 (cualquier flujo):** El token no trae la escuela de la cuenta → 403 `ERR_ESC_10`.
+- **A7 (cualquier flujo):** El token no trae la escuela de la cuenta → 403 `ERR_ESC_11`.
 - **A7b (F1, F2):** La foto no es una imagen, pesa más de 5 MB o la subida a Cloudinary falla → el cliente avisa bajo el campo y no cambia la foto; si llega una URL que no es de Cloudinary, el sistema responde 400 `ERR_SYS_01`.
 - **A8 (cualquier flujo):** Se superó el límite de peticiones → 429 (`ERR_SYS_02`).
 
@@ -94,13 +94,13 @@ El Administrador de escuela tiene en su menú la opción "Escuela" y, dentro, "A
 
 - **CA01:** Dado un Administrador con sesión, el sistema debe listar solo los autos de su escuela, paginados, con búsqueda por placa, marca o modelo y filtro por estado.
 - **CA02:** Dados datos válidos, el sistema debe registrar el auto en estado `DISPONIBLE` ligado a la escuela del Administrador, con la placa en mayúsculas.
-- **CA03:** Dada una placa ya registrada, el sistema debe responder 409 `ERR_ESC_07` sin crear el auto.
+- **CA03:** Dada una placa ya registrada, el sistema debe responder 409 `ERR_ESC_08` sin crear el auto.
 - **CA04:** Dados datos inválidos, el cliente debe indicar cada campo sin enviar, y el sistema debe responder 400 `ERR_SYS_01` si llegan igual.
 - **CA05:** Dados datos válidos de edición, el sistema debe cambiar solo los campos enviados y dejar igual placa, transmisión y estado; un kilometraje menor al actual se rechaza con 400 `ERR_SYS_01`.
 - **CA06:** Dado un auto `DISPONIBLE`, enviarlo a mantenimiento lo deja en `MANTENIMIENTO`; habilitarlo después lo deja en `DISPONIBLE`.
-- **CA07:** Dado un auto que no está de baja, darlo de baja lo deja en `BAJA`; desde ahí ni se edita ni va a mantenimiento (409 `ERR_ESC_09`), y reactivarlo lo deja `DISPONIBLE`.
-- **CA08:** Dada una transición no permitida desde el estado actual, el sistema debe responder 409 `ERR_ESC_09` sin cambiar nada.
-- **CA09:** Dado un auto de otra escuela o inexistente, el sistema debe responder 404 `ERR_ESC_08` a cualquier operación.
+- **CA07:** Dado un auto que no está de baja, darlo de baja lo deja en `BAJA`; desde ahí ni se edita ni va a mantenimiento (409 `ERR_ESC_10`), y reactivarlo lo deja `DISPONIBLE`.
+- **CA08:** Dada una transición no permitida desde el estado actual, el sistema debe responder 409 `ERR_ESC_10` sin cambiar nada.
+- **CA09:** Dado un auto de otra escuela o inexistente, el sistema debe responder 404 `ERR_ESC_09` a cualquier operación.
 - **CA10:** Dada una persona que no es Administrador de escuela, el sistema debe responder 403 a cualquier operación, y 401 si no hay sesión válida.
 - **CA11:** Dado un archivo que es una imagen de hasta 5 MB, el sistema debe subirla a Cloudinary con una firma del backend y guardar su URL en el auto; una URL ajena a Cloudinary se rechaza con 400 `ERR_SYS_01`.
 - **CA12:** Dado el menú de la web, la opción de autos debe verse solo para el Administrador de escuela.

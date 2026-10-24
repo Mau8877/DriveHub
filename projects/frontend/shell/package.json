@@ -22,6 +22,7 @@
     "@angular/router": "^22.2.0",
     "@drivehub/design-tokens": "workspace:*",
     "@drivehub/mf-contract": "workspace:*",
+    "@drivehub/ui": "workspace:*",
     "@module-federation/runtime": "^2.9.2",
     "es-module-shims": "^2.8.0",
     "rxjs": "~7.8.0",

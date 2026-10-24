@@ -12,7 +12,7 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_CLEAN_BACKEND
 ## Decisiones de diseño
 
 - **Filtro por tenant mínimo.** El diseño dejaba pendiente el filtro por escuela "antes de CU07". Se resuelve solo para `vehiculo`: columna `escuela_codigo` y filtro explícito en cada consulta del repositorio, con la escuela tomada del claim `escuela` del JWT en el controller. El mecanismo automático general queda para cuando haya más de una tabla que lo necesite.
-- **Un auto de otra escuela es un 404** (`ERR_ESC_08`), no un 403: no se revela qué autos existen.
+- **Un auto de otra escuela es un 404** (`ERR_ESC_09`), no un 403: no se revela qué autos existen.
 - **Un solo caso de uso para los tres cambios de estado** (`CambiarEstadoVehiculoUseCase`, destino como parámetro): son la misma regla (`EstadoVehiculo.permiteIrA`). Tres endpoints, un caso de uso.
 - **Placa única en toda la plataforma** (el `UNIQUE` ya existía), no por escuela.
 - **La foto se sube directo a Cloudinary** con una firma del backend (el API secret no sale de `escuela`); el auto guarda solo la URL. El seed usa la imagen pública `car` de la cuenta `demo`, así no hace falta cuenta propia para verlo.
@@ -31,7 +31,7 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_CLEAN_BACKEND
 | `POST` | `/api/v1/vehiculos/{codigo}/dar-de-baja` | 200 | `VehiculoResponse` |
 | `POST` | `/api/v1/vehiculos/firma-imagen` | 200 | `{ cloudName, apiKey, timestamp, folder, signature }` |
 
-Códigos de error nuevos: `ERR_ESC_07` a `ERR_ESC_10` ([docs/errors](../../../errors/escuela/ERRORES_ESCUELA.md)).
+Códigos de error nuevos: `ERR_ESC_08` a `ERR_ESC_11` ([docs/errors](../../../errors/escuela/ERRORES_ESCUELA.md)).
 
 ## Orden de ejecución
 
