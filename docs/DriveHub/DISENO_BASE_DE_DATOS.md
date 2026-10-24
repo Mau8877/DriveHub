@@ -240,13 +240,15 @@ Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b), restab
 | `expira_en` | `TIMESTAMPTZ NOT NULL` | |
 | `usado` | `BOOLEAN NOT NULL DEFAULT FALSE` | |
 
-**Datos sembrados:** los 4 roles (migración). En el perfil `dev`, además, `superadmin@gmail.com` (`SUPER_ADMIN`, sin escuela) y `adminexample@gmail.com` (`ADMIN_ESCUELA` de `escuelaexample`) e `instructorexample@gmail.com` (`INSTRUCTOR` de `escuelaexample`), todos con contraseña `123123123`.
+**Datos sembrados:** los 4 roles (migración). En el perfil `dev`, además, `superadmin@gmail.com` (`SUPER_ADMIN`, sin escuela) y `adminexample@gmail.com` (`ADMIN_ESCUELA` de `escuelaexample`) e `instructorexample@gmail.com` (`INSTRUCTOR` de `escuelaexample`, con código fijo `0198f0a0-0000-7000-8000-000000000002`), todos con contraseña `123123123`.
 
 ---
 
 ## 3. Escuela — PostgreSQL
 
 Escuelas (tenants), instructores, flota, categorías de licencia y asignaciones. El **estudiante no tiene tabla propia** (CU08a): es una cuenta con su perfil en [Identidad](#2-identidad--postgresql) y Escuela lo referencia por su `codigo_usuario`. Migraciones: `V20261018120000__crear_esquema_escuela.sql`, `V20261019100000__crear_tabla_escuela.sql` (CU01), `V20261021100000__escuela_estado_por_borrado_logico.sql` (CU05), `V20261023100000__escuela_sin_estudiante_y_categorias.sql` (CU08a), `V20261024100000__vehiculo_escuela_codigo.sql` y `V20261024110000__vehiculo_imagen_url.sql` (CU07). CU09: `V20261024120000__instructor_con_escuela.sql`.
+
+**Datos sembrados (perfil `dev`):** la escuela `escuelaexample`, ocho autos `SEED-001` a `SEED-008` y la ficha del instructor de ejemplo (licencia `SEED-LIC-001`, categorías `P` y `B`, vence a los 3 años), enlazada por `usuario_codigo` a la cuenta `instructorexample@gmail.com` de Identidad, que lleva un codigo fijo.
 
 ```mermaid
 erDiagram
