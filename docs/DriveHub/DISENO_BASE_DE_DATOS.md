@@ -742,24 +742,25 @@ Vista consolidada de notas: se escribe al cerrar cada evaluación y publica `exa
 
 ## 6. Contenido — MongoDB
 
-Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de MinIO. Los campos van en `snake_case` (Eloquent). Migración: `2026_10_18_120000_crear_colecciones_contenido.php`. `_id` Long con la colección `contadores`.
+Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de MinIO. Los campos van en `snake_case` (Eloquent). Migraciones: `2026_10_18_120000_crear_colecciones_contenido.php` y `2026_10_24_120000_manuales_por_escuela.php` (CU32). `_id` Long con la colección `contadores`.
 
 ### `manuales` (CU32, CU34)
 
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigo_manual` | UUID | Índice único `uq_manuales_codigo` |
+| `escuela_codigo` | UUID | Escuela (tenant) dueña del manual, el claim `escuela` del JWT. Todo el listado y toda búsqueda filtran por él |
 | `titulo` | string | |
 | `descripcion` | string | Opcional |
 | `categoria` | string | Sigla de categoría (Escuela) o `GENERAL` |
 | `tema` | string | Opcional |
 | `version` | int | Sube cada vez que se reemplaza el archivo |
-| `archivo` | subdocumento | `{ url, mime, tamano_bytes, sha256 }` |
+| `archivo` | subdocumento | `{ url, mime, tamano_bytes, sha256, nombre }`. `url` es la dirección pública del PDF en el bucket (`{MINIO_PUBLIC_URL}/drivehub-contenido/escuelas/{escuela}/manuales/{uuid}.pdf`) |
 | `estado` | enum | `BORRADOR`, `PUBLICADO`, `ARCHIVADO` |
 | `etiquetas` | array de string | |
 | `publicado_por_codigo` | UUID | Persona de Identidad |
 
-Índices: `idx_manuales_estado_categoria (estado, categoria)` y de texto `idx_manuales_texto (titulo, descripcion, etiquetas)`.
+Índices: `idx_manuales_estado_categoria (estado, categoria)`, `idx_manuales_escuela_estado_categoria (escuela_codigo, estado, categoria)` y de texto `idx_manuales_texto (titulo, descripcion, etiquetas)`. La búsqueda del listado usa expresión regular sin distinguir mayúsculas sobre título, descripción y etiquetas, no el índice de texto.
 
 ### `tutoriales` (CU33, CU35)
 
@@ -954,7 +955,7 @@ Todas por **código público**, sin FK física.
 
 ### Pendiente de diseñar
 
-- **Filtro por tenant.** `vehiculo` ya tiene `escuela_codigo` (CU07), con el filtro explícito en su repositorio a partir del claim `escuela`; falta en las demás tablas de Escuela (`estudiante`, `instructor`…), Pagos, Académico, Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. Se diseña antes de CU07 y CU08; el claim ya viaja en el token (CU02).
+- **Filtro por tenant.** `vehiculo` (CU07) y `manuales` (CU32) ya tienen `escuela_codigo`, con el filtro explícito en su repositorio a partir del claim `escuela`; falta en las demás tablas de Escuela (`estudiante`, `instructor`…), Pagos, Académico, Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. Se diseña antes de CU07 y CU08; el claim ya viaja en el token (CU02).
 - **Estado de la saga reserva-pago:** dueño por decidir ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 - **Valores de `severidad`** de los indicadores del tablero (se fijan con CU40).
 - **Job de limpieza** de `refresh_token` vencidos.

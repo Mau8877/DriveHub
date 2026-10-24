@@ -25,7 +25,7 @@ prefijo del código dice qué servicio lo produjo:
 | `ESC` | Escuela | [`escuela/`](escuela/ERRORES_ESCUELA.md) |
 | `PAG` | Pagos | `pagos/` (sin errores todavía) |
 | `ACA` | Académico | `academico/` (sin errores todavía) |
-| `CON` | Contenido | `contenido/` (sin errores todavía) |
+| `CON` | Contenido | [`contenido/`](contenido/ERRORES_CONTENIDO.md) |
 | `NOT` | Notificaciones | `notificaciones/` (sin errores todavía) |
 | `IA` | Asistente IA | `asistente-ia/` (sin errores todavía) |
 
@@ -68,6 +68,13 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_08`](escuela/ERRORES_ESCUELA.md#err_esc_08) — El auto no existe en la escuela (404)
 - [`ERR_ESC_09`](escuela/ERRORES_ESCUELA.md#err_esc_09) — Cambio no permitido desde el estado actual del auto (409)
 - [`ERR_ESC_10`](escuela/ERRORES_ESCUELA.md#err_esc_10) — El token no trae la escuela de la cuenta (403)
+
+### Contenido (`CON`)
+
+- [`ERR_CON_01`](contenido/ERRORES_CONTENIDO.md#err_con_01) — El manual no existe en la escuela (404)
+- [`ERR_CON_02`](contenido/ERRORES_CONTENIDO.md#err_con_02) — Cambio no permitido desde el estado actual del manual (409)
+- [`ERR_CON_03`](contenido/ERRORES_CONTENIDO.md#err_con_03) — El archivo del manual no es válido (400)
+- [`ERR_CON_04`](contenido/ERRORES_CONTENIDO.md#err_con_04) — El token no trae la escuela de la cuenta (403)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su
