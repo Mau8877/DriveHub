@@ -65,6 +65,25 @@ class GatewayRoutingTest {
         assertThat(respuesta.body()).isEqualTo("escuela:/api/v1/escuelas/escuelaexample");
     }
 
+    // * CU08: el estudiante es una cuenta con su perfil, así que el recurso lo atiende Identidad, no Escuela
+    @Test
+    void recursoEstudiantes_seReenviaAIdentidadYNoAEscuela() throws Exception {
+        HttpResponse<String> lista = get("/api/v1/estudiantes", TokensDePrueba.valido());
+        HttpResponse<String> detalle = get("/api/v1/estudiantes/0198f0a0-0000-7000-8000-000000000001", TokensDePrueba.valido());
+
+        assertThat(lista.statusCode()).isEqualTo(200);
+        assertThat(lista.body()).isEqualTo("identidad:/api/v1/estudiantes");
+        assertThat(detalle.body()).isEqualTo("identidad:/api/v1/estudiantes/0198f0a0-0000-7000-8000-000000000001");
+    }
+
+    @Test
+    void recursoCategoriasLicencia_sigueEnEscuela() throws Exception {
+        HttpResponse<String> respuesta = get("/api/v1/categorias-licencia", TokensDePrueba.valido());
+
+        assertThat(respuesta.statusCode()).isEqualTo(200);
+        assertThat(respuesta.body()).isEqualTo("escuela:/api/v1/categorias-licencia");
+    }
+
     @Test
     void rutaQueNoEsDeNingunServicio_devuelve404SinTocarIdentidad() throws Exception {
         HttpResponse<String> respuesta = get("/api/v1/recurso-inexistente", TokensDePrueba.valido());

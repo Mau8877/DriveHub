@@ -134,6 +134,29 @@ class GatewayAuthTest {
         assertThat(enviar("POST", "/api/v1/usuarios", null).statusCode()).isEqualTo(200);
     }
 
+    // * CU08: los datos personales de los estudiantes y el catálogo de categorías no son públicos
+    @Test
+    void estudiantesYCategoriasLicencia_exigenTokenEnCadaEndpoint() throws Exception {
+        String codigo = "0198f0a0-0000-7000-8000-000000000001";
+        String[][] endpoints = {
+            {"GET", "/api/v1/estudiantes"},
+            {"POST", "/api/v1/estudiantes"},
+            {"GET", "/api/v1/estudiantes/" + codigo},
+            {"PATCH", "/api/v1/estudiantes/" + codigo},
+            {"GET", "/api/v1/categorias-licencia"},
+            {"GET", "/api/v1/categorias-licencia/SIN"},
+        };
+        for (String[] endpoint : endpoints) {
+            HttpResponse<String> sinToken = enviar(endpoint[0], endpoint[1], null);
+            assertThat(sinToken.statusCode()).as(endpoint[0] + " " + endpoint[1] + " sin token").isEqualTo(401);
+            assertThat(sinToken.body()).contains("ERR_SYS_04");
+            assertThat(enviar(endpoint[0], endpoint[1], TokensDePrueba.valido()).statusCode())
+                .as(endpoint[0] + " " + endpoint[1] + " con token").isEqualTo(200);
+        }
+        // * El registro del estudiante sigue siendo público
+        assertThat(enviar("POST", "/api/v1/usuarios", null).statusCode()).isEqualTo(200);
+    }
+
     @Test
     void getDeUsuariosSinToken_responde401PorqueSoloElRegistroEsPublico() throws Exception {
         assertThat(enviar("GET", "/api/v1/usuarios/123", null).statusCode()).isEqualTo(401);
