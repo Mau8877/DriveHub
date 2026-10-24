@@ -36,7 +36,9 @@ export const ESQUEMA_ESTUDIANTES: EsquemaGestion = {
   nombreSingular: 'estudiante',
   columnas: [
     // * Solo el nombre se estira: las demás columnas son cortas y quedan juntas (ver 'La tabla' en GESTION_FRONTEND.md)
-    { campo: 'nombreCompleto', titulo: 'Nombre', principal: true, icono: 'user' },
+    // * La foto es la URL prefirmada que trae el listado (vale 60 minutos); sin foto, las iniciales del nombre
+    { campo: 'fotoUrl', titulo: 'Foto', tipo: 'foto', nombre: 'nombreCompleto' },
+    { campo: 'nombreCompleto', titulo: 'Nombre', principal: true },
     { campo: 'edad', titulo: 'Edad', ancho: '5rem' },
     { campo: 'categoriaSigla', titulo: 'Categoría', codigo: true, ancho: '7rem' },
     { campo: 'fechaIncorporacion', titulo: 'Incorporación', tipo: 'fecha', ancho: '9.5rem' },
@@ -60,6 +62,7 @@ export const ESQUEMA_ESTUDIANTES: EsquemaGestion = {
       {
         titulo: 'Datos personales',
         campos: [
+          { campo: 'fotoUrl', titulo: 'Foto', tipo: 'foto', nombre: 'nombreCompleto' },
           { campo: 'nombreCompleto', titulo: 'Nombre' },
           { campo: 'edad', titulo: 'Edad', mitad: true },
           { campo: 'fechaNacimiento', titulo: 'Fecha de nacimiento', tipo: 'fecha', mitad: true },
