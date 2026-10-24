@@ -338,8 +338,8 @@ services:
       - frontend_nm_gestion:/app/packages/gestion/node_modules
     command: >
       sh -c "corepack enable pnpm &&
-      pnpm install --filter shell --filter identidad --filter escuela --filter contenido --filter @drivehub/gestion &&
-      pnpm --filter shell --filter identidad --filter escuela --filter contenido --parallel run dev"
+      pnpm install --filter shell --filter identidad --filter escuela --filter contenido --filter examenes --filter @drivehub/gestion &&
+      pnpm --filter shell --filter identidad --filter escuela --filter contenido --filter examenes --parallel run dev"
     ports:
       - '4200:4200'
       - '4201:4201'
