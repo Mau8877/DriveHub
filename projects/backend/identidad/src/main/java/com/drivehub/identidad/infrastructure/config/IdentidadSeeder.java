@@ -35,6 +35,8 @@ import lombok.RequiredArgsConstructor;
  * ! NUNCA se siembra en producción.
  * * Cada cuenta lleva su perfil (CU08a) con un CI propio; el Administrador y el Instructor tienen una
  * * ubicación fija de La Paz, con la dirección escrita acá: el arranque no depende del servicio de mapas.
+ * * El Instructor tiene un codigo fijo: el seeder de Escuela (InstructorSeeder) lo usa como `usuario_codigo`
+ * * de su ficha, así el instructor de ejemplo aparece en el listado sin que los servicios se llamen.
  * * El Super admin no tiene escuela ni ubicación. adminexample e instructorexample pertenecen a la escuela
  * * `escuelaexample`, cuyo codigo fijo es el mismo que siembra el servicio
  * * Escuela (EscuelaSeeder): así quedan enlazados sin llamarse entre sí.
@@ -45,6 +47,7 @@ import lombok.RequiredArgsConstructor;
 public class IdentidadSeeder implements ApplicationRunner {
 
     public static final UUID CODIGO_ESCUELA_EXAMPLE = UUID.fromString("0198f0a0-0000-7000-8000-000000000001");
+    public static final UUID CODIGO_INSTRUCTOR_EXAMPLE = UUID.fromString("0198f0a0-0000-7000-8000-000000000002");
     public static final String EMAIL_SUPER_ADMIN = "superadmin@gmail.com";
     public static final String EMAIL_ADMIN_EXAMPLE = "adminexample@gmail.com";
     public static final String EMAIL_INSTRUCTOR_EXAMPLE = "instructorexample@gmail.com";
@@ -66,15 +69,15 @@ public class IdentidadSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        crearSiNoExiste(EMAIL_SUPER_ADMIN, "Super", "Admin", CI_SUPER_ADMIN, RolNombres.SUPER_ADMIN, null, false);
+        crearSiNoExiste(EMAIL_SUPER_ADMIN, "Super", "Admin", CI_SUPER_ADMIN, RolNombres.SUPER_ADMIN, null, false, null);
         crearSiNoExiste(EMAIL_ADMIN_EXAMPLE, "Admin", "Example", CI_ADMIN_EXAMPLE, RolNombres.ADMIN_ESCUELA,
-            CODIGO_ESCUELA_EXAMPLE, true);
+            CODIGO_ESCUELA_EXAMPLE, true, null);
         crearSiNoExiste(EMAIL_INSTRUCTOR_EXAMPLE, "Instructor", "Example", CI_INSTRUCTOR_EXAMPLE,
-            RolNombres.INSTRUCTOR, CODIGO_ESCUELA_EXAMPLE, true);
+            RolNombres.INSTRUCTOR, CODIGO_ESCUELA_EXAMPLE, true, CODIGO_INSTRUCTOR_EXAMPLE);
     }
 
     private void crearSiNoExiste(String email, String nombres, String apellidos, String ci, String rolNombre,
-            UUID escuelaCodigo, boolean conUbicacion) {
+            UUID escuelaCodigo, boolean conUbicacion, UUID codigo) {
         if (usuarioRepository.existePorEmail(email)) {
             return;
         }
@@ -93,6 +96,7 @@ public class IdentidadSeeder implements ApplicationRunner {
             .build();
 
         usuarioRepository.guardar(Usuario.builder()
+            .codigo(codigo)
             .email(email)
             .passwordHash(passwordHasher.hashear(PASSWORD_DEV))
             .perfil(perfil)

@@ -49,6 +49,18 @@ class IdentidadSeederTest extends PostgresIntegrationTestBase {
     }
 
     @Test
+    void run_elInstructorLlevaElCodigoFijoQueUsaLaFichaDeEscuela() {
+        seeder.run(new DefaultApplicationArguments());
+
+        String codigo = jdbc.queryForObject(
+            "SELECT codigo_usuario::text FROM usuario WHERE email = ?", String.class,
+            IdentidadSeeder.EMAIL_INSTRUCTOR_EXAMPLE);
+
+        assertThat(codigo).isEqualTo(IdentidadSeeder.CODIGO_INSTRUCTOR_EXAMPLE.toString());
+        assertThat(codigo).isEqualTo("0198f0a0-0000-7000-8000-000000000002");
+    }
+
+    @Test
     void run_creaElSuperAdminSinEscuelaYElAdminConLaEscuelaDeEjemplo() {
         seeder.run(new DefaultApplicationArguments());
 
