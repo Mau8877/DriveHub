@@ -218,7 +218,7 @@ class EstudiantesIntegrationTest extends PostgresIntegrationTestBase {
             + "JOIN rol r ON r.id = ur.rol_id WHERE u.email = ?", String.class, correo)).isEqualTo("ESTUDIANTE");
 
         mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"email\":\"" + correo + "\",\"password\":\"123456789\",\"dispositivo\":\"WEB\"}"))
+            .content("{\"email\":\"" + correo + "\",\"password\":\"123456789\",\"dispositivo\":\"MOVIL\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.accessToken").exists());
     }

@@ -2,7 +2,7 @@
 
 | Id   | Nombre                | Paquete             | Prioridad | Estado    |
 | ---- | --------------------- | ------------------- | --------- | --------- |
-| CU08 | Gestionar estudiantes | P2. Gestión escolar | Alta      | Pendiente |
+| CU08 | Gestionar estudiantes | P2. Gestión escolar | Alta      | Hecho     |
 
 **Actor principal:** Administrador de escuela
 **Actores secundarios:** —
@@ -12,7 +12,7 @@
 > **Requiere [CU08a: Perfil de la persona](CU08a%20-%20Perfil%20de%20la%20persona.md)**, que define la cuenta y el perfil del estudiante (CI, sexo, ubicación, categoría) en los que se apoya este CU.
 
 **Descripción:**
-El Administrador de escuela tiene en su menú la opción "Gestionar estudiantes". Ahí ve el listado de todos los estudiantes de su escuela (activos e inactivos), con nombre completo, edad, categoría, fecha de incorporación y estado, paginado y de la incorporación más reciente a la más antigua. Puede buscar por nombre y filtrar por estado (activo o inactivo). Desde cada fila abre el detalle del estudiante o edita su categoría y su ubicación. También puede dar de alta a un estudiante: escribe sus datos, su correo y una contraseña inicial, y elige su ubicación en un mapa. Solo ve y toca estudiantes de su propia escuela.
+El Administrador de escuela tiene en su menú la opción "Gestionar estudiantes". Ahí ve el listado de todos los estudiantes de su escuela (activos e inactivos), con foto, nombre completo, edad, categoría, fecha de incorporación y estado, paginado y de la incorporación más reciente a la más antigua. Puede buscar por nombre y filtrar por estado (activo o inactivo). Desde cada fila abre el detalle del estudiante o edita su categoría y su ubicación. También puede dar de alta a un estudiante: escribe sus datos, su correo y una contraseña inicial, y elige su ubicación en un mapa. Solo ve y toca estudiantes de su propia escuela.
 
 El Administrador **no** edita los datos personales del estudiante (nombres, CI, sexo, fecha de nacimiento, teléfono, correo): eso es del propio estudiante en su perfil ([CU06](CU06%20-%20Gestionar%20perfil.md)). Tampoco activa ni desactiva cuentas en esta versión.
 
@@ -28,14 +28,14 @@ Esta versión **no incluye nada de pagos** (monto pendiente, montos pagados) **n
 ## Flujo principal (listar)
 
 1. El Administrador elige "Gestionar estudiantes" en el menú.
-2. El sistema muestra los estudiantes de su escuela, de la incorporación más reciente a la más antigua, paginados, con: nombre completo, edad, categoría, fecha de incorporación y estado.
+2. El sistema muestra los estudiantes de su escuela, de la incorporación más reciente a la más antigua, paginados, con: foto, nombre completo, edad, categoría, fecha de incorporación y estado.
 3. El Administrador busca por nombre; el listado se reduce a los estudiantes cuyo nombre o apellido coincide.
 4. El Administrador filtra por estado (activo o inactivo). Búsqueda y filtro se combinan.
 
 ## Flujo F1: ver detalle de un estudiante
 
 1. En el listado, el Administrador elige "Ver detalles" en un estudiante.
-2. El sistema muestra: nombre completo, edad, fecha de nacimiento, sexo, CI, correo, teléfono, dirección, categoría, estado y fecha de incorporación.
+2. El sistema muestra: foto, nombre completo, edad, fecha de nacimiento, sexo, CI, correo, teléfono, dirección, categoría, estado y fecha de incorporación.
 3. El Administrador cierra el detalle y vuelve al listado.
 
 ## Flujo F2: dar de alta un estudiante

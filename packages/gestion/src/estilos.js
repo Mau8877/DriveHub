@@ -441,6 +441,30 @@ export const estilos = css`
     color: var(--foreground);
   }
 
+  /* Etiquetas pequeñas (columna y dato de tipo etiquetas) */
+  .etiquetas {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    max-width: 100%;
+  }
+  .etiqueta {
+    display: inline-flex;
+    align-items: center;
+    height: 1.35rem;
+    padding: 0 0.5rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 650;
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+  .etiqueta.mas {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+
   /* Esqueleto y estado vacío */
   .brillo {
     display: block;
@@ -609,6 +633,9 @@ export const estilos = css`
     gap: 0.25rem;
     margin-bottom: 1rem;
     min-width: 0;
+  }
+  .dato.foto {
+    align-items: flex-start;
   }
   .dato-titulo {
     font-size: 0.8125rem;

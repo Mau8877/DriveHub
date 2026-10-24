@@ -1,5 +1,6 @@
 import { routes } from './app.routes'
 import { EstudiantesGestion } from './features/estudiantes/screens/estudiantes-gestion'
+import { InstructoresGestion } from './features/instructores/screens/instructores-gestion'
 import { Inicio } from './inicio'
 
 describe('app.routes (las del Administrador de escuela)', () => {
@@ -20,6 +21,18 @@ describe('app.routes (las del Administrador de escuela)', () => {
 
   it('es una sola ruta de estudiantes: el listado, el detalle, crear y editar viven dentro del panel', () => {
     expect(hijas.filter((r) => r.path?.startsWith('estudiantes'))).toHaveLength(1)
+  })
+
+  it('expone instructores como subruta, con carga perezosa de su pantalla', async () => {
+    const instructores = hija('instructores')
+
+    expect(instructores).toBeDefined()
+    expect(instructores?.component).toBeUndefined()
+    expect(await instructores?.loadComponent?.()).toBe(InstructoresGestion)
+  })
+
+  it('es una sola ruta de instructores: el listado, el detalle, crear y editar viven dentro del panel', () => {
+    expect(hijas.filter((r) => r.path?.startsWith('instructores'))).toHaveLength(1)
   })
 
   it('sigue proveyendo HttpClient con el interceptor a nivel de la ruta raíz', () => {

@@ -12,12 +12,13 @@ describe('navItemsDeRoles', () => {
     expect(rutas([ROLES.SUPER_ADMIN])).toEqual(['/', '/escuelas'])
   })
 
-  it('el Administrador de escuela ve Inicio, "Estudiantes", "Autos" y los seis módulos de siempre, y no "Gestionar escuelas"', () => {
+  it('el Administrador de escuela ve Inicio, "Estudiantes", "Autos", "Instructores" y los seis módulos de siempre, y no "Gestionar escuelas"', () => {
     expect(rutas([ROLES.ADMIN_ESCUELA])).toEqual([
       '/',
       '/identidad',
       '/escuela/estudiantes',
       '/escuela/autos',
+      '/escuela/instructores',
       '/escuela',
       '/pagos',
       '/examenes',
@@ -60,6 +61,19 @@ describe('navItemsDeRoles', () => {
     expect(rutas([ROLES.SUPER_ADMIN])).not.toContain('/escuela/autos')
     expect(rutas([ROLES.INSTRUCTOR])).not.toContain('/escuela/autos')
     expect(etiquetas.indexOf('Autos')).toBeLessThan(etiquetas.indexOf('Escuela'))
+  })
+
+  it('"Instructores" lleva a /escuela/instructores, va justo después de "Autos" y solo lo ve el Administrador de escuela', () => {
+    const instructores = NAV_ITEMS.find((i) => i.etiqueta === 'Instructores')
+    const etiquetas = NAV_ITEMS.map((i) => i.etiqueta)
+
+    expect(instructores).toMatchObject({ ruta: '/escuela/instructores', icono: 'road' })
+    expect(etiquetas.indexOf('Instructores')).toBe(etiquetas.indexOf('Autos') + 1)
+    expect(etiquetas.indexOf('Instructores')).toBeLessThan(etiquetas.indexOf('Escuela'))
+    expect(rutas([ROLES.ADMIN_ESCUELA])).toContain('/escuela/instructores')
+    expect(rutas([ROLES.SUPER_ADMIN])).not.toContain('/escuela/instructores')
+    expect(rutas([ROLES.INSTRUCTOR])).not.toContain('/escuela/instructores')
+    expect(rutas([ROLES.ESTUDIANTE])).not.toContain('/escuela/instructores')
   })
 
   it('"Estudiantes" va antes que "Escuela" (las migas toman el primer ítem que coincide por prefijo)', () => {
@@ -107,6 +121,13 @@ describe('migasDeRuta', () => {
     expect(migasDeRuta('/escuela', items)).toEqual([
       { etiqueta: 'Inicio', ruta: '/' },
       { etiqueta: 'Escuela' },
+    ])
+  })
+
+  it('/escuela/instructores cuelga de Inicio como "Instructores"', () => {
+    expect(migasDeRuta('/escuela/instructores', items)).toEqual([
+      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Instructores' },
     ])
   })
 

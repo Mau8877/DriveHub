@@ -2,6 +2,7 @@ package com.drivehub.identidad.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,7 +50,7 @@ class ObtenerEstudianteServiceTest {
     @BeforeEach
     void crearServicio() {
         servicio = new ObtenerEstudianteService(usuarioRepository,
-            new EscuelaDelAdministrador(usuarioRepository), new EstudianteMapeador(RELOJ));
+            new EscuelaDelAdministrador(usuarioRepository), new EstudianteMapeador(RELOJ, mock(PerfilArmador.class)));
     }
 
     private void elAdministradorEsDeLaEscuela() {

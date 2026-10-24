@@ -78,7 +78,7 @@ class EstudianteControllerTest {
     }
 
     private static EstudianteDetalle detalle() {
-        return new EstudianteDetalle(ESTUDIANTE, "Ana", "Alfa", "Ana Alfa", 26, LocalDate.of(2000, 1, 1),
+        return new EstudianteDetalle(ESTUDIANTE, "Ana", "Alfa", "Ana Alfa", "http://minio/firmada", 26, LocalDate.of(2000, 1, 1),
             SexoPersona.FEMENINO, "AB12345", "ana@gmail.com", "70000000", "Av. Cañoto 100",
             new BigDecimal("-17.783300"), new BigDecimal("-63.182100"), "SIN", EstadoEstudiante.ACTIVO,
             LocalDate.of(2026, 5, 4));
@@ -114,7 +114,7 @@ class EstudianteControllerTest {
     @Test
     void listar_respondeElSobreConMetaYElAdministradorDeLaSesion() throws Exception {
         when(listarEstudiantes.listar(any())).thenReturn(new PaginaEstudiantes(List.of(
-            new EstudianteResumen(ESTUDIANTE, "Ana Alfa", 26, "SIN", EstadoEstudiante.ACTIVO,
+            new EstudianteResumen(ESTUDIANTE, "Ana Alfa", "http://minio/firmada", 26, "SIN", EstadoEstudiante.ACTIVO,
                 LocalDate.of(2026, 5, 4))), 2, 5, 11, 3));
 
         mockMvc.perform(get(RUTA).param("page", "2").param("pageSize", "5").with(sesion()))
@@ -122,6 +122,7 @@ class EstudianteControllerTest {
             .andExpect(jsonPath("$.status").value("success"))
             .andExpect(jsonPath("$.data[0].codigo").value(ESTUDIANTE.toString()))
             .andExpect(jsonPath("$.data[0].nombreCompleto").value("Ana Alfa"))
+            .andExpect(jsonPath("$.data[0].fotoUrl").value("http://minio/firmada"))
             .andExpect(jsonPath("$.data[0].edad").value(26))
             .andExpect(jsonPath("$.data[0].categoriaSigla").value("SIN"))
             .andExpect(jsonPath("$.data[0].estado").value("ACTIVO"))
@@ -164,6 +165,7 @@ class EstudianteControllerTest {
             .andExpect(jsonPath("$.data.codigo").value(ESTUDIANTE.toString()))
             .andExpect(jsonPath("$.data.nombres").value("Ana"))
             .andExpect(jsonPath("$.data.nombreCompleto").value("Ana Alfa"))
+            .andExpect(jsonPath("$.data.fotoUrl").value("http://minio/firmada"))
             .andExpect(jsonPath("$.data.fechaNacimiento").value("2000-01-01"))
             .andExpect(jsonPath("$.data.sexo").value("FEMENINO"))
             .andExpect(jsonPath("$.data.ci").value("AB12345"))

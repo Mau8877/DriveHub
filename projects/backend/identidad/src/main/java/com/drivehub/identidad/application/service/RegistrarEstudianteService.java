@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.drivehub.identidad.common.exception.IdentidadErrorCodes;
 import com.drivehub.identidad.common.exception.NotFoundException;
 import com.drivehub.identidad.domain.model.CategoriaNombres;
+import com.drivehub.identidad.domain.model.RolNombres;
 import com.drivehub.identidad.domain.model.Usuario;
 import com.drivehub.identidad.domain.port.in.RegistrarEstudianteComando;
 import com.drivehub.identidad.domain.port.in.RegistrarEstudianteUseCase;
@@ -27,7 +28,7 @@ import lombok.RequiredArgsConstructor;
  * * La cuenta queda ACTIVA y sin sesión (no hay auto-login, ese es CU02).
  * * La categoría arranca en "sin categoría": solo la escuela la cambia (CU08).
  * * La dirección la calcula el servidor desde la ubicación; si no puede, se guarda en blanco.
- * * Las reglas de datos (edad, correo y CI únicos, perfil) son las de {@link AltaEstudiante}, la
+ * * Las reglas de datos (edad, correo y CI únicos, perfil) son las de {@link AltaCuenta}, la
  * * misma que usa el Administrador al dar de alta a un estudiante (CU08).
  * ! Nunca se loguea la contraseña ni su hash.
  */
@@ -39,17 +40,17 @@ public class RegistrarEstudianteService implements RegistrarEstudianteUseCase {
     private static final String MODULO = "usuarios";
 
     private final EscuelaConsultaPort escuelaConsulta;
-    private final AltaEstudiante altaEstudiante;
+    private final AltaCuenta altaCuenta;
 
     @Override
     @Transactional
     public Usuario registrar(RegistrarEstudianteComando comando) {
-        AltaEstudiante.Datos datos = new AltaEstudiante.Datos(comando.nombres(), comando.apellidos(),
+        AltaCuenta.Datos datos = new AltaCuenta.Datos(comando.nombres(), comando.apellidos(),
             comando.fechaNacimiento(), comando.email(), comando.password(), comando.telefono(), comando.ci(),
             comando.sexo(), comando.latitud(), comando.longitud());
 
-        Usuario guardado = altaEstudiante.crear(datos, () -> escuelaDelSlug(comando.escuelaSlug()),
-            CategoriaNombres.SIN_CATEGORIA);
+        Usuario guardado = altaCuenta.crear(datos, () -> escuelaDelSlug(comando.escuelaSlug()),
+            RolNombres.ESTUDIANTE, CategoriaNombres.SIN_CATEGORIA);
 
         LOG.info("Estudiante registrado", kv("module", MODULO), kv("usuarioCodigo", guardado.getCodigo()));
         return guardado;

@@ -1,6 +1,7 @@
 import { DhAuthLayout } from './dh-auth-layout.js'
 import { DhAvatar } from './dh-avatar.js'
 import { DhDialogo } from './dh-dialogo.js'
+import { DhFecha } from './dh-fecha.js'
 import { DhHeader } from './dh-header.js'
 import { DhIcono } from './dh-icono.js'
 import { DhMapaUbicacion } from './dh-mapa-ubicacion.js'
@@ -11,6 +12,7 @@ import { DhSidebar } from './dh-sidebar.js'
 const COMPONENTES = {
   'dh-avatar': DhAvatar,
   'dh-dialogo': DhDialogo,
+  'dh-fecha': DhFecha,
   'dh-icono': DhIcono,
   'dh-mapa-ubicacion': DhMapaUbicacion,
   'dh-select': DhSelect,
@@ -32,6 +34,7 @@ export function registrarUi() {
 
 registrarUi()
 
-export { DhAuthLayout, DhAvatar, DhDialogo, DhHeader, DhIcono, DhMapaUbicacion, DhSelect, DhShell, DhSidebar }
+export { DhAuthLayout, DhAvatar, DhDialogo, DhFecha, DhHeader, DhIcono, DhMapaUbicacion, DhSelect, DhShell, DhSidebar }
 export { ICONOS, icono } from './iconos.js'
 export { iniciales } from './dh-avatar.js'
+export { analizarFecha, formatearFecha } from './dh-fecha.js'

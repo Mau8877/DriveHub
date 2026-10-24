@@ -16,16 +16,18 @@ describe('esquema de estudiantes', () => {
     expect(ESQUEMA_ESTUDIANTES.nombreSingular).toBe('estudiante')
   })
 
-  it('las columnas son las del contrato del listado: nombre completo, edad, categoría, incorporación y estado', () => {
+  it('las columnas son las del contrato del listado: foto, nombre completo, edad, categoría, incorporación y estado', () => {
     expect(ESQUEMA_ESTUDIANTES.columnas.map((c) => c.campo)).toEqual([
+      'fotoUrl',
       'nombreCompleto',
       'edad',
       'categoriaSigla',
       'fechaIncorporacion',
       'estado',
     ])
-    const [nombre, , categoria, incorporacion, estado] = ESQUEMA_ESTUDIANTES.columnas
-    expect(nombre).toMatchObject({ principal: true, icono: 'user', titulo: 'Nombre' })
+    const [foto, nombre, , categoria, incorporacion, estado] = ESQUEMA_ESTUDIANTES.columnas
+    expect(foto).toMatchObject({ tipo: 'foto', titulo: 'Foto', nombre: 'nombreCompleto' })
+    expect(nombre).toMatchObject({ principal: true, titulo: 'Nombre' })
     expect(categoria).toMatchObject({ codigo: true, titulo: 'Categoría' })
     expect(incorporacion).toMatchObject({ tipo: 'fecha', titulo: 'Incorporación' })
     expect(estado.tipo).toBe('insignia')
@@ -36,8 +38,9 @@ describe('esquema de estudiantes', () => {
   })
 
   it('solo el nombre se estira: las columnas de datos son cortas y quedan juntas', () => {
-    const [nombre, ...datos] = ESQUEMA_ESTUDIANTES.columnas
+    const [foto, nombre, ...datos] = ESQUEMA_ESTUDIANTES.columnas
 
+    expect(foto.ancho).toBeUndefined()
     expect(nombre.ancho).toBeUndefined()
     expect(datos.map((c) => c.ancho)).toEqual(['5rem', '7rem', '9.5rem', '7rem'])
   })
@@ -59,6 +62,7 @@ describe('esquema de estudiantes', () => {
   it('el detalle muestra todos los datos del contrato, con fechas e insignias', () => {
     expect(ESQUEMA_ESTUDIANTES.detalle?.titulo).toBe('Datos del estudiante')
     expect(camposDeDetalle().map((c) => c.campo)).toEqual([
+      'fotoUrl',
       'nombreCompleto',
       'edad',
       'fechaNacimiento',
@@ -72,6 +76,7 @@ describe('esquema de estudiantes', () => {
       'fechaIncorporacion',
     ])
     const porCampo = (nombre: string) => camposDeDetalle().find((c) => c.campo === nombre)!
+    expect(porCampo('fotoUrl')).toMatchObject({ tipo: 'foto', nombre: 'nombreCompleto' })
     expect(porCampo('fechaNacimiento').tipo).toBe('fecha')
     expect(porCampo('fechaIncorporacion').tipo).toBe('fecha')
     expect(porCampo('sexo').tipo).toBe('insignia')

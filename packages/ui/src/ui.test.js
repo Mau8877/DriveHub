@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { iniciales } from './index.js'
+import { analizarFecha, formatearFecha, iniciales } from './index.js'
 import { montarShellSuelto as desdeDesarrollo } from './desarrollo.js'
 
 const ITEMS = [
@@ -496,6 +496,612 @@ describe('dh-select', () => {
     const el = await crear('dh-select', { opciones: [{ valor: 1, etiqueta: 'Uno' }], valor: '1' })
 
     expect(q(el, '.texto').textContent).toBe('Uno')
+  })
+})
+
+describe('dh-select multiple', () => {
+  const OPCIONES = [
+    { valor: 'A', etiqueta: 'Moto' },
+    { valor: 'B', etiqueta: 'Auto' },
+    { valor: 'C', etiqueta: 'Camión' },
+    { valor: 'D', etiqueta: 'Bus' },
+  ]
+  const disparador = (el) => q(el, '.disparador')
+  const lista = (el) => q(el, 'ul[role="listbox"]')
+  const items = (el) => qa(el, 'li[role="option"]')
+  const fichas = (el) => qa(el, '.ficha:not(.mas)').map((f) => f.textContent.trim())
+  const teclear = (el, key) =>
+    disparador(el).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true }))
+  const eventos = (el) => {
+    const recibidos = []
+    el.addEventListener('dh-cambio', (e) => recibidos.push(e.detail))
+    return recibidos
+  }
+
+  it('elegir opciones las alterna y el menú sigue abierto', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true })
+    const cambios = eventos(el)
+    disparador(el).click()
+    await el.updateComplete
+
+    items(el)[1].click()
+    await el.updateComplete
+    expect(lista(el)).not.toBeNull()
+    expect(fichas(el)).toEqual(['Auto'])
+
+    items(el)[1].click()
+    await el.updateComplete
+    expect(fichas(el)).toEqual([])
+    expect(cambios).toEqual([{ valores: ['B'] }, { valores: [] }])
+  })
+
+  it('no ofrece la opción vacía y marca el estado de cada opción', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['C'] })
+    disparador(el).click()
+    await el.updateComplete
+
+    expect(items(el).map((i) => i.textContent.trim())).toEqual(['Moto', 'Auto', 'Camión', 'Bus'])
+    expect(items(el).map((i) => i.getAttribute('aria-selected'))).toEqual(['false', 'false', 'true', 'false'])
+    expect(lista(el).getAttribute('aria-multiselectable')).toBe('true')
+    expect(items(el)[2].querySelector('.casilla.marcada')).not.toBeNull()
+  })
+
+  it('el evento trae los valores en el orden de las opciones, no en el de elección', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true })
+    const cambios = eventos(el)
+    disparador(el).click()
+    await el.updateComplete
+
+    items(el)[3].click()
+    items(el)[0].click()
+    await el.updateComplete
+
+    expect(cambios.at(-1)).toEqual({ valores: ['A', 'D'] })
+    expect(fichas(el)).toEqual(['Moto', 'Bus'])
+  })
+
+  it('la × de una ficha la quita sin abrir el menú', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['A', 'B'] })
+    const cambios = eventos(el)
+
+    qa(el, '.ficha button')[0].click()
+    await el.updateComplete
+
+    expect(lista(el)).toBeNull()
+    expect(fichas(el)).toEqual(['Auto'])
+    expect(cambios).toEqual([{ valores: ['B'] }])
+  })
+
+  it('sin nada elegido muestra el placeholder; con más de tres fichas corta con +N', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, placeholder: 'Categorías' })
+    expect(q(el, '.texto').textContent).toBe('Categorías')
+
+    el.valores = ['A', 'B', 'C', 'D']
+    await el.updateComplete
+    expect(fichas(el)).toEqual(['Moto', 'Auto', 'Camión'])
+    expect(q(el, '.ficha.mas').textContent.trim()).toBe('+1')
+  })
+
+  it('los valores que no están en las opciones se ignoran', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['B', 'X'] })
+    const cambios = eventos(el)
+    expect(fichas(el)).toEqual(['Auto'])
+
+    disparador(el).click()
+    await el.updateComplete
+    items(el)[0].click()
+    await el.updateComplete
+
+    expect(cambios).toEqual([{ valores: ['A', 'B'] }])
+  })
+
+  it('con el teclado, Espacio y Enter alternan la opción activa y Backspace quita la última ficha', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true })
+    const cambios = eventos(el)
+
+    teclear(el, 'ArrowDown')
+    await el.updateComplete
+    expect(lista(el)).not.toBeNull()
+
+    teclear(el, ' ')
+    teclear(el, 'ArrowDown')
+    teclear(el, 'Enter')
+    await el.updateComplete
+    expect(fichas(el)).toEqual(['Moto', 'Auto'])
+
+    teclear(el, 'Escape')
+    await el.updateComplete
+    expect(lista(el)).toBeNull()
+
+    teclear(el, 'Backspace')
+    await el.updateComplete
+    expect(fichas(el)).toEqual(['Moto'])
+    expect(cambios.at(-1)).toEqual({ valores: ['A'] })
+  })
+
+  it('Backspace con el menú abierto no quita fichas', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['A'] })
+    disparador(el).click()
+    await el.updateComplete
+
+    teclear(el, 'Backspace')
+    await el.updateComplete
+
+    expect(fichas(el)).toEqual(['Moto'])
+  })
+
+  it('deshabilitado no se abre ni deja quitar fichas', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, valores: ['A'], deshabilitado: true })
+    const cambios = eventos(el)
+
+    disparador(el).click()
+    teclear(el, 'Backspace')
+    qa(el, '.ficha button')[0].click()
+    await el.updateComplete
+
+    expect(lista(el)).toBeNull()
+    expect(disparador(el).getAttribute('aria-disabled')).toBe('true')
+    expect(cambios).toEqual([])
+    expect(fichas(el)).toEqual(['Moto'])
+  })
+
+  it('es un combobox accesible y no usa un <select> nativo', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true, etiqueta: 'Categorías', invalido: true })
+
+    expect(disparador(el).getAttribute('role')).toBe('combobox')
+    expect(disparador(el).getAttribute('aria-label')).toBe('Categorías')
+    expect(disparador(el).getAttribute('aria-invalid')).toBe('true')
+    expect(el.shadowRoot.querySelector('select, option')).toBeNull()
+  })
+
+  it('cuando el foco sale emite dh-blur', async () => {
+    const el = await crear('dh-select', { opciones: OPCIONES, multiple: true })
+    const salidas = []
+    el.addEventListener('dh-blur', () => salidas.push(true))
+    disparador(el).click()
+    await el.updateComplete
+
+    disparador(el).dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }))
+    await el.updateComplete
+
+    expect(salidas).toHaveLength(1)
+    expect(lista(el)).toBeNull()
+  })
+})
+
+describe('dh-fecha', () => {
+  const entrada = (el) => q(el, 'input')
+  const calendario = (el) => q(el, '.calendario')
+  const dias = (el) => qa(el, 'button.dia')
+  const titulo = (el) => q(el, 'button.titulo').textContent.trim()
+  const celdas = (el) => qa(el, 'button.celda')
+  const boton = (el, texto) => qa(el, 'button').find((b) => b.textContent.trim() === texto)
+  const diaNumero = (el, n) => dias(el).find((d) => !d.classList.contains('otro-mes') && d.textContent.trim() === String(n))
+  const eventos = (el, nombre) => {
+    const recibidos = []
+    el.addEventListener(nombre, (e) => recibidos.push(e.detail))
+    return recibidos
+  }
+  const escribirTexto = async (el, texto) => {
+    entrada(el).value = texto
+    entrada(el).dispatchEvent(new Event('input', { bubbles: true, composed: true }))
+    await el.updateComplete
+  }
+  const teclear = async (el, key, extra = {}) => {
+    entrada(el).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true, ...extra }))
+    await el.updateComplete
+  }
+  const abrir = async (el) => {
+    q(el, 'button.abrir').click()
+    await el.updateComplete
+  }
+
+  beforeEach(() => {
+    // * Hoy fijo: jueves 23 de octubre de 2026 (solo el reloj; los temporizadores siguen reales)
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 23, 12) })
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it('formatearFecha y analizarFecha convierten entre yyyy-MM-dd y dd/MM/yyyy y rechazan fechas que no existen', () => {
+    expect(formatearFecha('2000-05-04')).toBe('04/05/2000')
+    expect(formatearFecha('')).toBe('')
+    expect(formatearFecha('no-es-fecha')).toBe('')
+    expect(analizarFecha('04/05/2000')).toBe('2000-05-04')
+    expect(analizarFecha('29/02/2024')).toBe('2024-02-29')
+    expect(analizarFecha('29/02/2023')).toBeNull()
+    expect(analizarFecha('31/04/2000')).toBeNull()
+    expect(analizarFecha('00/01/2000')).toBeNull()
+    expect(analizarFecha('1/1/2000')).toBeNull()
+  })
+
+  it('muestra la fecha como dd/mm/aaaa o el placeholder si no hay', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-04' })
+    expect(entrada(el).value).toBe('04/05/2000')
+
+    el.valor = ''
+    await el.updateComplete
+    expect(entrada(el).value).toBe('')
+    expect(entrada(el).placeholder).toBe('dd/mm/aaaa')
+
+    el.valor = '1999-12-31'
+    await el.updateComplete
+    expect(entrada(el).value).toBe('31/12/1999')
+  })
+
+  it('no usa un <input type="date"> nativo', async () => {
+    const el = await crear('dh-fecha', {})
+    await abrir(el)
+
+    expect(el.shadowRoot.querySelector('input[type="date"]')).toBeNull()
+    expect(entrada(el).type).toBe('text')
+  })
+
+  it('escribir pone las barras solas y emite dh-cambio solo con una fecha completa y real', async () => {
+    const el = await crear('dh-fecha', {})
+    const cambios = eventos(el, 'dh-cambio')
+
+    await escribirTexto(el, '0405')
+    expect(entrada(el).value).toBe('04/05')
+    expect(cambios).toEqual([])
+
+    await escribirTexto(el, '04/05/20ab00')
+    expect(entrada(el).value).toBe('04/05/2000')
+    expect(cambios).toEqual([{ valor: '2000-05-04' }])
+    expect(el.valor).toBe('2000-05-04')
+  })
+
+  it('una fecha que no existe no se acepta', async () => {
+    const el = await crear('dh-fecha', {})
+    const cambios = eventos(el, 'dh-cambio')
+
+    await escribirTexto(el, '31022000')
+
+    expect(cambios).toEqual([])
+    expect(el.valor).toBe('')
+  })
+
+  it('una fecha real escrita fuera de min/max se acepta: el formulario dice qué regla no cumple', async () => {
+    const el = await crear('dh-fecha', { max: '2008-10-23' })
+    const cambios = eventos(el, 'dh-cambio')
+
+    await escribirTexto(el, '01012020')
+
+    expect(cambios).toEqual([{ valor: '2020-01-01' }])
+  })
+
+  it('al salir con un texto incompleto vuelve a la última fecha buena, y con el texto vacío borra la fecha', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-04' })
+    const cambios = eventos(el, 'dh-cambio')
+
+    await escribirTexto(el, '1203')
+    entrada(el).dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }))
+    await el.updateComplete
+    expect(entrada(el).value).toBe('04/05/2000')
+    expect(cambios).toEqual([])
+
+    await escribirTexto(el, '')
+    entrada(el).dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }))
+    await el.updateComplete
+    expect(cambios).toEqual([{ valor: '' }])
+    expect(el.valor).toBe('')
+  })
+
+  it('el botón del calendario lo abre y muestra el mes de la fecha elegida con sus días', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-04' })
+    expect(calendario(el)).toBeNull()
+
+    await abrir(el)
+
+    expect(calendario(el)).not.toBeNull()
+    expect(calendario(el).getAttribute('role')).toBe('dialog')
+    expect(entrada(el).getAttribute('aria-expanded')).toBe('true')
+    expect(titulo(el)).toBe('mayo 2000')
+    expect(qa(el, '.semana span').map((s) => s.textContent)).toEqual(['L', 'M', 'X', 'J', 'V', 'S', 'D'])
+    // * Mayo de 2000 empieza un lunes: 31 días + 4 de junio para completar la última semana = 35 celdas
+    expect(dias(el)).toHaveLength(35)
+    expect(diaNumero(el, 4).classList.contains('elegido')).toBe(true)
+    expect(diaNumero(el, 4).getAttribute('aria-selected')).toBe('true')
+    expect(diaNumero(el, 5).getAttribute('aria-selected')).toBe('false')
+  })
+
+  it('sin fecha abre en el mes de hoy y marca el día de hoy', async () => {
+    const el = await crear('dh-fecha', {})
+    await abrir(el)
+
+    expect(titulo(el)).toBe('octubre 2026')
+    expect(diaNumero(el, 23).classList.contains('hoy')).toBe(true)
+  })
+
+  it('elegir un día emite dh-cambio, cierra el calendario y escribe la fecha', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-04' })
+    const cambios = eventos(el, 'dh-cambio')
+    await abrir(el)
+
+    diaNumero(el, 18).click()
+    await el.updateComplete
+
+    expect(cambios).toEqual([{ valor: '2000-05-18' }])
+    expect(calendario(el)).toBeNull()
+    expect(entrada(el).value).toBe('18/05/2000')
+  })
+
+  it('los días de los meses vecinos también se pueden elegir', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-04' })
+    const cambios = eventos(el, 'dh-cambio')
+    await abrir(el)
+
+    const junio = dias(el).find((d) => d.classList.contains('otro-mes'))
+    expect(junio.getAttribute('aria-label')).toBe('01/06/2000')
+    junio.click()
+    await el.updateComplete
+
+    expect(cambios).toEqual([{ valor: '2000-06-01' }])
+  })
+
+  it('las flechas del encabezado cambian de mes, también entre años', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-01-15' })
+    await abrir(el)
+
+    q(el, 'button.nav[aria-label="Anterior"]').click()
+    await el.updateComplete
+    expect(titulo(el)).toBe('diciembre 1999')
+
+    q(el, 'button.nav[aria-label="Siguiente"]').click()
+    q(el, 'button.nav[aria-label="Siguiente"]').click()
+    await el.updateComplete
+    expect(titulo(el)).toBe('febrero 2000')
+  })
+
+  it('el título sube de días a meses y a años; elegir un año y un mes baja de vuelta a los días', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-04' })
+    await abrir(el)
+
+    q(el, 'button.titulo').click()
+    await el.updateComplete
+    expect(titulo(el)).toBe('2000')
+    expect(celdas(el).map((c) => c.textContent.trim())).toEqual(['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'])
+
+    q(el, 'button.titulo').click()
+    await el.updateComplete
+    expect(titulo(el)).toBe('1992 – 2003')
+    expect(celdas(el)).toHaveLength(12)
+
+    celdas(el).find((c) => c.textContent.trim() === '1995').click()
+    await el.updateComplete
+    expect(titulo(el)).toBe('1995')
+
+    celdas(el).find((c) => c.textContent.trim() === 'mar').click()
+    await el.updateComplete
+    expect(titulo(el)).toBe('marzo 1995')
+    expect(dias(el).length).toBeGreaterThanOrEqual(28)
+  })
+
+  it('en la vista de años, las flechas pasan de a 12 años', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-04' })
+    await abrir(el)
+    q(el, 'button.titulo').click()
+    await el.updateComplete
+    q(el, 'button.titulo').click()
+    await el.updateComplete
+
+    q(el, 'button.nav[aria-label="Anterior"]').click()
+    await el.updateComplete
+
+    expect(titulo(el)).toBe('1980 – 1991')
+  })
+
+  it('un día fuera de min/max no se puede elegir', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-10', min: '2000-05-05', max: '2000-05-20' })
+    const cambios = eventos(el, 'dh-cambio')
+    await abrir(el)
+
+    expect(diaNumero(el, 4).disabled).toBe(true)
+    expect(diaNumero(el, 5).disabled).toBe(false)
+    expect(diaNumero(el, 20).disabled).toBe(false)
+    expect(diaNumero(el, 21).disabled).toBe(true)
+    diaNumero(el, 4).click()
+    await el.updateComplete
+    expect(cambios).toEqual([])
+    expect(calendario(el)).not.toBeNull()
+  })
+
+  it('no se puede navegar a meses, ni a años, donde no hay ningún día permitido', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-10', min: '2000-05-05', max: '2000-05-20' })
+    await abrir(el)
+
+    expect(q(el, 'button.nav[aria-label="Anterior"]').disabled).toBe(true)
+    expect(q(el, 'button.nav[aria-label="Siguiente"]').disabled).toBe(true)
+
+    q(el, 'button.titulo').click()
+    await el.updateComplete
+    expect(celdas(el).filter((c) => !c.disabled).map((c) => c.textContent.trim())).toEqual(['may'])
+  })
+
+  it('sin fecha y con hoy fuera del rango, abre en el límite más cercano', async () => {
+    const el = await crear('dh-fecha', { max: '2008-10-23' })
+    await abrir(el)
+
+    expect(titulo(el)).toBe('octubre 2008')
+  })
+
+  it('Hoy elige el día de hoy y se apaga si hoy está fuera del rango', async () => {
+    const el = await crear('dh-fecha', {})
+    const cambios = eventos(el, 'dh-cambio')
+    await abrir(el)
+
+    boton(el, 'Hoy').click()
+    await el.updateComplete
+    expect(cambios).toEqual([{ valor: '2026-10-23' }])
+
+    const limitado = await crear('dh-fecha', { max: '2008-10-23' })
+    await abrir(limitado)
+    expect(boton(limitado, 'Hoy').disabled).toBe(true)
+  })
+
+  it('Borrar quita la fecha y solo está activo si hay una', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-04' })
+    const cambios = eventos(el, 'dh-cambio')
+    await abrir(el)
+
+    boton(el, 'Borrar').click()
+    await el.updateComplete
+
+    expect(cambios).toEqual([{ valor: '' }])
+    expect(entrada(el).value).toBe('')
+    await abrir(el)
+    expect(boton(el, 'Borrar').disabled).toBe(true)
+  })
+
+  it('teclado: la flecha abajo abre; las flechas mueven el día; Enter elige', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-10' })
+    const cambios = eventos(el, 'dh-cambio')
+
+    await teclear(el, 'ArrowDown')
+    expect(calendario(el)).not.toBeNull()
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('10/05/2000')
+
+    await teclear(el, 'ArrowRight')
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('11/05/2000')
+    await teclear(el, 'ArrowDown')
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('18/05/2000')
+    await teclear(el, 'ArrowLeft')
+    await teclear(el, 'ArrowUp')
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('10/05/2000')
+
+    await teclear(el, 'Enter')
+    expect(cambios).toEqual([])
+    expect(calendario(el)).toBeNull()
+  })
+
+  it('teclado: Enter sobre otro día lo elige', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-10' })
+    const cambios = eventos(el, 'dh-cambio')
+    await teclear(el, 'ArrowDown')
+
+    await teclear(el, 'ArrowRight')
+    await teclear(el, 'Enter')
+
+    expect(cambios).toEqual([{ valor: '2000-05-11' }])
+  })
+
+  it('teclado: RePág y AvPág cambian de mes, con Mayús de año; Inicio y Fin van al lunes y al domingo', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-10' })
+    await teclear(el, 'ArrowDown')
+
+    await teclear(el, 'PageDown')
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('10/06/2000')
+    expect(titulo(el)).toBe('junio 2000')
+    await teclear(el, 'PageUp', { shiftKey: true })
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('10/06/1999')
+
+    // * 10/06/1999 fue jueves: el lunes de esa semana es el 7 y el domingo el 13
+    await teclear(el, 'Home')
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('07/06/1999')
+    await teclear(el, 'End')
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('13/06/1999')
+  })
+
+  it('teclado: el foco no se sale del rango permitido', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-10', min: '2000-05-05', max: '2000-05-20' })
+    await teclear(el, 'ArrowDown')
+
+    await teclear(el, 'PageDown')
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('20/05/2000')
+    await teclear(el, 'PageUp')
+    expect(q(el, 'button.dia.foco').getAttribute('aria-label')).toBe('05/05/2000')
+  })
+
+  it('Escape cierra el calendario sin llegar a quien escucha Escape más arriba (como un panel)', async () => {
+    const el = await crear('dh-fecha', { valor: '2000-05-10' })
+    const arriba = vi.fn()
+    document.addEventListener('keydown', arriba)
+    await abrir(el)
+
+    await teclear(el, 'Escape')
+    expect(calendario(el)).toBeNull()
+    expect(arriba).not.toHaveBeenCalled()
+
+    await teclear(el, 'Escape')
+    expect(arriba).toHaveBeenCalledTimes(1)
+    document.removeEventListener('keydown', arriba)
+  })
+
+  it('Tab cierra el calendario', async () => {
+    const el = await crear('dh-fecha', {})
+    await abrir(el)
+
+    await teclear(el, 'Tab')
+
+    expect(calendario(el)).toBeNull()
+  })
+
+  it('deshabilitado no se escribe ni se abre', async () => {
+    const el = await crear('dh-fecha', { deshabilitado: true })
+
+    expect(entrada(el).disabled).toBe(true)
+    expect(q(el, 'button.abrir').disabled).toBe(true)
+    await teclear(el, 'ArrowDown')
+    expect(calendario(el)).toBeNull()
+  })
+
+  it('un clic fuera lo cierra y uno dentro del calendario no', async () => {
+    const el = await crear('dh-fecha', {})
+    await abrir(el)
+
+    calendario(el).dispatchEvent(new Event('pointerdown', { bubbles: true, composed: true }))
+    await el.updateComplete
+    expect(calendario(el)).not.toBeNull()
+
+    document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    await el.updateComplete
+    expect(calendario(el)).toBeNull()
+  })
+
+  it('cambiar el tamaño de la ventana lo cierra (queda mal posicionado)', async () => {
+    const el = await crear('dh-fecha', {})
+    await abrir(el)
+
+    window.dispatchEvent(new Event('resize'))
+    await el.updateComplete
+
+    expect(calendario(el)).toBeNull()
+  })
+
+  it('al salir emite dh-blur y cierra el calendario', async () => {
+    const el = await crear('dh-fecha', {})
+    const salidas = []
+    el.addEventListener('dh-blur', () => salidas.push(true))
+    await abrir(el)
+
+    entrada(el).dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }))
+    await el.updateComplete
+
+    expect(salidas).toHaveLength(1)
+    expect(calendario(el)).toBeNull()
+  })
+
+  it('invalido pone el borde de error y avisa con aria-invalid', async () => {
+    const el = await crear('dh-fecha', { invalido: true, etiqueta: 'Fecha de nacimiento' })
+
+    expect(el.hasAttribute('invalido')).toBe(true)
+    expect(entrada(el).getAttribute('aria-invalid')).toBe('true')
+    expect(entrada(el).getAttribute('aria-label')).toBe('Fecha de nacimiento')
+  })
+
+  it('se posiciona con fixed según el campo y se abre hacia arriba si abajo no entra', async () => {
+    const el = await crear('dh-fecha', {})
+    vi.spyOn(q(el, '.campo'), 'getBoundingClientRect').mockReturnValue({ top: 100, bottom: 144, left: 20, width: 300, height: 44, right: 320 })
+    await abrir(el)
+    expect(calendario(el).classList.contains('arriba')).toBe(false)
+    expect(calendario(el).getAttribute('style')).toContain('top: 148px')
+    q(el, 'button.abrir').click()
+    await el.updateComplete
+
+    const alto = window.innerHeight
+    q(el, '.campo').getBoundingClientRect.mockReturnValue({ top: alto - 60, bottom: alto - 16, left: 20, width: 300, height: 44, right: 320 })
+    await abrir(el)
+    expect(calendario(el).classList.contains('arriba')).toBe(true)
+    expect(calendario(el).getAttribute('style')).toContain('bottom: 64px')
   })
 })
 

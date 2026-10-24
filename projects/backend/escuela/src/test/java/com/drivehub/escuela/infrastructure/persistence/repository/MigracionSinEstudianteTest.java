@@ -100,8 +100,8 @@ class MigracionSinEstudianteTest {
 
         UUID instructor = UUID.randomUUID();
         UUID estudiante = UUID.randomUUID();
-        jdbc.update("INSERT INTO instructor (codigo_instructor, usuario_codigo, nro_licencia) VALUES (?, ?, 'LIC-1')",
-            instructor, UUID.randomUUID());
+        jdbc.update("INSERT INTO instructor (codigo_instructor, usuario_codigo, escuela_codigo,"
+            + " nro_licencia) VALUES (?, ?, ?, 'LIC-1')", instructor, UUID.randomUUID(), UUID.randomUUID());
         Long instructorId = jdbc.queryForObject("SELECT id FROM instructor WHERE codigo_instructor = ?", Long.class,
             instructor);
         String insertar = "INSERT INTO asignacion_alumno (codigo_asignacion_alumno, instructor_id, estudiante_codigo,"

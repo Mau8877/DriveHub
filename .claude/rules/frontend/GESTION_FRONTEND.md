@@ -44,9 +44,24 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
 - **Crear y editar** se abren en un **drawer** a la derecha (desde abajo en móvil) sobre el listado,
   que sigue visible; secciones numeradas, campos `mitad` en dos columnas, contraseña con ojo,
   pie fijo con Cancelar y Guardar. Se cierra con la X, Escape o un clic en el fondo.
-- **Listas desplegables** (campos `seleccion` y filtros con más de 4 opciones): son `<dh-select>` de
-  `@drivehub/ui`, nunca un `<select>` nativo (ver "Nada de componentes nativos" en
-  [UI_FRONTEND.md](UI_FRONTEND.md)).
+- **Listas desplegables y fechas** (campos `seleccion` y `fecha`, y filtros con más de 4 opciones): son
+  `<dh-select>` y `<dh-fecha>` de `@drivehub/ui`, nunca un `<select>` ni un `<input type="date">` nativo
+  (ver "Nada de componentes nativos" en [UI_FRONTEND.md](UI_FRONTEND.md)). Un campo `fecha` con
+  `fechaNoFutura` o `edadMinima:N` ya limita el calendario a lo que esas reglas permiten.
+- **Selección múltiple** (campo `seleccion` con `multiple: true`): usa `<dh-select multiple>`, el valor del
+  formulario es un **arreglo** (por defecto `[]`), `requerido` significa al menos uno y al enviar viaja el
+  arreglo. `opcionesDe.excluir` (`['SIN']`) quita valores del catálogo; `valorDe` (`'sigla'`) dice qué propiedad
+  guardar cuando el registro trae objetos (`categorias: [{ sigla, descripcion }]`) al editar.
+- **Etiquetas** (`tipo: 'etiquetas'` en una columna o un dato del detalle): el valor es un arreglo, de textos o
+  de objetos (`etiqueta: 'sigla'` dice qué propiedad mostrar), dibujado como insignias pequeñas. En la tabla
+  caben tres y el resto se resume en "+N"; en el detalle se ven todas; vacío se muestra "—".
+- **Reglas de fecha**: además de `fechaNoFutura` (anterior a hoy) y `edadMinima:N`, `hastaHoy` (hoy o antes) y
+  `fechaFutura` (posterior a hoy; el calendario arranca mañana). Con `soloSiCambia: true` en el campo, al
+  **editar** sus `validaciones` solo se aplican si el valor cambió (un vencimiento ya pasado no impide
+  guardar otros datos); en el alta se aplican siempre. `porDefecto: 'hoy'` en un campo `fecha` lo precarga al crear.
+- **Foto** (`tipo: 'foto'` en una columna o un dato del detalle): dibuja un `<dh-avatar>` con la URL de
+  la foto y, sin foto, las iniciales del campo que dice `nombre` (el nombre completo). La URL es
+  prefirmada y vence: el avatar vuelve a las iniciales si la imagen ya no carga.
 - **Detalle de solo lectura** (`detalle` en el esquema): un botón "Ver detalles" por fila abre el mismo
   drawer sin formulario ni "Guardar", con secciones de campos (`texto`, `fecha`, `insignia`; un valor
   vacío se muestra "—") y un solo botón "Cerrar". Sirve para mostrar un registro sin ofrecer editarlo.
@@ -82,7 +97,7 @@ que el esquema solo dice el `recurso` (`/api/v1/{recurso}`).
   esquema no la declara.
 - **Anchos fijos** (`table-layout: fixed`): cada columna mide lo mismo en todas las
   filas y páginas, así los datos quedan bajo su encabezado. Las columnas de insignia
-  y fecha son cortas por defecto (8rem), Acciones mide 13rem y el resto reparte lo que
+  y fecha son cortas por defecto (8rem), la de foto 5rem, Acciones mide 13rem y el resto reparte lo que
   sobra. Una columna que necesite otro ancho lo declara con `ancho: '12rem'` en el
   esquema; no se tocan los estilos para una sola pantalla.
 - La pantalla de gestión ocupa todo el ancho disponible del contenido (sin

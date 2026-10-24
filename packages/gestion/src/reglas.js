@@ -42,18 +42,46 @@ function fechaComoTexto(fecha) {
   return `${fecha.getFullYear()}-${mes}-${dia}`
 }
 
+/** Hoy como yyyy-MM-dd en la zona local (valor inicial `porDefecto: 'hoy'` de un campo fecha). */
+export function fechaDeHoy(hoy = new Date()) {
+  return fechaComoTexto(hoy)
+}
+
+/** Mañana como yyyy-MM-dd: la primera fecha que acepta la regla `fechaFutura`. */
+export function fechaDeManana(hoy = new Date()) {
+  return fechaComoTexto(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1))
+}
+
+/** Un valor `multiple` como arreglo de textos sin vacíos. */
+function comoLista(valor) {
+  return (Array.isArray(valor) ? valor : []).map((v) => String(v ?? '').trim()).filter((v) => v !== '')
+}
+
+/** Lo que `validar` y el envío comparan: mismo valor aunque cambie el orden de una lista. */
+function igualAlInicial(valor, inicial) {
+  if (Array.isArray(valor) || Array.isArray(inicial)) {
+    return comoLista(valor).sort().join('\u0000') === comoLista(inicial).sort().join('\u0000')
+  }
+  return String(valor ?? '').trim() === String(inicial ?? '').trim()
+}
+
 /**
  * Primer error de un campo para ese valor, o null si es válido. Un campo vacío y no requerido
  * siempre es válido.
  *
+ * `contexto.valorInicial` solo existe al EDITAR (el valor que trajo el registro): con
+ * `soloSiCambia`, las `validaciones` del campo no se aplican mientras el valor siga igual.
+ *
  * @param {import('./index.js').Campo} campo
  * @param {unknown} valor
  * @param {Date} [hoy]
+ * @param {{ valorInicial?: unknown }} [contexto]
  * @returns {string | null}
  */
-export function validar(campo, valor, hoy = new Date()) {
+export function validar(campo, valor, hoy = new Date(), contexto = {}) {
   const mensajes = campo.mensajes ?? {}
   if (campo.tipo === 'ubicacion') return validarUbicacion(campo, valor)
+  if (campo.tipo === 'seleccion' && campo.multiple) return validarMultiple(campo, valor)
   // * Una lista de filas (opciones de respuesta) se valida por filas, no como texto
   if (campo.tipo === 'opciones') return validarOpciones(campo, valor)
 
@@ -82,14 +110,33 @@ export function validar(campo, valor, hoy = new Date()) {
     if (!regex.test(texto)) return mensajes.patron ?? nombrado?.mensaje ?? 'El formato no es válido'
   }
 
-  for (const regla of campo.validaciones ?? []) {
+  // * Al editar, `soloSiCambia` deja pasar un valor que el registro ya traía (ej. una licencia ya vencida)
+  const sinCambios = campo.soloSiCambia && 'valorInicial' in contexto && igualAlInicial(valor, contexto.valorInicial)
+  for (const regla of sinCambios ? [] : (campo.validaciones ?? [])) {
     const [nombre, argumento] = regla.split(':')
     if (nombre === 'fechaNoFutura' && texto >= fechaComoTexto(hoy)) {
       return mensajes.fechaNoFutura ?? 'La fecha debe estar en el pasado'
     }
+    if (nombre === 'hastaHoy' && texto > fechaComoTexto(hoy)) {
+      return mensajes.hastaHoy ?? 'La fecha no puede ser futura'
+    }
+    if (nombre === 'fechaFutura' && texto <= fechaComoTexto(hoy)) {
+      return mensajes.fechaFutura ?? 'La fecha debe ser posterior a hoy'
+    }
     if (nombre === 'edadMinima' && edadEnAnios(texto, hoy) < Number(argumento)) {
       return mensajes.edadMinima ?? `Debe tener al menos ${argumento} años`
     }
+  }
+  return null
+}
+
+/** `seleccion` múltiple: un arreglo de valores; `requerido` pide al menos uno. */
+function validarMultiple(campo, valor) {
+  const mensajes = campo.mensajes ?? {}
+  const lista = comoLista(valor)
+  if (lista.length === 0) return campo.requerido ? (mensajes.requerido ?? 'Elige al menos una opción') : null
+  if (campo.opciones && lista.some((v) => !campo.opciones.some((o) => o.valor === v))) {
+    return mensajes.opcion ?? 'Elige una opción de la lista'
   }
   return null
 }

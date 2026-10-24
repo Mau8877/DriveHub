@@ -3,6 +3,7 @@ package com.drivehub.identidad.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -71,8 +72,8 @@ class CrearEstudianteServiceTest {
     void crearServicio() {
         Clock reloj = Clock.fixed(HOY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
         servicio = new CrearEstudianteService(new EscuelaDelAdministrador(usuarioRepository), categoriaConsulta,
-            new AltaEstudiante(usuarioRepository, rolRepository, passwordHasher, geocodificador, reloj, 18),
-            new EstudianteMapeador(reloj));
+            new AltaCuenta(usuarioRepository, rolRepository, passwordHasher, geocodificador, reloj, 18),
+            new EstudianteMapeador(reloj, mock(PerfilArmador.class)));
     }
 
     private void elAdministradorEsDeLaEscuela() {

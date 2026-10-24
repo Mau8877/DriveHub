@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router'
 import '@drivehub/ui'
 
 import { ApiError } from '../../../core/api/api.types'
+import { DhValor } from '../../../core/forms/dh-valor.directive'
 import type { DetalleUbicacion } from '@drivehub/ui'
 import type { EscuelaPublica, Sexo } from '../types/registro.types'
 import { type CampoRegistro, mensajeDeError } from '../schemas/registro.mensajes'
@@ -13,6 +14,7 @@ import {
   coordenada,
   edadMinima,
   EMAIL_MAX,
+  fechaMaximaDeNacimiento,
   fechaNoFutura,
   LATITUD_MAX,
   LONGITUD_MAX,
@@ -36,7 +38,7 @@ import { RegistroService } from '../api/registro.service'
  */
 @Component({
   selector: 'app-registro',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, DhValor],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <dh-auth-layout
@@ -89,13 +91,13 @@ import { RegistroService } from '../api/registro.service'
 
           <div class="dh-field">
             <label for="fechaNacimiento" class="dh-label">Fecha de nacimiento</label>
-            <input
+            <dh-fecha
               id="fechaNacimiento"
-              type="date"
               formControlName="fechaNacimiento"
-              autocomplete="bday"
-              class="dh-input"
-            />
+              etiqueta="Fecha de nacimiento"
+              [max]="maximoNacimiento"
+              [invalido]="!!error('fechaNacimiento')"
+            ></dh-fecha>
             @if (error('fechaNacimiento'); as mensaje) {
               <p class="dh-error" role="alert">{{ mensaje }}</p>
             }
@@ -103,11 +105,13 @@ import { RegistroService } from '../api/registro.service'
 
           <div class="dh-field">
             <label for="sexo" class="dh-label">Sexo</label>
-            <select id="sexo" formControlName="sexo" class="dh-input">
-              <option value="">Elige una opción</option>
-              <option value="MASCULINO">Masculino</option>
-              <option value="FEMENINO">Femenino</option>
-            </select>
+            <dh-select
+              id="sexo"
+              formControlName="sexo"
+              etiqueta="Sexo"
+              [opciones]="opcionesSexo"
+              [invalido]="!!error('sexo')"
+            ></dh-select>
             @if (error('sexo'); as mensaje) {
               <p class="dh-error" role="alert">{{ mensaje }}</p>
             }
@@ -194,6 +198,12 @@ export class Registro implements OnInit {
 
   readonly cargandoEscuela = signal(true)
   readonly escuela = signal<EscuelaPublica | null>(null)
+  // * Hasta dónde deja elegir el calendario (la edad mínima); la regla de verdad es `edadMinima`
+  protected readonly maximoNacimiento = fechaMaximaDeNacimiento()
+  protected readonly opcionesSexo = [
+    { valor: 'MASCULINO', etiqueta: 'Masculino' },
+    { valor: 'FEMENINO', etiqueta: 'Femenino' },
+  ]
   readonly escuelaNoDisponible = signal(false)
   readonly enviando = signal(false)
   readonly registrado = signal(false)

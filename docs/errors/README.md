@@ -63,6 +63,8 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IDE_19`](identidad/ERRORES_IDENTIDAD.md#err_ide_19) — El CI ya está registrado (409)
 - [`ERR_IDE_20`](identidad/ERRORES_IDENTIDAD.md#err_ide_20) — El estudiante no existe en la escuela (404)
 - [`ERR_IDE_21`](identidad/ERRORES_IDENTIDAD.md#err_ide_21) — La categoría de licencia no existe (400)
+- [`ERR_IDE_22`](identidad/ERRORES_IDENTIDAD.md#err_ide_22) — El instructor no existe en la escuela (404)
+- [`ERR_IDE_23`](identidad/ERRORES_IDENTIDAD.md#err_ide_23) — La cuenta del instructor ya se usó y no se revierte (409)
 
 ### Escuela (`ESC`)
 
@@ -77,6 +79,9 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_09`](escuela/ERRORES_ESCUELA.md#err_esc_09) — El auto no existe en la escuela (404)
 - [`ERR_ESC_10`](escuela/ERRORES_ESCUELA.md#err_esc_10) — Cambio no permitido desde el estado actual del auto (409)
 - [`ERR_ESC_11`](escuela/ERRORES_ESCUELA.md#err_esc_11) — El token no trae la escuela de la cuenta (403)
+- [`ERR_ESC_12`](escuela/ERRORES_ESCUELA.md#err_esc_12) — El número de licencia ya está en uso (409)
+- [`ERR_ESC_13`](escuela/ERRORES_ESCUELA.md#err_esc_13) — El instructor no existe en la escuela (404)
+- [`ERR_ESC_14`](escuela/ERRORES_ESCUELA.md#err_esc_14) — Una categoría del instructor no es válida (400)
 
 ### Académico (`ACA`)
 

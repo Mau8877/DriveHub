@@ -1,7 +1,9 @@
 package com.drivehub.identidad.infrastructure.adapter.out.persistence.repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -65,6 +67,9 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
         UsuarioModel model = new UsuarioModel(
             usuario.getEmail(), usuario.getPasswordHash(), usuario.getEscuelaCodigo(), usuario.getEstado());
         model.setCorreoVerificado(usuario.isCorreoVerificado());
+        if (usuario.getCodigo() != null) {
+            model.asignarCodigo(usuario.getCodigo());
+        }
 
         try {
             // * saveAndFlush: el UNIQUE del correo salta acá y no al final de la transacción
@@ -120,7 +125,7 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
     public PaginaUsuarios listarEstudiantesDeEscuela(
             UUID escuelaCodigo, FiltroEstudiantes filtro, int pagina, int tamano) {
         Page<UsuarioModel> resultado = usuarioJpaRepository.findAll(
-            EstudiantesSpecification.deEscuela(escuelaCodigo, filtro),
+            CuentasDeEscuelaSpecification.deEscuela(escuelaCodigo, RolNombres.ESTUDIANTE, filtro),
             PageRequest.of(pagina - 1, tamano, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))));
         return new PaginaUsuarios(
             resultado.getContent().stream().map(m -> aDominio(m, m.getPerfil(), Set.of())).toList(),
@@ -131,8 +136,44 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
     @Transactional(readOnly = true)
     public Optional<Usuario> buscarEstudianteDeEscuela(UUID escuelaCodigo, UUID codigo) {
         return usuarioJpaRepository
-            .findOne(EstudiantesSpecification.deEscuela(escuelaCodigo, new FiltroEstudiantes(null, null))
-                .and(EstudiantesSpecification.conCodigo(codigo)))
+            .findOne(CuentasDeEscuelaSpecification
+                .deEscuela(escuelaCodigo, RolNombres.ESTUDIANTE, new FiltroEstudiantes(null, null))
+                .and(CuentasDeEscuelaSpecification.conCodigo(codigo)))
+            .map(m -> aDominio(m, m.getPerfil(), Set.of()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginaUsuarios listarInstructoresDeEscuela(UUID escuelaCodigo, String busqueda, int pagina, int tamano) {
+        Page<UsuarioModel> resultado = usuarioJpaRepository.findAll(
+            CuentasDeEscuelaSpecification.deEscuela(escuelaCodigo, RolNombres.INSTRUCTOR,
+                new FiltroEstudiantes(busqueda, null)),
+            PageRequest.of(pagina - 1, tamano, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))));
+        return new PaginaUsuarios(
+            resultado.getContent().stream().map(m -> aDominio(m, m.getPerfil(), Set.of())).toList(),
+            resultado.getTotalElements());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Usuario> buscarInstructoresPorCodigos(UUID escuelaCodigo, Collection<UUID> codigos) {
+        if (codigos == null || codigos.isEmpty()) {
+            return List.of();
+        }
+        return usuarioJpaRepository
+            .findAll(CuentasDeEscuelaSpecification
+                .deEscuela(escuelaCodigo, RolNombres.INSTRUCTOR, new FiltroEstudiantes(null, null))
+                .and(CuentasDeEscuelaSpecification.conCodigos(codigos)))
+            .stream().map(m -> aDominio(m, m.getPerfil(), Set.of())).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Usuario> buscarInstructorDeEscuela(UUID escuelaCodigo, UUID codigo) {
+        return usuarioJpaRepository
+            .findOne(CuentasDeEscuelaSpecification
+                .deEscuela(escuelaCodigo, RolNombres.INSTRUCTOR, new FiltroEstudiantes(null, null))
+                .and(CuentasDeEscuelaSpecification.conCodigo(codigo)))
             .map(m -> aDominio(m, m.getPerfil(), Set.of()));
     }
 

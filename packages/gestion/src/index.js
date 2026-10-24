@@ -14,4 +14,4 @@ registrarGestion()
 
 export { DhGestion }
 export { ErrorApi, solicitar } from './cliente-api.js'
-export { PATRONES, edadEnAnios, slugDesdeTexto, validar } from './reglas.js'
+export { PATRONES, edadEnAnios, fechaDeHoy, fechaDeManana, slugDesdeTexto, validar } from './reglas.js'

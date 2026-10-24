@@ -17,6 +17,7 @@ public record EstudianteDetalleResponse(
         String nombres,
         String apellidos,
         String nombreCompleto,
+        String fotoUrl,
         int edad,
         LocalDate fechaNacimiento,
         SexoPersona sexo,
@@ -32,7 +33,7 @@ public record EstudianteDetalleResponse(
 ) {
 
     public static EstudianteDetalleResponse de(EstudianteDetalle e) {
-        return new EstudianteDetalleResponse(e.codigo(), e.nombres(), e.apellidos(), e.nombreCompleto(), e.edad(),
+        return new EstudianteDetalleResponse(e.codigo(), e.nombres(), e.apellidos(), e.nombreCompleto(), e.fotoUrl(), e.edad(),
             e.fechaNacimiento(), e.sexo(), e.ci(), e.email(), e.telefono(), e.direccion(), e.latitud(),
             e.longitud(), e.categoriaSigla(), e.estado(), e.fechaIncorporacion());
     }

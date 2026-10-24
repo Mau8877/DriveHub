@@ -76,6 +76,27 @@ class GatewayRoutingTest {
         assertThat(detalle.body()).isEqualTo("identidad:/api/v1/estudiantes/0198f0a0-0000-7000-8000-000000000001");
     }
 
+    // * CU09: el instructor tiene la ficha en Escuela (recurso `instructores`) y la cuenta en Identidad
+    @Test
+    void recursoInstructores_seReenviaAEscuelaYNoAIdentidad() throws Exception {
+        HttpResponse<String> lista = get("/api/v1/instructores", TokensDePrueba.valido());
+        HttpResponse<String> detalle = get("/api/v1/instructores/0198f0a0-0000-7000-8000-000000000001", TokensDePrueba.valido());
+
+        assertThat(lista.statusCode()).isEqualTo(200);
+        assertThat(lista.body()).isEqualTo("escuela:/api/v1/instructores");
+        assertThat(detalle.body()).isEqualTo("escuela:/api/v1/instructores/0198f0a0-0000-7000-8000-000000000001");
+    }
+
+    @Test
+    void cuentasDeInstructores_seReenvianAIdentidadYNoAEscuela() throws Exception {
+        HttpResponse<String> busqueda = get("/api/v1/usuarios/instructores", TokensDePrueba.valido());
+        HttpResponse<String> consulta = post("/api/v1/usuarios/instructores/consulta", TokensDePrueba.valido());
+
+        assertThat(busqueda.statusCode()).isEqualTo(200);
+        assertThat(busqueda.body()).isEqualTo("identidad:/api/v1/usuarios/instructores");
+        assertThat(consulta.body()).isEqualTo("identidad:/api/v1/usuarios/instructores/consulta");
+    }
+
     @Test
     void recursoCategoriasLicencia_sigueEnEscuela() throws Exception {
         HttpResponse<String> respuesta = get("/api/v1/categorias-licencia", TokensDePrueba.valido());
@@ -116,6 +137,13 @@ class GatewayRoutingTest {
             constructor.header("Authorization", "Bearer " + token);
         }
         HttpRequest request = constructor.build();
+        return CLIENTE.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> post(String ruta, String token) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + puerto + ruta))
+            .header("Authorization", "Bearer " + token).header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString("{}")).build();
         return CLIENTE.send(request, HttpResponse.BodyHandlers.ofString());
     }
 

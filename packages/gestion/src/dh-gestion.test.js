@@ -978,6 +978,518 @@ describe('<dh-gestion>', () => {
     await asentar(el)
     expect(el.shadowRoot.querySelector('aside.drawer form')).not.toBeNull()
   })
+
+  // ------------------------------------------------------------------ campo fecha (<dh-fecha>)
+
+  const ESQUEMA_FECHA = {
+    recurso: 'estudiantes',
+    titulo: 'Gestionar estudiantes',
+    nombreSingular: 'estudiante',
+    columnas: [{ campo: 'nombreCompleto', titulo: 'Nombre' }],
+    crear: {
+      etiqueta: 'Nuevo estudiante',
+      mensajeExito: 'Estudiante creado correctamente.',
+      secciones: [
+        {
+          campos: [
+            {
+              campo: 'fechaNacimiento',
+              titulo: 'Fecha de nacimiento',
+              tipo: 'fecha',
+              requerido: true,
+              validaciones: ['fechaNoFutura', 'edadMinima:18'],
+              mensajes: { requerido: 'La fecha de nacimiento es obligatoria', edadMinima: 'Debe tener al menos 18 años' },
+            },
+            { campo: 'fechaAlta', titulo: 'Fecha de alta', tipo: 'fecha', validaciones: ['fechaNoFutura'] },
+            { campo: 'fechaLibre', titulo: 'Otra fecha', tipo: 'fecha' },
+          ],
+        },
+      ],
+    },
+  }
+
+  async function abrirCrearFecha() {
+    // * Hoy fijo: jueves 23 de octubre de 2026 (solo el reloj)
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 23, 12) })
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_FECHA
+    await asentar(el)
+    boton('Nuevo estudiante').click()
+    await asentar(el)
+  }
+
+  it('un campo de tipo fecha dibuja <dh-fecha>, no un input de fecha nativo', async () => {
+    await abrirCrearFecha()
+
+    expect(listaDe('campo-fechaNacimiento').tagName).toBe('DH-FECHA')
+    expect(el.shadowRoot.querySelector('input[type="date"]')).toBeNull()
+    expect(listaDe('campo-fechaNacimiento').etiqueta).toBe('Fecha de nacimiento')
+  })
+
+  it('el calendario deja elegir solo hasta lo que permiten las reglas: edad mínima, fecha no futura o nada', async () => {
+    await abrirCrearFecha()
+
+    expect(listaDe('campo-fechaNacimiento').max).toBe('2008-10-23')
+    expect(listaDe('campo-fechaAlta').max).toBe('2026-10-22')
+    expect(listaDe('campo-fechaLibre').max).toBe('')
+  })
+
+  it('el límite por edad mínima cae el 28 de febrero si el año de destino no es bisiesto', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2028, 1, 29, 12) })
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_FECHA
+    await asentar(el)
+    boton('Nuevo estudiante').click()
+    await asentar(el)
+
+    // * 18 años antes del 29/02/2028 es el 29/02/2010, que no existe: el último día válido es el 28
+    expect(listaDe('campo-fechaNacimiento').max).toBe('2010-02-28')
+  })
+
+  it('elegir una fecha la guarda en el formulario como yyyy-MM-dd y se envía así', async () => {
+    await abrirCrearFecha()
+
+    await elegir('campo-fechaNacimiento', '2000-05-04')
+    expect(listaDe('campo-fechaNacimiento').valor).toBe('2000-05-04')
+
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'e2' })).mockResolvedValueOnce(lista([ESTUDIANTE]))
+    boton('Crear').click()
+    await asentar(el)
+
+    const [url, init] = fetch.mock.calls[1]
+    expect(url).toBe('http://api.test/v1/estudiantes')
+    expect(JSON.parse(init.body)).toEqual({ fechaNacimiento: '2000-05-04' })
+  })
+
+  it('una fecha que no cumple la edad mínima muestra su mensaje bajo el campo y no se envía', async () => {
+    await abrirCrearFecha()
+
+    await elegir('campo-fechaNacimiento', '2015-01-01')
+
+    expect(texto()).toContain('Debe tener al menos 18 años')
+    expect(listaDe('campo-fechaNacimiento').invalido).toBe(true)
+    boton('Crear').click()
+    await asentar(el)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('una fecha requerida sin valor muestra su mensaje al intentar enviar', async () => {
+    await abrirCrearFecha()
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(texto()).toContain('La fecha de nacimiento es obligatoria')
+    expect(listaDe('campo-fechaNacimiento').invalido).toBe(true)
+  })
+
+  it('al editar, la fecha del registro llega al calendario', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 23, 12) })
+    fetch.mockResolvedValueOnce(lista([ESTUDIANTE]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = {
+      ...ESQUEMA_FECHA,
+      editar: { mensajeExito: 'ok', secciones: [{ campos: [{ campo: 'fechaNacimiento', titulo: 'Fecha de nacimiento', tipo: 'fecha' }] }] },
+    }
+    await asentar(el)
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'e1', fechaNacimiento: '1999-12-31' }))
+
+    boton('Editar').click()
+    await asentar(el)
+
+    expect(listaDe('campo-fechaNacimiento').valor).toBe('1999-12-31')
+  })
+
+  // ------------------------------------------------------------------ columna y dato de tipo foto
+
+  const ESQUEMA_FOTO = {
+    recurso: 'estudiantes',
+    titulo: 'Gestionar estudiantes',
+    nombreSingular: 'estudiante',
+    columnas: [
+      { campo: 'fotoUrl', titulo: 'Foto', tipo: 'foto', nombre: 'nombreCompleto' },
+      { campo: 'nombreCompleto', titulo: 'Nombre' },
+    ],
+    detalle: {
+      secciones: [{ campos: [{ campo: 'fotoUrl', titulo: 'Foto', tipo: 'foto', nombre: 'nombreCompleto' }, { campo: 'ci', titulo: 'CI' }] }],
+    },
+  }
+  const CON_FOTO = { codigo: 'e1', nombreCompleto: 'Ana María Pérez', fotoUrl: 'http://minio/ana.png', ci: 'AB1' }
+  const SIN_FOTO = { codigo: 'e2', nombreCompleto: 'Leonel Barrios Mayorga', fotoUrl: null, ci: 'AB2' }
+
+  async function montarFotos() {
+    fetch.mockResolvedValueOnce(lista([CON_FOTO, SIN_FOTO]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_FOTO
+    await asentar(el)
+  }
+
+  it('la columna de tipo foto dibuja un <dh-avatar> por fila con la URL de la foto', async () => {
+    await montarFotos()
+
+    const avatares = [...el.shadowRoot.querySelectorAll('tbody dh-avatar')]
+    expect(avatares).toHaveLength(2)
+    expect(avatares[0].fotoUrl).toBe('http://minio/ana.png')
+    expect(avatares[0].tam).toBe(36)
+    expect(el.shadowRoot.querySelector('thead').textContent).toContain('Foto')
+  })
+
+  it('sin foto el avatar lleva las iniciales: primer nombre y último apellido', async () => {
+    await montarFotos()
+
+    const [conFoto, sinFoto] = [...el.shadowRoot.querySelectorAll('tbody dh-avatar')]
+    expect([conFoto.nombres, conFoto.apellidos]).toEqual(['Ana', 'Pérez'])
+    expect(sinFoto.fotoUrl).toBeNull()
+    expect([sinFoto.nombres, sinFoto.apellidos]).toEqual(['Leonel', 'Mayorga'])
+  })
+
+  it('la columna foto es angosta por defecto', async () => {
+    await montarFotos()
+
+    const columna = el.shadowRoot.querySelector('thead th:nth-child(2)')
+    expect(columna.getAttribute('style')).toContain('width: 5rem')
+  })
+
+  it('un campo de tipo foto en el detalle muestra el avatar grande', async () => {
+    await montarFotos()
+    fetch.mockResolvedValueOnce(sobre(CON_FOTO))
+    // * Esta pantalla no tiene "Editar": el único botón de la fila es "Ver detalles"
+    boton('Ver detalles').click()
+    await asentar(el)
+
+    const avatar = el.shadowRoot.querySelector('aside.drawer .dato.foto dh-avatar')
+    expect(avatar).not.toBeNull()
+    expect(avatar.fotoUrl).toBe('http://minio/ana.png')
+    expect(avatar.tam).toBe(72)
+  })
+})
+
+// ---------------------------------------------------------------------- CU09: múltiple, etiquetas, fechas
+
+describe('<dh-gestion> selección múltiple, etiquetas y fechas', () => {
+  let el
+
+  const hoy = new Date()
+  const dos = (n) => String(n).padStart(2, '0')
+  const texto = () => el.shadowRoot.textContent.replace(/\s+/g, ' ')
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+  const campo = (id) => el.shadowRoot.querySelector(`#${id}`)
+  const fechaIso = (dias) => {
+    const f = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + dias)
+    return `${f.getFullYear()}-${dos(f.getMonth() + 1)}-${dos(f.getDate())}`
+  }
+
+  const CATEGORIAS = [
+    { sigla: 'A', descripcion: 'Moto' },
+    { sigla: 'B', descripcion: 'Auto' },
+    { sigla: 'SIN', descripcion: 'Sin categoría' },
+  ]
+  const INSTRUCTOR = {
+    codigo: 'i1',
+    nombreCompleto: 'Leo Mayorga',
+    nroLicencia: 'LIC-1',
+    licenciaVence: '2020-01-01',
+    fechaContratacion: '2019-05-05',
+    categorias: [
+      { sigla: 'A', descripcion: 'Moto' },
+      { sigla: 'B', descripcion: 'Auto' },
+    ],
+    estado: 'ACTIVO',
+  }
+
+  const CAMPO_CATEGORIAS = {
+    campo: 'categorias',
+    titulo: 'Categorías',
+    tipo: 'seleccion',
+    multiple: true,
+    requerido: true,
+    valorDe: 'sigla',
+    opcionesDe: { recurso: 'categorias-licencia', valor: 'sigla', etiqueta: 'descripcion', excluir: ['SIN'] },
+    mensajes: { requerido: 'Elige al menos una categoría' },
+  }
+  const CAMPO_VENCE = {
+    campo: 'licenciaVence',
+    titulo: 'Vencimiento',
+    tipo: 'fecha',
+    requerido: true,
+    validaciones: ['fechaFutura'],
+  }
+  const CAMPO_CONTRATACION = {
+    campo: 'fechaContratacion',
+    titulo: 'Contratación',
+    tipo: 'fecha',
+    porDefecto: 'hoy',
+    validaciones: ['hastaHoy'],
+  }
+
+  const ESQUEMA = {
+    recurso: 'instructores',
+    titulo: 'Instructores',
+    nombreSingular: 'instructor',
+    columnas: [
+      { campo: 'nombreCompleto', titulo: 'Nombre' },
+      { campo: 'categorias', titulo: 'Categorías', tipo: 'etiquetas', etiqueta: 'sigla' },
+    ],
+    crear: {
+      etiqueta: 'Nuevo instructor',
+      mensajeExito: 'Instructor creado correctamente.',
+      secciones: [{ titulo: 'Ficha', campos: [CAMPO_VENCE, CAMPO_CONTRATACION, CAMPO_CATEGORIAS] }],
+    },
+    editar: {
+      mensajeExito: 'Instructor actualizado correctamente.',
+      secciones: [
+        {
+          campos: [
+            { ...CAMPO_VENCE, soloSiCambia: true },
+            CAMPO_CONTRATACION,
+            CAMPO_CATEGORIAS,
+            { campo: 'estado', titulo: 'Estado', tipo: 'seleccion', opciones: [{ valor: 'ACTIVO', etiqueta: 'Activo' }, { valor: 'INACTIVO', etiqueta: 'Inactivo' }] },
+          ],
+        },
+      ],
+    },
+    detalle: {
+      secciones: [
+        {
+          campos: [
+            { campo: 'categorias', titulo: 'Categorías', tipo: 'etiquetas', etiqueta: 'sigla' },
+            { campo: 'otras', titulo: 'Otras', tipo: 'etiquetas' },
+          ],
+        },
+      ],
+    },
+    erroresDeCampo: { ERR_ESC_10: { campo: 'categorias', mensaje: 'Una categoría no es válida' } },
+  }
+
+  async function montar(filas = [INSTRUCTOR]) {
+    fetch.mockResolvedValueOnce(lista(filas))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA
+    await asentar(el)
+  }
+
+  async function abrirCrear() {
+    await montar()
+    fetch.mockResolvedValueOnce(lista(CATEGORIAS))
+    boton('Nuevo instructor').click()
+    await asentar(el)
+  }
+
+  async function abrirEditar() {
+    await montar()
+    fetch.mockResolvedValueOnce(lista(CATEGORIAS)).mockResolvedValueOnce(sobre(INSTRUCTOR))
+    boton('Editar').click()
+    await asentar(el)
+  }
+
+  const elegir = async (id, valores) => {
+    campo(id).dispatchEvent(new CustomEvent('dh-cambio', { detail: { valores }, bubbles: true, composed: true }))
+    await asentar(el)
+  }
+  const cambiarFecha = async (id, valor) => {
+    campo(id).dispatchEvent(new CustomEvent('dh-cambio', { detail: { valor }, bubbles: true, composed: true }))
+    await asentar(el)
+  }
+  const cuerpoEnviado = (n) => JSON.parse(fetch.mock.calls[n][1].body)
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  // ---------------------------------------------------------------- seleccion multiple
+
+  it('dibuja un <dh-select multiple> con las opciones del catálogo menos las excluidas', async () => {
+    await abrirCrear()
+
+    const select = campo('campo-categorias')
+    expect(select.tagName).toBe('DH-SELECT')
+    expect(select.multiple).toBe(true)
+    expect(select.opciones.map((o) => o.valor)).toEqual(['A', 'B'])
+    expect(select.opciones.map((o) => o.etiqueta)).toEqual(['Moto', 'Auto'])
+    expect(select.valores).toEqual([])
+    expect(el.shadowRoot.querySelector('select')).toBeNull()
+  })
+
+  it('elegir dos categorías envía el arreglo de siglas', async () => {
+    await abrirCrear()
+    await cambiarFecha('campo-licenciaVence', fechaIso(30))
+    await elegir('campo-categorias', ['A', 'B'])
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'i2' })).mockResolvedValueOnce(lista([INSTRUCTOR]))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    const [url, opciones] = fetch.mock.calls[2]
+    expect(url).toBe('http://api.test/v1/instructores')
+    expect(opciones.method).toBe('POST')
+    expect(cuerpoEnviado(2).categorias).toEqual(['A', 'B'])
+    expect(texto()).toContain('Instructor creado correctamente.')
+  })
+
+  it('requerido sin ninguna categoría muestra el mensaje bajo el campo y no envía', async () => {
+    await abrirCrear()
+    await cambiarFecha('campo-licenciaVence', fechaIso(30))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(texto()).toContain('Elige al menos una categoría')
+    expect(campo('campo-categorias').invalido).toBe(true)
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('al editar, las categorías del registro (objetos con sigla) se normalizan a siglas', async () => {
+    await abrirEditar()
+
+    expect(campo('campo-categorias').valores).toEqual(['A', 'B'])
+  })
+
+  it('al editar se envía el arreglo actual de siglas', async () => {
+    await abrirEditar()
+    await elegir('campo-categorias', ['B'])
+    fetch.mockResolvedValueOnce(sobre(INSTRUCTOR)).mockResolvedValueOnce(lista([INSTRUCTOR]))
+
+    boton('Guardar').click()
+    await asentar(el)
+
+    const [url, opciones] = fetch.mock.calls[3]
+    expect(url).toBe('http://api.test/v1/instructores/i1')
+    expect(opciones.method).toBe('PATCH')
+    expect(cuerpoEnviado(3).categorias).toEqual(['B'])
+  })
+
+  it('un error del backend mapeado al campo múltiple se muestra bajo ese campo', async () => {
+    await abrirCrear()
+    await cambiarFecha('campo-licenciaVence', fechaIso(30))
+    await elegir('campo-categorias', ['A'])
+    fetch.mockResolvedValueOnce(falla(400, 'ERR_ESC_10', 'Categoría inválida'))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(texto()).toContain('Una categoría no es válida')
+  })
+
+  // ---------------------------------------------------------------- etiquetas
+
+  it('la columna etiquetas dibuja una insignia por elemento, con la propiedad indicada', async () => {
+    await montar()
+
+    const etiquetas = [...el.shadowRoot.querySelectorAll('tbody td .etiquetas .etiqueta')].map((e) => e.textContent.trim())
+    expect(etiquetas).toEqual(['A', 'B'])
+  })
+
+  it('acepta un arreglo de textos y corta con +N cuando hay más de tres', async () => {
+    await montar([{ ...INSTRUCTOR, categorias: ['A', 'B', 'C', 'D', 'E'] }])
+
+    const etiquetas = [...el.shadowRoot.querySelectorAll('tbody td .etiquetas .etiqueta')].map((e) => e.textContent.trim())
+    expect(etiquetas).toEqual(['A', 'B', 'C', '+2'])
+  })
+
+  it('una lista vacía se muestra con un guion', async () => {
+    await montar([{ ...INSTRUCTOR, categorias: [] }])
+
+    expect(el.shadowRoot.querySelector('tbody td .etiquetas')).toBeNull()
+    expect(el.shadowRoot.querySelectorAll('tbody td')[2].textContent.trim()).toBe('—')
+  })
+
+  it('el detalle muestra todas las etiquetas y "—" si el dato falta', async () => {
+    await montar([{ ...INSTRUCTOR, categorias: ['A', 'B', 'C', 'D', 'E'] }])
+    fetch.mockResolvedValueOnce(sobre({ categorias: ['A', 'B', 'C', 'D', 'E'] }))
+    boton('Ver detalles').click()
+    await asentar(el)
+
+    const datos = [...el.shadowRoot.querySelectorAll('aside.drawer .dato')]
+    expect([...datos[0].querySelectorAll('.etiqueta')].map((e) => e.textContent.trim())).toEqual(['A', 'B', 'C', 'D', 'E'])
+    expect(datos[1].querySelector('.dato-valor').textContent.trim()).toBe('—')
+    expect(datos[1].querySelector('.dato-valor').classList.contains('sin-valor')).toBe(true)
+  })
+
+  // ---------------------------------------------------------------- fechas
+
+  it('fechaFutura rechaza hoy y acepta mañana; el calendario arranca mañana', async () => {
+    await abrirCrear()
+    expect(campo('campo-licenciaVence').min).toBe(fechaIso(1))
+
+    await cambiarFecha('campo-licenciaVence', fechaIso(0))
+    expect(texto()).toContain('La fecha debe ser posterior a hoy')
+    expect(campo('campo-licenciaVence').invalido).toBe(true)
+
+    await cambiarFecha('campo-licenciaVence', fechaIso(1))
+    expect(texto()).not.toContain('La fecha debe ser posterior a hoy')
+  })
+
+  it('porDefecto "hoy" precarga la fecha de hoy al crear y la envía', async () => {
+    await abrirCrear()
+    await cambiarFecha('campo-licenciaVence', fechaIso(30))
+    await elegir('campo-categorias', ['A'])
+    expect(campo('campo-fechaContratacion').valor).toBe(fechaIso(0))
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'i2' })).mockResolvedValueOnce(lista([INSTRUCTOR]))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(cuerpoEnviado(2).fechaContratacion).toBe(fechaIso(0))
+  })
+
+  it('al editar, porDefecto "hoy" no pisa el valor del registro', async () => {
+    await abrirEditar()
+
+    expect(campo('campo-fechaContratacion').valor).toBe('2019-05-05')
+  })
+
+  it('soloSiCambia: editar con el vencimiento ya pasado sin tocarlo guarda; si lo cambia a otra fecha pasada, no', async () => {
+    await abrirEditar()
+    fetch.mockResolvedValueOnce(sobre(INSTRUCTOR)).mockResolvedValueOnce(lista([INSTRUCTOR]))
+
+    boton('Guardar').click()
+    await asentar(el)
+
+    expect(fetch.mock.calls[3][1].method).toBe('PATCH')
+    expect(cuerpoEnviado(3).licenciaVence).toBe('2020-01-01')
+
+    el.remove()
+    await abrirEditar()
+    await cambiarFecha('campo-licenciaVence', '2021-01-01')
+    const llamadas = fetch.mock.calls.length
+    boton('Guardar').click()
+    await asentar(el)
+
+    expect(texto()).toContain('La fecha debe ser posterior a hoy')
+    expect(fetch.mock.calls.length).toBe(llamadas)
+  })
+
+  it('soloSiCambia no se aplica en el alta: un vencimiento pasado se rechaza', async () => {
+    await abrirCrear()
+    await cambiarFecha('campo-licenciaVence', '2020-01-01')
+    await elegir('campo-categorias', ['A'])
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(texto()).toContain('La fecha debe ser posterior a hoy')
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
 })
 
 // * Lo que hace <dh-select> al elegir una opción (el componente tiene sus propios tests en @drivehub/ui)

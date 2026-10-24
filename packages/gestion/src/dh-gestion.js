@@ -3,7 +3,7 @@ import { LitElement, html, nothing } from 'lit'
 
 import { ErrorApi, solicitar } from './cliente-api.js'
 import { estilos } from './estilos.js'
-import { slugDesdeTexto, validar } from './reglas.js'
+import { fechaDeHoy, fechaDeManana, slugDesdeTexto, validar } from './reglas.js'
 
 const ESPERA_BUSQUEDA_MS = 300
 const MAX_IMAGEN_BYTES = 5 * 1024 * 1024
@@ -73,6 +73,56 @@ function formatearFecha(valor) {
   return `${String(fecha.getUTCDate()).padStart(2, '0')} ${MESES[fecha.getUTCMonth()]} ${fecha.getUTCFullYear()}`
 }
 
+const dos = (n) => String(n).padStart(2, '0')
+const claveFecha = (anio, mes, dia) => `${String(anio).padStart(4, '0')}-${dos(mes + 1)}-${dos(dia)}`
+
+/**
+ * Última fecha que el calendario deja elegir según las reglas del campo: `fechaNoFutura` (hasta ayer),
+ * `hastaHoy` (hasta hoy) y
+ * `edadMinima:N` (hasta hoy menos N años). Es solo una ayuda del selector: la validación sigue en `validar`.
+ */
+function maximoDeFecha(campo) {
+  const hoy = new Date()
+  const limites = []
+  for (const regla of campo.validaciones ?? []) {
+    const [nombre, argumento] = regla.split(':')
+    if (nombre === 'hastaHoy') limites.push(claveFecha(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()))
+    if (nombre === 'fechaNoFutura') {
+      const ayer = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1)
+      limites.push(claveFecha(ayer.getFullYear(), ayer.getMonth(), ayer.getDate()))
+    }
+    if (nombre === 'edadMinima') {
+      const anio = hoy.getFullYear() - Number(argumento)
+      // * El 29 de febrero cae el 28 en un año que no es bisiesto
+      const ultimo = new Date(anio, hoy.getMonth() + 1, 0).getDate()
+      limites.push(claveFecha(anio, hoy.getMonth(), Math.min(hoy.getDate(), ultimo)))
+    }
+  }
+  return limites.sort()[0] ?? ''
+}
+
+/** Primera fecha que el calendario deja elegir: mañana si el campo pide `fechaFutura`. */
+function minimoDeFecha(campo) {
+  return (campo.validaciones ?? []).includes('fechaFutura') ? fechaDeManana() : ''
+}
+
+/** Un valor del registro como lista de textos: acepta textos o objetos (se toma la propiedad `clave`). */
+function comoListaDeValores(valor, clave) {
+  return (Array.isArray(valor) ? valor : [])
+    .map((item) => (item !== null && typeof item === 'object' ? leer(item, clave) : item))
+    .map((v) => String(v ?? '').trim())
+    .filter((v) => v !== '')
+}
+
+/** Cuántas etiquetas caben en una celda de la tabla antes del "+N". */
+const MAX_ETIQUETAS_TABLA = 3
+
+/** Nombres y apellidos para las iniciales del avatar a partir de un nombre completo ("Ana María Pérez" -> A + P). */
+function partesDeNombre(completo) {
+  const palabras = String(completo ?? '').trim().split(/\s+/).filter(Boolean)
+  return { nombres: palabras[0] ?? '', apellidos: palabras.length > 1 ? palabras[palabras.length - 1] : '' }
+}
+
 function camposDe(secciones) {
   return secciones.flatMap((seccion) => seccion.campos)
 }
@@ -98,7 +148,14 @@ function prefijoDe(campo) {
 /** Ancho de una columna: el del esquema, o uno corto para insignias y fechas. El resto reparte lo que sobra. */
 function anchoColumna(c) {
   const ancho =
-    c.ancho ?? (c.tipo === 'imagen' || c.tipo === 'enlace' ? '6.5rem' : c.tipo === 'insignia' || c.tipo === 'fecha' ? '8rem' : '')
+    c.ancho ??
+    (c.tipo === 'imagen' || c.tipo === 'enlace'
+      ? '6.5rem'
+      : c.tipo === 'insignia' || c.tipo === 'fecha'
+        ? '8rem'
+        : c.tipo === 'foto'
+          ? '5rem'
+          : '')
   return ancho ? `width: ${ancho}` : ''
 }
 
@@ -128,6 +185,7 @@ export class DhGestion extends LitElement {
     _cargandoRegistro: { state: true },
     _bloqueo: { state: true },
     _opciones: { state: true },
+    _iniciales: { state: true },
   }
 
   static styles = estilos
@@ -170,6 +228,7 @@ export class DhGestion extends LitElement {
     this._cargandoRegistro = false
     this._bloqueo = null
     this._opciones = {}
+    this._iniciales = {}
   }
 
   updated(cambios) {
@@ -288,9 +347,12 @@ export class DhGestion extends LitElement {
     this._prepararFormulario('crear')
     const valores = {}
     camposDe(this.esquema.crear.secciones).forEach((campo) => {
-      if (campo.porDefecto !== undefined) valores[campo.campo] = campo.porDefecto
+      if (campo.tipo === 'seleccion' && campo.multiple) valores[campo.campo] = []
+      else if (campo.tipo === 'fecha' && campo.porDefecto === 'hoy') valores[campo.campo] = fechaDeHoy()
+      else if (campo.porDefecto !== undefined) valores[campo.campo] = campo.porDefecto
     })
     this._valores = valores
+    this._iniciales = {}
     this._vista = 'crear'
     this._cargarOpciones(camposDe(this.esquema.crear.secciones))
   }
@@ -314,10 +376,12 @@ export class DhGestion extends LitElement {
           })
           resultado = {
             estado: 'ok',
-            items: (data ?? []).map((item) => ({
-              valor: String(leer(item, origen.valor) ?? ''),
-              etiqueta: String(leer(item, origen.etiqueta) ?? leer(item, origen.valor) ?? ''),
-            })),
+            items: (data ?? [])
+              .map((item) => ({
+                valor: String(leer(item, origen.valor) ?? ''),
+                etiqueta: String(leer(item, origen.etiqueta) ?? leer(item, origen.valor) ?? ''),
+              }))
+              .filter((item) => !(origen.excluir ?? []).includes(item.valor)),
           }
         } catch {
           resultado = { estado: 'error', items: [] }
@@ -339,12 +403,19 @@ export class DhGestion extends LitElement {
       const { data } = await solicitar('GET', `${this.esquema.recurso}/${ruta}`)
       const valores = {}
       camposDe(editar.secciones).forEach((campo) => {
-        valores[campo.campo] =
-          campo.tipo === 'ubicacion'
-            ? { latitud: leer(data, `${prefijoDe(campo)}latitud`) ?? null, longitud: leer(data, `${prefijoDe(campo)}longitud`) ?? null }
-            : paraFormulario(campo, leer(data, campo.campo))
+        if (campo.tipo === 'ubicacion') {
+          valores[campo.campo] = {
+            latitud: leer(data, `${prefijoDe(campo)}latitud`) ?? null,
+            longitud: leer(data, `${prefijoDe(campo)}longitud`) ?? null,
+          }
+        } else if (campo.tipo === 'seleccion' && campo.multiple) {
+          valores[campo.campo] = comoListaDeValores(leer(data, campo.campo), campo.valorDe ?? campo.opcionesDe?.valor ?? 'valor')
+        } else {
+          valores[campo.campo] = paraFormulario(campo, leer(data, campo.campo))
+        }
       })
       this._valores = valores
+      this._iniciales = structuredClone(valores)
       this._registro = data
       if (editar.bloqueo && leer(data, editar.bloqueo.campo) === editar.bloqueo.valor) {
         this._bloqueo = editar.bloqueo.mensaje
@@ -438,9 +509,15 @@ export class DhGestion extends LitElement {
     this._tocados = new Set(this._tocados).add(campo.campo)
   }
 
+  /** Error de reglas de un campo; al editar, las reglas `soloSiCambia` comparan con el valor que trajo el registro. */
+  _validarCampo(campo) {
+    const contexto = this._vista === 'editar' ? { valorInicial: this._iniciales[campo.campo] } : {}
+    return validar(campo, this._valores[campo.campo], new Date(), contexto)
+  }
+
   _errorDe(campo) {
     if (!this._tocados.has(campo.campo)) return null
-    return validar(campo, this._valores[campo.campo]) ?? this._erroresServidor[campo.campo] ?? null
+    return this._validarCampo(campo) ?? this._erroresServidor[campo.campo] ?? null
   }
 
   async _enviar(evento) {
@@ -449,7 +526,7 @@ export class DhGestion extends LitElement {
     this._erroresServidor = {}
     const secciones = this._secciones()
     const campos = camposDe(secciones).filter((c) => !c.soloLectura)
-    const invalidos = campos.filter((c) => validar(c, this._valores[c.campo]))
+    const invalidos = campos.filter((c) => this._validarCampo(c))
     if (invalidos.length > 0) {
       this._tocados = new Set(campos.map((c) => c.campo))
       return
@@ -463,6 +540,11 @@ export class DhGestion extends LitElement {
           escribir(cuerpo, `${prefijoDe(campo)}latitud`, Number(punto.latitud))
           escribir(cuerpo, `${prefijoDe(campo)}longitud`, Number(punto.longitud))
         }
+        return
+      }
+      if (campo.tipo === 'seleccion' && campo.multiple) {
+        const lista = comoListaDeValores(this._valores[campo.campo], 'valor')
+        if (lista.length > 0 || campo.requerido) escribir(cuerpo, campo.campo, lista)
         return
       }
       // * El archivo ya se subió al elegirlo: al enviar solo viaja su descriptor, y solo si es nuevo
@@ -682,6 +764,8 @@ export class DhGestion extends LitElement {
       return valor ? html`<img class="miniatura" src=${miniatura(valor, 96, 64)} alt="" loading="lazy" />` : ''
     }
     if (columna.tipo === 'fecha') return valor ? formatearFecha(valor) : ''
+    if (columna.tipo === 'etiquetas') return this._etiquetas(valor, columna.etiqueta, MAX_ETIQUETAS_TABLA)
+    if (columna.tipo === 'foto') return this._avatar(columna, fila, valor, 36)
     if (columna.principal) {
       return html`<span class="principal-celda">
         ${columna.icono ? html`<span class="icono-fila">${icono(columna.icono, 18)}</span>` : nothing}
@@ -869,7 +953,10 @@ export class DhGestion extends LitElement {
 
   _renderDato(campo) {
     const valor = leer(this._registro, campo.campo)
-    const vacio = valor === undefined || valor === null || valor === ''
+    const vacio = valor === undefined || valor === null || valor === '' || (Array.isArray(valor) && valor.length === 0)
+    if (campo.tipo === 'foto') {
+      return html`<div class="dato foto">${this._avatar(campo, this._registro, valor, 72)}</div>`
+    }
     let contenido = '—'
     if (!vacio) {
       if (campo.tipo === 'insignia') {
@@ -877,6 +964,8 @@ export class DhGestion extends LitElement {
         contenido = html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
       } else if (campo.tipo === 'fecha') {
         contenido = formatearFecha(valor)
+      } else if (campo.tipo === 'etiquetas') {
+        contenido = this._etiquetas(valor, campo.etiqueta)
       } else {
         contenido = String(valor)
       }
@@ -943,6 +1032,7 @@ export class DhGestion extends LitElement {
 
   _renderCampo(campo) {
     if (campo.tipo === 'seleccion') return this._renderSeleccion(campo)
+    if (campo.tipo === 'fecha') return this._renderFecha(campo)
     if (campo.tipo === 'ubicacion') return this._renderUbicacion(campo)
     if (campo.tipo === 'imagen') return this._renderImagen(campo)
     if (campo.tipo === 'archivo') return this._renderArchivo(campo)
@@ -953,7 +1043,7 @@ export class DhGestion extends LitElement {
     const tipo =
       esPassword && !this._verPassword[campo.campo]
         ? 'password'
-        : { email: 'email', fecha: 'date', telefono: 'tel', numero: 'number' }[campo.tipo] ?? 'text'
+        : { email: 'email', telefono: 'tel', numero: 'number' }[campo.tipo] ?? 'text'
     const entrada =
       campo.tipo === 'textarea'
         ? html`<textarea
@@ -1194,11 +1284,60 @@ export class DhGestion extends LitElement {
     return this._opciones[campo.campo] ?? { estado: 'ok', items: [] }
   }
 
+  /**
+   * Lista de etiquetas pequeñas (`tipo: 'etiquetas'`). Con `maximo`, las que no caben se resumen en "+N";
+   * sin lista, un guion largo como en el resto de los datos vacíos.
+   */
+  _etiquetas(valor, clave, maximo = Infinity) {
+    const textos = comoListaDeValores(valor, clave ?? 'valor')
+    if (textos.length === 0) return '—'
+    const visibles = textos.slice(0, maximo)
+    const resto = textos.length - visibles.length
+    return html`<span class="etiquetas">
+      ${visibles.map((t) => html`<span class="etiqueta">${t}</span>`)}
+      ${resto > 0 ? html`<span class="etiqueta mas" title=${textos.slice(maximo).join(', ')}>+${resto}</span>` : nothing}
+    </span>`
+  }
+
+  /** Foto de la persona (o sus iniciales): `nombre` del esquema dice qué campo trae el nombre completo. */
+  _avatar(columna, fila, fotoUrl, tam) {
+    const { nombres, apellidos } = partesDeNombre(columna.nombre ? leer(fila, columna.nombre) : '')
+    return html`<dh-avatar .nombres=${nombres} .apellidos=${apellidos} .fotoUrl=${fotoUrl ?? null} .tam=${tam}></dh-avatar>`
+  }
+
+  _renderFecha(campo) {
+    const id = `campo-${campo.campo.replace('.', '-')}`
+    const error = this._errorDe(campo)
+    // * Calendario propio (<dh-fecha>), no el <input type="date"> nativo: ver UI_FRONTEND.md
+    return html`<div class="campo ${error ? 'con-error' : ''}">
+      <span class="etiqueta-campo"
+        >${campo.titulo}${campo.requerido || campo.soloLectura ? '' : html` <span class="opcional">(opcional)</span>`}</span
+      >
+      <dh-fecha
+        id=${id}
+        .etiqueta=${campo.titulo}
+        .valor=${String(this._valores[campo.campo] ?? '')}
+        .min=${minimoDeFecha(campo)}
+        .max=${maximoDeFecha(campo)}
+        ?deshabilitado=${campo.soloLectura}
+        ?invalido=${!!error}
+        @dh-cambio=${(e) => {
+          this._alEscribir(campo, e.detail.valor)
+          this._tocar(campo)
+        }}
+        @dh-blur=${() => this._tocar(campo)}
+      ></dh-fecha>
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
   _renderSeleccion(campo) {
     const id = `campo-${campo.campo.replace('.', '-')}`
     const error = this._errorDe(campo)
     const { estado, items } = this._opcionesDe(campo)
     const actual = String(this._valores[campo.campo] ?? '')
+    const multiple = !!campo.multiple
     // * Lista propia (<dh-select>), no el <select> nativo: ver UI_FRONTEND.md
     return html`<div class="campo ${error ? 'con-error' : ''}">
       <span class="etiqueta-campo"
@@ -1207,13 +1346,15 @@ export class DhGestion extends LitElement {
       <dh-select
         id=${id}
         .etiqueta=${campo.titulo}
-        .valor=${actual}
+        .multiple=${multiple}
+        .valor=${multiple ? '' : actual}
+        .valores=${multiple ? comoListaDeValores(this._valores[campo.campo], 'valor') : []}
         .opciones=${items}
-        .placeholder=${estado === 'cargando' ? 'Cargando…' : 'Elige una opción'}
+        .placeholder=${estado === 'cargando' ? 'Cargando…' : multiple ? 'Elige una o más opciones' : 'Elige una opción'}
         ?deshabilitado=${campo.soloLectura || estado === 'cargando'}
         ?invalido=${!!error}
         @dh-cambio=${(e) => {
-          this._alEscribir(campo, e.detail.valor)
+          this._alEscribir(campo, multiple ? e.detail.valores : e.detail.valor)
           this._tocar(campo)
         }}
         @dh-blur=${() => this._tocar(campo)}

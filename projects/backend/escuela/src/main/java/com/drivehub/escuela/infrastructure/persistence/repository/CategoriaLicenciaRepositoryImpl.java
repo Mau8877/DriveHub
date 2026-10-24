@@ -1,5 +1,8 @@
 package com.drivehub.escuela.infrastructure.persistence.repository;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -30,6 +33,15 @@ public class CategoriaLicenciaRepositoryImpl implements CategoriaLicenciaReposit
     @Override
     public Optional<CategoriaLicencia> buscarPorSigla(String sigla) {
         return jpaRepository.findBySiglaIgnoreCase(sigla).map(this::aDominio);
+    }
+
+    @Override
+    public List<CategoriaLicencia> buscarPorSiglas(Collection<String> siglas) {
+        if (siglas == null || siglas.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.buscarPorSiglas(siglas.stream().map(s -> s.toUpperCase(Locale.ROOT)).toList())
+            .stream().map(this::aDominio).toList();
     }
 
     private CategoriaLicencia aDominio(CategoriaLicenciaModel model) {

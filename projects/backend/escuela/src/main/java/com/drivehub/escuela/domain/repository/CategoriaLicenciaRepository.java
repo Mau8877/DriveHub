@@ -1,5 +1,7 @@
 package com.drivehub.escuela.domain.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import com.drivehub.escuela.domain.entity.CategoriaLicencia;
@@ -20,4 +22,10 @@ public interface CategoriaLicenciaRepository {
      * Categoría con esa sigla, sin distinguir mayúsculas. Vacío si no existe.
      */
     Optional<CategoriaLicencia> buscarPorSigla(String sigla);
+
+    /**
+     * Las categorías con esas siglas, sin distinguir mayúsculas, en el orden del catálogo. Solo las
+     * que existen: una sigla desconocida simplemente no vuelve.
+     */
+    List<CategoriaLicencia> buscarPorSiglas(Collection<String> siglas);
 }
