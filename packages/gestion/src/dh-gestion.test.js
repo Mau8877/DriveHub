@@ -222,6 +222,17 @@ describe('<dh-gestion>', () => {
     expect(fetch.mock.calls[1][0]).toContain('search=sur')
   })
 
+  it('una fila sin ninguna acción disponible dice "Sin acciones" en vez de quedar vacía', async () => {
+    const SIN_ACCIONES = { ...MUERTA, codigo: 'c3', estado: 'OTRO' }
+    fetch.mockResolvedValueOnce(lista([SIN_ACCIONES]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = { ...ESQUEMA, editar: { ...ESQUEMA.editar, visibleSi: { campo: 'estado', igual: 'ACTIVA' } } }
+    await asentar(el)
+
+    expect(texto()).toContain('Sin acciones')
+  })
+
   it('desactivar pide confirmación en la fila y no llama hasta confirmar; luego recarga y avisa', async () => {
     await montar()
     boton('Desactivar').click()

@@ -202,6 +202,10 @@ export const estilos = css`
   }
 
   /* Insignias */
+  .sin-acciones {
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+  }
   .miniatura {
     display: block;
     width: 4.5rem;

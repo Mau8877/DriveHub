@@ -491,22 +491,25 @@ export class DhGestion extends LitElement {
       </span>`
     }
     const puedeEditar = esquema.editar && cumple(esquema.editar.visibleSi, fila)
+    const visibles = (esquema.acciones ?? []).filter((a) => cumple(a.visibleSi, fila))
+    // * Una fila final (ej. un auto de baja) no tiene acciones: se dice, en vez de dejar la celda vacía
+    if (!puedeEditar && visibles.length === 0) {
+      return html`<span class="sin-acciones">Sin acciones</span>`
+    }
     return html`<span class="acciones">
       ${puedeEditar
         ? html`<button type="button" class="enlace" @click=${() => this._abrirEditar(fila)}>Editar</button>`
         : nothing}
-      ${(esquema.acciones ?? [])
-        .filter((a) => cumple(a.visibleSi, fila))
-        .map(
-          (a) => html`<button
-            type="button"
-            class="enlace ${a.tono === 'peligro' ? 'peligro' : ''}"
-            ?disabled=${trabajando}
-            @click=${() => this._alPulsarAccion(a, fila)}
-          >
-            ${a.etiqueta}
-          </button>`
-        )}
+      ${visibles.map(
+        (a) => html`<button
+          type="button"
+          class="enlace ${a.tono === 'peligro' ? 'peligro' : ''}"
+          ?disabled=${trabajando}
+          @click=${() => this._alPulsarAccion(a, fila)}
+        >
+          ${a.etiqueta}
+        </button>`
+      )}
     </span>`
   }
 
