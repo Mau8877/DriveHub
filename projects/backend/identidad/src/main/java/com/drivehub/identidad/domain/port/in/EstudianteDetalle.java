@@ -10,6 +10,7 @@ import com.drivehub.identidad.domain.model.SexoPersona;
 /**
  * La ficha de un estudiante para su escuela (CU08).
  *
+ * * `fotoUrl` es una URL prefirmada de lectura, o null si no tiene foto.
  * * No lleva el hash de la contraseña, los roles ni la escuela: la escuela es la de quien consulta.
  */
 public record EstudianteDetalle(
@@ -17,6 +18,7 @@ public record EstudianteDetalle(
         String nombres,
         String apellidos,
         String nombreCompleto,
+        String fotoUrl,
         int edad,
         LocalDate fechaNacimiento,
         SexoPersona sexo,

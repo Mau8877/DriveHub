@@ -10,10 +10,12 @@ import com.drivehub.identidad.domain.model.EstadoEstudiante;
  *
  * * `edad` se calcula al momento de la consulta; no se guarda.
  * * `fechaIncorporacion` es la fecha de alta de la cuenta.
+ * * `fotoUrl` es una URL prefirmada de lectura (vale 60 minutos), o null si no tiene foto.
  */
 public record EstudianteResumen(
         UUID codigo,
         String nombreCompleto,
+        String fotoUrl,
         int edad,
         String categoriaSigla,
         EstadoEstudiante estado,

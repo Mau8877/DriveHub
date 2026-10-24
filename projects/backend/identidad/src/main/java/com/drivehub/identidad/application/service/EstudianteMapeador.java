@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
  *
  * * Calcula `edad` (con el reloj inyectado), `nombreCompleto`, `fechaIncorporacion` (la fecha de
  * * alta de la cuenta, en la zona del reloj) y el `estado` público: BLOQUEADO se muestra ACTIVO.
+ * * La foto es la URL prefirmada de lectura que ya arma `PerfilArmador` (null si no tiene foto o si
+ * * no se pudo firmar: nunca impide mostrar al estudiante).
  * * Lo comparten listar, obtener, crear y editar: el detalle es siempre el mismo.
  */
 @Component
@@ -27,17 +29,18 @@ import lombok.RequiredArgsConstructor;
 public class EstudianteMapeador {
 
     private final Clock reloj;
+    private final PerfilArmador perfilArmador;
 
     public EstudianteResumen aResumen(Usuario usuario) {
         Perfil perfil = usuario.getPerfil();
-        return new EstudianteResumen(usuario.getCodigo(), nombreCompleto(perfil), edad(perfil),
+        return new EstudianteResumen(usuario.getCodigo(), nombreCompleto(perfil), perfilArmador.urlDeFoto(usuario), edad(perfil),
             perfil.getCategoriaSigla(), estado(usuario), fechaIncorporacion(usuario));
     }
 
     public EstudianteDetalle aDetalle(Usuario usuario) {
         Perfil perfil = usuario.getPerfil();
         return new EstudianteDetalle(usuario.getCodigo(), perfil.getNombres(), perfil.getApellidos(),
-            nombreCompleto(perfil), edad(perfil), perfil.getFechaNacimiento(), perfil.getSexo(), perfil.getCi(),
+            nombreCompleto(perfil), perfilArmador.urlDeFoto(usuario), edad(perfil), perfil.getFechaNacimiento(), perfil.getSexo(), perfil.getCi(),
             usuario.getEmail(), perfil.getTelefono(), perfil.getDireccion(), perfil.getLatitud(),
             perfil.getLongitud(), perfil.getCategoriaSigla(), estado(usuario), fechaIncorporacion(usuario));
     }

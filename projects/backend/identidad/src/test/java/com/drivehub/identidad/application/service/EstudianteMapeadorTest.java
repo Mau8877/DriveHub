@@ -1,6 +1,8 @@
 package com.drivehub.identidad.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -25,7 +27,8 @@ class EstudianteMapeadorTest {
     private static final LocalDate HOY = LocalDate.of(2026, 10, 23);
     private static final Clock RELOJ = Clock.fixed(HOY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
 
-    private final EstudianteMapeador mapeador = new EstudianteMapeador(RELOJ);
+    private final PerfilArmador perfilArmador = mock(PerfilArmador.class);
+    private final EstudianteMapeador mapeador = new EstudianteMapeador(RELOJ, perfilArmador);
 
     private static Usuario estudiante(LocalDate nacimiento, EstadoUsuario estado) {
         return Usuario.builder()
@@ -87,7 +90,7 @@ class EstudianteMapeadorTest {
         Usuario tarde = estudiante(LocalDate.of(2000, 1, 1), EstadoUsuario.ACTIVO).toBuilder()
             .creadoEn(Instant.parse("2026-05-05T02:00:00Z")).build();
 
-        assertThat(new EstudianteMapeador(bolivia).aResumen(tarde).fechaIncorporacion())
+        assertThat(new EstudianteMapeador(bolivia, perfilArmador).aResumen(tarde).fechaIncorporacion())
             .isEqualTo(LocalDate.of(2026, 5, 4));
     }
 
@@ -108,5 +111,22 @@ class EstudianteMapeadorTest {
         assertThat(detalle.longitud()).isEqualByComparingTo("-63.1821");
         assertThat(detalle.categoriaSigla()).isEqualTo("SIN");
         assertThat(detalle.fechaIncorporacion()).isEqualTo(LocalDate.of(2026, 5, 4));
+    }
+
+    @Test
+    void fotoUrl_esLaUrlFirmadaDeLaFotoEnElResumenYEnElDetalle() {
+        Usuario conFoto = estudiante(LocalDate.of(2000, 1, 1), EstadoUsuario.ACTIVO);
+        when(perfilArmador.urlDeFoto(conFoto)).thenReturn("http://minio/firmada");
+
+        assertThat(mapeador.aResumen(conFoto).fotoUrl()).isEqualTo("http://minio/firmada");
+        assertThat(mapeador.aDetalle(conFoto).fotoUrl()).isEqualTo("http://minio/firmada");
+    }
+
+    @Test
+    void fotoUrl_esNulaSiNoTieneFotoOSiNoSePudoFirmar() {
+        Usuario sinFoto = estudiante(LocalDate.of(2000, 1, 1), EstadoUsuario.ACTIVO);
+
+        assertThat(mapeador.aResumen(sinFoto).fotoUrl()).isNull();
+        assertThat(mapeador.aDetalle(sinFoto).fotoUrl()).isNull();
     }
 }
