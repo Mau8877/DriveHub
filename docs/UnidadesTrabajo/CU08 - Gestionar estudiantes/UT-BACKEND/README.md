@@ -28,12 +28,12 @@ Identidad (todos exigen `ADMIN_ESCUELA`):
 
 | Endpoint | Cuerpo / query | Respuesta |
 |----------|----------------|-----------|
-| `GET /api/v1/estudiantes` | `page`, `pageSize`, `search`, `filter[estado]=ACTIVO\|INACTIVO` | `200` `data`: `[{ codigo, nombreCompleto, edad, categoriaSigla, estado, fechaIncorporacion }]` + `meta` |
-| `GET /api/v1/estudiantes/{codigo}` | — | `200` `data`: `{ codigo, nombres, apellidos, nombreCompleto, edad, fechaNacimiento, sexo, ci, email, telefono, direccion, latitud, longitud, categoriaSigla, estado, fechaIncorporacion }`; `404 ERR_IDE_20` |
+| `GET /api/v1/estudiantes` | `page`, `pageSize`, `search`, `filter[estado]=ACTIVO\|INACTIVO` | `200` `data`: `[{ codigo, nombreCompleto, fotoUrl, edad, categoriaSigla, estado, fechaIncorporacion }]` + `meta` |
+| `GET /api/v1/estudiantes/{codigo}` | — | `200` `data`: `{ codigo, nombres, apellidos, nombreCompleto, fotoUrl, edad, fechaNacimiento, sexo, ci, email, telefono, direccion, latitud, longitud, categoriaSigla, estado, fechaIncorporacion }`; `404 ERR_IDE_20` |
 | `POST /api/v1/estudiantes` | `{ nombres, apellidos, fechaNacimiento, sexo, ci, telefono?, email, password, latitud, longitud, categoriaSigla? }` | `201` `data`: el detalle del estudiante creado; `409 ERR_IDE_01` correo en uso; `409 ERR_IDE_19` CI en uso; `400 ERR_IDE_02` menor de edad; `400 ERR_IDE_21` categoría inexistente; `400 ERR_SYS_01` datos inválidos |
 | `PATCH /api/v1/estudiantes/{codigo}` | `{ categoriaSigla?, latitud?, longitud? }` (al menos uno; las coordenadas juntas) | `200` `data`: el detalle actualizado; `404 ERR_IDE_20`; `400 ERR_IDE_21`; `400 ERR_SYS_01` |
 
-`fechaNacimiento` y `fechaIncorporacion` viajan como `yyyy-MM-dd`. El detalle nunca incluye `passwordHash` ni roles.
+`fechaNacimiento` y `fechaIncorporacion` viajan como `yyyy-MM-dd`. `fotoUrl` es la URL prefirmada de lectura de la foto de perfil (vale 60 minutos) o `null` si no tiene foto. El detalle nunca incluye `passwordHash` ni roles.
 
 Escuela (todos exigen `ADMIN_ESCUELA`):
 
