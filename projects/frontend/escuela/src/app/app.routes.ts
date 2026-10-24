@@ -27,6 +27,14 @@ export const routes: Routes = [
             (m) => m.EstudiantesGestion
           ),
       },
+      // * CU09: dentro del shell es /escuela/instructores. Una sola ruta, igual que estudiantes.
+      {
+        path: 'instructores',
+        loadComponent: () =>
+          import('./features/instructores/screens/instructores-gestion').then(
+            (m) => m.InstructoresGestion
+          ),
+      },
     ],
   },
 ]
