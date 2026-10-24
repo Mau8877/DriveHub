@@ -14,13 +14,16 @@ describe('Escuela', () => {
     expect(TestBed.createComponent(App).componentInstance).toBeTruthy()
   })
 
-  it('la pantalla inicial muestra el nombre del módulo', async () => {
-    await TestBed.configureTestingModule({ imports: [Inicio] }).compileComponents()
+  it('la pantalla inicial muestra el nombre del módulo y enlaza a la gestión de autos', async () => {
+    await TestBed.configureTestingModule({
+      imports: [Inicio],
+      providers: [provideRouter([])],
+    }).compileComponents()
     const fixture = TestBed.createComponent(Inicio)
     await fixture.whenStable()
+    const pantalla = fixture.nativeElement as HTMLElement
 
-    expect((fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent).toContain(
-      'Escuela'
-    )
+    expect(pantalla.querySelector('h1')?.textContent).toContain('Escuela')
+    expect(pantalla.querySelector('a')?.getAttribute('href')).toBe('/autos')
   })
 })

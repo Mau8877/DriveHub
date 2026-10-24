@@ -16,6 +16,14 @@ export const routes: Routes = [
   {
     path: '',
     providers: [provideHttpClient(withInterceptors([apiInterceptor]))],
-    children: [{ path: '', component: Inicio }],
+    children: [
+      { path: '', component: Inicio },
+      // * Gestionar autos (CU07): una sola ruta, <dh-gestion> maneja lista, crear y editar por dentro
+      {
+        path: 'autos',
+        loadComponent: () =>
+          import('./features/autos/screens/autos-gestion').then((m) => m.AutosGestion),
+      },
+    ],
   },
 ]
