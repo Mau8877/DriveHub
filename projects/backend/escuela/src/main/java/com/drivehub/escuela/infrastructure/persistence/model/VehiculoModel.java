@@ -1,6 +1,7 @@
 package com.drivehub.escuela.infrastructure.persistence.model;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import com.drivehub.escuela.domain.entity.EstadoVehiculo;
 import com.drivehub.escuela.domain.entity.Transmision;
@@ -27,6 +28,10 @@ import lombok.Setter;
 @Table(name = "vehiculo")
 @AttributeOverride(name = "codigo", column = @Column(name = "codigo_vehiculo"))
 public class VehiculoModel extends BaseModel {
+
+    // * Escuela (tenant) dueña del auto: es el claim `escuela` del JWT. Sin FK, es de otro dominio
+    @Column(name = "escuela_codigo", nullable = false, updatable = false)
+    private UUID escuelaCodigo;
 
     @Setter
     @Column(name = "placa", nullable = false, unique = true, length = 10)
@@ -76,4 +81,20 @@ public class VehiculoModel extends BaseModel {
     @Setter
     @Column(name = "inspeccion_vence")
     private LocalDate inspeccionVence;
+
+    // * URL https de Cloudinary; el archivo vive allá, acá solo se guarda dónde
+    @Setter
+    @Column(name = "imagen_url", length = 300)
+    private String imagenUrl;
+
+    public VehiculoModel(UUID codigo, UUID escuelaCodigo, String placa, String marca, String modelo,
+            Transmision transmision) {
+        this.escuelaCodigo = escuelaCodigo;
+        this.placa = placa;
+        this.marca = marca;
+        this.modelo = modelo;
+        this.transmision = transmision;
+        this.estado = EstadoVehiculo.DISPONIBLE;
+        asignarCodigo(codigo);
+    }
 }

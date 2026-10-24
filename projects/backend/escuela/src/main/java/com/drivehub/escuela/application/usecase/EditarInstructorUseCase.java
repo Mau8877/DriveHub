@@ -134,7 +134,7 @@ public class EditarInstructorUseCase {
         return mapeador.aDetalle(guardada, persona);
     }
 
-    /** Todas las siglas existen en el catálogo y ninguna es "sin categoría"; si no, `ERR_ESC_10`. */
+    /** Todas las siglas existen en el catálogo y ninguna es "sin categoría"; si no, `ERR_ESC_14`. */
     private Set<CategoriaLicencia> categoriasValidas(List<String> siglas) {
         List<CategoriaLicencia> encontradas = categoriaRepository.buscarPorSiglas(siglas);
         boolean hayInvalida = siglas.contains(Instructor.SIN_CATEGORIA) || encontradas.size() != siglas.size();

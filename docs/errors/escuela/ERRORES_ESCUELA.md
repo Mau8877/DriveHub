@@ -67,13 +67,48 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 
 - **HTTP:** 409
 - **Excepción:** `ConflictException`
+- **Significado:** Ya existe un auto con esa placa. La placa es única en toda la plataforma,
+  también frente a autos de otra escuela o dados de baja (CU07). También se responde si dos
+  registros simultáneos con la misma placa chocan: el segundo pierde.
+- **Dónde se lanza:** `RegistrarVehiculoUseCase.ejecutar()` y `VehiculoRepositoryImpl.guardar()`
+
+## `ERR_ESC_09`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El auto pedido no existe en la escuela de quien lo pide. Un auto de otra
+  escuela se responde igual, para no revelar qué autos existen (CU07).
+- **Dónde se lanza:** `ObtenerVehiculoUseCase.ejecutar()`, `EditarVehiculoUseCase.ejecutar()` y
+  `CambiarEstadoVehiculoUseCase.ejecutar()`
+
+## `ERR_ESC_10`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El cambio no es posible desde el estado actual del auto (CU07): editar o
+  ir a mantenimiento un auto dado de baja, enviar a mantenimiento uno que no está disponible,
+  habilitar uno que no está en mantenimiento ni de baja, o dar de baja uno que ya lo está.
+- **Dónde se lanza:** `EditarVehiculoUseCase.ejecutar()` y `CambiarEstadoVehiculoUseCase.ejecutar()`
+
+## `ERR_ESC_11`
+
+- **HTTP:** 403
+- **Excepción:** `ForbiddenException`
+- **Significado:** El token de acceso no trae la escuela de la cuenta (claim `escuela`), así
+  que no hay escuela sobre la cual operar (CU07). Un Administrador de escuela siempre la trae.
+- **Dónde se lanza:** `VehiculoController.escuelaDe()`
+
+## `ERR_ESC_12`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
 - **Significado:** El número de licencia ya pertenece a otro instructor (CU09). Es único en toda la
   plataforma y se compara sin espacios y en mayúsculas. También se devuelve si dos altas con el
   mismo número llegan a la vez y la base rechaza la segunda.
 - **Dónde se lanza:** `CrearInstructorUseCase.ejecutar()`, `EditarInstructorUseCase.ejecutar()` e
   `InstructorRepositoryImpl.guardar()` / `actualizar()` (carrera entre dos operaciones)
 
-## `ERR_ESC_09`
+## `ERR_ESC_13`
 
 - **HTTP:** 404
 - **Excepción:** `NotFoundException`
@@ -81,7 +116,7 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
   instructor de otra escuela y un código inexistente responden igual: no se distinguen.
 - **Dónde se lanza:** `ObtenerInstructorUseCase.ejecutar()` y `EditarInstructorUseCase.ejecutar()`
 
-## `ERR_ESC_10`
+## `ERR_ESC_14`
 
 - **HTTP:** 400
 - **Excepción:** `ValidationException`

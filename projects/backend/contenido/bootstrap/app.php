@@ -2,6 +2,8 @@
 
 use App\Common\Exceptions\BusinessException;
 use App\Common\Responses\ApiResponse;
+use App\Common\Security\AutenticarJwt;
+use App\Common\Security\ExigirRol;
 use App\Health\HealthController;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -23,7 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // * Autenticación y rol declarados en las rutas (routes/api.php)
+        $middleware->alias([
+            'jwt' => AutenticarJwt::class,
+            'rol' => ExigirRol::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // * Traduce toda excepción al sobre estándar con su código catalogado

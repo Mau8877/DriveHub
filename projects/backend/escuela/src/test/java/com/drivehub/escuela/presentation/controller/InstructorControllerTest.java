@@ -175,7 +175,7 @@ class InstructorControllerTest {
         when(obtener.ejecutar(any(), any())).thenThrow(
             new NotFoundException(EscuelaErrorCodes.INSTRUCTOR_NO_ENCONTRADO, "El instructor no existe"));
         mockMvc.perform(get(RUTA + "/" + INSTRUCTOR).with(sesion()))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_13"));
     }
 
     @Test
@@ -232,8 +232,8 @@ class InstructorControllerTest {
         crear(cuerpoCrear("")).andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_IDE_01"));
         crear(cuerpoCrear("")).andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_IDE_19"));
         crear(cuerpoCrear("")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_IDE_02"));
-        crear(cuerpoCrear("")).andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_08"));
-        crear(cuerpoCrear("")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ESC_10"));
+        crear(cuerpoCrear("")).andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_12"));
+        crear(cuerpoCrear("")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ESC_14"));
     }
 
     @Test
@@ -273,6 +273,6 @@ class InstructorControllerTest {
 
         mockMvc.perform(patch(RUTA + "/" + INSTRUCTOR).with(sesion()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"estado\":\"ACTIVO\"}"))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_13"));
     }
 }

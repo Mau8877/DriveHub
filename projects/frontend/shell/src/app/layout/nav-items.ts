@@ -48,6 +48,14 @@ export const NAV_ITEMS: NavItem[] = [
     icono: 'users',
     roles: [ROLES.ADMIN_ESCUELA],
   },
+  // * Igual que "Estudiantes": va ANTES de '/escuela' para que las migas digan "Autos" y no "Escuela"
+  {
+    ruta: '/escuela/autos',
+    etiqueta: 'Autos',
+    descripcion: 'Flota de la escuela',
+    icono: 'car',
+    roles: [ROLES.ADMIN_ESCUELA],
+  },
   {
     ruta: '/escuela/instructores',
     etiqueta: 'Instructores',

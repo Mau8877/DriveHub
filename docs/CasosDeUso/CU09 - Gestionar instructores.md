@@ -61,11 +61,11 @@ Esta versión **no asigna autos ni estudiantes** al instructor (eso es CU10 y la
 ## Flujos alternativos y excepciones
 
 - **A1 (flujo principal paso 2):** La escuela no tiene instructores, o la búsqueda y el filtro no encuentran ninguno → el sistema muestra el listado vacío con un mensaje, sin error.
-- **A2 (F1, F3):** El instructor no existe o pertenece a otra escuela → 404 `ERR_ESC_09`; no se distingue entre ambos casos. Una cuenta de la misma escuela que no es de un instructor tampoco se ve.
+- **A2 (F1, F3):** El instructor no existe o pertenece a otra escuela → 404 `ERR_ESC_13`; no se distingue entre ambos casos. Una cuenta de la misma escuela que no es de un instructor tampoco se ve.
 - **A3 (F2 paso 4, F3 paso 4):** Falta un dato obligatorio o su formato es inválido → el cliente indica cada campo y no envía; si llega igual, 400 `ERR_SYS_01`. También es `ERR_SYS_01`: una licencia que vence hoy o antes al dar de alta, una fecha de contratación futura, ninguna categoría elegida, y una edición sin ningún campo que cambiar.
 - **A4 (F2 paso 4):** El correo ya está en uso → 409 `ERR_IDE_01`. El CI ya está en uso → 409 `ERR_IDE_19`. Menor de edad → 400 `ERR_IDE_02`. En los tres casos no se crea nada.
-- **A5 (F2 paso 4, F3 paso 4):** El número de licencia ya pertenece a otro instructor → 409 `ERR_ESC_08`; no se crea ni cambia nada.
-- **A6 (F2 paso 4, F3 paso 4):** Una categoría elegida no existe o no es una categoría que se pueda enseñar (la opción "sin categoría" no lo es) → 400 `ERR_ESC_10`; no se crea ni cambia nada.
+- **A5 (F2 paso 4, F3 paso 4):** El número de licencia ya pertenece a otro instructor → 409 `ERR_ESC_12`; no se crea ni cambia nada.
+- **A6 (F2 paso 4, F3 paso 4):** Una categoría elegida no existe o no es una categoría que se pueda enseñar (la opción "sin categoría" no lo es) → 400 `ERR_ESC_14`; no se crea ni cambia nada.
 - **A7 (F2 paso 5, F3 paso 4):** No se puede calcular la dirección → se guardan las coordenadas con la dirección en blanco, sin error (como en CU08a, A4).
 - **A8 (F2 paso 5):** Falla la creación de la cuenta o de la ficha (un servicio no responde) → el sistema no deja nada a medias: no queda una cuenta sin ficha ni una ficha sin cuenta, y responde un error general sin detalles técnicos.
 - **A9 (cualquier flujo):** La persona no es Administrador de escuela → 403; sin sesión o con sesión vencida → 401.
@@ -106,11 +106,11 @@ Esta versión **no asigna autos ni estudiantes** al instructor (eso es CU10 y la
 - **CA03:** Dado el filtro por estado, el sistema debe devolver solo los instructores activos, solo los de licencia o solo los inactivos.
 - **CA04:** Dado que no hay resultados, el sistema debe mostrar el listado vacío con un mensaje y no un error.
 - **CA05:** Dado un Administrador, el sistema no debe mostrar ni modificar nunca instructores de otra escuela, ni cuentas que no sean de un instructor.
-- **CA06:** Dado "Ver detalles" sobre un instructor de su escuela, el sistema debe mostrar sus datos y su ficha; sobre uno inexistente o de otra escuela, debe responder 404 `ERR_ESC_09`.
+- **CA06:** Dado "Ver detalles" sobre un instructor de su escuela, el sistema debe mostrar sus datos y su ficha; sobre uno inexistente o de otra escuela, debe responder 404 `ERR_ESC_13`.
 - **CA07:** Dados datos válidos, el sistema debe crear la cuenta con rol `INSTRUCTOR`, su perfil con la dirección calculada y su ficha profesional con estado `ACTIVO`, en la escuela del Administrador y con el correo sin verificar.
 - **CA08:** Dado un correo o un CI ya registrado, o un menor de edad, el sistema debe responder 409 `ERR_IDE_01`, 409 `ERR_IDE_19` o 400 `ERR_IDE_02`, sin crear nada.
-- **CA09:** Dado un número de licencia ya registrado, el sistema debe responder 409 `ERR_ESC_08` sin crear ni cambiar nada.
-- **CA10:** Dada una categoría que no existe, o la opción "sin categoría", el sistema debe responder 400 `ERR_ESC_10` sin crear ni cambiar nada.
+- **CA09:** Dado un número de licencia ya registrado, el sistema debe responder 409 `ERR_ESC_12` sin crear ni cambiar nada.
+- **CA10:** Dada una categoría que no existe, o la opción "sin categoría", el sistema debe responder 400 `ERR_ESC_14` sin crear ni cambiar nada.
 - **CA11:** Dada una licencia que vence hoy o antes (al dar de alta o al cambiar su fecha), una fecha de contratación futura o ninguna categoría elegida, el sistema debe responder 400 `ERR_SYS_01` sin crear ni cambiar nada.
 - **CA12:** Dado un fallo a mitad del alta, el sistema no debe dejar una cuenta sin ficha ni una ficha sin cuenta.
 - **CA13:** Dada la edición, el sistema debe cambiar solo la ficha profesional y la ubicación del instructor, y no debe aceptar cambios a ningún dato personal, al correo ni a la escuela.

@@ -349,8 +349,8 @@ export const ESQUEMA_INSTRUCTORES: EsquemaGestion = {
     ERR_IDE_01: { campo: 'email', mensaje: 'Este correo ya está registrado' },
     ERR_IDE_02: { campo: 'fechaNacimiento', mensaje: 'El instructor debe tener al menos 18 años' },
     ERR_IDE_19: { campo: 'ci', mensaje: 'Este CI ya está registrado' },
-    ERR_ESC_08: { campo: 'nroLicencia', mensaje: 'Este número de licencia ya está en uso' },
-    ERR_ESC_10: { campo: 'categorias', mensaje: 'Una de las categorías no es válida' },
+    ERR_ESC_12: { campo: 'nroLicencia', mensaje: 'Este número de licencia ya está en uso' },
+    ERR_ESC_14: { campo: 'categorias', mensaje: 'Una de las categorías no es válida' },
   },
   mensajes: {
     vacio: 'Todavía no hay instructores en tu escuela.',

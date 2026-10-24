@@ -20,7 +20,7 @@ Leer en [`.claude/rules/`](../../../../.claude/rules/): [GESTION_FRONTEND.md](..
 5. **El vencimiento de la licencia** del alta debe ser posterior a hoy; al editar solo se valida si el Administrador lo cambió, para que un instructor con la licencia vencida pueda pasar a `LICENCIA` o `INACTIVO` sin tener que mentir la fecha. El backend manda; esto es feedback inmediato.
 6. **Estados** con insignia: `ACTIVO` verde, `LICENCIA` ámbar, `INACTIVO` gris. El filtro de estado son tres opciones más "Todos" (control segmentado, ≤ 4 opciones).
 7. **Menú**: "Instructores" justo debajo de "Estudiantes", solo para `ADMIN_ESCUELA`, con el icono `road`. Una sola ruta `/escuela/instructores` (el drawer maneja crear, editar y detalle).
-8. **Errores de campo**: `ERR_IDE_01` → correo, `ERR_IDE_19` → CI, `ERR_IDE_02` → fecha de nacimiento, `ERR_ESC_08` → número de licencia, `ERR_ESC_10` → categorías; los demás, aviso general.
+8. **Errores de campo**: `ERR_IDE_01` → correo, `ERR_IDE_19` → CI, `ERR_IDE_02` → fecha de nacimiento, `ERR_ESC_12` → número de licencia, `ERR_ESC_14` → categorías; los demás, aviso general.
 
 ## Orden de ejecución
 

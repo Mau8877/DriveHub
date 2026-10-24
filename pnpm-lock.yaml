@@ -35,6 +35,9 @@ importers:
         specifier: ^3.3.0
         version: 3.3.3
     devDependencies:
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.3.0
       jsdom:
         specifier: ^30.0.0
         version: 30.1.3(@noble/hashes@1.8.0)
@@ -256,6 +259,9 @@ importers:
       '@drivehub/design-tokens':
         specifier: workspace:*
         version: link:../../../packages/design-tokens
+      '@drivehub/gestion':
+        specifier: workspace:*
+        version: link:../../../packages/gestion
       '@drivehub/mf-contract':
         specifier: workspace:*
         version: link:../../../packages/mf-contract
@@ -453,6 +459,9 @@ importers:
       '@drivehub/design-tokens':
         specifier: workspace:*
         version: link:../../../packages/design-tokens
+      '@drivehub/gestion':
+        specifier: workspace:*
+        version: link:../../../packages/gestion
       '@drivehub/mf-contract':
         specifier: workspace:*
         version: link:../../../packages/mf-contract

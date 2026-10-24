@@ -17,7 +17,7 @@ public interface InstructorRepository {
      * Crea la ficha y sus categorías con el `codigo` que trae. El UNIQUE del número de licencia se
      * valida en el mismo instante: una carrera entre dos altas falla acá y no al confirmar.
      *
-     * @throws com.drivehub.escuela.common.exception.ConflictException `ERR_ESC_08` si el número ya está en uso
+     * @throws com.drivehub.escuela.common.exception.ConflictException `ERR_ESC_12` si el número ya está en uso
      */
     Instructor guardar(Instructor instructor);
 
@@ -49,7 +49,7 @@ public interface InstructorRepository {
      * de categorías (agrega las nuevas y quita las que ya no están). No toca `usuarioCodigo` ni
      * `escuelaCodigo`.
      *
-     * @throws com.drivehub.escuela.common.exception.ConflictException `ERR_ESC_08` si el número ya es de otro
+     * @throws com.drivehub.escuela.common.exception.ConflictException `ERR_ESC_12` si el número ya es de otro
      */
     Instructor actualizar(Instructor instructor);
 }

@@ -25,7 +25,7 @@ A diferencia de CU08, un instructor vive en **dos servicios**: la persona (cuent
 8. **La edición** valida todo en Escuela antes de tocar nada (licencia única, categorías, fechas). Si llegan coordenadas, **Identidad actualiza la ubicación** (y recalcula la dirección) y **después** Escuela guarda la ficha. Si guardar la ficha fallara, la ubicación nueva queda: es inofensivo y el reintento lo repite sin problema. No hay compensación.
 9. **Reglas de la ficha en el dominio de Escuela** (`Instructor`): número de licencia sin espacios y en mayúsculas, de 3 a 30 caracteres `[A-Z0-9-]`; vencimiento posterior a hoy al dar de alta y solo si cambia al editar; contratación no futura (hoy por defecto); una o más categorías distintas y que no sean `SIN`. Las fechas se calculan con un `Clock` inyectado (Escuela todavía no tiene el bean).
 10. **Estados** `ACTIVO`, `LICENCIA` e `INACTIVO` (el enum `EstadoInstructor` ya existe). Ninguno bloquea el inicio de sesión en esta versión.
-11. **Nuevos códigos de error.** Escuela: `ERR_ESC_08` (número de licencia en uso, 409), `ERR_ESC_09` (el instructor no existe en la escuela, 404) y `ERR_ESC_10` (categoría inválida, 400). Identidad: `ERR_IDE_22` (el instructor no existe en la escuela, 404) y `ERR_IDE_23` (la cuenta ya se usó y no se revierte, 409). Los errores de Identidad `ERR_IDE_01`, `ERR_IDE_02` y `ERR_IDE_19` llegan al cliente con su **mismo código y mensaje**, traducidos por el cliente de Escuela (como en CU05).
+11. **Nuevos códigos de error.** Escuela: `ERR_ESC_12` (número de licencia en uso, 409), `ERR_ESC_13` (el instructor no existe en la escuela, 404) y `ERR_ESC_14` (categoría inválida, 400). Identidad: `ERR_IDE_22` (el instructor no existe en la escuela, 404) y `ERR_IDE_23` (la cuenta ya se usó y no se revierte, 409). Los errores de Identidad `ERR_IDE_01`, `ERR_IDE_02` y `ERR_IDE_19` llegan al cliente con su **mismo código y mensaje**, traducidos por el cliente de Escuela (como en CU05).
 12. **Foto de la persona**: la arma Identidad con la URL prefirmada de lectura (`PerfilArmador`), igual que en estudiantes.
 13. **Servicio caído**: si Identidad no responde al crear, consultar o buscar, el cliente recibe el `500` genérico, sin crear nada a medias (la compensación cubre el alta). Mismo criterio que CU08 con Escuela.
 
@@ -36,9 +36,9 @@ Escuela (todos exigen `ADMIN_ESCUELA`; `401` sin sesión y `403` sin el rol):
 | Endpoint | Cuerpo / query | Respuesta |
 |----------|----------------|-----------|
 | `GET /api/v1/instructores` | `page`, `pageSize`, `search`, `filter[estado]=ACTIVO\|LICENCIA\|INACTIVO` | `200` `data`: `[{ codigo, nombreCompleto, fotoUrl, nroLicencia, licenciaVence, categorias: [{ sigla, descripcion }], estado }]` + `meta` |
-| `GET /api/v1/instructores/{codigo}` | — | `200` `data`: `{ codigo, nombres, apellidos, nombreCompleto, fotoUrl, edad, fechaNacimiento, sexo, ci, email, telefono, direccion, latitud, longitud, nroLicencia, licenciaVence, fechaContratacion, categorias: [{ sigla, descripcion }], estado, fechaAlta }`; `404 ERR_ESC_09` |
-| `POST /api/v1/instructores` | `{ nombres, apellidos, fechaNacimiento, sexo, ci, telefono?, email, password, latitud, longitud, nroLicencia, licenciaVence, fechaContratacion?, categorias: [sigla] }` | `201` `data`: el detalle del instructor creado; `409 ERR_IDE_01` correo en uso; `409 ERR_IDE_19` CI en uso; `409 ERR_ESC_08` licencia en uso; `400 ERR_IDE_02` menor de edad; `400 ERR_ESC_10` categoría inválida; `400 ERR_SYS_01` datos inválidos |
-| `PATCH /api/v1/instructores/{codigo}` | `{ nroLicencia?, licenciaVence?, fechaContratacion?, categorias?, estado?, latitud?, longitud? }` (al menos uno; las coordenadas juntas) | `200` `data`: el detalle actualizado; `404 ERR_ESC_09`; `409 ERR_ESC_08`; `400 ERR_ESC_10`; `400 ERR_SYS_01` |
+| `GET /api/v1/instructores/{codigo}` | — | `200` `data`: `{ codigo, nombres, apellidos, nombreCompleto, fotoUrl, edad, fechaNacimiento, sexo, ci, email, telefono, direccion, latitud, longitud, nroLicencia, licenciaVence, fechaContratacion, categorias: [{ sigla, descripcion }], estado, fechaAlta }`; `404 ERR_ESC_13` |
+| `POST /api/v1/instructores` | `{ nombres, apellidos, fechaNacimiento, sexo, ci, telefono?, email, password, latitud, longitud, nroLicencia, licenciaVence, fechaContratacion?, categorias: [sigla] }` | `201` `data`: el detalle del instructor creado; `409 ERR_IDE_01` correo en uso; `409 ERR_IDE_19` CI en uso; `409 ERR_ESC_12` licencia en uso; `400 ERR_IDE_02` menor de edad; `400 ERR_ESC_14` categoría inválida; `400 ERR_SYS_01` datos inválidos |
+| `PATCH /api/v1/instructores/{codigo}` | `{ nroLicencia?, licenciaVence?, fechaContratacion?, categorias?, estado?, latitud?, longitud? }` (al menos uno; las coordenadas juntas) | `200` `data`: el detalle actualizado; `404 ERR_ESC_13`; `409 ERR_ESC_12`; `400 ERR_ESC_14`; `400 ERR_SYS_01` |
 
 Identidad, **solo entre servicios** (todos exigen `ADMIN_ESCUELA`):
 
@@ -80,7 +80,7 @@ Identidad, **solo entre servicios** (todos exigen `ADMIN_ESCUELA`):
 | Flujo principal pasos 3 y 4, CA02, CA03 | Búsqueda por nombre y filtro de estado | 02, 04, 07, 09, 12 |
 | A1, CA04 | Listado vacío sin error | 09, 12 |
 | CA05 | Solo instructores de su escuela | 02, 03, 04, 05, 07, 09, 10, 11 |
-| F1, A2, CA06 | Detalle y `ERR_ESC_09` | 07, 08, 09, 12 |
+| F1, A2, CA06 | Detalle y `ERR_ESC_13` | 07, 08, 09, 12 |
 | F2, A3, A4, CA07, CA08 | Alta y errores de la persona | 01, 03, 06, 08, 10, 12 |
 | A5, CA09 | Número de licencia en uso | 07, 10, 11 |
 | A6, CA10 | Categoría inválida | 10, 11 |

@@ -351,6 +351,64 @@ export const estilos = css`
   }
 
   /* Insignias */
+  .miniatura {
+    display: block;
+    width: 4.5rem;
+    height: 3rem;
+    object-fit: cover;
+    border-radius: calc(var(--radius) * 0.6);
+    border: 1px solid var(--border);
+  }
+  .vista-previa {
+    display: block;
+    width: 100%;
+    max-width: 20rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .enlace-archivo {
+    color: var(--info);
+    font-weight: 500;
+    text-decoration: underline;
+  }
+  .archivo-actual {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .sin-acciones {
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+  }
+  /* Filas de respuesta (campo opciones) */
+  .filas-opcion {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fila-opcion {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .campo .fila-opcion > input[type='text'] {
+    flex: 1 1 14rem;
+    width: auto;
+  }
+  .campo .correcta {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    font-weight: 500;
+  }
+  .agregar-fila {
+    align-self: flex-start;
+  }
   .insignia {
     display: inline-flex;
     align-items: center;
@@ -602,6 +660,45 @@ export const estilos = css`
   .campo label {
     font-size: 0.8125rem;
     font-weight: 600;
+  }
+  .campo textarea {
+    width: 100%;
+    min-height: 6rem;
+    padding: 0.7rem 0.9rem;
+    box-sizing: border-box;
+    font: inherit;
+    color: var(--foreground);
+    background: var(--card);
+    border: 1px solid var(--input);
+    border-radius: var(--radius);
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  }
+  .campo textarea:hover:not([readonly]) {
+    border-color: color-mix(in srgb, var(--gris-medio) 55%, transparent);
+  }
+  .campo textarea:focus {
+    outline: none;
+    border-color: var(--ambar-vial);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ambar-vial) 22%, transparent);
+  }
+  .campo textarea[readonly] {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .campo.con-error textarea {
+    border-color: var(--destructive);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--destructive) 14%, transparent);
+  }
+  .campo input[type='file'] {
+    height: auto;
+    padding: 0.55rem 0.75rem;
+  }
+  .campo input[type='checkbox'] {
+    width: 1.1rem;
+    height: 1.1rem;
+    padding: 0;
+    accent-color: var(--ambar-vial);
   }
   .opcional {
     font-weight: 400;

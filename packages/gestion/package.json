@@ -14,6 +14,9 @@
     ".": {
       "types": "./src/index.d.ts",
       "default": "./src/index.js"
+    },
+    "./react": {
+      "types": "./react.d.ts"
     }
   },
   "dependencies": {
@@ -22,6 +25,7 @@
     "lit": "^3.3.0"
   },
   "devDependencies": {
+    "@types/react": "^19.2.17",
     "jsdom": "^30.0.0",
     "vitest": "^5.0.0"
   }

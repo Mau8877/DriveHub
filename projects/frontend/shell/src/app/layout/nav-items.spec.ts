@@ -12,11 +12,12 @@ describe('navItemsDeRoles', () => {
     expect(rutas([ROLES.SUPER_ADMIN])).toEqual(['/', '/escuelas'])
   })
 
-  it('el Administrador de escuela ve Inicio, "Estudiantes" y los seis módulos de siempre, y no "Gestionar escuelas"', () => {
+  it('el Administrador de escuela ve Inicio, "Estudiantes", "Autos", "Instructores" y los seis módulos de siempre, y no "Gestionar escuelas"', () => {
     expect(rutas([ROLES.ADMIN_ESCUELA])).toEqual([
       '/',
       '/identidad',
       '/escuela/estudiantes',
+      '/escuela/autos',
       '/escuela/instructores',
       '/escuela',
       '/pagos',
@@ -47,12 +48,27 @@ describe('navItemsDeRoles', () => {
     expect(rutas([ROLES.ESTUDIANTE])).not.toContain('/escuela/estudiantes')
   })
 
-  it('"Instructores" lleva a /escuela/instructores, va justo después de "Estudiantes" y solo lo ve el Administrador de escuela', () => {
+  it('"Autos" lleva a /escuela/autos, solo lo ve el Administrador de escuela y va antes que "Escuela"', () => {
+    const autos = NAV_ITEMS.find((i) => i.etiqueta === 'Autos')
+    const etiquetas = NAV_ITEMS.map((i) => i.etiqueta)
+
+    expect(autos).toMatchObject({
+      ruta: '/escuela/autos',
+      descripcion: 'Flota de la escuela',
+      icono: 'car',
+    })
+    expect(rutas([ROLES.ADMIN_ESCUELA])).toContain('/escuela/autos')
+    expect(rutas([ROLES.SUPER_ADMIN])).not.toContain('/escuela/autos')
+    expect(rutas([ROLES.INSTRUCTOR])).not.toContain('/escuela/autos')
+    expect(etiquetas.indexOf('Autos')).toBeLessThan(etiquetas.indexOf('Escuela'))
+  })
+
+  it('"Instructores" lleva a /escuela/instructores, va justo después de "Autos" y solo lo ve el Administrador de escuela', () => {
     const instructores = NAV_ITEMS.find((i) => i.etiqueta === 'Instructores')
     const etiquetas = NAV_ITEMS.map((i) => i.etiqueta)
 
     expect(instructores).toMatchObject({ ruta: '/escuela/instructores', icono: 'road' })
-    expect(etiquetas.indexOf('Instructores')).toBe(etiquetas.indexOf('Estudiantes') + 1)
+    expect(etiquetas.indexOf('Instructores')).toBe(etiquetas.indexOf('Autos') + 1)
     expect(etiquetas.indexOf('Instructores')).toBeLessThan(etiquetas.indexOf('Escuela'))
     expect(rutas([ROLES.ADMIN_ESCUELA])).toContain('/escuela/instructores')
     expect(rutas([ROLES.SUPER_ADMIN])).not.toContain('/escuela/instructores')

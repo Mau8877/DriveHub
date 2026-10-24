@@ -7,7 +7,9 @@
     "require": {
         "php": "^8.4",
         "ext-mongodb": "*",
+        "firebase/php-jwt": "^7.0",
         "laravel/framework": "^13.17",
+        "league/flysystem-aws-s3-v3": "^3.0",
         "mongodb/laravel-mongodb": "^5.11"
     },
     "require-dev": {

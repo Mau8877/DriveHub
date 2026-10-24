@@ -25,7 +25,7 @@ prefijo del código dice qué servicio lo produjo:
 | `ESC` | Escuela | [`escuela/`](escuela/ERRORES_ESCUELA.md) |
 | `PAG` | Pagos | `pagos/` (sin errores todavía) |
 | `ACA` | Académico | [`academico/`](academico/ERRORES_ACADEMICO.md) |
-| `CON` | Contenido | `contenido/` (sin errores todavía) |
+| `CON` | Contenido | [`contenido/`](contenido/ERRORES_CONTENIDO.md) |
 | `NOT` | Notificaciones | `notificaciones/` (sin errores todavía) |
 | `IA` | Asistente IA | `asistente-ia/` (sin errores todavía) |
 
@@ -75,9 +75,13 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_05`](escuela/ERRORES_ESCUELA.md#err_esc_05) — La escuela ya estaba activa (409)
 - [`ERR_ESC_06`](escuela/ERRORES_ESCUELA.md#err_esc_06) — La escuela está inactiva y no se puede editar (409)
 - [`ERR_ESC_07`](escuela/ERRORES_ESCUELA.md#err_esc_07) — La categoría de licencia no existe (404)
-- [`ERR_ESC_08`](escuela/ERRORES_ESCUELA.md#err_esc_08) — El número de licencia ya está en uso (409)
-- [`ERR_ESC_09`](escuela/ERRORES_ESCUELA.md#err_esc_09) — El instructor no existe en la escuela (404)
-- [`ERR_ESC_10`](escuela/ERRORES_ESCUELA.md#err_esc_10) — Una categoría del instructor no es válida (400)
+- [`ERR_ESC_08`](escuela/ERRORES_ESCUELA.md#err_esc_08) — Ya existe un auto con esa placa (409)
+- [`ERR_ESC_09`](escuela/ERRORES_ESCUELA.md#err_esc_09) — El auto no existe en la escuela (404)
+- [`ERR_ESC_10`](escuela/ERRORES_ESCUELA.md#err_esc_10) — Cambio no permitido desde el estado actual del auto (409)
+- [`ERR_ESC_11`](escuela/ERRORES_ESCUELA.md#err_esc_11) — El token no trae la escuela de la cuenta (403)
+- [`ERR_ESC_12`](escuela/ERRORES_ESCUELA.md#err_esc_12) — El número de licencia ya está en uso (409)
+- [`ERR_ESC_13`](escuela/ERRORES_ESCUELA.md#err_esc_13) — El instructor no existe en la escuela (404)
+- [`ERR_ESC_14`](escuela/ERRORES_ESCUELA.md#err_esc_14) — Una categoría del instructor no es válida (400)
 
 ### Académico (`ACA`)
 
@@ -94,6 +98,16 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_11`](academico/ERRORES_ACADEMICO.md#err_aca_11) — El horario no está activo y no se puede pausar (409)
 - [`ERR_ACA_12`](academico/ERRORES_ACADEMICO.md#err_aca_12) — El horario no está pausado y no se puede reanudar (409)
 - [`ERR_ACA_13`](academico/ERRORES_ACADEMICO.md#err_aca_13) — Rango de fechas de franjas inválido (400)
+- [`ERR_ACA_14`](academico/ERRORES_ACADEMICO.md#err_aca_14) — La pregunta no existe en la escuela (404)
+- [`ERR_ACA_15`](academico/ERRORES_ACADEMICO.md#err_aca_15) — La pregunta ya estaba en ese estado (409)
+- [`ERR_ACA_16`](academico/ERRORES_ACADEMICO.md#err_aca_16) — El token no trae la escuela de la cuenta (403)
+
+### Contenido (`CON`)
+
+- [`ERR_CON_01`](contenido/ERRORES_CONTENIDO.md#err_con_01) — El manual no existe en la escuela (404)
+- [`ERR_CON_02`](contenido/ERRORES_CONTENIDO.md#err_con_02) — Cambio no permitido desde el estado actual del manual (409)
+- [`ERR_CON_03`](contenido/ERRORES_CONTENIDO.md#err_con_03) — El archivo del manual no es válido (400)
+- [`ERR_CON_04`](contenido/ERRORES_CONTENIDO.md#err_con_04) — El token no trae la escuela de la cuenta (403)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su

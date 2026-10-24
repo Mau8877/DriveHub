@@ -198,12 +198,12 @@ class InstructoresIntegrationTest extends PostgresIntegrationTestBase {
             .andExpect(jsonPath("$.data.ci").value("AB12345"))
             .andExpect(jsonPath("$.data.usuarioCodigo").doesNotExist());
         mockMvc.perform(get(RUTA + "/" + ajeno.getCodigo()).with(sesion))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_13"));
         mockMvc.perform(get(RUTA + "/" + UUID.randomUUID()).with(sesion))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_13"));
         mockMvc.perform(patch(RUTA + "/" + ajeno.getCodigo()).with(sesion).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"estado\":\"INACTIVO\"}"))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_09"));
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("ERR_ESC_13"));
         assertThat(instructores.buscarPorCodigo(escuelaB, ajeno.getCodigo()).orElseThrow().getEstado())
             .isEqualTo(EstadoInstructor.ACTIVO);
     }
@@ -242,7 +242,7 @@ class InstructoresIntegrationTest extends PostgresIntegrationTestBase {
         ficha(UUID.randomUUID(), licencia);
 
         crear(como(escuela, "ADMIN_ESCUELA"), licencia, "")
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_08"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_12"));
 
         verify(identidad, never()).crearCuenta(any());
         assertThat(fichasConLicencia(licencia)).isEqualTo(1);
@@ -254,10 +254,10 @@ class InstructoresIntegrationTest extends PostgresIntegrationTestBase {
 
         mockMvc.perform(post(RUTA).with(sesion).contentType(MediaType.APPLICATION_JSON)
                 .content(cuerpoCrear(licenciaUnica(), "").replace("[\"A\",\"B\"]", "[\"A\",\"ZZ\"]")))
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ESC_10"));
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ESC_14"));
         mockMvc.perform(post(RUTA).with(sesion).contentType(MediaType.APPLICATION_JSON)
                 .content(cuerpoCrear(licenciaUnica(), "").replace("[\"A\",\"B\"]", "[\"SIN\"]")))
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ESC_10"));
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_ESC_14"));
         mockMvc.perform(post(RUTA).with(sesion).contentType(MediaType.APPLICATION_JSON)
                 .content(cuerpoCrear(licenciaUnica(), "").replace(LocalDate.now().plusYears(2).toString(),
                     LocalDate.now().toString())))
@@ -281,7 +281,7 @@ class InstructoresIntegrationTest extends PostgresIntegrationTestBase {
         });
 
         crear(como(escuela, "ADMIN_ESCUELA"), licencia, "")
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_08"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_12"));
 
         ArgumentCaptor<DatosCuentaInstructor> datos = ArgumentCaptor.forClass(DatosCuentaInstructor.class);
         verify(identidad).crearCuenta(datos.capture());
@@ -338,7 +338,7 @@ class InstructoresIntegrationTest extends PostgresIntegrationTestBase {
         mockMvc.perform(patch(RUTA + "/" + otro.getCodigo()).with(como(escuela, "ADMIN_ESCUELA"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"nroLicencia\":\"" + uno.getNroLicencia() + "\",\"estado\":\"INACTIVO\"}"))
-            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_08"));
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_ESC_12"));
 
         Instructor leido = instructores.buscarPorCodigo(escuela, otro.getCodigo()).orElseThrow();
         assertThat(leido.getNroLicencia()).isEqualTo(otro.getNroLicencia());

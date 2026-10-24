@@ -12,12 +12,12 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # ==========================================
 # DEV: lo usa docker-compose. El código se monta por volumen; al arrancar
-# instala dependencias, corre las migraciones (colecciones + índices) y
-# levanta el servidor de desarrollo.
+# instala dependencias, corre las migraciones (colecciones + índices), siembra
+# los datos de ejemplo (solo con APP_ENV=local) y levanta el servidor de desarrollo.
 # ==========================================
 FROM base AS dev
 ENV CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=sync LOG_CHANNEL=json
-CMD ["sh", "-c", "composer install && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8085"]
+CMD ["sh", "-c", "composer install && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8085"]
 
 # ==========================================
 # PROD: dependencias sin dev, sin root.
