@@ -35,11 +35,12 @@ export const ESQUEMA_ESTUDIANTES: EsquemaGestion = {
   descripcion: 'Estudiantes de tu escuela.',
   nombreSingular: 'estudiante',
   columnas: [
+    // * Solo el nombre se estira: las demás columnas son cortas y quedan juntas (ver 'La tabla' en GESTION_FRONTEND.md)
     { campo: 'nombreCompleto', titulo: 'Nombre', principal: true, icono: 'user' },
-    { campo: 'edad', titulo: 'Edad' },
-    { campo: 'categoriaSigla', titulo: 'Categoría', codigo: true },
-    { campo: 'fechaIncorporacion', titulo: 'Incorporación', tipo: 'fecha' },
-    { campo: 'estado', titulo: 'Estado', tipo: 'insignia', insignias: ESTADOS },
+    { campo: 'edad', titulo: 'Edad', ancho: '5rem' },
+    { campo: 'categoriaSigla', titulo: 'Categoría', codigo: true, ancho: '7rem' },
+    { campo: 'fechaIncorporacion', titulo: 'Incorporación', tipo: 'fecha', ancho: '9.5rem' },
+    { campo: 'estado', titulo: 'Estado', tipo: 'insignia', insignias: ESTADOS, ancho: '7rem' },
   ],
   busqueda: { placeholder: 'Buscar por nombre' },
   filtros: [

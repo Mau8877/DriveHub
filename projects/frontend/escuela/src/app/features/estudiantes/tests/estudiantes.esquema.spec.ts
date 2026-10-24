@@ -35,6 +35,13 @@ describe('esquema de estudiantes', () => {
     })
   })
 
+  it('solo el nombre se estira: las columnas de datos son cortas y quedan juntas', () => {
+    const [nombre, ...datos] = ESQUEMA_ESTUDIANTES.columnas
+
+    expect(nombre.ancho).toBeUndefined()
+    expect(datos.map((c) => c.ancho)).toEqual(['5rem', '7rem', '9.5rem', '7rem'])
+  })
+
   it('busca por nombre y filtra por estado con la clave filter[estado] del backend', () => {
     expect(ESQUEMA_ESTUDIANTES.busqueda?.placeholder).toBe('Buscar por nombre')
     expect(ESQUEMA_ESTUDIANTES.filtros).toHaveLength(1)
