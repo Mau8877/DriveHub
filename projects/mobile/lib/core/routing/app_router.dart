@@ -9,6 +9,7 @@ import '../../features/auth/screens/recuperar_screen.dart';
 import '../../features/auth/screens/registro_screen.dart';
 import '../../features/horarios/screens/horario_form_screen.dart';
 import '../../features/pagos/screens/comprar_horas_screen.dart';
+import '../../features/pagos/screens/pago_detalle_screen.dart';
 import '../../features/pagos/screens/pago_resultado_screen.dart';
 import '../../features/pagos/screens/resumen_compra_screen.dart';
 import '../../features/perfil/screens/cambiar_contrasena_screen.dart';
@@ -101,6 +102,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/payments/return',
         redirect: (context, state) => '/payments/result',
+      ),
+      // * El detalle de una compra (CU28). VA DESPUÉS de las rutas literales de /payments: así `plans`,
+      // * `summary`, `result` y `return` no se toman como el código de una compra.
+      GoRoute(
+        path: '/payments/:codigo',
+        builder: (context, state) =>
+            PagoDetalleScreen(codigo: state.pathParameters['codigo']!),
       ),
       // * Perfil (CU06): no son públicas, las cubre el redirect global por sesión
       GoRoute(
