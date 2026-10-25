@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.drivehub.pagos.common.exception.NotFoundException;
 import com.drivehub.pagos.common.exception.PagosErrorCodes;
+import com.drivehub.pagos.features.comprobantes.dto.ComprobanteResumen;
+import com.drivehub.pagos.features.comprobantes.repository.ComprobanteRepository;
 import com.drivehub.pagos.features.pagos.dto.PagoDetalleResponse;
 import com.drivehub.pagos.features.pagos.dto.PagoResumenResponse;
 import com.drivehub.pagos.features.pagos.enums.ConceptoPago;
@@ -49,6 +51,7 @@ public class ConsultaPagosService {
 
     private final PagoRepository pagoRepository;
     private final ReversionPagoRepository reversionRepository;
+    private final ComprobanteRepository comprobanteRepository;
     private final ReembolsoCalculadora calculadora;
 
     /**
@@ -86,7 +89,10 @@ public class ConsultaPagosService {
             && !reversionRepository.existsByPagoIdAndEstado(pago.getId(), EstadoReversion.EJECUTADA);
         return new PagoDetalleResponse(pago.getCodigo(), pago.getPlanNombre(), pago.getHoras(), pago.getMonto(),
             pago.getMontoBs(), visible(pago, solicitada), pago.getCreatedAt(), pago.getHorasRestantes(),
-            pago.getConfirmadoEn(), reembolsable, reembolsable ? calculadora.calcular(pago.getMonto()) : null);
+            pago.getConfirmadoEn(), reembolsable, reembolsable ? calculadora.calcular(pago.getMonto()) : null,
+            comprobanteRepository.findByPagoIdOrderByIdAsc(pago.getId()).stream()
+                .map(c -> new ComprobanteResumen(c.getCodigo(), c.getTipo(), c.getNroComprobante(), c.tienePdf()))
+                .toList());
     }
 
     /** Los ids de los pagos confirmados de la página que tienen una reversión solicitada (una sola consulta). */

@@ -35,6 +35,8 @@ import com.drivehub.pagos.common.exception.ServicioNoDisponibleException;
 import com.drivehub.pagos.common.exception.ValidationException;
 import com.drivehub.pagos.config.SecurityConfig;
 import com.drivehub.pagos.config.WebMvcConfig;
+import com.drivehub.pagos.features.comprobantes.dto.ComprobanteResumen;
+import com.drivehub.pagos.features.comprobantes.enums.TipoComprobante;
 import com.drivehub.pagos.features.pagos.controller.PagoController;
 import com.drivehub.pagos.features.pagos.dto.EstadoPagoResponse;
 import com.drivehub.pagos.features.pagos.dto.PagoDetalleResponse;
@@ -58,6 +60,7 @@ class PagoControllerTest {
     private static final UUID ESTUDIANTE = UUID.randomUUID();
     private static final UUID PLAN = UUID.randomUUID();
     private static final UUID PAGO = UUID.randomUUID();
+    private static final UUID COMPROBANTE = UUID.randomUUID();
     private static final String JSON_OK = "{\"planCodigo\":\"" + PLAN + "\"}";
 
     @Autowired
@@ -276,7 +279,8 @@ class PagoControllerTest {
         when(consulta.detalle(ESCUELA, ESTUDIANTE, PAGO)).thenReturn(new PagoDetalleResponse(PAGO, "Plan 10 horas",
             (short) 10, new BigDecimal("100.00"), new BigDecimal("450.00"), EstadoPagoVisible.CONFIRMADO,
             Instant.parse("2026-10-25T12:00:00Z"), (short) 10, Instant.parse("2026-10-25T12:01:00Z"), true,
-            new ReembolsoPrevisto(new BigDecimal("95.00"), new BigDecimal("5.00"), 5)));
+            new ReembolsoPrevisto(new BigDecimal("95.00"), new BigDecimal("5.00"), 5),
+            List.of(new ComprobanteResumen(COMPROBANTE, TipoComprobante.PAGO, "CMP-2026-000184", true))));
 
         mockMvc.perform(get("/api/v1/pagos/{codigo}", PAGO).with(estudiante()))
             .andExpect(status().isOk())
@@ -289,6 +293,10 @@ class PagoControllerTest {
             .andExpect(jsonPath("$.data.reembolso.montoDevuelto").value(95.00))
             .andExpect(jsonPath("$.data.reembolso.montoRetenido").value(5.00))
             .andExpect(jsonPath("$.data.reembolso.porcentajeRetenido").value(5))
+            .andExpect(jsonPath("$.data.comprobantes[0].codigo").value(COMPROBANTE.toString()))
+            .andExpect(jsonPath("$.data.comprobantes[0].tipo").value("PAGO"))
+            .andExpect(jsonPath("$.data.comprobantes[0].numero").value("CMP-2026-000184"))
+            .andExpect(jsonPath("$.data.comprobantes[0].disponible").value(true))
             .andExpect(jsonPath("$.data.id").doesNotExist())
             .andExpect(jsonPath("$.data.escuelaCodigo").doesNotExist());
     }
@@ -297,12 +305,13 @@ class PagoControllerTest {
     void detalle_sinReembolsoPrevisto_respondeReembolsableFalseYReembolsoNulo() throws Exception {
         when(consulta.detalle(ESCUELA, ESTUDIANTE, PAGO)).thenReturn(new PagoDetalleResponse(PAGO, "Plan 10 horas",
             (short) 10, new BigDecimal("100.00"), new BigDecimal("450.00"), EstadoPagoVisible.PENDIENTE,
-            Instant.parse("2026-10-25T12:00:00Z"), null, null, false, null));
+            Instant.parse("2026-10-25T12:00:00Z"), null, null, false, null, List.of()));
 
         mockMvc.perform(get("/api/v1/pagos/{codigo}", PAGO).with(estudiante()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.reembolsable").value(false))
-            .andExpect(jsonPath("$.data.reembolso").value(nullValue()));
+            .andExpect(jsonPath("$.data.reembolso").value(nullValue()))
+            .andExpect(jsonPath("$.data.comprobantes").isEmpty());
     }
 
     @Test

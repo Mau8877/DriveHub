@@ -26,6 +26,8 @@ public interface PagoRepository extends JpaRepository<Pago, Long>, JpaSpecificat
 
     Optional<Pago> findByIdempotencyKey(String idempotencyKey);
 
+    Optional<Pago> findByCodigo(UUID codigo);
+
     Optional<Pago> findByCodigoAndEstudianteCodigoAndEscuelaCodigo(UUID codigo, UUID estudianteCodigo,
             UUID escuelaCodigo);
 

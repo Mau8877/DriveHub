@@ -33,6 +33,8 @@ import com.drivehub.pagos.common.exception.NotFoundException;
 import com.drivehub.pagos.common.exception.PagosErrorCodes;
 import com.drivehub.pagos.common.exception.ServicioNoDisponibleException;
 import com.drivehub.pagos.config.BearerActual;
+import com.drivehub.pagos.features.comprobantes.enums.TipoComprobante;
+import com.drivehub.pagos.features.comprobantes.repository.ComprobanteRepository;
 import com.drivehub.pagos.features.billetera.dto.HoraAlumnoResponse;
 import com.drivehub.pagos.features.billetera.dto.HorasAlumnoDetalleResponse;
 import com.drivehub.pagos.features.billetera.repository.BilleteraRepository;
@@ -74,13 +76,15 @@ class HorasAlumnosServiceTest {
     private MovimientoHorasRepository movimientos;
     @Mock
     private ReversionPagoRepository reversiones;
+    @Mock
+    private ComprobanteRepository comprobantes;
 
     private HorasAlumnosService servicio;
 
     @BeforeEach
     void preparar() {
         servicio = new HorasAlumnosService(escuela, identidad, bearerActual, pagos, billeteras, movimientos,
-            reversiones);
+            reversiones, comprobantes);
         when(bearerActual.cabecera()).thenReturn(BEARER);
     }
 
@@ -316,6 +320,9 @@ class HorasAlumnosServiceTest {
             .thenReturn(new PageImpl<>(List.of(confirmado, enProceso, fallido)));
         when(reversiones.pagoIdsConReversion(anyCollection(), eq(EstadoReversion.SOLICITADA)))
             .thenReturn(List.of(2L));
+        UUID codigoComprobante = UUID.randomUUID();
+        when(comprobantes.codigosConPdfDe(anyCollection(), eq(TipoComprobante.PAGO)))
+            .thenReturn(filas(new Object[] {1L, codigoComprobante}));
 
         HorasAlumnoDetalleResponse detalle = servicio.detalle(ESCUELA, INSTRUCTOR, alumno(1));
 
@@ -331,6 +338,9 @@ class HorasAlumnosServiceTest {
             EstadoPagoVisible.REEMBOLSO_EN_PROCESO, EstadoPagoVisible.FALLIDO);
         assertThat(detalle.pagos().get(0).planNombre()).isEqualTo("Plan 10 horas");
         assertThat(detalle.pagos().get(0).horas()).isEqualTo((short) 10);
+        assertThat(detalle.pagos().get(0).comprobanteCodigo()).isEqualTo(codigoComprobante);
+        assertThat(detalle.pagos().get(1).comprobanteCodigo()).isNull();
+        assertThat(detalle.pagos().get(2).comprobanteCodigo()).isNull();
     }
 
     @Test

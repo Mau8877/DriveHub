@@ -18,6 +18,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import com.drivehub.pagos.config.BearerActual;
+import com.drivehub.pagos.features.comprobantes.repository.ComprobanteRepository;
 import com.drivehub.pagos.features.billetera.repository.BilleteraRepository;
 import com.drivehub.pagos.features.billetera.repository.MovimientoHorasRepository;
 import com.drivehub.pagos.features.billetera.service.HorasAlumnosService;
@@ -50,7 +51,7 @@ class HorasAlumnosAutorizacionTest {
                 .thenReturn(false);
             return new HorasAlumnosService(escuela, mock(IdentidadClient.class), bearer, mock(PagoRepository.class),
                 mock(BilleteraRepository.class), mock(MovimientoHorasRepository.class),
-                mock(ReversionPagoRepository.class));
+                mock(ReversionPagoRepository.class), mock(ComprobanteRepository.class));
         }
     }
 

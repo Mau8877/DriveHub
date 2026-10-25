@@ -30,6 +30,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.drivehub.pagos.PagosPropertiesPrueba;
 import com.drivehub.pagos.common.exception.NotFoundException;
+import com.drivehub.pagos.features.comprobantes.dto.ComprobanteResumen;
+import com.drivehub.pagos.features.comprobantes.enums.TipoComprobante;
+import com.drivehub.pagos.features.comprobantes.model.Comprobante;
+import com.drivehub.pagos.features.comprobantes.repository.ComprobanteRepository;
 import com.drivehub.pagos.features.pagos.dto.PagoDetalleResponse;
 import com.drivehub.pagos.features.pagos.dto.PagoResumenResponse;
 import com.drivehub.pagos.features.pagos.enums.EstadoPago;
@@ -53,13 +57,15 @@ class ConsultaPagosServiceTest {
     private PagoRepository pagos;
     @Mock
     private ReversionPagoRepository reversiones;
+    @Mock
+    private ComprobanteRepository comprobantes;
 
     private ConsultaPagosService servicio;
     private long siguienteId;
 
     @BeforeEach
     void preparar() {
-        servicio = new ConsultaPagosService(pagos, reversiones,
+        servicio = new ConsultaPagosService(pagos, reversiones, comprobantes,
             new ReembolsoCalculadora(PagosPropertiesPrueba.conRetencion(5)));
         siguienteId = 1;
     }
@@ -245,5 +251,38 @@ class ConsultaPagosServiceTest {
 
         assertThat(detalle.estado()).isEqualTo(EstadoPagoVisible.REEMBOLSADO);
         assertThat(detalle.reembolsable()).isFalse();
+    }
+
+    private Comprobante comprobante(Pago pago, TipoComprobante tipo, String numero, String clavePdf) {
+        Comprobante c = new Comprobante(pago, tipo, null, numero, new BigDecimal("38.23"), CREADO);
+        ReflectionTestUtils.setField(c, "codigo", UUID.randomUUID());
+        c.setUrlPdf(clavePdf);
+        return c;
+    }
+
+    @Test
+    void detalle_traeLosComprobantes_elDeCompraYElDeReembolso_conSuDisponibilidad() {
+        Pago revertido = pago(EstadoPago.REVERTIDO, 10, 0);
+        existe(revertido);
+        Comprobante compra = comprobante(revertido, TipoComprobante.PAGO, "CMP-2026-000001", "claves/compra.pdf");
+        Comprobante reembolso = comprobante(revertido, TipoComprobante.REEMBOLSO, "RMB-2026-000002", null);
+        when(comprobantes.findByPagoIdOrderByIdAsc(revertido.getId())).thenReturn(List.of(compra, reembolso));
+
+        PagoDetalleResponse detalle = servicio.detalle(ESCUELA, ESTUDIANTE, revertido.getCodigo());
+
+        assertThat(detalle.comprobantes()).extracting(ComprobanteResumen::tipo)
+            .containsExactly(TipoComprobante.PAGO, TipoComprobante.REEMBOLSO);
+        assertThat(detalle.comprobantes()).extracting(ComprobanteResumen::numero)
+            .containsExactly("CMP-2026-000001", "RMB-2026-000002");
+        assertThat(detalle.comprobantes()).extracting(ComprobanteResumen::disponible).containsExactly(true, false);
+        assertThat(detalle.comprobantes().get(0).codigo()).isEqualTo(compra.getCodigo());
+    }
+
+    @Test
+    void detalle_sinComprobantesTodavia_traeUnaListaVacia() {
+        Pago pago = pago(EstadoPago.PENDIENTE, 10, 10);
+        existe(pago);
+
+        assertThat(servicio.detalle(ESCUELA, ESTUDIANTE, pago.getCodigo()).comprobantes()).isEmpty();
     }
 }

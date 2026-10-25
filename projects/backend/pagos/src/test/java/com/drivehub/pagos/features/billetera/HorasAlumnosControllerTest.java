@@ -47,6 +47,7 @@ class HorasAlumnosControllerTest {
     private static final UUID ESCUELA = UUID.randomUUID();
     private static final UUID INSTRUCTOR = UUID.randomUUID();
     private static final UUID ALUMNO = UUID.randomUUID();
+    private static final UUID COMPROBANTE = UUID.randomUUID();
 
     @Autowired
     private MockMvc mockMvc;
@@ -134,7 +135,7 @@ class HorasAlumnosControllerTest {
         when(servicio.detalle(ESCUELA, INSTRUCTOR, ALUMNO)).thenReturn(new HorasAlumnoDetalleResponse(fila(),
             List.of(new ConsumoClaseResponse(clase, Instant.parse("2026-10-20T15:00:00Z"), 3)),
             List.of(new PagoAlumnoResponse(UUID.randomUUID(), "Plan 10 horas", (short) 10,
-                EstadoPagoVisible.CONFIRMADO, Instant.parse("2026-10-01T12:00:00Z")))));
+                EstadoPagoVisible.CONFIRMADO, Instant.parse("2026-10-01T12:00:00Z"), COMPROBANTE))));
 
         mockMvc.perform(get(RUTA + "/" + ALUMNO).with(instructor()))
             .andExpect(status().isOk())
@@ -148,6 +149,7 @@ class HorasAlumnosControllerTest {
             .andExpect(jsonPath("$.data.pagos[0].horas").value(10))
             .andExpect(jsonPath("$.data.pagos[0].estado").value("CONFIRMADO"))
             .andExpect(jsonPath("$.data.pagos[0].creadoEn").exists())
+            .andExpect(jsonPath("$.data.pagos[0].comprobanteCodigo").value(COMPROBANTE.toString()))
             .andExpect(jsonPath("$.data.pagos[0].id").doesNotExist());
     }
 

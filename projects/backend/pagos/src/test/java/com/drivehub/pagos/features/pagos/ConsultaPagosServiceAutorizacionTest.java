@@ -21,6 +21,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import com.drivehub.pagos.PagosPropertiesPrueba;
+import com.drivehub.pagos.features.comprobantes.repository.ComprobanteRepository;
 import com.drivehub.pagos.features.pagos.repository.PagoRepository;
 import com.drivehub.pagos.features.pagos.repository.ReversionPagoRepository;
 import com.drivehub.pagos.features.pagos.service.ConsultaPagosService;
@@ -50,7 +51,7 @@ class ConsultaPagosServiceAutorizacionTest {
 
         @Bean
         ConsultaPagosService consultaPagosService(PagoRepository pagos) {
-            return new ConsultaPagosService(pagos, mock(ReversionPagoRepository.class),
+            return new ConsultaPagosService(pagos, mock(ReversionPagoRepository.class), mock(ComprobanteRepository.class),
                 new ReembolsoCalculadora(PagosPropertiesPrueba.conRetencion(5)));
         }
     }

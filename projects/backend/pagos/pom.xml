@@ -21,6 +21,13 @@
 		<testcontainers.version>1.21.3</testcontainers.version>
 		<!-- SDK de Stripe: la pasarela de pago (CU26). -->
 		<stripe.version>34.0.0</stripe.version>
+		<!-- JasperReports: el PDF de los comprobantes (CU30). El JDT compila las expresiones de la plantilla:
+		     el contenedor corre con un JRE, sin javac. -->
+		<jasperreports.version>7.1.0</jasperreports.version>
+		<!-- Para leer el texto de los PDF en los tests de los comprobantes (CU30). -->
+		<pdfbox.version>3.0.8</pdfbox.version>
+		<!-- Cliente S3 para guardar los comprobantes en MinIO (CU30). -->
+		<awssdk.version>2.57.3</awssdk.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -81,6 +88,26 @@
 			<version>${stripe.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports</artifactId>
+			<version>${jasperreports.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports-pdf</artifactId>
+			<version>${jasperreports.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports-jdt</artifactId>
+			<version>${jasperreports.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<version>${awssdk.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
@@ -135,6 +162,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>${pdfbox.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

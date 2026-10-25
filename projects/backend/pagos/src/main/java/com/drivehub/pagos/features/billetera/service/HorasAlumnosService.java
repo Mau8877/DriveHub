@@ -33,6 +33,8 @@ import com.drivehub.pagos.features.billetera.dto.HorasAlumnoDetalleResponse;
 import com.drivehub.pagos.features.billetera.dto.PagoAlumnoResponse;
 import com.drivehub.pagos.features.billetera.repository.BilleteraRepository;
 import com.drivehub.pagos.features.billetera.repository.MovimientoHorasRepository;
+import com.drivehub.pagos.features.comprobantes.enums.TipoComprobante;
+import com.drivehub.pagos.features.comprobantes.repository.ComprobanteRepository;
 import com.drivehub.pagos.features.pagos.client.EscuelaClient;
 import com.drivehub.pagos.features.pagos.client.IdentidadClient;
 import com.drivehub.pagos.features.pagos.client.IdentidadClient.NombreEstudiante;
@@ -79,6 +81,7 @@ public class HorasAlumnosService {
     private final BilleteraRepository billeteraRepository;
     private final MovimientoHorasRepository movimientoRepository;
     private final ReversionPagoRepository reversionRepository;
+    private final ComprobanteRepository comprobanteRepository;
 
     /**
      * Sin `page`, la 1; sin `pageSize`, 20 y nunca más de 100. Ordenado por apellidos y nombres. `search` (en
@@ -166,9 +169,14 @@ public class HorasAlumnosService {
             .map(Pago::getId).toList();
         Set<Long> conReembolsoSolicitado = confirmados.isEmpty() ? Set.of()
             : Set.copyOf(reversionRepository.pagoIdsConReversion(confirmados, EstadoReversion.SOLICITADA));
+        // * El comprobante de la COMPRA de cada pago, solo si su PDF ya está listo (el instructor no ve el de reembolso)
+        Map<Long, UUID> comprobantes = pagos.isEmpty() ? Map.of()
+            : comprobanteRepository.codigosConPdfDe(pagos.stream().map(Pago::getId).toList(),
+                TipoComprobante.PAGO).stream()
+                .collect(Collectors.toMap(fila -> (Long) fila[0], fila -> (UUID) fila[1], (a, b) -> a));
         return pagos.stream().map(p -> new PagoAlumnoResponse(p.getCodigo(), p.getPlanNombre(), p.getHoras(),
-            EstadoPagoVisible.de(p.getEstado(), conReembolsoSolicitado.contains(p.getId())), p.getCreatedAt()))
-            .toList();
+            EstadoPagoVisible.de(p.getEstado(), conReembolsoSolicitado.contains(p.getId())), p.getCreatedAt(),
+            comprobantes.get(p.getId()))).toList();
     }
 
     /** Filas `[UUID, Number]` a un mapa código → entero. */
