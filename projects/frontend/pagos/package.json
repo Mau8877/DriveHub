@@ -21,6 +21,7 @@
     "@angular/platform-browser": "^22.2.0",
     "@angular/router": "^22.2.0",
     "@drivehub/design-tokens": "workspace:*",
+    "@drivehub/gestion": "workspace:*",
     "@drivehub/mf-contract": "workspace:*",
     "@drivehub/ui": "workspace:*",
     "es-module-shims": "^2.8.0",

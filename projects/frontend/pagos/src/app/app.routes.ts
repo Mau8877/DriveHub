@@ -16,6 +16,15 @@ export const routes: Routes = [
   {
     path: '',
     providers: [provideHttpClient(withInterceptors([apiInterceptor]))],
-    children: [{ path: '', component: Inicio }],
+    children: [
+      { path: '', component: Inicio },
+      // * CU25a: dentro del shell es /pagos/planes. Una sola ruta: <dh-gestion> maneja por dentro el
+      // * listado, crear y editar.
+      {
+        path: 'planes',
+        loadComponent: () =>
+          import('./features/planes/screens/planes-gestion').then((m) => m.PlanesGestion),
+      },
+    ],
   },
 ]
