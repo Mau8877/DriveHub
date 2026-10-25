@@ -23,7 +23,7 @@ prefijo del código dice qué servicio lo produjo:
 | `SYS` | Todos (transversales) | [`system/`](system/ERRORES_SISTEMA.md) |
 | `IDE` | Identidad | [`identidad/`](identidad/ERRORES_IDENTIDAD.md) |
 | `ESC` | Escuela | [`escuela/`](escuela/ERRORES_ESCUELA.md) |
-| `PAG` | Pagos | `pagos/` (sin errores todavía) |
+| `PAG` | Pagos | [`pagos/`](pagos/ERRORES_PAGOS.md) |
 | `ACA` | Académico | [`academico/`](academico/ERRORES_ACADEMICO.md) |
 | `CON` | Contenido | [`contenido/`](contenido/ERRORES_CONTENIDO.md) |
 | `NOT` | Notificaciones | `notificaciones/` (sin errores todavía) |
@@ -82,6 +82,13 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_12`](escuela/ERRORES_ESCUELA.md#err_esc_12) — El número de licencia ya está en uso (409)
 - [`ERR_ESC_13`](escuela/ERRORES_ESCUELA.md#err_esc_13) — El instructor no existe en la escuela (404)
 - [`ERR_ESC_14`](escuela/ERRORES_ESCUELA.md#err_esc_14) — Una categoría del instructor no es válida (400)
+
+### Pagos (`PAG`)
+
+- [`ERR_PAG_01`](pagos/ERRORES_PAGOS.md#err_pag_01) — Ya existe un plan con ese nombre en la escuela (409)
+- [`ERR_PAG_02`](pagos/ERRORES_PAGOS.md#err_pag_02) — El plan no existe en la escuela (404)
+- [`ERR_PAG_03`](pagos/ERRORES_PAGOS.md#err_pag_03) — El plan ya estaba en ese estado (409)
+- [`ERR_PAG_04`](pagos/ERRORES_PAGOS.md#err_pag_04) — El token no trae la escuela de la cuenta (403)
 
 ### Académico (`ACA`)
 

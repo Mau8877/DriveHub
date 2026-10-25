@@ -395,7 +395,7 @@ Instructor asignado a cada estudiante. Un estudiante tiene un solo instructor vi
 
 ## 4. Pagos — PostgreSQL
 
-Planes, cuotas, pagos, pasarela, comprobantes y reversiones. Migración: `V20261018120000__crear_esquema_pagos.sql`. El estado de la saga reserva-pago **no** vive acá ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
+Planes, cuotas, pagos, pasarela, comprobantes y reversiones. Migraciones: `V20261018120000__crear_esquema_pagos.sql` y `V20261025100000__plan_pago_de_horas.sql` (CU25a). El estado de la saga reserva-pago **no** vive acá ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 
 ```mermaid
 erDiagram
@@ -408,8 +408,10 @@ erDiagram
 
     plan_pago {
         bigint id PK
+        uuid escuela_codigo "Escuela"
         varchar nombre
-        numeric monto_total
+        smallint horas
+        numeric costo_bs
     }
     inscripcion_plan {
         bigint id PK
@@ -445,16 +447,19 @@ erDiagram
     }
 ```
 
-### `plan_pago` (CU25)
+### `plan_pago` (CU25, CU25a)
+
+Plan de horas que ofrece una escuela: un nombre, una cantidad de horas y un costo en bolivianos. Es de una escuela (multitenant): extiende `BaseEscuelaModel`. El costo en dólares **no se guarda**: lo calcula el servicio con el tipo de cambio configurado (`app.pagos.tipo-cambio-bs-usd`, 6,96 por defecto). Se desactiva (`activo = false`), no se borra.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
-| `nombre` | `VARCHAR(80) NOT NULL` | |
-| `categoria_sigla` | `VARCHAR(3)` | → `escuela.categoria_licencia.sigla`, sin FK |
-| `nro_clases` | `SMALLINT NOT NULL` | |
-| `monto_total` | `NUMERIC(10,2) NOT NULL` | |
-| `nro_cuotas` | `SMALLINT NOT NULL` | |
+| `escuela_codigo` | `UUID NOT NULL` | → `escuela.codigo_escuela`, sin FK. Índice `idx_plan_pago_escuela_codigo_activo (escuela_codigo, activo)` |
+| `nombre` | `VARCHAR(80) NOT NULL` | Único por escuela sin distinguir mayúsculas: `uq_plan_pago_escuela_nombre (escuela_codigo, lower(nombre)) WHERE deleted_at IS NULL`, incluye los desactivados |
+| `horas` | `SMALLINT NOT NULL` | `CHECK (horas BETWEEN 1 AND 500)` (`ck_plan_pago_horas`). Solo enteros |
+| `costo_bs` | `NUMERIC(10,2) NOT NULL` | `CHECK (costo_bs > 0)` (`ck_plan_pago_costo_bs`). Hasta 99 999 999,99 |
 | `activo` | `BOOLEAN NOT NULL DEFAULT TRUE` | |
+
+La migración de CU25a quitó `categoria_sigla`, `nro_clases` y `nro_cuotas` (las cuotas son de la contratación, CU25) y renombró `monto_total` a `costo_bs`.
 
 ### `inscripcion_plan` (CU25, CU28)
 
