@@ -222,6 +222,25 @@ class GatewayAuthTest {
         }
     }
 
+    // * CU27: solo el aviso (POST) de la pasarela es publico; la billetera exige token
+    @Test
+    void avisosDeLaPasarela_sonPublicos_yLaBilleteraExigeToken() throws Exception {
+        assertThat(enviar("POST", "/api/v1/webhooks-stripe", null).statusCode()).isEqualTo(200);
+        assertThat(enviar("GET", "/api/v1/webhooks-stripe", null).statusCode()).isEqualTo(401);
+
+        for (String[] peticion : new String[][] {
+            {"GET", "/api/v1/billeteras-horas/mia"},
+            {"GET", "/api/v1/billeteras-horas/0198f0a0-0000-7000-8000-000000000001/saldo"},
+            {"POST", "/api/v1/billeteras-horas/consumos"},
+            {"POST", "/api/v1/billeteras-horas/devoluciones"},
+        }) {
+            var r = enviar(peticion[0], peticion[1], null);
+            assertThat(r.statusCode()).as(peticion[0] + " " + peticion[1]).isEqualTo(401);
+            assertThat(r.body()).contains("ERR_SYS_04");
+            assertThat(enviar(peticion[0], peticion[1], TokensDePrueba.valido()).statusCode()).isEqualTo(200);
+        }
+    }
+
     @Test
     void health_sigueAbiertoSinToken() throws Exception {
         assertThat(enviar("GET", "/health", null).statusCode()).isNotEqualTo(401);

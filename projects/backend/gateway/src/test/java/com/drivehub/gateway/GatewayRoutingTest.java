@@ -123,6 +123,21 @@ class GatewayRoutingTest {
         assertThat(retorno.body()).isEqualTo("pagos:/api/v1/pagos/retorno");
     }
 
+    // * CU27: la billetera de horas y los avisos de la pasarela tambien los atiende Pagos
+    @Test
+    void billeteraYAvisosDeLaPasarela_seReenvianAPagosConLaMismaRuta() throws Exception {
+        HttpResponse<String> mia = get("/api/v1/billeteras-horas/mia", TokensDePrueba.valido());
+        HttpResponse<String> consumo = post("/api/v1/billeteras-horas/consumos", TokensDePrueba.valido());
+        HttpResponse<String> aviso = CLIENTE.send(HttpRequest.newBuilder(
+                URI.create("http://localhost:" + puerto + "/api/v1/webhooks-stripe"))
+            .header("Content-Type", "application/json").header("Stripe-Signature", "t=1,v1=x")
+            .POST(HttpRequest.BodyPublishers.ofString("{}")).build(), HttpResponse.BodyHandlers.ofString());
+
+        assertThat(mia.body()).isEqualTo("pagos:/api/v1/billeteras-horas/mia");
+        assertThat(consumo.body()).isEqualTo("pagos:/api/v1/billeteras-horas/consumos");
+        assertThat(aviso.body()).isEqualTo("pagos:/api/v1/webhooks-stripe");
+    }
+
     // * CU26: no hay cuotas ni inscripciones a un plan; Pagos ya no las tiene y el gateway no las enruta
     @Test
     void cuotasEInscripcionesAUnPlan_yaNoSeEnrutan() throws Exception {
