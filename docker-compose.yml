@@ -206,7 +206,7 @@ services:
     profiles: ['stripe']
     command: >-
       listen --api-key ${STRIPE_SECRET_KEY:?Define STRIPE_SECRET_KEY en el .env para usar el perfil stripe}
-      --events checkout.session.completed,checkout.session.expired
+      --events checkout.session.completed,checkout.session.expired,refund.updated,refund.failed,charge.refunded
       --forward-to http://gateway:8080/api/v1/webhooks-stripe
     restart: unless-stopped
 
