@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Intercambio con la pasarela de pagos (CU26, CU27).
+ * Intercambio con la pasarela de pagos (CU26, CU27, CU31).
  */
 @Getter
 @NoArgsConstructor
@@ -37,13 +37,23 @@ public class TransaccionPasarela extends BaseModel {
     @Column(name = "referencia_externa", unique = true, length = 80)
     private String referenciaExterna;
 
+    // * Dirección de la página de pago que abre la app (CU26)
     @Setter
-    @Column(name = "qr_payload", columnDefinition = "text")
-    private String qrPayload;
+    @Column(name = "url_pago", columnDefinition = "text")
+    private String urlPago;
 
     @Setter
     @Column(name = "estado", nullable = false, length = 12)
     private String estado;
+
+    /**
+     * Intercambio nuevo de un pago con la pasarela.
+     */
+    public TransaccionPasarela(Pago pago, String proveedor, String estado) {
+        this.pago = pago;
+        this.proveedor = proveedor;
+        this.estado = estado;
+    }
 
     // * Respuesta cruda de la pasarela (jsonb), para auditoría
     @Setter

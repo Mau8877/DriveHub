@@ -88,7 +88,7 @@ class GestionPlanesPagoIntegrationTest extends PostgresIntegrationTestBase {
             .andExpect(jsonPath("$.data[0].nombre").value("Plan viejo"))
             .andExpect(jsonPath("$.data[2].nombre").value("Plan básico"))
             .andExpect(jsonPath("$.data[2].costoBs").value(450.00))
-            .andExpect(jsonPath("$.data[2].costoUsd").value(64.66))
+            .andExpect(jsonPath("$.data[2].costoUsd").value(38.23))
             .andExpect(jsonPath("$.meta.totalItems").value(3))
             .andExpect(jsonPath("$.meta.page").value(1));
         mockMvc.perform(get(BASE).with(admin(ESCUELA_A)).param("search", "INTENS"))
@@ -194,7 +194,7 @@ class GestionPlanesPagoIntegrationTest extends PostgresIntegrationTestBase {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.nombre").value("Plan 20 horas"))
             .andExpect(jsonPath("$.data.horas").value(20))
-            .andExpect(jsonPath("$.data.costoUsd").value(114.94));
+            .andExpect(jsonPath("$.data.costoUsd").value(67.97));
         // * Renombrar a su mismo nombre (con otras mayúsculas) no choca consigo mismo
         mockMvc.perform(patch(BASE + "/" + codigo).with(admin(ESCUELA_A)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"nombre\":\"PLAN 20 HORAS\"}"))

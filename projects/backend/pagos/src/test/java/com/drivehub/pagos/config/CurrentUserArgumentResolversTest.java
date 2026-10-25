@@ -25,6 +25,9 @@ class CurrentUserArgumentResolversTest {
     static class Ejemplo {
         void metodo(@CurrentEscuelaId UUID escuela, UUID sinAnotacion, @CurrentEscuelaId String noEsUuid) {
         }
+
+        void usuario(@CurrentUserId UUID usuario, @CurrentUserId String noEsUuid) {
+        }
     }
 
     private final CurrentUserArgumentResolvers resolver = new CurrentUserArgumentResolvers();
@@ -91,5 +94,54 @@ class CurrentUserArgumentResolversTest {
             .isInstanceOf(UnauthorizedException.class)
             .satisfies(e -> assertThat(((UnauthorizedException) e).getErrorCode())
                 .isEqualTo(PagosErrorCodes.SESION_INVALIDA));
+    }
+
+    // ------------------------------------------------------------------ @CurrentUserId
+
+    private MethodParameter parametroUsuario(int indice) throws NoSuchMethodException {
+        return new MethodParameter(Ejemplo.class.getDeclaredMethod("usuario", UUID.class, String.class), indice);
+    }
+
+    private void autenticarConSub(String sub) {
+        Jwt.Builder builder = Jwt.withTokenValue("token").header("alg", "none").claim("escuela", escuela.toString())
+            .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(60));
+        if (sub != null) {
+            builder.subject(sub);
+        } else {
+            builder.claim("otro", "x");
+        }
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(builder.build()));
+    }
+
+    @Test
+    void currentUserId_soloParaUuidConLaAnotacion() throws NoSuchMethodException {
+        assertThat(resolver.supportsParameter(parametroUsuario(0))).isTrue();
+        assertThat(resolver.supportsParameter(parametroUsuario(1))).isFalse();
+    }
+
+    @Test
+    void currentUserId_devuelveElSubComoUuid() throws NoSuchMethodException {
+        UUID persona = UUID.randomUUID();
+        autenticarConSub(persona.toString());
+
+        assertThat(resolver.resolveArgument(parametroUsuario(0), null, null, null)).isEqualTo(persona);
+    }
+
+    @Test
+    void currentUserId_conUnSubQueNoEsUuidOSinSub_esUnaSesionInvalida() {
+        autenticarConSub("no-es-un-uuid");
+        assertThatThrownBy(() -> resolver.resolveArgument(parametroUsuario(0), null, null, null))
+            .isInstanceOfSatisfying(UnauthorizedException.class,
+                e -> assertThat(e.getErrorCode()).isEqualTo(PagosErrorCodes.SESION_INVALIDA));
+
+        autenticarConSub(null);
+        assertThatThrownBy(() -> resolver.resolveArgument(parametroUsuario(0), null, null, null))
+            .isInstanceOf(UnauthorizedException.class);
+    }
+
+    @Test
+    void currentUserId_sinUnJwt_esUnaSesionInvalida() {
+        assertThatThrownBy(() -> resolver.resolveArgument(parametroUsuario(0), null, null, null))
+            .isInstanceOf(UnauthorizedException.class);
     }
 }

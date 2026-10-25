@@ -15,12 +15,14 @@ import com.drivehub.pagos.common.exception.PagosErrorCodes;
 import com.drivehub.pagos.common.exception.UnauthorizedException;
 
 /**
- * Resuelve `@CurrentEscuelaId UUID`: el claim `escuela` del JWT de la petición.
+ * Resuelve `@CurrentEscuelaId UUID` (el claim `escuela` del JWT) y `@CurrentUserId UUID` (el `sub`, el código de
+ * la persona) de la petición.
  *
- * * Las rutas que usan la anotación ya exigen autenticación en `SecurityConfig`; si aun así no hay un
+ * * Las rutas que usan las anotaciones ya exigen autenticación en `SecurityConfig`; si aun así no hay un
  * * JWT, se responde como una sesión inválida.
- * * Un token sin el claim, o con uno que no es un UUID, da `null`: no es de ninguna escuela de esta
+ * * Un token sin el claim `escuela`, o con uno que no es un UUID, da `null`: no es de ninguna escuela de esta
  * * plataforma y quien lo recibe decide qué hacer (el controller responde 403 `ERR_PAG_04`).
+ * * Un token sin un `sub` que sea un UUID no identifica a nadie: es una sesión inválida (401).
  */
 public class CurrentUserArgumentResolvers implements HandlerMethodArgumentResolver {
 
@@ -28,7 +30,8 @@ public class CurrentUserArgumentResolvers implements HandlerMethodArgumentResolv
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.hasParameterAnnotation(CurrentEscuelaId.class)
+        return (parameter.hasParameterAnnotation(CurrentEscuelaId.class)
+                || parameter.hasParameterAnnotation(CurrentUserId.class))
             && UUID.class.equals(parameter.getParameterType());
     }
 
@@ -39,14 +42,23 @@ public class CurrentUserArgumentResolvers implements HandlerMethodArgumentResolv
         if (!(autenticacion instanceof JwtAuthenticationToken jwt)) {
             throw new UnauthorizedException(PagosErrorCodes.SESION_INVALIDA, "Tu sesión terminó");
         }
-        String escuela = jwt.getToken().getClaimAsString(CLAIM_ESCUELA);
-        if (escuela == null) {
-            return null;
+        if (parameter.hasParameterAnnotation(CurrentUserId.class)) {
+            return uuidODefecto(jwt.getToken().getSubject(), true);
         }
+        return uuidODefecto(jwt.getToken().getClaimAsString(CLAIM_ESCUELA), false);
+    }
+
+    private static UUID uuidODefecto(String texto, boolean obligatorio) {
         try {
-            return UUID.fromString(escuela);
+            if (texto != null) {
+                return UUID.fromString(texto);
+            }
         } catch (IllegalArgumentException e) {
-            return null;
+            // * No es un UUID: se trata igual que si faltara
         }
+        if (obligatorio) {
+            throw new UnauthorizedException(PagosErrorCodes.SESION_INVALIDA, "Tu sesión terminó");
+        }
+        return null;
     }
 }

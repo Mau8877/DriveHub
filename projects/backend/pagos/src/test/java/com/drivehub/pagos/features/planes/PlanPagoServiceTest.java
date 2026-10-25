@@ -27,13 +27,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import com.drivehub.pagos.PagosPropertiesPrueba;
 import com.drivehub.pagos.common.exception.BusinessException;
 import com.drivehub.pagos.common.exception.ConflictException;
 import com.drivehub.pagos.common.exception.NotFoundException;
 import com.drivehub.pagos.common.exception.ValidationException;
-import com.drivehub.pagos.config.PagosProperties;
 import com.drivehub.pagos.features.planes.dto.CrearPlanPagoRequest;
 import com.drivehub.pagos.features.planes.dto.EditarPlanPagoRequest;
+import com.drivehub.pagos.features.planes.dto.PlanDisponibleResponse;
 import com.drivehub.pagos.features.planes.dto.PlanPagoResponse;
 import com.drivehub.pagos.features.planes.model.PlanPago;
 import com.drivehub.pagos.features.planes.repository.PlanPagoRepository;
@@ -58,7 +59,7 @@ class PlanPagoServiceTest {
 
     @BeforeEach
     void preparar() {
-        servicio = new PlanPagoService(repositorio, new ConversionMoneda(new PagosProperties(new BigDecimal("6.96"))));
+        servicio = new PlanPagoService(repositorio, new ConversionMoneda(PagosPropertiesPrueba.con(PagosPropertiesPrueba.TIPO_CAMBIO)));
         logs = new ListAppender<>();
         logs.start();
         ((Logger) LoggerFactory.getLogger(PlanPagoService.class)).addAppender(logs);
@@ -106,7 +107,7 @@ class PlanPagoServiceTest {
         assertThat(respuesta.nombre()).isEqualTo("Plan 10");
         assertThat(respuesta.horas()).isEqualTo(10);
         assertThat(respuesta.costoBs()).isEqualByComparingTo("450.00");
-        assertThat(respuesta.costoUsd()).isEqualByComparingTo("64.66");
+        assertThat(respuesta.costoUsd()).isEqualByComparingTo("38.23");
         assertThat(respuesta.activo()).isTrue();
     }
 
@@ -200,12 +201,57 @@ class PlanPagoServiceTest {
     @SuppressWarnings("unchecked")
     void listar_devuelveLosPlanesConSuCostoEnDolares() {
         when(repositorio.findAll(any(Specification.class), any(Pageable.class)))
-            .thenReturn(new PageImpl<PlanPago>(List.of(plan("A", 10, "696.00", true))));
+            .thenReturn(new PageImpl<PlanPago>(List.of(plan("A", 10, "1177.00", true))));
 
         Page<PlanPagoResponse> pagina = servicio.listar(ESCUELA, null, null, "  ", null);
 
         assertThat(pagina.getContent()).hasSize(1);
         assertThat(pagina.getContent().get(0).costoUsd()).isEqualByComparingTo("100.00");
+    }
+
+    // ------------------------------------------------------------------ disponibles
+
+    @SuppressWarnings("unchecked")
+    private Pageable disponiblesYCapturarPagina(Integer page, Integer pageSize) {
+        when(repositorio.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+        servicio.disponibles(ESCUELA, page, pageSize);
+        ArgumentCaptor<Pageable> pagina = ArgumentCaptor.forClass(Pageable.class);
+        verify(repositorio).findAll(any(Specification.class), pagina.capture());
+        return pagina.getValue();
+    }
+
+    @Test
+    void disponibles_sinParametros_pideLaPagina1DeVeinteDeMenosAMasHoras() {
+        Pageable pagina = disponiblesYCapturarPagina(null, null);
+
+        assertThat(pagina.getPageNumber()).isZero();
+        assertThat(pagina.getPageSize()).isEqualTo(20);
+        assertThat(pagina.getSort().toString()).contains("horas: ASC").contains("costoBs: ASC").contains("id: ASC");
+    }
+
+    @Test
+    void disponibles_elTamanoNuncaPasaDeCien_yUnaPaginaInvalidaEsLaPrimera() {
+        Pageable pagina = disponiblesYCapturarPagina(0, 5000);
+
+        assertThat(pagina.getPageSize()).isEqualTo(100);
+        assertThat(pagina.getPageNumber()).isZero();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void disponibles_devuelveSoloLoNecesarioConSuCostoEnDolares() {
+        PlanPago plan = plan("Plan 10", 10, "1177.00", true);
+        when(repositorio.findAll(any(Specification.class), any(Pageable.class)))
+            .thenReturn(new PageImpl<PlanPago>(List.of(plan)));
+
+        Page<PlanDisponibleResponse> pagina = servicio.disponibles(ESCUELA, null, null);
+
+        assertThat(pagina.getContent()).hasSize(1);
+        PlanDisponibleResponse disponible = pagina.getContent().get(0);
+        assertThat(disponible.nombre()).isEqualTo("Plan 10");
+        assertThat(disponible.horas()).isEqualTo((short) 10);
+        assertThat(disponible.costoBs()).isEqualByComparingTo("1177.00");
+        assertThat(disponible.costoUsd()).isEqualByComparingTo("100.00");
     }
 
     // ------------------------------------------------------------------ obtener
@@ -244,9 +290,9 @@ class PlanPagoServiceTest {
         when(repositorio.saveAndFlush(any(PlanPago.class))).thenAnswer(i -> i.getArgument(0));
 
         PlanPagoResponse respuesta = servicio.editar(ESCUELA, CODIGO,
-            new EditarPlanPagoRequest(null, null, new BigDecimal("696.00")));
+            new EditarPlanPagoRequest(null, null, new BigDecimal("1177.00")));
 
-        assertThat(respuesta.costoBs()).isEqualByComparingTo("696.00");
+        assertThat(respuesta.costoBs()).isEqualByComparingTo("1177.00");
         assertThat(respuesta.costoUsd()).isEqualByComparingTo("100.00");
     }
 

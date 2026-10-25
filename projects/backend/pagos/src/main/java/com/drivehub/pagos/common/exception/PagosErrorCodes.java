@@ -14,6 +14,14 @@ public final class PagosErrorCodes {
     public static final String PLAN_YA_EN_ESE_ESTADO = "ERR_PAG_03";
     public static final String TOKEN_SIN_ESCUELA = "ERR_PAG_04";
 
+    // * CU26: compra de horas
+    public static final String PLAN_NO_DISPONIBLE = "ERR_PAG_05";
+    public static final String PASARELA_NO_DISPONIBLE = "ERR_PAG_06";
+    public static final String PAGO_NO_ENCONTRADO = "ERR_PAG_07";
+    public static final String SERVICIO_DEPENDIENTE_NO_DISPONIBLE = "ERR_PAG_15";
+    public static final String COMPRA_EN_CURSO = "ERR_PAG_17";
+    public static final String CLAVE_DE_COMPRA_REUTILIZADA = "ERR_PAG_18";
+
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public static final String VALIDACION = "ERR_SYS_01";
     public static final String SESION_INVALIDA = "ERR_SYS_04";

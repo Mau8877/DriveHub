@@ -14,12 +14,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
-import com.drivehub.pagos.config.PagosProperties;
+import com.drivehub.pagos.PagosPropertiesPrueba;
 import com.drivehub.pagos.features.planes.dto.CrearPlanPagoRequest;
 import com.drivehub.pagos.features.planes.dto.EditarPlanPagoRequest;
 import com.drivehub.pagos.features.planes.model.PlanPago;
@@ -42,16 +45,18 @@ class PlanPagoServiceAutorizacionTest {
     static class Configuracion {
 
         @Bean
+        @SuppressWarnings("unchecked")
         PlanPagoRepository planRepository() {
             PlanPagoRepository repositorio = mock(PlanPagoRepository.class);
             when(repositorio.findByCodigoAndEscuelaCodigo(any(), any())).thenReturn(
                 Optional.of(new PlanPago(ESCUELA, "Plan 10", (short) 10, new BigDecimal("450.00"))));
+            when(repositorio.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
             return repositorio;
         }
 
         @Bean
         PlanPagoService planPagoService(PlanPagoRepository repositorio) {
-            return new PlanPagoService(repositorio, new ConversionMoneda(new PagosProperties(new BigDecimal("6.96"))));
+            return new PlanPagoService(repositorio, new ConversionMoneda(PagosPropertiesPrueba.con(PagosPropertiesPrueba.TIPO_CAMBIO)));
         }
     }
 
@@ -89,5 +94,18 @@ class PlanPagoServiceAutorizacionTest {
     @WithMockUser(roles = "ADMIN_ESCUELA")
     void elAdministradorDeEscuela_si_puede() {
         assertThat(servicio.obtener(ESCUELA, CODIGO).nombre()).isEqualTo("Plan 10");
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTUDIANTE")
+    void unEstudiante_puedeVerLosPlanesDisponibles() {
+        assertThat(servicio.disponibles(ESCUELA, null, null).getContent()).isEmpty();
+    }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN_ESCUELA", "INSTRUCTOR"})
+    void quienNoEsEstudiante_noPuedeVerLosPlanesDisponibles() {
+        assertThatThrownBy(() -> servicio.disponibles(ESCUELA, null, null))
+            .isInstanceOf(AccessDeniedException.class);
     }
 }

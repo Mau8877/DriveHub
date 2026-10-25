@@ -116,6 +116,29 @@ class PlanPagoRepositoryTest extends PostgresIntegrationTestBase {
     }
 
     @Test
+    void disponibles_soloActivosDeLaEscuela_deMenosAMasHorasYDeMasBaratoAMasCaro() {
+        guardarConHoras(ESCUELA_A, "Diez", 10, "450.00", true);
+        guardarConHoras(ESCUELA_A, "Una", 1, "60.00", true);
+        guardarConHoras(ESCUELA_A, "Cinco caro", 5, "300.00", true);
+        guardarConHoras(ESCUELA_A, "Cinco barato", 5, "275.00", true);
+        guardarConHoras(ESCUELA_A, "Desactivado", 2, "100.00", false);
+        guardarConHoras(ESCUELA_B, "De otra escuela", 3, "150.00", true);
+        Specification<PlanPago> filtro = Specification.allOf(PlanPagoSpecification.deLaEscuela(ESCUELA_A),
+            PlanPagoSpecification.conEstado(true));
+        Sort masBaratoPrimero = Sort.by(Sort.Order.asc("horas"), Sort.Order.asc("costoBs"), Sort.Order.asc("id"));
+
+        Page<PlanPago> pagina = repositorio.findAll(filtro, PageRequest.of(0, 20, masBaratoPrimero));
+
+        assertThat(nombres(pagina)).containsExactly("Una", "Cinco barato", "Cinco caro", "Diez");
+    }
+
+    private PlanPago guardarConHoras(UUID escuela, String nombre, int horas, String costo, boolean activo) {
+        PlanPago plan = new PlanPago(escuela, nombre, (short) horas, new BigDecimal(costo));
+        plan.setActivo(activo);
+        return repositorio.saveAndFlush(plan);
+    }
+
+    @Test
     void listar_paginaYCuentaElTotal() {
         for (int i = 1; i <= 5; i++) {
             guardar(ESCUELA_A, "Plan " + i, true, "2026-10-0" + i + "T10:00:00Z");

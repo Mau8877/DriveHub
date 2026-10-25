@@ -58,7 +58,7 @@ class TipoCambioPlanesIntegrationTest extends PostgresIntegrationTestBase {
             .andExpect(jsonPath("$.data[0].costoBs").value(450.00))
             .andExpect(jsonPath("$.data[0].costoUsd").value(45.00));
 
-        // * Con 6,96 (el valor por defecto) serían 64,66: acá es 10 porque así se configuró
+        // * Con el tipo de cambio de prueba (11,77) serían 38,23: acá es 10 porque así se configuró
         Integer columnasDeDolar = jdbc.queryForObject("SELECT count(*) FROM information_schema.columns"
             + " WHERE table_name = 'plan_pago' AND column_name ILIKE '%usd%'", Integer.class);
         Assertions.assertThat(columnasDeDolar).isZero();

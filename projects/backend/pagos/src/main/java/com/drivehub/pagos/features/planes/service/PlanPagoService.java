@@ -21,6 +21,7 @@ import com.drivehub.pagos.common.exception.PagosErrorCodes;
 import com.drivehub.pagos.common.exception.ValidationException;
 import com.drivehub.pagos.features.planes.dto.CrearPlanPagoRequest;
 import com.drivehub.pagos.features.planes.dto.EditarPlanPagoRequest;
+import com.drivehub.pagos.features.planes.dto.PlanDisponibleResponse;
 import com.drivehub.pagos.features.planes.dto.PlanPagoResponse;
 import com.drivehub.pagos.features.planes.model.PlanPago;
 import com.drivehub.pagos.features.planes.repository.PlanPagoRepository;
@@ -50,6 +51,8 @@ public class PlanPagoService {
     private static final String MODULO = "planes";
     private static final String INDICE_NOMBRE_UNICO = "uq_plan_pago_escuela_nombre";
     private static final Sort MAS_RECIENTE_PRIMERO = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+    private static final Sort MAS_BARATO_PRIMERO =
+        Sort.by(Sort.Order.asc("horas"), Sort.Order.asc("costoBs"), Sort.Order.asc("id"));
 
     private final PlanPagoRepository planRepository;
     private final ConversionMoneda conversion;
@@ -83,6 +86,23 @@ public class PlanPagoService {
             PlanPagoSpecification.nombreContiene(search), PlanPagoSpecification.conEstado(activo));
         return planRepository.findAll(filtro, PageRequest.of(pagina - 1, tamano, MAS_RECIENTE_PRIMERO))
             .map(this::aRespuesta);
+    }
+
+    /**
+     * Los planes que el estudiante puede comprar (CU26): solo los ACTIVOS de su escuela, de menos a más horas
+     * (y, a igual cantidad de horas, del más barato al más caro). Mismos valores por defecto y tope de
+     * paginación que `listar`.
+     */
+    @PreAuthorize("hasRole('ESTUDIANTE')")
+    @Transactional(readOnly = true)
+    public Page<PlanDisponibleResponse> disponibles(UUID escuelaCodigo, Integer page, Integer pageSize) {
+        int pagina = page == null || page < 1 ? 1 : page;
+        int tamano = pageSize == null ? PAGE_SIZE_POR_DEFECTO : Math.min(Math.max(pageSize, 1), PAGE_SIZE_MAXIMO);
+        Specification<PlanPago> filtro = Specification.allOf(PlanPagoSpecification.deLaEscuela(escuelaCodigo),
+            PlanPagoSpecification.conEstado(true));
+        return planRepository.findAll(filtro, PageRequest.of(pagina - 1, tamano, MAS_BARATO_PRIMERO))
+            .map(plan -> new PlanDisponibleResponse(plan.getCodigo(), plan.getNombre(), plan.getHoras(),
+                plan.getCostoBs(), conversion.aDolares(plan.getCostoBs())));
     }
 
     @PreAuthorize("hasRole('ADMIN_ESCUELA')")

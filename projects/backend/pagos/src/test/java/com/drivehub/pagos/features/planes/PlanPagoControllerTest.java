@@ -37,6 +37,7 @@ import com.drivehub.pagos.config.WebMvcConfig;
 import com.drivehub.pagos.features.planes.controller.PlanPagoController;
 import com.drivehub.pagos.features.planes.dto.CrearPlanPagoRequest;
 import com.drivehub.pagos.features.planes.dto.EditarPlanPagoRequest;
+import com.drivehub.pagos.features.planes.dto.PlanDisponibleResponse;
 import com.drivehub.pagos.features.planes.dto.PlanPagoResponse;
 import com.drivehub.pagos.features.planes.service.PlanPagoService;
 
@@ -63,7 +64,7 @@ class PlanPagoControllerTest {
     }
 
     private static PlanPagoResponse respuesta() {
-        return new PlanPagoResponse(CODIGO, "Plan 10", 10, new BigDecimal("450.00"), new BigDecimal("64.66"), true,
+        return new PlanPagoResponse(CODIGO, "Plan 10", 10, new BigDecimal("450.00"), new BigDecimal("38.23"), true,
             Instant.parse("2026-10-25T10:00:00Z"));
     }
 
@@ -79,7 +80,7 @@ class PlanPagoControllerTest {
             .andExpect(jsonPath("$.data.nombre").value("Plan 10"))
             .andExpect(jsonPath("$.data.horas").value(10))
             .andExpect(jsonPath("$.data.costoBs").value(450.00))
-            .andExpect(jsonPath("$.data.costoUsd").value(64.66))
+            .andExpect(jsonPath("$.data.costoUsd").value(38.23))
             .andExpect(jsonPath("$.data.activo").value(true))
             .andExpect(jsonPath("$.data.escuelaCodigo").doesNotExist())
             .andExpect(jsonPath("$.data.id").doesNotExist())
@@ -166,6 +167,50 @@ class PlanPagoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data").isEmpty())
             .andExpect(jsonPath("$.meta.totalItems").value(0));
+    }
+
+    @Test
+    void disponibles_respondeConElSobreYMeta_sinDatosInternos_yLaEscuelaSaleDelToken() throws Exception {
+        when(servicio.disponibles(ESCUELA, 2, 5)).thenReturn(new PageImpl<>(
+            List.of(new PlanDisponibleResponse(CODIGO, "Plan 10", (short) 10, new BigDecimal("450.00"),
+                new BigDecimal("38.23"))), PageRequest.of(1, 5), 6));
+
+        mockMvc.perform(get("/api/v1/planes-pago/disponibles").with(conEscuela())
+                .param("page", "2").param("pageSize", "5"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.data[0].codigo").value(CODIGO.toString()))
+            .andExpect(jsonPath("$.data[0].horas").value(10))
+            .andExpect(jsonPath("$.data[0].costoBs").value(450.00))
+            .andExpect(jsonPath("$.data[0].costoUsd").value(38.23))
+            .andExpect(jsonPath("$.data[0].activo").doesNotExist())
+            .andExpect(jsonPath("$.data[0].id").doesNotExist())
+            .andExpect(jsonPath("$.meta.page").value(2))
+            .andExpect(jsonPath("$.meta.totalItems").value(6));
+    }
+
+    @Test
+    void disponibles_noSeTomaComoElCodigoDeUnPlan() throws Exception {
+        when(servicio.disponibles(ESCUELA, null, null))
+            .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        mockMvc.perform(get("/api/v1/planes-pago/disponibles").with(conEscuela()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data").isEmpty());
+        verify(servicio, never()).obtener(any(), any());
+    }
+
+    @Test
+    void disponibles_sinEscuelaEnElToken_responde403ErrPag04() throws Exception {
+        mockMvc.perform(get("/api/v1/planes-pago/disponibles").with(jwt()))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.error").value("ERR_PAG_04"));
+    }
+
+    @Test
+    void disponibles_sinSesion_responde401() throws Exception {
+        mockMvc.perform(get("/api/v1/planes-pago/disponibles"))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test

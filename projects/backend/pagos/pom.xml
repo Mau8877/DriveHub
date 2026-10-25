@@ -12,13 +12,15 @@
 	<artifactId>pagos</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>pagos</name>
-	<description>Microservicio Pagos: planes, cuotas, pagos y comprobantes (capas)</description>
+	<description>Microservicio Pagos: planes de horas, pagos, billetera y comprobantes (capas)</description>
 	<properties>
 		<java.version>21</java.version>
 		<!-- spring-boot-starter-parent no trae el BOM de Testcontainers en
 		     esta versión, así que se fija acá para que todos los módulos de
 		     Testcontainers (abajo) usen la misma versión entre sí. -->
 		<testcontainers.version>1.21.3</testcontainers.version>
+		<!-- SDK de Stripe: la pasarela de pago (CU26). -->
+		<stripe.version>34.0.0</stripe.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -72,6 +74,11 @@
 			<groupId>net.logstash.logback</groupId>
 			<artifactId>logstash-logback-encoder</artifactId>
 			<version>8.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.stripe</groupId>
+			<artifactId>stripe-java</artifactId>
+			<version>${stripe.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
