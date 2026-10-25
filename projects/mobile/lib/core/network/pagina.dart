@@ -1,6 +1,6 @@
 /// Una página de un listado paginado de la API.
 ///
-/// * Vive en `horarios` por ahora; pasa a `core/network/` cuando una segunda feature la necesite.
+/// * Vive en `core/network/` porque la usan varias features (horarios, pagos).
 class Pagina<T> {
   final List<T> items;
   final int page;

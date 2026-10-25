@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:mobile/core/network/pagina.dart';
 import 'package:mobile/features/horarios/models/crear_plantilla_horario_request.dart';
 import 'package:mobile/features/horarios/models/dia_bloqueado.dart';
 import 'package:mobile/features/horarios/models/estado_plantilla.dart';
 import 'package:mobile/features/horarios/models/fechas.dart';
 import 'package:mobile/features/horarios/models/franja.dart';
-import 'package:mobile/features/horarios/models/pagina.dart';
 import 'package:mobile/features/horarios/models/plantilla_horario.dart';
 import 'package:mobile/features/horarios/models/plantilla_horario_creada.dart';
 import 'package:mobile/features/horarios/providers/horarios_service_provider.dart';

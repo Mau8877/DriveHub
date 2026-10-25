@@ -24,6 +24,23 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- Enlace con el que la pagina de retorno del pago abre la app (CU26): drivehub://app/payments/return -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.drivehub.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>drivehub</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Abrir la pagina de pago de la pasarela en el navegador (CU26) -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

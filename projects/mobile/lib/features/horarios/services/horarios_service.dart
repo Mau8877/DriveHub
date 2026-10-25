@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/pagina.dart';
 import '../models/crear_plantilla_horario_request.dart';
 import '../models/dia_bloqueado.dart';
 import '../models/estado_plantilla.dart';
 import '../models/fechas.dart';
 import '../models/franja.dart';
-import '../models/pagina.dart';
 import '../models/plantilla_horario.dart';
 import '../models/plantilla_horario_creada.dart';
 
