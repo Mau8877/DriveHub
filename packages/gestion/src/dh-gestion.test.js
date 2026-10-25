@@ -2190,3 +2190,238 @@ describe('<dh-gestion> campos textarea, opciones y seleccion numerica, y datos b
     })
   })
 })
+
+// ---------------------------------------------------------------------- CU25a: decimal y moneda
+
+describe('<dh-gestion> campo decimal y columna moneda', () => {
+  let el
+
+  const texto = () => el.shadowRoot.textContent.replace(/\s+/g, ' ')
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+  const escribirEn = async (selector, valor) => {
+    const campo = el.shadowRoot.querySelector(selector)
+    campo.value = valor
+    campo.dispatchEvent(new Event('input', { bubbles: true }))
+    campo.dispatchEvent(new Event('blur'))
+    await asentar(el)
+  }
+  const cuerpoEnviado = (n) => JSON.parse(fetch.mock.calls[n][1].body)
+
+  const PLAN = { codigo: 'p1', nombre: 'Plan 10', horas: 10, costoBs: 1250, costoUsd: 179.6 }
+  const PLAN_SIN_COSTO = { codigo: 'p2', nombre: 'Sin costo', horas: 1, costoBs: null, costoUsd: null }
+
+  const CAMPO_COSTO = {
+    campo: 'costoBs',
+    titulo: 'Costo en bolivianos (Bs)',
+    tipo: 'decimal',
+    requerido: true,
+    min: 0.01,
+    max: 99999999.99,
+    mensajes: { requerido: 'El costo es obligatorio', min: 'El costo debe ser mayor a 0' },
+  }
+  const ESQUEMA = {
+    recurso: 'planes-pago',
+    titulo: 'Planes de horas',
+    nombreSingular: 'plan',
+    columnas: [
+      { campo: 'nombre', titulo: 'Nombre', principal: true },
+      { campo: 'costoBs', titulo: 'Costo (Bs)', tipo: 'moneda', moneda: 'BOB' },
+      { campo: 'costoUsd', titulo: 'Costo (USD)', tipo: 'moneda', moneda: 'USD' },
+    ],
+    crear: {
+      etiqueta: 'Nuevo plan',
+      mensajeExito: 'Plan creado correctamente.',
+      secciones: [
+        {
+          campos: [
+            { campo: 'nombre', titulo: 'Nombre', requerido: true },
+            CAMPO_COSTO,
+            { campo: 'descuento', titulo: 'Descuento', tipo: 'decimal', decimales: 1, max: 100 },
+          ],
+        },
+      ],
+    },
+    editar: {
+      mensajeExito: 'Plan actualizado correctamente.',
+      secciones: [{ campos: [CAMPO_COSTO] }],
+    },
+    detalle: {
+      secciones: [
+        {
+          campos: [
+            { campo: 'costoBs', titulo: 'Costo (Bs)', tipo: 'moneda', moneda: 'BOB' },
+            { campo: 'costoUsd', titulo: 'Costo (USD)', tipo: 'moneda', moneda: 'USD' },
+          ],
+        },
+      ],
+    },
+  }
+
+  async function montar(filas = [PLAN]) {
+    fetch.mockResolvedValueOnce(lista(filas))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA
+    await asentar(el)
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  // ---------------------------------------------------------------- columna moneda
+
+  it('la columna moneda dibuja Bs con miles con punto y coma decimal, y US$ con dos decimales', async () => {
+    await montar()
+
+    const celdas = [...el.shadowRoot.querySelectorAll('tbody td')].map((td) => td.textContent.trim())
+    expect(celdas).toContain('Bs 1.250,00')
+    expect(celdas).toContain('US$ 179,60')
+  })
+
+  it('la columna moneda formatea cantidades chicas y grandes', async () => {
+    await montar([
+      { codigo: 'a', nombre: 'A', costoBs: 0.5, costoUsd: 0.07 },
+      { codigo: 'b', nombre: 'B', costoBs: 1234567.891, costoUsd: 999 },
+      { codigo: 'c', nombre: 'C', costoBs: 60, costoUsd: 8.62 },
+    ])
+
+    const celdas = [...el.shadowRoot.querySelectorAll('tbody td')].map((td) => td.textContent.trim())
+    expect(celdas).toEqual(
+      expect.arrayContaining(['Bs 0,50', 'US$ 0,07', 'Bs 1.234.567,89', 'US$ 999,00', 'Bs 60,00', 'US$ 8,62'])
+    )
+  })
+
+  it('un valor nulo o que no es número se ve vacío en la tabla', async () => {
+    await montar([PLAN_SIN_COSTO, { codigo: 'x', nombre: 'X', costoBs: 'abc', costoUsd: undefined }])
+
+    const filas = [...el.shadowRoot.querySelectorAll('tbody tr')]
+    for (const fila of filas) {
+      const celdas = [...fila.querySelectorAll('td')].map((td) => td.textContent.trim())
+      expect(celdas.some((c) => c.startsWith('Bs') || c.startsWith('US$'))).toBe(false)
+    }
+  })
+
+  it('la columna moneda mide 9rem por defecto', async () => {
+    await montar()
+
+    const encabezado = el.shadowRoot.querySelector('thead th:nth-child(3)')
+    expect(encabezado.getAttribute('style')).toContain('width: 9rem')
+  })
+
+  it('el dato de detalle de tipo moneda se ve formateado, y con "—" si falta', async () => {
+    await montar([PLAN])
+    fetch.mockResolvedValueOnce(sobre(PLAN))
+    boton('Ver detalles').click()
+    await asentar(el)
+
+    let valores = [...el.shadowRoot.querySelectorAll('aside.drawer .dato-valor')].map((v) => v.textContent.trim())
+    expect(valores).toEqual(['Bs 1.250,00', 'US$ 179,60'])
+
+    el.remove()
+    await montar([PLAN_SIN_COSTO])
+    fetch.mockResolvedValueOnce(sobre(PLAN_SIN_COSTO))
+    boton('Ver detalles').click()
+    await asentar(el)
+
+    valores = [...el.shadowRoot.querySelectorAll('aside.drawer .dato-valor')].map((v) => v.textContent.trim())
+    expect(valores).toEqual(['—', '—'])
+  })
+
+  // ---------------------------------------------------------------- campo decimal
+
+  it('el campo decimal es un input de texto con teclado decimal, no el number nativo', async () => {
+    await montar()
+    boton('Nuevo plan').click()
+    await asentar(el)
+
+    const entrada = el.shadowRoot.querySelector('#campo-costoBs')
+    expect(entrada.getAttribute('type')).toBe('text')
+    expect(entrada.getAttribute('inputmode')).toBe('decimal')
+  })
+
+  it('escribir con coma envía un número con punto, y un decimal opcional vacío no se envía', async () => {
+    await montar()
+    boton('Nuevo plan').click()
+    await asentar(el)
+    await escribirEn('#campo-nombre', 'Plan 10')
+    await escribirEn('#campo-costoBs', '1250,5')
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'p9' })).mockResolvedValueOnce(lista([PLAN]))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/planes-pago')
+    const cuerpo = cuerpoEnviado(1)
+    expect(cuerpo).toEqual({ nombre: 'Plan 10', costoBs: 1250.5 })
+    expect(typeof cuerpo.costoBs).toBe('number')
+    expect(cuerpo).not.toHaveProperty('descuento')
+  })
+
+  it('un decimal opcional con valor se envía como número', async () => {
+    await montar()
+    boton('Nuevo plan').click()
+    await asentar(el)
+    await escribirEn('#campo-nombre', 'Plan 10')
+    await escribirEn('#campo-costoBs', '450')
+    await escribirEn('#campo-descuento', '12,5')
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'p9' })).mockResolvedValueOnce(lista([PLAN]))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(cuerpoEnviado(1)).toEqual({ nombre: 'Plan 10', costoBs: 450, descuento: 12.5 })
+  })
+
+  it('un decimal inválido muestra su mensaje bajo el campo y no envía', async () => {
+    await montar()
+    boton('Nuevo plan').click()
+    await asentar(el)
+    await escribirEn('#campo-nombre', 'Plan 10')
+
+    for (const [escrito, mensaje] of [
+      ['', 'El costo es obligatorio'],
+      ['0', 'El costo debe ser mayor a 0'],
+      ['abc', 'Debe ser un número con hasta 2 decimales'],
+      ['10.123', 'Debe ser un número con hasta 2 decimales'],
+      ['100000000', 'No puede superar 99999999,99'],
+    ]) {
+      await escribirEn('#campo-costoBs', escrito)
+      boton('Crear').click()
+      await asentar(el)
+      expect(texto()).toContain(mensaje)
+    }
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('al editar, el valor del registro se muestra con dos decimales y se reenvía como número', async () => {
+    await montar([{ ...PLAN, costoBs: 450 }])
+    fetch.mockResolvedValueOnce(sobre({ ...PLAN, costoBs: 450 }))
+    boton('Editar').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelector('#campo-costoBs').value).toBe('450.00')
+
+    await escribirEn('#campo-costoBs', '500,25')
+    fetch.mockResolvedValueOnce(sobre(PLAN)).mockResolvedValueOnce(lista([PLAN]))
+    boton('Guardar').click()
+    await asentar(el)
+
+    expect(fetch.mock.calls[2][0]).toBe('http://api.test/v1/planes-pago/p1')
+    expect(fetch.mock.calls[2][1].method).toBe('PATCH')
+    expect(cuerpoEnviado(2)).toEqual({ costoBs: 500.25 })
+  })
+})

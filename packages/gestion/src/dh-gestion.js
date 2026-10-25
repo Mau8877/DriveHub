@@ -3,7 +3,7 @@ import { LitElement, html, nothing } from 'lit'
 
 import { ErrorApi, solicitar } from './cliente-api.js'
 import { estilos } from './estilos.js'
-import { fechaDeHoy, fechaDeManana, slugDesdeTexto, validar } from './reglas.js'
+import { fechaDeHoy, fechaDeManana, normalizarDecimal, slugDesdeTexto, validar } from './reglas.js'
 
 const ESPERA_BUSQUEDA_MS = 300
 const MAX_IMAGEN_BYTES = 5 * 1024 * 1024
@@ -20,11 +20,32 @@ function filasDe(campo, valor) {
 
 /** Valor de un campo tal como se muestra en el formulario: una lista se ve como "a, b, c". */
 function paraFormulario(campo, valor) {
+  // * Un decimal se ve con todos sus decimales (450 -> "450.00"), como lo escribiría quien lo carga
+  if (campo.tipo === 'decimal') {
+    return valor == null || valor === '' ? '' : Number(valor).toFixed(campo.decimales ?? 2)
+  }
   if (campo.tipo === 'lista') return Array.isArray(valor) ? valor.join(', ') : (valor ?? '')
   if (campo.tipo === 'opciones') return filasDe(campo, valor)
   // * Una lista desplegable maneja texto: un número (ej. la dificultad) se muestra como texto
   if (campo.tipo === 'seleccion') return valor == null ? '' : String(valor)
   return valor ?? ''
+}
+
+const PREFIJOS_MONEDA = { BOB: 'Bs', USD: 'US$' }
+
+/**
+ * Una cantidad de dinero como se lee en español: prefijo de la moneda, miles con punto y dos decimales con
+ * coma (`1250` -> `Bs 1.250,00`, `179.6` -> `US$ 179,60`). Escrito a mano, sin `Intl`, para que se vea igual en
+ * cualquier navegador. Un valor que no es un número da texto vacío.
+ */
+function formatearMoneda(valor, moneda) {
+  if (valor === null || valor === undefined || valor === '') return ''
+  const numero = Number(valor)
+  if (!Number.isFinite(numero)) return ''
+  const [entero, decimales] = Math.abs(numero).toFixed(2).split('.')
+  const miles = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const prefijo = PREFIJOS_MONEDA[moneda] ?? moneda ?? ''
+  return `${numero < 0 ? '-' : ''}${prefijo ? `${prefijo} ` : ''}${miles},${decimales}`
 }
 
 /** Una lista escrita como "a, b, a" viaja como array sin vacíos ni repetidos. */
@@ -151,11 +172,13 @@ function anchoColumna(c) {
     c.ancho ??
     (c.tipo === 'imagen' || c.tipo === 'enlace'
       ? '6.5rem'
-      : c.tipo === 'insignia' || c.tipo === 'fecha'
-        ? '8rem'
-        : c.tipo === 'foto'
-          ? '5rem'
-          : '')
+      : c.tipo === 'moneda'
+        ? '9rem'
+        : c.tipo === 'insignia' || c.tipo === 'fecha'
+          ? '8rem'
+          : c.tipo === 'foto'
+            ? '5rem'
+            : '')
   return ancho ? `width: ${ancho}` : ''
 }
 
@@ -564,9 +587,13 @@ export class DhGestion extends LitElement {
         return
       }
       if (texto === '' && !campo.requerido) return
-      // * Las contraseñas no se recortan (los espacios cuentan) y los números viajan como número
+      // * Las contraseñas no se recortan (los espacios cuentan) y los números viajan como número (un decimal
+      // * se normaliza antes: "1250,5" -> 1250.5)
       const numerico = campo.tipo === 'numero' || (campo.tipo === 'seleccion' && campo.numerico)
-      const valor = campo.tipo === 'password' ? this._valores[campo.campo] : numerico ? Number(texto) : texto
+      let valor = texto
+      if (campo.tipo === 'password') valor = this._valores[campo.campo]
+      else if (campo.tipo === 'decimal') valor = Number(normalizarDecimal(texto))
+      else if (numerico) valor = Number(texto)
       escribir(cuerpo, campo.campo, valor)
     })
 
@@ -764,6 +791,7 @@ export class DhGestion extends LitElement {
       return valor ? html`<img class="miniatura" src=${miniatura(valor, 96, 64)} alt="" loading="lazy" />` : ''
     }
     if (columna.tipo === 'fecha') return valor ? formatearFecha(valor) : ''
+    if (columna.tipo === 'moneda') return formatearMoneda(valor, columna.moneda)
     if (columna.tipo === 'etiquetas') return this._etiquetas(valor, columna.etiqueta, MAX_ETIQUETAS_TABLA)
     if (columna.tipo === 'foto') return this._avatar(columna, fila, valor, 36)
     if (columna.principal) {
@@ -964,6 +992,8 @@ export class DhGestion extends LitElement {
         contenido = html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
       } else if (campo.tipo === 'fecha') {
         contenido = formatearFecha(valor)
+      } else if (campo.tipo === 'moneda') {
+        contenido = formatearMoneda(valor, campo.moneda) || '—'
       } else if (campo.tipo === 'etiquetas') {
         contenido = this._etiquetas(valor, campo.etiqueta)
       } else {
@@ -1059,6 +1089,7 @@ export class DhGestion extends LitElement {
         : html`<input
       id=${id}
       type=${tipo}
+      inputmode=${campo.tipo === 'decimal' ? 'decimal' : nothing}
       autocomplete=${esPassword ? 'new-password' : 'off'}
       maxlength=${campo.max ?? nothing}
       .value=${String(this._valores[campo.campo] ?? '')}
