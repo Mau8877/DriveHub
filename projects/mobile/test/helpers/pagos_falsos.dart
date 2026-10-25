@@ -5,7 +5,9 @@ import 'package:mobile/core/network/pagina.dart';
 import 'package:mobile/features/pagos/models/estado_de_pago.dart';
 import 'package:mobile/features/pagos/models/estado_pago.dart';
 import 'package:mobile/features/pagos/models/estado_pago_visible.dart';
+import 'package:mobile/features/pagos/models/motivo_reembolso.dart';
 import 'package:mobile/features/pagos/models/pago_detalle.dart';
+import 'package:mobile/features/pagos/models/reembolso_previsto.dart';
 import 'package:mobile/features/pagos/models/pago_resumen.dart';
 import 'package:mobile/features/pagos/models/pago_iniciado.dart';
 import 'package:mobile/features/pagos/models/plan_disponible.dart';
@@ -49,7 +51,13 @@ PagoResumen compraDePrueba({
   creadoEn: creadoEn ?? DateTime(2026, 5, 4, 12),
 );
 
-PagoDetalle detalleDePrueba({String codigo = 'c1', EstadoPagoVisible estado = EstadoPagoVisible.confirmado, int? horasRestantes = 7, bool confirmado = true}) =>
+PagoDetalle detalleDePrueba({
+  String codigo = 'c1',
+  EstadoPagoVisible estado = EstadoPagoVisible.confirmado,
+  int? horasRestantes = 7,
+  bool confirmado = true,
+  bool reembolsable = false,
+}) =>
     PagoDetalle(
       codigo: codigo,
       planNombre: 'Plan 10 horas',
@@ -60,7 +68,10 @@ PagoDetalle detalleDePrueba({String codigo = 'c1', EstadoPagoVisible estado = Es
       creadoEn: DateTime(2026, 5, 4, 12),
       horasRestantes: horasRestantes,
       confirmadoEn: confirmado ? DateTime(2026, 5, 4, 12, 1) : null,
-      reembolsable: false,
+      reembolsable: reembolsable,
+      reembolso: reembolsable
+          ? const ReembolsoPrevisto(montoDevuelto: 36.32, montoRetenido: 1.91, porcentajeRetenido: 5)
+          : null,
     );
 
 /// Servicio de pagos controlado desde el test: responde lo configurado y anota cada llamada.
@@ -118,6 +129,22 @@ class PagosServiceFalso extends PagosService {
     final desde = (page - 1) * pageSize;
     final items = desde >= total ? <PagoResumen>[] : filtradas.sublist(desde, (desde + pageSize).clamp(0, total));
     return Pagina(items: items, page: page, pageSize: pageSize, totalItems: total, totalPages: paginas);
+  }
+
+  /// Lo que responde `solicitarReembolso`; [errorReembolso] hace que falle. Anota cada pedido.
+  Object? errorReembolso;
+  Future<void> Function()? antesDeReembolsar;
+  final List<({String codigo, MotivoReembolso motivo, String? detalle})> reembolsos = [];
+
+  @override
+  Future<PagoDetalle> solicitarReembolso(String codigo, MotivoReembolso motivo, {String? motivoDetalle}) async {
+    reembolsos.add((codigo: codigo, motivo: motivo, detalle: motivoDetalle));
+    await antesDeReembolsar?.call();
+    final error = errorReembolso;
+    if (error != null) throw error;
+    final enProceso = detalleDePrueba(codigo: codigo, estado: EstadoPagoVisible.reembolsoEnProceso, horasRestantes: 0);
+    detalles = {...detalles, codigo: enProceso};
+    return enProceso;
   }
 
   @override

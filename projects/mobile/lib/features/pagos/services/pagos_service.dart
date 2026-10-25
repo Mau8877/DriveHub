@@ -4,6 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/pagina.dart';
 import '../models/estado_de_pago.dart';
 import '../models/estado_pago_visible.dart';
+import '../models/motivo_reembolso.dart';
 import '../models/pago_detalle.dart';
 import '../models/pago_resumen.dart';
 import '../models/pago_iniciado.dart';
@@ -91,6 +92,27 @@ class PagosService {
         },
       );
       return Pagina.fromJson(response.data!, PagoResumen.fromJson);
+    });
+  }
+
+  /// Pide el reembolso de una compra intacta (CU31) y devuelve su detalle ya como "reembolso en proceso". El
+  /// [motivoDetalle] solo se envía con [MotivoReembolso.otro], recortado. Los errores de negocio llegan como
+  /// [ApiException] (`ERR_PAG_07`, `ERR_PAG_10`, `ERR_PAG_11`, `ERR_PAG_06`).
+  Future<PagoDetalle> solicitarReembolso(
+    String codigo,
+    MotivoReembolso motivo, {
+    String? motivoDetalle,
+  }) {
+    return _llamar(() async {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/pagos/$codigo/reembolso',
+        data: {
+          'motivo': motivo.valorApi,
+          if (motivo == MotivoReembolso.otro && motivoDetalle != null)
+            'motivoDetalle': motivoDetalle.trim(),
+        },
+      );
+      return PagoDetalle.fromJson(response.data!);
     });
   }
 

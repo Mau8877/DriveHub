@@ -6,18 +6,23 @@ import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/cockpit_scaffold.dart';
+import '../../../shared/widgets/indicador_boton.dart';
+import '../models/estado_pago_visible.dart';
 import '../models/pago_detalle.dart';
 import '../providers/pago_detail_provider.dart';
+import '../providers/reembolso_provider.dart';
+import '../widgets/dialogo_reembolso.dart';
 import '../widgets/formato_dinero.dart';
 import '../widgets/formato_fecha.dart';
 import '../widgets/insignia_de_estado_pago.dart';
+import '../widgets/mensajes_de_reembolso.dart';
 
 /// El detalle de una compra (CU28, `/payments/:codigo`): plan, horas compradas y restantes, montos, estado y
 /// fechas.
 ///
 /// * Una compra ajena o inexistente (`ERR_PAG_07`) vuelve a la lista con un aviso.
-/// * Los comprobantes (CU30) y el reembolso (CU31) se suman a esta pantalla con sus casos de uso: hasta
-///   entonces no se muestra nada de eso.
+/// * El reembolso (CU31) aparece solo si el backend dice que la compra es reembolsable; los comprobantes (CU30)
+///   se suman con su caso de uso móvil.
 class PagoDetalleScreen extends ConsumerWidget {
   final String codigo;
 
@@ -34,6 +39,25 @@ class PagoDetalleScreen extends ConsumerWidget {
         } else {
           context.go('/inicio');
         }
+      }
+    });
+    // * Una compra con el reembolso en proceso se sigue hasta que la pasarela avise (CU31)
+    ref.listen(pagoDetailProvider(codigo), (_, nuevo) {
+      if (nuevo.valueOrNull?.estado == EstadoPagoVisible.reembolsoEnProceso) {
+        ref.read(reembolsoProvider(codigo).notifier).vigilar();
+      }
+    });
+    ref.listen(reembolsoProvider(codigo), (anterior, nuevo) {
+      if (anterior?.valueOrNull == nuevo.valueOrNull) return;
+      switch (nuevo.valueOrNull) {
+        case ResultadoReembolso.reembolsado:
+          avisar(context, 'Tu reembolso se completó.');
+        case ResultadoReembolso.fallo:
+          avisar(
+            context,
+            'No pudimos devolver el dinero, las horas siguen en tu cuenta.',
+          );
+        default:
       }
     });
     final detalle = ref.watch(pagoDetailProvider(codigo));
@@ -59,7 +83,7 @@ class PagoDetalleScreen extends ConsumerWidget {
               ),
             ],
           ),
-          data: (pago) => _Contenido(pago: pago),
+          data: (pago) => _Contenido(pago: pago, codigo: codigo),
         ),
       ),
     );
@@ -68,8 +92,9 @@ class PagoDetalleScreen extends ConsumerWidget {
 
 class _Contenido extends StatelessWidget {
   final PagoDetalle pago;
+  final String codigo;
 
-  const _Contenido({required this.pago});
+  const _Contenido({required this.pago, required this.codigo});
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +136,84 @@ class _Contenido extends StatelessWidget {
             ),
           ),
         ),
+        _SeccionReembolso(pago: pago, codigo: codigo),
       ],
+    );
+  }
+}
+
+/// La sección «Reembolso» (CU31): solo aparece si el backend dice que la compra es reembolsable (la app no lo
+/// recalcula) o si su reembolso está en proceso.
+class _SeccionReembolso extends ConsumerWidget {
+  final PagoDetalle pago;
+  final String codigo;
+
+  const _SeccionReembolso({required this.pago, required this.codigo});
+
+  Future<void> _solicitar(BuildContext context, WidgetRef ref) async {
+    final elegido = await pedirMotivoDeReembolso(context, pago);
+    if (elegido == null) return;
+    final aceptado = await ref
+        .read(reembolsoProvider(codigo).notifier)
+        .solicitar(elegido.motivo, motivoDetalle: elegido.detalle);
+    if (aceptado) return;
+    final error = ref.read(reembolsoProvider(codigo)).error;
+    if (error == null) return;
+    if (context.mounted) avisar(context, mensajeDeErrorDeReembolso(error));
+    if (errorDeReembolsoPideRefrescar(error)) {
+      ref.invalidate(pagoDetailProvider(codigo));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+
+    if (pago.estado == EstadoPagoVisible.reembolsoEnProceso) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 12),
+        child: AvisoCockpit(
+          key: Key('avisoReembolsoEnProceso'),
+          texto: 'Estamos procesando tu reembolso.',
+        ),
+      );
+    }
+    final reembolso = pago.reembolso;
+    if (!pago.reembolsable || reembolso == null) return const SizedBox.shrink();
+
+    final enCurso = ref.watch(reembolsoProvider(codigo)).isLoading;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Card(
+        key: const Key('seccionReembolso'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Reembolso', style: tema.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(
+                'Recibirás ${formatearUsd(reembolso.montoDevuelto)}; se retiene '
+                '${formatearUsd(reembolso.montoRetenido)} '
+                '(${reembolso.porcentajeRetenido} %).',
+                key: const Key('textoReembolsoPrevisto'),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  key: const Key('botonSolicitarReembolso'),
+                  onPressed: enCurso ? null : () => _solicitar(context, ref),
+                  child: enCurso
+                      ? const IndicadorBoton()
+                      : const Text('Solicitar reembolso'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
