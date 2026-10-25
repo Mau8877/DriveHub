@@ -172,6 +172,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://drivehub-postgres:5432/pagos
       # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
       - IDENTIDAD_URL=http://drivehub-identidad:8081
+      # Alumnos asignados a un instructor (CU29).
+      - ESCUELA_URL=http://drivehub-escuela:8082
       - SPRING_DATASOURCE_USERNAME=pagos
       - SPRING_DATASOURCE_PASSWORD=${PAGOS_DB_PASSWORD}
       # Pasarela de pago, Stripe (CU26). Vacias, el servicio arranca igual y responde 503 al cobrar.

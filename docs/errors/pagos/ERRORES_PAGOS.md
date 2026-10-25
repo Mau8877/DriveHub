@@ -78,14 +78,24 @@ Las constantes viven en `PagosErrorCodes` (`common/exception/`).
   tiene billetera (CU27). No se descuenta nada.
 - **Dónde se lanza:** `BilleteraService.consumir()`
 
+## `ERR_PAG_12`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El estudiante no es alumno vigente del instructor que consulta (CU29). Un alumno de otro
+  instructor, de otra escuela, uno cuya asignación terminó y un código inexistente responden igual: no se
+  distingue "no existe" de "no es tuyo". También se devuelve si Identidad no conoce a la persona.
+- **Dónde se lanza:** `HorasAlumnosService.detalle()`
+
 ## `ERR_PAG_15`
 
 - **HTTP:** 503
 - **Excepción:** `ServicioNoDisponibleException`
-- **Significado:** Un servicio del que depende la operación no respondió o respondió algo inesperado: hoy,
-  Identidad al pedir el perfil del estudiante que compra un plan (CU26). No se creó ningún pago y se puede
-  reintentar más tarde.
-- **Dónde se lanza:** `IdentidadClient.perfilPropio()`
+- **Significado:** Un servicio del que depende la operación no respondió o respondió algo inesperado: Identidad al
+  pedir el perfil del estudiante que compra un plan (CU26), y Escuela o Identidad al pedir los alumnos de un
+  instructor y sus nombres (CU29). No se cambió nada y se puede reintentar más tarde.
+- **Dónde se lanza:** `IdentidadClient.perfilPropio()`, `IdentidadClient.nombresDe()`,
+  `EscuelaClient.alumnosDelInstructor()` y `EscuelaClient.esMiAlumno()`
 
 ## `ERR_PAG_16`
 

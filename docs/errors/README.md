@@ -82,6 +82,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_12`](escuela/ERRORES_ESCUELA.md#err_esc_12) — El número de licencia ya está en uso (409)
 - [`ERR_ESC_13`](escuela/ERRORES_ESCUELA.md#err_esc_13) — El instructor no existe en la escuela (404)
 - [`ERR_ESC_14`](escuela/ERRORES_ESCUELA.md#err_esc_14) — Una categoría del instructor no es válida (400)
+- [`ERR_ESC_15`](escuela/ERRORES_ESCUELA.md#err_esc_15) — El estudiante no es alumno de este instructor (404)
 
 ### Pagos (`PAG`)
 
@@ -94,6 +95,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_PAG_07`](pagos/ERRORES_PAGOS.md#err_pag_07) — El pago no existe o es de otra persona (404)
 - [`ERR_PAG_08`](pagos/ERRORES_PAGOS.md#err_pag_08) — El aviso de la pasarela no se pudo verificar (400)
 - [`ERR_PAG_09`](pagos/ERRORES_PAGOS.md#err_pag_09) — No hay horas suficientes en la billetera (409)
+- [`ERR_PAG_12`](pagos/ERRORES_PAGOS.md#err_pag_12) — El estudiante no es alumno de este instructor (404)
 - [`ERR_PAG_15`](pagos/ERRORES_PAGOS.md#err_pag_15) — Un servicio del que depende la operación no está disponible (503)
 - [`ERR_PAG_16`](pagos/ERRORES_PAGOS.md#err_pag_16) — No hay horas gastadas en esa clase para devolver (404)
 - [`ERR_PAG_17`](pagos/ERRORES_PAGOS.md#err_pag_17) — La compra con esa clave todavía se está procesando (409)

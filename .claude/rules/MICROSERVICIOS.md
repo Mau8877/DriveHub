@@ -38,7 +38,7 @@ el espejo de las rutas de
 | --- | --- |
 | `identidad` | `auth`, `usuarios`, `estudiantes`, `roles`, `permisos` |
 | `escuela` | `escuelas`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
-| `pagos` | `planes-pago`, `pagos`, `comprobantes`, `billeteras-horas`, `webhooks-stripe` |
+| `pagos` | `planes-pago`, `pagos`, `comprobantes`, `billeteras-horas`, `horas-alumnos`, `webhooks-stripe` |
 | `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
 | `contenido` | `manuales`, `tutoriales` |
 | `notificaciones` | `notificaciones`, `preferencias-notificacion`, `dispositivos-push` |
@@ -96,6 +96,8 @@ existen son:
 | Identidad → Escuela | Validar que una categoría de licencia existe (reenvía el Bearer del Administrador) | CU08 |
 | Escuela → Identidad | Crear, consultar, buscar, reubicar y revertir la cuenta de un instructor (reenvía el Bearer del Administrador) | CU09 |
 | Pagos → Identidad | Consultar el perfil del estudiante que compra, para copiar su nombre y el de su escuela al pago (reenvía el Bearer del estudiante) | CU26 |
+| Pagos → Escuela | Consultar los alumnos asignados al instructor y si un estudiante es suyo (reenvía el Bearer del instructor) | CU29 |
+| Pagos → Identidad | Consultar el nombre de un conjunto de estudiantes, para mostrar a los alumnos del instructor sin guardar sus datos (reenvía el Bearer del instructor) | CU29 |
 
 Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
 Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque
