@@ -161,6 +161,21 @@ entre uno y otro.
   `php artisan migrate` (colecciones e índices) y `php artisan serve`.
   `vendor/` en un volumen propio.
 
+### Probar pagos con Stripe (CU26 y CU27)
+
+El pago se confirma solo con el **aviso firmado** de Stripe, nunca porque la app vuelva de la página de pago. En
+local Stripe no puede llamar a tu máquina, así que la CLI de Stripe reenvía los avisos al gateway:
+
+```bash
+stripe listen --forward-to localhost:8080/api/v1/webhooks-stripe
+```
+
+La CLI imprime un secreto `whsec_...`: se copia a `STRIPE_WEBHOOK_SECRET` del `.env` y se reinicia `pagos`. Con
+eso, pagar una compra de horas con la tarjeta de prueba `4242 4242 4242 4242` deja el pago en `CONFIRMADO` y las
+horas visibles en `GET /api/v1/billeteras-horas/mia`. `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` solo van en
+el `.env` (ignorado por git), nunca en el repositorio. En un despliegue, el aviso se configura en el panel de
+Stripe apuntando a `https://{dominio}/api/v1/webhooks-stripe`, con su propio secreto.
+
 ## 9. Frontend en desarrollo
 
 Un único contenedor `frontend` (`node:24-alpine`) instala el workspace y

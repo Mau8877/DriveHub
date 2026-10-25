@@ -92,7 +92,10 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_PAG_05`](pagos/ERRORES_PAGOS.md#err_pag_05) — El plan no está disponible para comprar (404)
 - [`ERR_PAG_06`](pagos/ERRORES_PAGOS.md#err_pag_06) — La pasarela de pago no está disponible (503)
 - [`ERR_PAG_07`](pagos/ERRORES_PAGOS.md#err_pag_07) — El pago no existe o es de otra persona (404)
+- [`ERR_PAG_08`](pagos/ERRORES_PAGOS.md#err_pag_08) — El aviso de la pasarela no se pudo verificar (400)
+- [`ERR_PAG_09`](pagos/ERRORES_PAGOS.md#err_pag_09) — No hay horas suficientes en la billetera (409)
 - [`ERR_PAG_15`](pagos/ERRORES_PAGOS.md#err_pag_15) — Un servicio del que depende la operación no está disponible (503)
+- [`ERR_PAG_16`](pagos/ERRORES_PAGOS.md#err_pag_16) — No hay horas gastadas en esa clase para devolver (404)
 - [`ERR_PAG_17`](pagos/ERRORES_PAGOS.md#err_pag_17) — La compra con esa clave todavía se está procesando (409)
 - [`ERR_PAG_18`](pagos/ERRORES_PAGOS.md#err_pag_18) — La clave de compra ya se usó para otra compra (409)
 

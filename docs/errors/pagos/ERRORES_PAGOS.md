@@ -61,6 +61,23 @@ Las constantes viven en `PagosErrorCodes` (`common/exception/`).
 - **Significado:** El pago pedido no existe o es de otra persona (CU26 y CU28). Un pago ajeno y un código inexistente responden igual: no se distinguen.
 - **Dónde se lanza:** `PagoService.estado()` y `ConsultaPagosService.detalle()`
 
+## `ERR_PAG_08`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** Un aviso que dice venir de la pasarela de pago no se pudo verificar (CU27): le falta la firma, la
+  firma no es válida, el cuerpo fue alterado, la hora del aviso está fuera de la tolerancia, o el servicio no tiene
+  configurado el secreto con que se verifican. No se cambia nada.
+- **Dónde se lanza:** `StripePasarela.verificarAviso()`
+
+## `ERR_PAG_09`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se quiso gastar más horas de las que tiene la billetera del estudiante, o el estudiante todavía no
+  tiene billetera (CU27). No se descuenta nada.
+- **Dónde se lanza:** `BilleteraService.consumir()`
+
 ## `ERR_PAG_15`
 
 - **HTTP:** 503
@@ -69,6 +86,14 @@ Las constantes viven en `PagosErrorCodes` (`common/exception/`).
   Identidad al pedir el perfil del estudiante que compra un plan (CU26). No se creó ningún pago y se puede
   reintentar más tarde.
 - **Dónde se lanza:** `IdentidadClient.perfilPropio()`
+
+## `ERR_PAG_16`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** No hay horas para devolver de esa clase (CU27): la clase nunca gastó horas de esa billetera, o ya
+  se le devolvió todo lo que gastó.
+- **Dónde se lanza:** `BilleteraService.devolver()`
 
 ## `ERR_PAG_17`
 

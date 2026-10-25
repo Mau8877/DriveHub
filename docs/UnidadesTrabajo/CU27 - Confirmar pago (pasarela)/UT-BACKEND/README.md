@@ -66,6 +66,23 @@ Errores: `400 ERR_PAG_08` aviso con firma inválida, `409 ERR_PAG_09` horas insu
 
 Este CU no tiene interfaz: no hay UT de frontend ni de móvil.
 
+## Ajustes al implementar
+
+Lo que quedó distinto de lo previsto al construir estas UT:
+
+- **Bloqueo pesimista**: la billetera y los pagos se leen con bloqueo de escritura (`PESSIMISTIC_WRITE`) al acreditar,
+  consumir y devolver, y `acreditar` bloquea la billetera antes de mirar la idempotencia. Así dos operaciones a la
+  vez se atienden una después de la otra (el `@Version` queda como segunda defensa).
+- **`consumir` y `devolver` reciben `solicitanteCodigo`** (quien hace la petición, del token), además del estudiante:
+  con él el service decide que un estudiante solo toque su propia billetera.
+- **`StripePasarela` recibe un `Clock`** y la tolerancia de la firma sale de `PAGOS_TOLERANCIA_FIRMA_SEGUNDOS`
+  (300 por defecto), para poder probar la firma vencida.
+- **Saldo con rol**: `miSaldo` (`ESTUDIANTE`) y `saldoDe` (`INSTRUCTOR`, `ADMIN_ESCUELA`) envuelven a `saldo`.
+- **El aviso público también en el gateway**: `POST /api/v1/webhooks-stripe` es público en el gateway y en Pagos; la
+  firma es su autenticación. Las rutas `billeteras-horas` y `webhooks-stripe` se suman al predicado de Pagos.
+- **Compensación**: `CompensacionRequerida` se publica por un evento interno (`MONTO_DISTINTO`,
+  `ACREDITACION_FALLIDA`, `COBRO_TARDIO`) con el id del cobro; lo escuchará CU31.
+
 ## Follow-ups (no se implementan en estas UT)
 
 - Proceso que publica `outbox_evento` a RabbitMQ (cuando exista el primer consumidor).

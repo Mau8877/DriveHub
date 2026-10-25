@@ -3,8 +3,8 @@
 Lo que Académico (Leonel) necesita de Pagos para **gastar y devolver las horas** que los estudiantes compran
 ([CU26 a CU31](../CasosDeUso/CU26%20-%20Realizar%20pago.md)). La billetera vive en Pagos
 ([`DISENO_BASE_DE_DATOS.md`](DISENO_BASE_DE_DATOS.md#4-pagos--postgresql)); Académico nunca lee su base: usa este
-contrato. **Es una propuesta para acordar con Leonel** antes de implementar. El formato exacto (rutas, campos,
-códigos de error) lo fijan las UT de Pagos.
+contrato. **Las rutas y los campos de abajo ya están implementados en Pagos (CU27)**; lo que falta acordar con Leonel está
+al final.
 
 ## Quién hace qué
 
@@ -26,6 +26,22 @@ Todas por REST interno (servicio a servicio), con el código del estudiante y de
    - Con la misma clave otra vez: devuelve el resultado anterior sin descontar de nuevo.
 3. **Devolver horas:** si la clase se cancela. Lleva el `clase_codigo` y su propia clave de idempotencia; devuelve
    exactamente lo que ese consumo descontó.
+
+## Rutas (por el gateway, con el JWT del usuario)
+
+La escuela sale siempre del token. Todas responden con el sobre estándar.
+
+| Operación | Ruta | Quién | Respuesta |
+| --- | --- | --- | --- |
+| Saldo propio | `GET /api/v1/billeteras-horas/mia` | `ESTUDIANTE` | `{ horasDisponibles }` |
+| Saldo de un estudiante | `GET /api/v1/billeteras-horas/{estudianteCodigo}/saldo` | `INSTRUCTOR`, `ADMIN_ESCUELA` | `{ horasDisponibles }` |
+| Descontar | `POST /api/v1/billeteras-horas/consumos` | `INSTRUCTOR`, `ADMIN_ESCUELA`; el `ESTUDIANTE` solo sobre sí | `201` `{ horasDescontadas, horasDisponibles }` |
+| Devolver | `POST /api/v1/billeteras-horas/devoluciones` | igual que descontar | `200` `{ horasDevueltas, horasDisponibles }` |
+
+- Descontar y devolver llevan el header `Idempotency-Key` (obligatorio, hasta 64 caracteres; sin él `ERR_SYS_01`).
+- Cuerpo de descontar: `{ estudianteCodigo, horas (1 a 500), instructorCodigo, claseCodigo }`. Cuerpo de devolver:
+  `{ estudianteCodigo, claseCodigo }`.
+- Errores: `409 ERR_PAG_09` sin horas suficientes; `404 ERR_PAG_16` si esa clase no descontó horas.
 
 ## Reglas que Académico tiene que respetar
 
