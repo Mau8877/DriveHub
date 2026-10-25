@@ -37,6 +37,14 @@ dólares como referencia). La contratación del plan por el estudiante y sus cuo
 cuando se documenten, toman número desde el CU26 en adelante. El archivo, las UT y los comentarios usan solo
 el significado nuevo.
 
+**Excepción vigente: CU26 a CU31.** Los nombres del PDF se mantienen, pero el contenido cambia: son la compra
+de horas con tarjeta (Stripe) y su billetera. CU26 es comprar un plan de horas, CU27 confirma el pago con el
+aviso de la pasarela y acredita las horas, CU28 es el historial del estudiante (con el pedido de reembolso),
+CU29 son los alumnos del instructor con las horas gastadas con él, CU30 el comprobante en PDF y CU31 la
+reversión. **CU31 ya no es solo del sistema:** además de compensar una compra fallida, ejecuta el reembolso
+que pide el estudiante (con el 5 % retenido). Ya no hay contratación de un plan ni cuotas: se eliminan
+`inscripcion_plan` y `cuota`. El archivo, las UT y los comentarios usan solo el significado nuevo.
+
 ## Granularidad: un CU, un flujo
 
 Si una funcionalidad agrupa más de un flujo de usuario independiente, se
