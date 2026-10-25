@@ -1,4 +1,5 @@
 import 'pago_resumen.dart';
+import 'comprobante_resumen.dart';
 import 'reembolso_previsto.dart';
 
 /// El detalle de una compra (CU28): `GET /pagos/{codigo}`.
@@ -10,6 +11,9 @@ class PagoDetalle extends PagoResumen {
   final DateTime? confirmadoEn;
   final bool reembolsable;
   final ReembolsoPrevisto? reembolso;
+
+  /// El comprobante de la compra y, si se reembolsó, el del reembolso (CU30); vacío si todavía no hay.
+  final List<ComprobanteResumen> comprobantes;
 
   const PagoDetalle({
     required super.codigo,
@@ -23,6 +27,7 @@ class PagoDetalle extends PagoResumen {
     this.confirmadoEn,
     required this.reembolsable,
     this.reembolso,
+    this.comprobantes = const [],
   });
 
   factory PagoDetalle.fromJson(Map<String, dynamic> json) {
@@ -30,6 +35,7 @@ class PagoDetalle extends PagoResumen {
     final horasRestantes = json['horasRestantes'] as num?;
     final confirmadoEn = json['confirmadoEn'] as String?;
     final reembolso = json['reembolso'] as Map<String, dynamic>?;
+    final comprobantes = json['comprobantes'] as List<dynamic>? ?? const [];
     return PagoDetalle(
       codigo: resumen.codigo,
       planNombre: resumen.planNombre,
@@ -44,6 +50,10 @@ class PagoDetalle extends PagoResumen {
           : DateTime.parse(confirmadoEn).toLocal(),
       reembolsable: json['reembolsable'] as bool? ?? false,
       reembolso: reembolso == null ? null : ReembolsoPrevisto.fromJson(reembolso),
+      comprobantes: [
+        for (final c in comprobantes)
+          ComprobanteResumen.fromJson(c as Map<String, dynamic>),
+      ],
     );
   }
 }

@@ -7,10 +7,12 @@ import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/cockpit_scaffold.dart';
 import '../../../shared/widgets/indicador_boton.dart';
+import '../models/comprobante_resumen.dart';
 import '../models/estado_pago_visible.dart';
 import '../models/pago_detalle.dart';
 import '../providers/pago_detail_provider.dart';
 import '../providers/reembolso_provider.dart';
+import '../widgets/boton_comprobante.dart';
 import '../widgets/dialogo_reembolso.dart';
 import '../widgets/formato_dinero.dart';
 import '../widgets/formato_fecha.dart';
@@ -22,7 +24,7 @@ import '../widgets/mensajes_de_reembolso.dart';
 ///
 /// * Una compra ajena o inexistente (`ERR_PAG_07`) vuelve a la lista con un aviso.
 /// * El reembolso (CU31) aparece solo si el backend dice que la compra es reembolsable; los comprobantes (CU30)
-///   se suman con su caso de uso móvil.
+///   se descargan desde su sección.
 class PagoDetalleScreen extends ConsumerWidget {
   final String codigo;
 
@@ -137,6 +139,7 @@ class _Contenido extends StatelessWidget {
           ),
         ),
         _SeccionReembolso(pago: pago, codigo: codigo),
+        _SeccionComprobantes(comprobantes: pago.comprobantes),
       ],
     );
   }
@@ -246,6 +249,62 @@ class _Dato extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// La sección «Comprobantes» (CU30): una fila por comprobante con su botón de descarga, o «En preparación» si su
+/// PDF todavía no está. Sin comprobantes, no aparece.
+class _SeccionComprobantes extends StatelessWidget {
+  final List<ComprobanteResumen> comprobantes;
+
+  const _SeccionComprobantes({required this.comprobantes});
+
+  @override
+  Widget build(BuildContext context) {
+    if (comprobantes.isEmpty) return const SizedBox.shrink();
+    final tema = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Card(
+        key: const Key('seccionComprobantes'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Comprobantes', style: tema.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              for (final comprobante in comprobantes)
+                Padding(
+                  key: Key('comprobante-${comprobante.codigo}'),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${comprobante.tipo.etiqueta} ${comprobante.numero}',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (comprobante.disponible)
+                        BotonComprobante(codigo: comprobante.codigo)
+                      else
+                        Text(
+                          'En preparación',
+                          key: Key('enPreparacion-${comprobante.codigo}'),
+                          style: tema.textTheme.bodyMedium?.copyWith(
+                            color: tema.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

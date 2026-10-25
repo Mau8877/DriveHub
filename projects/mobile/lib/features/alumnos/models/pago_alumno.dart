@@ -10,12 +10,16 @@ class PagoAlumno {
   final EstadoPagoVisible estado;
   final DateTime creadoEn;
 
+  /// El comprobante de la compra, cuando su PDF ya está listo (CU30); si no, `null`.
+  final String? comprobanteCodigo;
+
   const PagoAlumno({
     required this.codigo,
     required this.planNombre,
     required this.horas,
     required this.estado,
     required this.creadoEn,
+    this.comprobanteCodigo,
   });
 
   factory PagoAlumno.fromJson(Map<String, dynamic> json) => PagoAlumno(
@@ -24,5 +28,6 @@ class PagoAlumno {
     horas: (json['horas'] as num).toInt(),
     estado: EstadoPagoVisible.fromJson(json['estado'] as String),
     creadoEn: DateTime.parse(json['creadoEn'] as String).toLocal(),
+    comprobanteCodigo: json['comprobanteCodigo'] as String?,
   );
 }

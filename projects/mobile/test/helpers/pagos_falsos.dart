@@ -5,6 +5,7 @@ import 'package:mobile/core/network/pagina.dart';
 import 'package:mobile/features/pagos/models/estado_de_pago.dart';
 import 'package:mobile/features/pagos/models/estado_pago.dart';
 import 'package:mobile/features/pagos/models/estado_pago_visible.dart';
+import 'package:mobile/features/pagos/models/comprobante_resumen.dart';
 import 'package:mobile/features/pagos/models/motivo_reembolso.dart';
 import 'package:mobile/features/pagos/models/pago_detalle.dart';
 import 'package:mobile/features/pagos/models/reembolso_previsto.dart';
@@ -57,6 +58,7 @@ PagoDetalle detalleDePrueba({
   int? horasRestantes = 7,
   bool confirmado = true,
   bool reembolsable = false,
+  List<ComprobanteResumen> comprobantes = const [],
 }) =>
     PagoDetalle(
       codigo: codigo,
@@ -69,6 +71,7 @@ PagoDetalle detalleDePrueba({
       horasRestantes: horasRestantes,
       confirmadoEn: confirmado ? DateTime(2026, 5, 4, 12, 1) : null,
       reembolsable: reembolsable,
+      comprobantes: comprobantes,
       reembolso: reembolsable
           ? const ReembolsoPrevisto(montoDevuelto: 36.32, montoRetenido: 1.91, porcentajeRetenido: 5)
           : null,

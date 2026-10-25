@@ -7,6 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/cockpit_scaffold.dart';
+import '../../pagos/widgets/boton_comprobante.dart';
 import '../../pagos/widgets/formato_fecha.dart';
 import '../../pagos/widgets/insignia_de_estado_pago.dart';
 import '../models/horas_alumno_detalle.dart';
@@ -15,7 +16,7 @@ import '../providers/alumno_detalle_provider.dart';
 /// El detalle de un alumno para su instructor (CU29, `/students/:codigo`): el resumen de horas, el tiempo
 /// conjunto clase a clase y las compras del alumno.
 ///
-/// * Solo lectura: ninguna acción sobre el alumno ni sobre sus pagos. El comprobante llega con CU30.
+/// * Solo lectura: ninguna acción sobre el alumno ni sobre sus pagos. El comprobante de cada compra se descarga desde su fila (CU30).
 /// * Un alumno ajeno o inexistente (`ERR_PAG_12`, 404) vuelve a la lista con un aviso.
 class AlumnoDetalleScreen extends ConsumerWidget {
   final String codigo;
@@ -148,7 +149,16 @@ class _Contenido extends StatelessWidget {
                     subtitle: Text(
                       '${pago.horas == 1 ? '1 hora' : '${pago.horas} horas'} · ${formatearFechaCorta(pago.creadoEn)}',
                     ),
-                    trailing: InsigniaDeEstadoPago(pago.estado),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (pago.comprobanteCodigo != null) ...[
+                          BotonComprobante(codigo: pago.comprobanteCodigo!),
+                          const SizedBox(width: 8),
+                        ],
+                        InsigniaDeEstadoPago(pago.estado),
+                      ],
+                    ),
                   ),
               ],
             ),
