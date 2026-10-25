@@ -164,17 +164,22 @@ entre uno y otro.
 ### Probar pagos con Stripe (CU26 y CU27)
 
 El pago se confirma solo con el **aviso firmado** de Stripe, nunca porque la app vuelva de la página de pago. En
-local Stripe no puede llamar a tu máquina, así que la CLI de Stripe reenvía los avisos al gateway:
+local Stripe no puede llamar a tu máquina, así que la CLI de Stripe reenvía los avisos al gateway. No hace falta
+instalarla: va como un contenedor opcional.
 
-```bash
-stripe listen --forward-to localhost:8080/api/v1/webhooks-stripe
-```
+1. En el `.env`: `STRIPE_SECRET_KEY` (clave de prueba `sk_test_...` de tu cuenta de Stripe) y `stripe` en
+   `COMPOSE_PROFILES` (por ejemplo `backend,frontend,extras,stripe`).
+2. `docker compose up -d stripe-cli`, y `docker compose logs stripe-cli` imprime `signing secret is whsec_...`.
+3. Ese valor va en `STRIPE_WEBHOOK_SECRET` del `.env` y se reinicia `pagos` (`docker compose up -d pagos`).
+   El secreto de la CLI se mantiene mientras uses la misma clave, así que se copia una sola vez por máquina.
+4. Pagar una compra de horas con la tarjeta de prueba `4242 4242 4242 4242` deja el pago en `CONFIRMADO` y las
+   horas en `GET /api/v1/billeteras-horas/mia`.
 
-La CLI imprime un secreto `whsec_...`: se copia a `STRIPE_WEBHOOK_SECRET` del `.env` y se reinicia `pagos`. Con
-eso, pagar una compra de horas con la tarjeta de prueba `4242 4242 4242 4242` deja el pago en `CONFIRMADO` y las
-horas visibles en `GET /api/v1/billeteras-horas/mia`. `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` solo van en
-el `.env` (ignorado por git), nunca en el repositorio. En un despliegue, el aviso se configura en el panel de
-Stripe apuntando a `https://{dominio}/api/v1/webhooks-stripe`, con su propio secreto.
+Quien no trabaja con pagos no necesita nada de esto: sin el perfil `stripe` el contenedor no arranca, y sin
+claves `pagos` arranca igual (responde 503 al intentar cobrar). Cada persona usa su propia cuenta de prueba de
+Stripe. Las claves van solo en el `.env` (ignorado por git), nunca en el repositorio. En un despliegue el aviso se
+configura en el panel de Stripe apuntando a `https://{dominio}/api/v1/webhooks-stripe`, con su propio secreto, y
+no se usa la CLI.
 
 ## 9. Frontend en desarrollo
 
