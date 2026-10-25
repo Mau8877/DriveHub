@@ -47,6 +47,7 @@ import com.drivehub.pagos.features.pagos.enums.EstadoPago;
 import com.drivehub.pagos.features.pagos.enums.EstadoPagoVisible;
 import com.drivehub.pagos.features.pagos.service.ConsultaPagosService;
 import com.drivehub.pagos.features.pagos.service.PagoService;
+import com.drivehub.pagos.features.pagos.service.ReversionService;
 
 /**
  * El contrato HTTP de los pagos del estudiante (CU26): status, forma del sobre y validación. El service va
@@ -71,6 +72,9 @@ class PagoControllerTest {
 
     @MockitoBean
     private ConsultaPagosService consulta;
+
+    @MockitoBean
+    private ReversionService reversion;
 
     private static JwtRequestPostProcessor estudiante() {
         return jwt().jwt(j -> j.subject(ESTUDIANTE.toString()).claim("escuela", ESCUELA.toString()));

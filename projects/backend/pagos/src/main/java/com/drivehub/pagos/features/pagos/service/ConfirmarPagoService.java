@@ -61,12 +61,15 @@ public class ConfirmarPagoService {
     private final OutboxEventoRepository outboxRepository;
     private final ApplicationEventPublisher eventos;
     private final Clock reloj;
+    private final ReversionService reversionService;
     private final TransactionTemplate escritura;
     private final TransactionTemplate lectura;
 
     public ConfirmarPagoService(PagoRepository pagoRepository, TransaccionPasarelaRepository transaccionRepository,
             BilleteraService billeteraService, OutboxEventoRepository outboxRepository,
-            ApplicationEventPublisher eventos, Clock reloj, PlatformTransactionManager transactionManager) {
+            ApplicationEventPublisher eventos, Clock reloj, PlatformTransactionManager transactionManager,
+            ReversionService reversionService) {
+        this.reversionService = reversionService;
         this.pagoRepository = pagoRepository;
         this.transaccionRepository = transaccionRepository;
         this.billeteraService = billeteraService;
@@ -91,6 +94,10 @@ public class ConfirmarPagoService {
      */
     public void procesar(AvisoPasarela aviso) {
         if (aviso.tipo() == TipoAviso.OTRO) {
+            return;
+        }
+        if (aviso.esDeReembolso()) {
+            reversionService.aplicarAvisoReembolso(aviso);
             return;
         }
         Long pagoId = lectura.execute(estado -> aviso.referenciaExterna() == null ? null

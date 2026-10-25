@@ -14,5 +14,8 @@ public interface TransaccionPasarelaRepository extends JpaRepository<Transaccion
     /** El último intercambio de un pago (por id interno del pago). */
     Optional<TransaccionPasarela> findFirstByPagoIdOrderByIdDesc(Long pagoId);
 
+    /** El último intercambio de un pago con ese proveedor: el cobro (`STRIPE`) o su devolución (`STRIPE_REEMBOLSO`). */
+    Optional<TransaccionPasarela> findFirstByPagoIdAndProveedorOrderByIdDesc(Long pagoId, String proveedor);
+
     Optional<TransaccionPasarela> findByReferenciaExterna(String referenciaExterna);
 }

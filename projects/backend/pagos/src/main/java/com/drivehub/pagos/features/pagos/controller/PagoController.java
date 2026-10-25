@@ -25,15 +25,17 @@ import com.drivehub.pagos.features.pagos.dto.IniciarPagoRequest;
 import com.drivehub.pagos.features.pagos.dto.PagoDetalleResponse;
 import com.drivehub.pagos.features.pagos.dto.PagoIniciadoResponse;
 import com.drivehub.pagos.features.pagos.dto.PagoResumenResponse;
+import com.drivehub.pagos.features.pagos.dto.SolicitarReembolsoRequest;
 import com.drivehub.pagos.features.pagos.enums.EstadoPagoVisible;
 import com.drivehub.pagos.features.pagos.service.ConsultaPagosService;
 import com.drivehub.pagos.features.pagos.service.PagoService;
+import com.drivehub.pagos.features.pagos.service.ReversionService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Los pagos del estudiante: comprar un plan de horas (CU26) y ver su historial (CU28). La decisión por rol vive en el service
+ * Los pagos del estudiante: comprar un plan de horas (CU26) y ver su historial (CU28). pedir el reembolso (CU31). La decisión por rol vive en el service
  * (@PreAuthorize), no acá.
  *
  * * El estudiante y su escuela salen del token, nunca del cuerpo ni de la URL.
@@ -48,6 +50,7 @@ public class PagoController {
 
     private final PagoService pagoService;
     private final ConsultaPagosService consultaPagosService;
+    private final ReversionService reversionService;
 
     /**
      * El historial de compras (CU28). Un `filter[estado]` desconocido es 400 `ERR_SYS_01`.
@@ -90,6 +93,22 @@ public class PagoController {
         HttpStatus estado = resultado.creado() ? HttpStatus.CREATED : HttpStatus.OK;
         return ResponseEntity.status(estado)
             .body(ApiResponse.success(resultado.pago(), "Pago iniciado correctamente"));
+    }
+
+    /**
+     * 202: el reembolso quedó pedido (el detalle viene como "reembolso en proceso"); termina cuando la pasarela
+     * avisa (CU31).
+     */
+    @PostMapping("/{codigo}/reembolso")
+    public ResponseEntity<ApiResponse<PagoDetalleResponse>> reembolsar(
+            @CurrentUserId UUID estudianteCodigo,
+            @CurrentEscuelaId UUID escuelaCodigo,
+            @PathVariable UUID codigo,
+            @Valid @RequestBody SolicitarReembolsoRequest request) {
+        PagoDetalleResponse detalle = reversionService.solicitarReembolso(EscuelaDelToken.exigir(escuelaCodigo),
+            estudianteCodigo, codigo, request.motivo(), request.motivoDetalle());
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+            .body(ApiResponse.success(detalle, "Reembolso solicitado correctamente"));
     }
 
     @GetMapping("/{codigo}/estado")

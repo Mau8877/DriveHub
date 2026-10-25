@@ -59,6 +59,18 @@ public interface PagoRepository extends JpaRepository<Pago, Long>, JpaSpecificat
     @Query("select p from Pago p where p.id = :id")
     Optional<Pago> buscarParaActualizar(@Param("id") Long id);
 
+    /** El pago de ese estudiante en esa escuela con bloqueo de escritura: lo que lee el reembolso (CU31). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Pago p where p.codigo = :codigo and p.estudianteCodigo = :estudiante"
+        + " and p.escuelaCodigo = :escuela")
+    Optional<Pago> buscarDeEstudianteParaActualizar(@Param("codigo") UUID codigo,
+            @Param("estudiante") UUID estudianteCodigo, @Param("escuela") UUID escuelaCodigo);
+
+    /** El pago por su codigo público con bloqueo de escritura: lo que lee la compensación automática (CU31). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Pago p where p.codigo = :codigo")
+    Optional<Pago> buscarPorCodigoParaActualizar(@Param("codigo") UUID codigo);
+
     /**
      * Las compras confirmadas del estudiante a las que todavía le quedan horas, las más antiguas primero, con
      * bloqueo de escritura: de ahí se descuentan las horas que se gastan.

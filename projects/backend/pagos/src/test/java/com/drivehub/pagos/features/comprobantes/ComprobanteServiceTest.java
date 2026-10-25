@@ -79,7 +79,9 @@ class ComprobanteServiceTest {
         ReflectionTestUtils.setField(reversion, "id", 7L);
         ReflectionTestUtils.setField(reversion, "codigo", UUID.randomUUID());
         ReflectionTestUtils.setField(reversion, "pago", pago);
-        ReflectionTestUtils.setField(reversion, "motivo", "Cambié de planes");
+        ReflectionTestUtils.setField(reversion, "origen",
+            com.drivehub.pagos.features.pagos.enums.OrigenReversion.ESTUDIANTE);
+        ReflectionTestUtils.setField(reversion, "motivo", "CAMBIO_DE_PLANES");
 
         pagos = mock(PagoRepository.class);
         when(pagos.findByCodigo(pago.getCodigo())).thenReturn(Optional.of(pago));
