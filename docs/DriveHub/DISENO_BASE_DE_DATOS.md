@@ -551,6 +551,8 @@ Eventos pendientes de publicar a RabbitMQ: se escriben en la misma transacción 
 
 Horarios, reservas, clases, exámenes y simulacros. Los índices se declaran en el código (`@Indexed`, `@CompoundIndex`; `auto-index-creation=true`). Las referencias a otras colecciones del mismo servicio usan el `_id` Long (`franjaId`, `reservaId`…); a otros servicios, el código público.
 
+**Datos sembrados (perfil `dev`):** doce preguntas en el banco de `escuelaexample` y el horario del instructor de ejemplo (`Horario de ejemplo`: lunes a viernes de 08:00 a 12:00 en clases de una hora, vigente desde el día del arranque), con sus franjas generadas con el mismo servicio que usa un horario creado a mano. El instructor es la persona `0198f0a0-0000-7000-8000-000000000002` de Identidad (`instructorexample@gmail.com`). Solo se siembra si el instructor no tiene ningún horario, en cualquier estado.
+
 ```mermaid
 flowchart TD
     plantillas_horario -->|plantillaId| franjas
