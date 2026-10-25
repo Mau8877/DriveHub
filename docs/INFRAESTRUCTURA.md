@@ -186,6 +186,11 @@ instalarla: va como un contenedor opcional.
 4. Pagar una compra de horas con la tarjeta de prueba `4242 4242 4242 4242` deja el pago en `CONFIRMADO` y las
    horas en `GET /api/v1/billeteras-horas/mia`.
 
+Los avisos que Pagos entiende son `checkout.session.completed` y `checkout.session.expired` (el cobro, CU27) y
+`refund.updated`, `refund.failed` y `charge.refunded` (la devolución de un reembolso o una compensación, CU31): la
+CLI ya reenvía esos cinco, y el aviso del panel de Stripe en un despliegue debe suscribirse a los mismos. Sin los de
+devolución, un reembolso se queda en «en proceso» porque Pagos nunca se entera de que Stripe devolvió el dinero.
+
 Quien no trabaja con pagos no necesita nada de esto: sin el perfil `stripe` el contenedor no arranca, y sin
 claves `pagos` arranca igual (responde 503 al intentar cobrar). Cada persona usa su propia cuenta de prueba de
 Stripe. Las claves van solo en el `.env` (ignorado por git), nunca en el repositorio. En un despliegue el aviso se

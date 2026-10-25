@@ -35,6 +35,13 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_MOBILE.md](..
 
 La generación del comprobante es de backend ([UT-BACKEND](../UT-BACKEND/README.md)). Necesita CU28-MOB y CU29-MOB hechos.
 
+## Notas de implementación
+
+- `open_filex` y `path_provider` se agregaron con `flutter pub add` (versiones con `^`, como el resto del `pubspec.yaml`). En Android, `AndroidManifest.xml` declara en `<queries>` el intent `VIEW` de `application/pdf`; iOS no necesita nada más.
+- Un error de una descarga llega como bytes (`ResponseType.bytes`): el interceptor de `ApiClient` decodifica ese JSON para devolver la `ApiException` con su código.
+- `BotonComprobante` fija `minimumSize: Size(0, 40)`: el tema estira los botones a todo el ancho y rompía las filas donde va el botón.
+- Las pruebas usan `ComprobantesServiceFalso` y `AbridorFalso` (`test/helpers/comprobantes_falsos.dart`); ninguna abre un visor de verdad. No se probó con un teléfono ni con el backend real.
+
 ## Follow-ups (no se implementan en estas UT)
 
 - Compartir el PDF por otras apps.
