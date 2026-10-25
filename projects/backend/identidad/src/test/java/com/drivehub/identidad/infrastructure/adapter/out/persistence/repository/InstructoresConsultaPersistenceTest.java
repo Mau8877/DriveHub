@@ -121,6 +121,21 @@ class InstructoresConsultaPersistenceTest extends PostgresIntegrationTestBase {
     }
 
     @Test
+    void buscarEstudiantesPorCodigos_devuelveSoloEstudiantesDeEsaEscuela() {
+        UUID escuelaA = UUID.randomUUID();
+        UUID escuelaB = UUID.randomUUID();
+        Usuario deA = crear(escuelaA, RolNombres.ESTUDIANTE, "Eva", "Alfa");
+        Usuario deB = crear(escuelaB, RolNombres.ESTUDIANTE, "Eli", "Beta");
+        Usuario instructor = instructor(escuelaA, "Ivan", "Alfa");
+
+        List<Usuario> encontrados = usuarios.buscarEstudiantesPorCodigos(escuelaA,
+            List.of(deA.getCodigo(), deB.getCodigo(), instructor.getCodigo(), UUID.randomUUID()));
+
+        assertThat(encontrados).extracting(Usuario::getCodigo).containsExactly(deA.getCodigo());
+        assertThat(usuarios.buscarEstudiantesPorCodigos(escuelaA, List.of())).isEmpty();
+    }
+
+    @Test
     void buscarInstructorDeEscuela_conOtraEscuelaOUnEstudiante_devuelveVacio() {
         UUID escuelaA = UUID.randomUUID();
         Usuario deA = instructor(escuelaA, "Ivan", "Alfa");

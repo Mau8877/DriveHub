@@ -1,6 +1,7 @@
 package com.drivehub.pagos.features.pagos.repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +28,19 @@ public interface PagoRepository extends JpaRepository<Pago, Long>, JpaSpecificat
 
     Optional<Pago> findByCodigoAndEstudianteCodigoAndEscuelaCodigo(UUID codigo, UUID estudianteCodigo,
             UUID escuelaCodigo);
+
+    /**
+     * Las horas compradas de esos estudiantes (CU29): la suma de las horas de sus pagos `CONFIRMADO` de horas.
+     * Los pagos pendientes, fallidos y reembolsados (`REVERTIDO`) no cuentan. Cada fila es
+     * `[estudianteCodigo (UUID), horas (Number)]`; el que no compró nada no aparece.
+     */
+    @Query("select p.estudianteCodigo, sum(p.horas) from Pago p where p.escuelaCodigo = :escuela"
+        + " and p.estudianteCodigo in :estudiantes"
+        + " and p.estado = com.drivehub.pagos.features.pagos.enums.EstadoPago.CONFIRMADO"
+        + " and p.concepto = com.drivehub.pagos.features.pagos.enums.ConceptoPago.HORAS"
+        + " group by p.estudianteCodigo")
+    List<Object[]> horasCompradasPor(@Param("escuela") UUID escuelaCodigo,
+            @Param("estudiantes") Collection<UUID> estudiantes);
 
     /**
      * Los ids de los pagos en ese estado cuya página de pago venció antes de `limite`, los más viejos primero.

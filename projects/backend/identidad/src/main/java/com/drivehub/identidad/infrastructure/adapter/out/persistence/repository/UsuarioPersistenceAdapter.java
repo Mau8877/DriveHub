@@ -169,6 +169,19 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Usuario> buscarEstudiantesPorCodigos(UUID escuelaCodigo, Collection<UUID> codigos) {
+        if (codigos == null || codigos.isEmpty()) {
+            return List.of();
+        }
+        return usuarioJpaRepository
+            .findAll(CuentasDeEscuelaSpecification
+                .deEscuela(escuelaCodigo, RolNombres.ESTUDIANTE, new FiltroEstudiantes(null, null))
+                .and(CuentasDeEscuelaSpecification.conCodigos(codigos)))
+            .stream().map(m -> aDominio(m, m.getPerfil(), Set.of())).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<Usuario> buscarInstructorDeEscuela(UUID escuelaCodigo, UUID codigo) {
         return usuarioJpaRepository
             .findOne(CuentasDeEscuelaSpecification
