@@ -8,7 +8,8 @@ Todo endpoint del backend responde con el mismo sobre (envelope) JSON. No se
 devuelven respuestas "crudas" (un array pelado, un objeto de dominio sin
 envolver, texto plano, etc.) salvo los endpoints de infraestructura que ya
 existen fuera de este contrato (`/health`, `/prometheus`, `/swagger-ui/**`,
-`/v3/api-docs/**`).
+`/v3/api-docs/**`) y la página HTML a la que vuelve el estudiante de la pasarela
+de pago (`GET /api/v1/pagos/retorno`, de Pagos, CU26).
 
 ## Modelo estándar
 
@@ -84,6 +85,7 @@ Todo `GET` que devuelva una colección incluye el bloque `meta`:
 | `423` | Recurso bloqueado temporalmente por una política de seguridad (ej. cuenta bloqueada tras superar el máximo de intentos fallidos de login) | `LockedException` |
 | `429` | Se superó el rate limit por IP (ver [SEGURIDAD_AUTH_BACKEND.md](SEGURIDAD_AUTH_BACKEND.md#rate-limit)) | Ninguna — lo escribe `RateLimitFilter` directo, no pasa por `GlobalExceptionHandler` |
 | `500` | Error no controlado / falla de infraestructura | Cualquier excepción no mapeada explícitamente |
+| `503` | Un servicio del que depende la operación no responde (ej. la pasarela de pago); se puede reintentar | `ServicioNoDisponibleException` |
 
 El detalle de la jerarquía de excepciones y el `@RestControllerAdvice` que
 hace este mapeo vive en [EXCEPCIONES_BACKEND.md](EXCEPCIONES_BACKEND.md) —

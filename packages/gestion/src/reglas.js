@@ -95,6 +95,7 @@ export function validar(campo, valor, hoy = new Date(), contexto = {}) {
     return mensajes.opcion ?? 'Elige una opción de la lista'
   }
   if (campo.tipo === 'numero') return validarNumero(campo, texto, mensajes)
+  if (campo.tipo === 'decimal') return validarDecimal(campo, texto, mensajes)
   if (campo.min !== undefined && texto.length < campo.min) {
     return mensajes.min ?? largoPorDefecto(campo)
   }
@@ -172,6 +173,42 @@ function validarNumero(campo, texto, mensajes) {
   }
   if (campo.max !== undefined && numero > campo.max) {
     return mensajes.max ?? `No puede superar ${campo.max}`
+  }
+  return null
+}
+
+/**
+ * Un número escrito por una persona como decimal: sin espacios y con punto, aunque haya escrito coma
+ * ("1250,5" -> "1250.5"). Lo comparten la validación y el envío.
+ */
+export function normalizarDecimal(texto) {
+  return String(texto ?? '').trim().replace(/\s+/g, '').replace(',', '.')
+}
+
+/** Cómo se escribe un número en español en un mensaje: con coma decimal ("0,01"). */
+const enEspanol = (numero) => String(numero).replace('.', ',')
+
+/**
+ * Un número con hasta `decimales` decimales (2 por defecto), con punto o con coma; `min` y `max` son el rango
+ * del valor, no del largo del texto. Sin separador de miles ni signo.
+ */
+function validarDecimal(campo, texto, mensajes) {
+  const decimales = campo.decimales ?? 2
+  const normalizado = normalizarDecimal(texto)
+  const regex = decimales > 0 ? new RegExp(`^\\d+(\\.\\d{1,${decimales}})?$`) : /^\d+$/
+  if (!regex.test(normalizado)) {
+    const defecto =
+      decimales === 0
+        ? 'Debe ser un número entero'
+        : `Debe ser un número con hasta ${decimales} ${decimales === 1 ? 'decimal' : 'decimales'}`
+    return mensajes.patron ?? defecto
+  }
+  const numero = Number(normalizado)
+  if (campo.min !== undefined && numero < campo.min) {
+    return mensajes.min ?? `Debe ser al menos ${enEspanol(campo.min)}`
+  }
+  if (campo.max !== undefined && numero > campo.max) {
+    return mensajes.max ?? `No puede superar ${enEspanol(campo.max)}`
   }
   return null
 }

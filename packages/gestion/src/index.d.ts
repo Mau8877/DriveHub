@@ -15,7 +15,12 @@ export interface Columna {
   /** Campo del registro (admite puntos). */
   campo: string
   titulo: string
-  tipo?: 'texto' | 'fecha' | 'insignia' | 'foto' | 'etiquetas' | 'imagen' | 'enlace'
+  tipo?: 'texto' | 'fecha' | 'insignia' | 'foto' | 'etiquetas' | 'imagen' | 'enlace' | 'moneda'
+  /**
+   * `tipo: 'moneda'`: el valor numérico se dibuja con el prefijo de esta moneda, miles con punto y dos decimales
+   * con coma (`BOB` -> `Bs 1.250,00`, `USD` -> `US$ 179,60`). Vacío o no numérico se ve vacío.
+   */
+  moneda?: 'BOB' | 'USD'
   /** `tipo: 'foto'`: campo con el nombre completo, para las iniciales cuando la persona no tiene foto. */
   nombre?: string
   /** Para `tipo: 'insignia'`: cómo se muestra cada valor. */
@@ -76,6 +81,7 @@ export interface Campo {
     | 'fecha'
     | 'telefono'
     | 'numero'
+    | 'decimal'
     | 'seleccion'
     | 'ubicacion'
     | 'imagen'
@@ -85,7 +91,12 @@ export interface Campo {
     | 'opciones'
   requerido?: boolean
   /**
-   * Largo mínimo y máximo del texto. En `tipo: 'numero'` son el rango del valor (entero) y en
+   * `decimal`: cuántos decimales admite como máximo (2 por defecto; 0 = solo enteros). Se escribe con punto o
+   * con coma y viaja como número (`1250,5` -> `1250.5`); `min` y `max` son el rango del valor.
+   */
+  decimales?: number
+  /**
+   * Largo mínimo y máximo del texto. En `tipo: 'numero'` y `'decimal'` son el rango del valor y en
    * `tipo: 'opciones'` la cantidad de filas (2 y 6 por defecto).
    */
   min?: number

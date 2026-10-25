@@ -71,8 +71,8 @@ export const NAV_ITEMS: NavItem[] = [
     roles: [ROLES.ADMIN_ESCUELA],
     hijos: [
       {
-        ruta: '/pagos',
-        etiqueta: 'Plan de pagos y cuotas',
+        ruta: '/pagos/planes',
+        etiqueta: 'Planes de horas',
         icono: 'receipt',
         roles: [ROLES.ADMIN_ESCUELA],
       },

@@ -43,6 +43,10 @@ public class SecurityConfig {
                     "/api/v1/auth/recuperar", "/api/v1/auth/restablecer").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/usuarios").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/escuelas/*").permitAll()
+                // * Pagos (CU26): la pagina fija a la que vuelve el estudiante de la pasarela de pago
+                .requestMatchers(HttpMethod.GET, "/api/v1/pagos/retorno").permitAll()
+                // * Pagos (CU27): los avisos de la pasarela no llevan JWT; Pagos los autentica con la firma
+                .requestMatchers(HttpMethod.POST, "/api/v1/webhooks-stripe").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth

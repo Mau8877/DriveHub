@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../features/clases/screens/clases_screen.dart';
 import '../../features/inicio/screens/inicio_screen.dart';
+import '../../features/pagos/screens/pagos_screen.dart';
 import '../../features/perfil/screens/perfil_screen.dart';
 import '../shared/shell_con_barra.dart';
 
@@ -25,7 +26,12 @@ final seccionesEstudiante = [
     builder: (_) => const ClasesScreen(),
   ),
   const SeccionShell('Estudio', Icons.menu_book_outlined, 'CU21, CU34 y CU35'),
-  const SeccionShell('Pagos', Icons.account_balance_wallet_outlined, 'CU26 y CU28'),
+  SeccionShell(
+    'Pagos',
+    Icons.account_balance_wallet_outlined,
+    'CU26 y CU28',
+    builder: (_) => const PagosScreen(),
+  ),
   SeccionShell(
     'Perfil',
     Icons.person_outline,

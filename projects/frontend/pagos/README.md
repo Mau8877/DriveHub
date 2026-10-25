@@ -1,6 +1,6 @@
 # Pagos (web)
 
-Remoto Angular: planes de pago y cuotas (CU25).
+Remoto Angular: planes de horas (CU25).
 
 | | |
 | --- | --- |

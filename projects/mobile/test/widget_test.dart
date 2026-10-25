@@ -7,6 +7,7 @@ import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/features/auth/providers/sesion_provider.dart';
 import 'package:mobile/layouts/estudiante/estudiante_shell.dart';
 
+import 'helpers/pagos_falsos.dart';
 import 'helpers/sesion_falsa.dart';
 
 // * No se testea `MyApp` completo -- `main()` depende de `dotenv.load()`
@@ -34,7 +35,10 @@ void main() {
   testWidgets('muestra la sección inicial del shell de estudiante', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sesionFalsa(SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba)))],
+        overrides: [
+          sesionFalsa(SesionFalsa(const EstadoSesion.conSesion(usuarioDePrueba))),
+          pagosServiceFalso(PagosServiceFalso()),
+        ],
         child: MaterialApp(theme: AppTheme.light, home: const EstudianteShell()),
       ),
     );

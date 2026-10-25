@@ -1,6 +1,6 @@
 # Pagos
 
-Planes de pago, cuotas, pagos con pasarela (QR), comprobantes y reversiones. CU25 a CU31.
+Planes de horas, pagos con tarjeta (Stripe), billetera de horas, comprobantes y reversiones. CU25 a CU31.
 
 | | |
 | --- | --- |

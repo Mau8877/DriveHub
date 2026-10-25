@@ -395,36 +395,35 @@ Instructor asignado a cada estudiante. Un estudiante tiene un solo instructor vi
 
 ## 4. Pagos — PostgreSQL
 
-Planes, cuotas, pagos, pasarela, comprobantes y reversiones. Migración: `V20261018120000__crear_esquema_pagos.sql`. El estado de la saga reserva-pago **no** vive acá ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
+Planes de horas, pagos, pasarela, billetera de horas, comprobantes y reversiones. Migraciones: `V20261018120000__crear_esquema_pagos.sql`, `V20261025100000__plan_pago_de_horas.sql` (CU25) y una migración nueva de la compra de horas (CU26 a CU31, que fijan las UT: elimina `inscripcion_plan` y `cuota`, ajusta `pago`, `transaccion_pasarela`, `comprobante` y `reversion_pago`, y crea `billetera_horas` y `movimiento_horas`). El estado de la saga reserva-pago **no** vive acá ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
+
+**Compra de horas (CU26 a CU31).** El estudiante compra un plan de horas con tarjeta (Stripe, Checkout Session), cobrado en USD. El aviso firmado de la pasarela confirma el pago y acredita las horas en su billetera. Si algo falla después de cobrar, o el estudiante pide el reembolso de una compra que no usó, se devuelve el cobro. Es una saga corta coreografiada con `outbox_evento`, sin orquestador propio. `inscripcion_plan` y `cuota` se eliminaron: no hay cuotas.
 
 ```mermaid
 erDiagram
-    plan_pago ||--o{ inscripcion_plan : "contratado en"
-    inscripcion_plan ||--o{ cuota : "cuotas"
-    cuota ||--o{ pago : "se paga con"
+    plan_pago ||--o{ pago : "se compra en"
     pago ||--o{ transaccion_pasarela : "intercambios"
-    pago ||--|| comprobante : "comprobante"
+    pago ||--o{ comprobante : "comprobantes"
     pago ||--o{ reversion_pago : "reversiones"
+    pago ||--o{ movimiento_horas : "horas movidas"
+    billetera_horas ||--o{ movimiento_horas : "libro"
+    reversion_pago ||--o| comprobante : "comprobante de reembolso"
 
     plan_pago {
         bigint id PK
+        uuid escuela_codigo "Escuela"
         varchar nombre
-        numeric monto_total
-    }
-    inscripcion_plan {
-        bigint id PK
-        uuid estudiante_codigo "Identidad"
-        bigint plan_pago_id FK
-    }
-    cuota {
-        bigint id PK
-        bigint inscripcion_plan_id FK
-        smallint nro
+        smallint horas
+        numeric costo_bs
     }
     pago {
         bigint id PK
+        uuid escuela_codigo "Escuela"
         uuid estudiante_codigo "Identidad"
-        bigint cuota_id FK
+        bigint plan_pago_id FK
+        smallint horas
+        smallint horas_restantes
+        numeric monto "USD"
         uuid reserva_codigo "Académico"
         varchar idempotency_key UK
     }
@@ -432,12 +431,28 @@ erDiagram
         bigint pago_id FK
         varchar referencia_externa UK
     }
+    billetera_horas {
+        bigint id PK
+        uuid escuela_codigo "Escuela"
+        uuid estudiante_codigo "Identidad"
+        int horas_disponibles
+        bigint version
+    }
+    movimiento_horas {
+        bigint id PK
+        bigint billetera_horas_id FK
+        bigint pago_id FK
+        varchar tipo
+        smallint horas
+    }
     comprobante {
-        bigint pago_id FK, UK
+        bigint pago_id FK
+        bigint reversion_pago_id FK
         varchar nro_comprobante UK
     }
     reversion_pago {
         bigint pago_id FK
+        varchar origen
     }
     outbox_evento {
         bigint id PK
@@ -447,95 +462,116 @@ erDiagram
 
 ### `plan_pago` (CU25)
 
+Plan de horas que ofrece una escuela: un nombre, una cantidad de horas y un costo en bolivianos. Es de una escuela (multitenant): extiende `BaseEscuelaModel`. El costo en dólares **no se guarda**: lo calcula el servicio con el tipo de cambio configurado (variable de entorno `TIPO_CAMBIO_BS_USD`, sin valor por defecto en el código; hoy 11,77). Se desactiva (`activo = false`), no se borra.
+
 | Columna | Tipo | Notas |
 | --- | --- | --- |
-| `nombre` | `VARCHAR(80) NOT NULL` | |
-| `categoria_sigla` | `VARCHAR(3)` | → `escuela.categoria_licencia.sigla`, sin FK |
-| `nro_clases` | `SMALLINT NOT NULL` | |
-| `monto_total` | `NUMERIC(10,2) NOT NULL` | |
-| `nro_cuotas` | `SMALLINT NOT NULL` | |
+| `escuela_codigo` | `UUID NOT NULL` | → `escuela.codigo_escuela`, sin FK. Índice `idx_plan_pago_escuela_codigo_activo (escuela_codigo, activo)` |
+| `nombre` | `VARCHAR(80) NOT NULL` | Único por escuela sin distinguir mayúsculas: `uq_plan_pago_escuela_nombre (escuela_codigo, lower(nombre)) WHERE deleted_at IS NULL`, incluye los desactivados |
+| `horas` | `SMALLINT NOT NULL` | `CHECK (horas BETWEEN 1 AND 500)` (`ck_plan_pago_horas`). Solo enteros |
+| `costo_bs` | `NUMERIC(10,2) NOT NULL` | `CHECK (costo_bs > 0)` (`ck_plan_pago_costo_bs`). Hasta 99 999 999,99 |
 | `activo` | `BOOLEAN NOT NULL DEFAULT TRUE` | |
 
-### `inscripcion_plan` (CU25, CU28)
+La migración de CU25 quitó `categoria_sigla`, `nro_clases` y `nro_cuotas` y renombró `monto_total` a `costo_bs`. Un plan de horas no tiene cuotas: se paga completo en un solo cobro (CU26).
 
-Plan contratado por un estudiante.
+### `pago` (CU26 a CU31)
 
-| Columna | Tipo | Notas |
-| --- | --- | --- |
-| `estudiante_codigo` | `UUID NOT NULL` | → Identidad. Índice `idx_inscripcion_plan_estudiante_codigo` |
-| `plan_pago_id` | `BIGINT NOT NULL REFERENCES plan_pago(id)` | Índice `idx_inscripcion_plan_plan_pago_id` |
-| `monto_total` | `NUMERIC(10,2) NOT NULL` | |
-| `saldo` | `NUMERIC(10,2) NOT NULL` | |
-| `estado` | `VARCHAR(12) NOT NULL DEFAULT 'ACTIVO'` | `CHECK IN ('ACTIVO','COMPLETADO','CANCELADO')` |
-| `fecha_inicio` | `DATE NOT NULL` | |
-
-### `cuota` (CU25, CU28)
+Una compra de un plan de horas. Es de una escuela (multitenant): extiende `BaseEscuelaModel`. Guarda **copia** de lo comprado (plan, horas, montos y tipo de cambio) para que un cambio posterior del plan o del tipo de cambio no lo altere. `idempotency_key` evita cobros duplicados por reintentos.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
-| `inscripcion_plan_id` | `BIGINT NOT NULL REFERENCES inscripcion_plan(id)` | |
-| `nro` | `SMALLINT NOT NULL` | `UNIQUE (inscripcion_plan_id, nro)` |
-| `monto` | `NUMERIC(10,2) NOT NULL` | |
-| `fecha_vence` | `DATE NOT NULL` | |
-| `estado` | `VARCHAR(10) NOT NULL DEFAULT 'PENDIENTE'` | `CHECK IN ('PENDIENTE','PAGADA','VENCIDA','ANULADA')` |
-
-Índice `idx_cuota_estado_fecha_vence (estado, fecha_vence)` para el job de vencidas.
-
-### `pago` (CU26 a CU29)
-
-`idempotency_key` evita cobros duplicados por reintentos.
-
-| Columna | Tipo | Notas |
-| --- | --- | --- |
+| `escuela_codigo` | `UUID NOT NULL` | → `escuela.codigo_escuela`, sin FK |
 | `estudiante_codigo` | `UUID NOT NULL` | → Identidad. Índice `idx_pago_estudiante_created (estudiante_codigo, created_at DESC)` |
-| `concepto` | `VARCHAR(10) NOT NULL` | `CHECK IN ('CUOTA','CLASE','EXAMEN')` |
-| `cuota_id` | `BIGINT REFERENCES cuota(id)` | Índice `idx_pago_cuota_id` |
-| `reserva_codigo` | `UUID` | → `academico.reservas.codigoReserva`, sin FK. Índice `idx_pago_reserva_codigo` |
-| `monto` | `NUMERIC(10,2) NOT NULL` | |
-| `moneda` | `CHAR(3) NOT NULL DEFAULT 'BOB'` | |
-| `metodo` | `VARCHAR(15) NOT NULL` | `CHECK IN ('QR','TRANSFERENCIA','EFECTIVO')` |
-| `estado` | `VARCHAR(10) NOT NULL DEFAULT 'PENDIENTE'` | `CHECK IN ('PENDIENTE','CONFIRMADO','FALLIDO','REVERTIDO')` |
+| `concepto` | `VARCHAR(10) NOT NULL` | `CHECK IN ('HORAS','CLASE','EXAMEN')`. CU26 a CU31 solo crean `HORAS`; `CLASE` y `EXAMEN` los define CU44 |
+| `plan_pago_id` | `BIGINT REFERENCES plan_pago(id)` | Solo en `HORAS`. Índice `idx_pago_plan_pago_id` |
+| `plan_nombre` | `VARCHAR(80)` | Copia del nombre del plan al comprar |
+| `horas` | `SMALLINT` | Horas compradas (copia del plan). En `HORAS`, `CHECK (horas BETWEEN 1 AND 500)` |
+| `horas_restantes` | `SMALLINT` | Horas de esta compra sin gastar. Arranca en `horas` al acreditarse; el consumo descuenta de las compras más antiguas primero. El pago es reembolsable solo si `horas_restantes = horas` |
+| `reserva_codigo` | `UUID` | → `academico.reservas.codigoReserva`, sin FK. Índice `idx_pago_reserva_codigo`. Solo CU44 |
+| `monto` | `NUMERIC(10,2) NOT NULL` | Lo cobrado, en USD |
+| `moneda` | `CHAR(3) NOT NULL DEFAULT 'USD'` | |
+| `monto_bs` | `NUMERIC(10,2)` | Costo en bolivianos del plan al comprar (referencia) |
+| `tipo_cambio` | `NUMERIC(8,4)` | Bs por USD usado para fijar `monto` |
+| `metodo` | `VARCHAR(15) NOT NULL` | `CHECK IN ('TARJETA')` |
+| `estado` | `VARCHAR(10) NOT NULL DEFAULT 'PENDIENTE'` | `CHECK IN ('PENDIENTE','CONFIRMADO','FALLIDO','REVERTIDO')`. `REVERTIDO` = reembolsado |
+| `estudiante_nombre` | `VARCHAR(160)` | Copia del nombre del estudiante al comprar (para el comprobante) |
+| `escuela_nombre` | `VARCHAR(120)` | Copia del nombre de la escuela al comprar |
 | `idempotency_key` | `VARCHAR(64) NOT NULL UNIQUE` | |
 | `saga_codigo` | `UUID` | Saga reserva-pago (CU44) |
+| `expira_en` | `TIMESTAMPTZ` | Vigencia de la página de pago; vencida, el pago pasa a `FALLIDO` |
 | `confirmado_en` | `TIMESTAMPTZ` | |
 
-### `transaccion_pasarela` (CU26, CU27)
+Se eliminaron `cuota_id` y el concepto `CUOTA` con las cuotas. Índices: `idx_pago_escuela_codigo`, `idx_pago_plan_pago_id` y `idx_pago_estado_expira_en (estado, expira_en)` (para el proceso que vence los pendientes). Migración `V20261025190000__compra_de_horas_pago.sql`.
+
+### `transaccion_pasarela` (CU26, CU27, CU31)
+
+Un intercambio con la pasarela (Stripe): la sesión de cobro, su aviso de confirmación y la devolución.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `pago_id` | `BIGINT NOT NULL REFERENCES pago(id)` | Índice `idx_transaccion_pasarela_pago_id` |
-| `proveedor` | `VARCHAR(30) NOT NULL` | |
-| `referencia_externa` | `VARCHAR(80) UNIQUE` | |
-| `qr_payload` | `TEXT` | |
+| `proveedor` | `VARCHAR(30) NOT NULL` | `STRIPE` |
+| `referencia_externa` | `VARCHAR(80) UNIQUE` | Identificador del lado de la pasarela (sesión de cobro o devolución); localiza el pago al llegar un aviso |
+| `url_pago` | `TEXT` | Dirección de la página de pago que abre la app (antes `qr_payload`) |
 | `estado` | `VARCHAR(12) NOT NULL` | |
-| `respuesta` | `JSONB` | |
+| `respuesta` | `JSONB` | Sin datos de tarjeta |
+
+### `billetera_horas` (CU27, CU28, CU29)
+
+Saldo de horas de un estudiante en una escuela. Es de una escuela (multitenant): extiende `BaseEscuelaModel`. Una por estudiante y escuela; se crea en la primera acreditación.
+
+| Columna | Tipo | Notas |
+| --- | --- | --- |
+| `escuela_codigo` | `UUID NOT NULL` | `UNIQUE (escuela_codigo, estudiante_codigo)` |
+| `estudiante_codigo` | `UUID NOT NULL` | → Identidad |
+| `horas_disponibles` | `INT NOT NULL DEFAULT 0` | `CHECK (horas_disponibles >= 0)`: nunca negativo. Las horas apartadas por un reembolso en curso ya están descontadas |
+| `version` | `BIGINT NOT NULL` | Bloqueo optimista: dos descuentos simultáneos no pisan el saldo |
+
+### `movimiento_horas` (CU27, CU28, CU29, CU31)
+
+Libro de la billetera: el saldo se puede reconstruir sumándolo. Cada fila afecta las horas de **una** compra; un consumo que cruza dos compras genera dos filas.
+
+| Columna | Tipo | Notas |
+| --- | --- | --- |
+| `billetera_horas_id` | `BIGINT NOT NULL REFERENCES billetera_horas(id)` | Índice `idx_movimiento_horas_billetera_created (billetera_horas_id, created_at DESC)` |
+| `pago_id` | `BIGINT NOT NULL REFERENCES pago(id)` | La compra cuyas horas se mueven. Índice `idx_movimiento_horas_pago_id` |
+| `tipo` | `VARCHAR(13) NOT NULL` | `CHECK IN ('ACREDITACION','CONSUMO','DEVOLUCION','REEMBOLSO')`. `DEVOLUCION` = horas que vuelven (clase cancelada o reembolso fallido); `REEMBOLSO` = horas apartadas o descontadas por un reembolso |
+| `horas` | `SMALLINT NOT NULL` | `CHECK (horas > 0)`; el `tipo` dice si suma o resta |
+| `instructor_codigo` | `UUID` | → Identidad. Solo en `CONSUMO` (lo manda Académico) y en su `DEVOLUCION` (copiado del consumo). Permite a CU29 mostrar las horas gastadas con cada instructor |
+| `clase_codigo` | `UUID` | → `academico.clases`, sin FK. Solo en `CONSUMO` y su `DEVOLUCION` |
+| `idempotency_key` | `VARCHAR(64) NOT NULL` | `UNIQUE (idempotency_key, pago_id)`: un reintento no descuenta dos veces |
 
 ### `comprobante` (CU30)
 
-Uno por pago.
+Recibo interno en PDF, sin validez fiscal: uno por pago confirmado y uno por reembolso ejecutado. Los números salen de la secuencia `comprobante_nro_seq` (`CMP-{año}-{6 dígitos}`).
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
-| `pago_id` | `BIGINT NOT NULL UNIQUE REFERENCES pago(id)` | |
+| `pago_id` | `BIGINT NOT NULL REFERENCES pago(id)` | |
+| `reversion_pago_id` | `BIGINT REFERENCES reversion_pago(id)` | Solo en el comprobante de reembolso |
+| `tipo` | `VARCHAR(10) NOT NULL` | `CHECK IN ('PAGO','REEMBOLSO')`. `UNIQUE (pago_id, tipo)`: no hay dos del mismo tipo |
 | `nro_comprobante` | `VARCHAR(20) NOT NULL UNIQUE` | |
-| `monto` | `NUMERIC(10,2) NOT NULL` | |
+| `monto` | `NUMERIC(10,2) NOT NULL` | Cobrado (`PAGO`) o devuelto (`REEMBOLSO`), en USD |
 | `emitido_en` | `TIMESTAMPTZ NOT NULL` | |
-| `url_pdf` | `TEXT` | |
+| `url_pdf` | `TEXT` | Clave del objeto PDF en el almacenamiento (MinIO), no una dirección pública. `NULL` mientras el PDF está pendiente de generar; se reintenta |
 
 ### `reversion_pago` (CU31)
 
-Compensación de la saga.
+Devolución del cobro: compensación de la saga o reembolso pedido por el estudiante. Una sola reversión vigente por pago: índice único parcial `uq_reversion_pago_vigente (pago_id) WHERE estado <> 'FALLIDA'`.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
-| `pago_id` | `BIGINT NOT NULL REFERENCES pago(id)` | Índice `idx_reversion_pago_pago_id` |
+| `pago_id` | `BIGINT NOT NULL REFERENCES pago(id)` | Índice `idx_reversion_pago_pago_id`. Una sola reversión vigente (no fallida) por pago |
+| `origen` | `VARCHAR(10) NOT NULL` | `CHECK IN ('SAGA','ESTUDIANTE')` |
 | `motivo` | `VARCHAR(200)` | |
-| `monto` | `NUMERIC(10,2)` | |
+| `monto` | `NUMERIC(10,2)` | Lo devuelto en USD: el 100 % en `SAGA`, el pagado menos el 5 % en `ESTUDIANTE` |
+| `monto_retenido` | `NUMERIC(10,2) NOT NULL DEFAULT 0` | La retención del 5 % (0 en `SAGA`) |
+| `referencia_externa` | `VARCHAR(80)` | Id de la devolución en la pasarela; `NULL` hasta que la pasarela la crea |
 | `estado` | `VARCHAR(10) NOT NULL DEFAULT 'SOLICITADA'` | `CHECK IN ('SOLICITADA','EJECUTADA','FALLIDA')` |
 | `saga_codigo` | `UUID` | |
 | `ejecutado_en` | `TIMESTAMPTZ` | |
 
-### `outbox_evento` (CU27, CU44)
+### `outbox_evento` (CU27, CU31, CU44)
 
 Eventos pendientes de publicar a RabbitMQ: se escriben en la misma transacción que el cambio y un proceso aparte los publica.
 
@@ -947,8 +983,9 @@ Todas por **código público**, sin FK física.
 | --- | --- | --- | --- |
 | `identidad.usuario` | `escuela_codigo` | `escuela.escuela.codigo_escuela` | Escuela |
 | `escuela.instructor` / `asignacion_alumno` | `usuario_codigo` / `estudiante_codigo` | `identidad.usuario.codigo_usuario` | Identidad |
-| `pagos.plan_pago` | `categoria_sigla` | `escuela.categoria_licencia.sigla` | Escuela |
-| `pagos.inscripcion_plan` / `pago` | `estudiante_codigo` | `identidad.usuario.codigo_usuario` | Identidad |
+| `pagos.pago` / `billetera_horas` | `estudiante_codigo` | `identidad.usuario.codigo_usuario` | Identidad |
+| `pagos.movimiento_horas` | `instructor_codigo` | `identidad.usuario.codigo_usuario` | Identidad |
+| `pagos.movimiento_horas` | `clase_codigo` | `academico.clases.codigoClase` | Académico |
 | `pagos.pago` | `reserva_codigo` | `academico.reservas.codigoReserva` | Académico |
 | `academico.reservas` | `pagoCodigo` | `pagos.pago.codigo_pago` | Pagos |
 | `academico.*` | `estudianteCodigo`, `instructorCodigo`, `evaluadorCodigo`, `creadaPorCodigo`, `resueltaPorCodigo` | `identidad.usuario.codigo_usuario` | Identidad |
@@ -978,7 +1015,7 @@ Todas por **código público**, sin FK física.
 
 ### Pendiente de diseñar
 
-- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Falta en las demás tablas de Escuela (`instructor`…), Pagos, el resto de Académico (`simulacros_config` en CU20, `intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
+- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Pagos ya lo lleva en `plan_pago` (CU25), `pago` y `billetera_horas` (CU26 a CU31). Falta en las demás tablas de Escuela (`instructor`…), el resto de Académico (`simulacros_config` en CU20, `intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
 - **Estado de la saga reserva-pago:** dueño por decidir ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 - **Valores de `severidad`** de los indicadores del tablero (se fijan con CU40).
 - **Job de limpieza** de `refresh_token` vencidos.

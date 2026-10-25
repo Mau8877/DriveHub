@@ -45,7 +45,10 @@ class _AdminShellState extends State<AdminShell> {
         children: [
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('App Admin', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(
+              'App Admin',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
           for (final seccion in _secciones)
             NavigationDrawerDestination(
@@ -59,7 +62,10 @@ class _AdminShellState extends State<AdminShell> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(seccionActual.label, style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              seccionActual.label,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 8),
             Text(
               'Pantalla de prueba del layout -- acá va el contenido real de "${seccionActual.label}" cuando exista esa feature.',

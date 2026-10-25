@@ -1,8 +1,9 @@
 package com.drivehub.pagos.features.planes.model;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
-import com.drivehub.pagos.common.model.BaseModel;
+import com.drivehub.pagos.common.model.BaseEscuelaModel;
 
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -13,38 +14,45 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Plan de pagos que ofrece la escuela (CU25).
+ * Plan de horas que ofrece una escuela (CU25): un nombre, una cantidad de horas y un costo en bolivianos.
+ *
+ * * El costo en dólares NO se guarda: lo calcula el servicio con el tipo de cambio configurado.
+ * * Se desactiva (`activo = false`), no se borra: conserva su historia.
+ * * El nombre es único dentro de la escuela sin distinguir mayúsculas (índice único en la base).
  */
 @Getter
 @NoArgsConstructor
 @Entity
 @Table(name = "plan_pago")
 @AttributeOverride(name = "codigo", column = @Column(name = "codigo_plan_pago"))
-public class PlanPago extends BaseModel {
+public class PlanPago extends BaseEscuelaModel {
 
     @Setter
     @Column(name = "nombre", nullable = false, length = 80)
     private String nombre;
 
-    // * Sigla de Escuela categoria_licencia (A, B, C...), sin FK física
+    // * Entre 1 y 500 (CHECK en la base). Solo enteros
     @Setter
-    @Column(name = "categoria_sigla", length = 3)
-    private String categoriaSigla;
+    @Column(name = "horas", nullable = false)
+    private Short horas;
 
-    // * Clases incluidas
+    // * Bolivianos, hasta 99 999 999,99 y mayor a 0 (CHECK en la base)
     @Setter
-    @Column(name = "nro_clases", nullable = false)
-    private Short nroClases;
-
-    @Setter
-    @Column(name = "monto_total", nullable = false, precision = 10, scale = 2)
-    private BigDecimal montoTotal;
-
-    @Setter
-    @Column(name = "nro_cuotas", nullable = false)
-    private Short nroCuotas;
+    @Column(name = "costo_bs", nullable = false, precision = 10, scale = 2)
+    private BigDecimal costoBs;
 
     @Setter
     @Column(name = "activo", nullable = false)
     private boolean activo;
+
+    /**
+     * Plan nuevo, activo, de la escuela dada.
+     */
+    public PlanPago(UUID escuelaCodigo, String nombre, short horas, BigDecimal costoBs) {
+        super(escuelaCodigo);
+        this.nombre = nombre;
+        this.horas = horas;
+        this.costoBs = costoBs;
+        this.activo = true;
+    }
 }

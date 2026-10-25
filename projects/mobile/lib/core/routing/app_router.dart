@@ -8,6 +8,9 @@ import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/recuperar_screen.dart';
 import '../../features/auth/screens/registro_screen.dart';
 import '../../features/horarios/screens/horario_form_screen.dart';
+import '../../features/pagos/screens/comprar_horas_screen.dart';
+import '../../features/pagos/screens/pago_resultado_screen.dart';
+import '../../features/pagos/screens/resumen_compra_screen.dart';
 import '../../features/perfil/screens/cambiar_contrasena_screen.dart';
 import '../../features/perfil/screens/cambiar_correo_screen.dart';
 import '../../layouts/inicio_por_rol.dart';
@@ -45,6 +48,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               !roles.contains('INSTRUCTOR')) {
             return '/inicio';
           }
+          // * Comprar horas es del Estudiante (CU26): otro rol vuelve al inicio
+          if (ubicacion.startsWith('/payments') && !roles.contains('ESTUDIANTE')) {
+            return '/inicio';
+          }
           return null;
       }
     },
@@ -74,6 +81,26 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/schedules/new',
         builder: (context, state) => const HorarioFormScreen(),
+      ),
+      // * Comprar horas (CU26), solo para el Estudiante. Cada pantalla se ocupa de su propio "no hay una compra en
+      // * curso"; el redirect global no la saca de la ruta (se reevalúa cuando se renueva la sesión).
+      GoRoute(
+        path: '/payments/plans',
+        builder: (context, state) => const ComprarHorasScreen(),
+      ),
+      GoRoute(
+        path: '/payments/summary',
+        builder: (context, state) => const ResumenCompraScreen(),
+      ),
+      GoRoute(
+        path: '/payments/result',
+        builder: (context, state) => const PagoResultadoScreen(),
+      ),
+      // * Es el destino del enlace `drivehub://app/payments/return` (PAGOS_ENLACE_APP), que abre la página de
+      // * retorno del pago: lleva al resultado, que consulta el estado al backend.
+      GoRoute(
+        path: '/payments/return',
+        redirect: (context, state) => '/payments/result',
       ),
       // * Perfil (CU06): no son públicas, las cubre el redirect global por sesión
       GoRoute(

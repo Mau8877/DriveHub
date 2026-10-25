@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { edadEnAnios, fechaDeHoy, fechaDeManana, slugDesdeTexto, validar } from './reglas.js'
+import { edadEnAnios, fechaDeHoy, fechaDeManana, normalizarDecimal, slugDesdeTexto, validar } from './reglas.js'
 
 describe('slugDesdeTexto', () => {
   it('pasa a minúsculas, quita tildes y usa guiones', () => {
@@ -284,5 +284,57 @@ describe('validar opciones de respuesta', () => {
     expect(validar(texto, 'abc')).not.toBeNull()
     expect(validar(texto, 'abcdef')).toBeNull()
     expect(validar(texto, 'a'.repeat(11))).not.toBeNull()
+  })
+})
+
+describe('validar: decimal', () => {
+  const costo = { campo: 'costoBs', titulo: 'Costo', tipo: 'decimal', requerido: true, min: 0.01, max: 99999999.99 }
+
+  it('acepta un número con punto o con coma, con hasta dos decimales', () => {
+    for (const bueno of ['450', '450.5', '450,5', '450.55', '450,55', '0.01', '0,01', '99999999.99', ' 1250,50 ']) {
+      expect(validar(costo, bueno)).toBeNull()
+    }
+  })
+
+  it('rechaza más decimales de los permitidos, texto, signos, miles y más de un separador', () => {
+    for (const malo of ['450.555', '450,123', 'abc', '12a', '-5', '+5', '1.250,50', '1,250.50', '1.2.3', '.5', '5.', '1e3']) {
+      expect(validar(costo, malo)).toBe('Debe ser un número con hasta 2 decimales')
+    }
+  })
+
+  it('vacío: obligatorio si es requerido, válido si no', () => {
+    expect(validar(costo, '')).toBe('Este campo es obligatorio')
+    expect(validar({ ...costo, mensajes: { requerido: 'El costo es obligatorio' } }, '  ')).toBe('El costo es obligatorio')
+    expect(validar({ ...costo, requerido: false }, '')).toBeNull()
+  })
+
+  it('min y max son el rango del valor, con su mensaje del esquema o uno por defecto con coma decimal', () => {
+    expect(validar(costo, '0')).toBe('Debe ser al menos 0,01')
+    expect(validar(costo, '0.00')).toBe('Debe ser al menos 0,01')
+    expect(validar(costo, '100000000')).toBe('No puede superar 99999999,99')
+    expect(validar({ ...costo, mensajes: { min: 'El costo debe ser mayor a 0', max: 'Demasiado alto' } }, '0')).toBe(
+      'El costo debe ser mayor a 0'
+    )
+    expect(validar({ ...costo, mensajes: { max: 'Demasiado alto' } }, '100000000')).toBe('Demasiado alto')
+  })
+
+  it('decimales cambia cuántos admite: uno, o cero (solo enteros)', () => {
+    expect(validar({ ...costo, decimales: 1 }, '5.5')).toBeNull()
+    expect(validar({ ...costo, decimales: 1 }, '5.55')).toBe('Debe ser un número con hasta 1 decimal')
+    expect(validar({ ...costo, decimales: 0 }, '5')).toBeNull()
+    expect(validar({ ...costo, decimales: 0 }, '5.5')).toBe('Debe ser un número entero')
+  })
+
+  it('el mensaje de formato se puede cambiar', () => {
+    expect(validar({ ...costo, mensajes: { patron: 'Escribe un monto' } }, 'abc')).toBe('Escribe un monto')
+  })
+})
+
+describe('normalizarDecimal', () => {
+  it('quita espacios y cambia la coma por punto', () => {
+    expect(normalizarDecimal(' 1250,5 ')).toBe('1250.5')
+    expect(normalizarDecimal('1 250,50')).toBe('1250.50')
+    expect(normalizarDecimal('450.00')).toBe('450.00')
+    expect(normalizarDecimal(undefined)).toBe('')
   })
 })

@@ -45,7 +45,7 @@ describe('Inicio', () => {
         destino: '/escuela/instructores',
       },
       { titulo: 'Autos', descripcion: 'Gestionar escuela', destino: '/escuela/autos' },
-      { titulo: 'Plan de pagos y cuotas', descripcion: 'Gestionar pagos', destino: '/pagos' },
+      { titulo: 'Planes de horas', descripcion: 'Gestionar pagos', destino: '/pagos/planes' },
       { titulo: 'Banco de preguntas', descripcion: 'Gestionar exámenes', destino: '/examenes' },
       { titulo: 'Manuales', descripcion: 'Gestionar contenido', destino: '/contenido' },
     ])

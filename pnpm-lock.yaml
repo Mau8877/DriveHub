@@ -677,6 +677,9 @@ importers:
       '@drivehub/design-tokens':
         specifier: workspace:*
         version: link:../../../packages/design-tokens
+      '@drivehub/gestion':
+        specifier: workspace:*
+        version: link:../../../packages/gestion
       '@drivehub/mf-contract':
         specifier: workspace:*
         version: link:../../../packages/mf-contract
