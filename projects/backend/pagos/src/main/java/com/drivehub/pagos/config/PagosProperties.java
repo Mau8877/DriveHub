@@ -25,13 +25,16 @@ import jakarta.validation.constraints.Positive;
  * ! dólares absurdos.
  * * `pasarela`: la pasarela de pago (Stripe), ver {@link Pasarela}.
  * * `vencimiento`: cada cuánto se vencen los pagos pendientes, ver {@link Vencimiento}.
+ * * `retencionReembolsoPorcentaje`: qué porcentaje de lo pagado se retiene al reembolsar (CU28, CU31), de 0
+ * * a 50 y 5 por defecto (`REEMBOLSO_RETENCION_PORCENTAJE`); fuera de ese rango el servicio no arranca.
  */
 @Validated
 @ConfigurationProperties(prefix = "app.pagos")
 public record PagosProperties(
         @NotNull @Positive BigDecimal tipoCambioBsUsd,
         @Valid @NotNull Pasarela pasarela,
-        @Valid @NotNull @DefaultValue Vencimiento vencimiento) {
+        @Valid @NotNull @DefaultValue Vencimiento vencimiento,
+        @Min(0) @Max(50) @DefaultValue("5") int retencionReembolsoPorcentaje) {
 
     /**
      * La pasarela de pago, prefijo `app.pagos.pasarela`.

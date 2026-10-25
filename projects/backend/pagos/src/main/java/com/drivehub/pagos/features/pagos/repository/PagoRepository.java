@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,7 +21,7 @@ import jakarta.persistence.LockModeType;
  * Acceso a datos de los pagos, sin lógica. El id interno Long nunca sale del servicio: se busca por el codigo
  * público y siempre con el estudiante y la escuela (nadie ve el pago de otro).
  */
-public interface PagoRepository extends JpaRepository<Pago, Long> {
+public interface PagoRepository extends JpaRepository<Pago, Long>, JpaSpecificationExecutor<Pago> {
 
     Optional<Pago> findByIdempotencyKey(String idempotencyKey);
 
