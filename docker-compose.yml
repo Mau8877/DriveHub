@@ -191,6 +191,18 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  # CLI de Stripe (opcional): reenvia los avisos de cobro de Stripe al gateway, para no instalarla en cada maquina.
+  # Se activa con COMPOSE_PROFILES=...,stripe y STRIPE_SECRET_KEY en el .env. Su log imprime el `whsec_...`.
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    container_name: drivehub-stripe-cli
+    profiles: ['stripe']
+    command: >-
+      listen --api-key ${STRIPE_SECRET_KEY:?Define STRIPE_SECRET_KEY en el .env para usar el perfil stripe}
+      --events checkout.session.completed,checkout.session.expired
+      --forward-to http://gateway:8080/api/v1/webhooks-stripe
+    restart: unless-stopped
+
   # Académico (Spring Boot, capas) -- MongoDB `academico`
   academico:
     <<: *spring-dev
