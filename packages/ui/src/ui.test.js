@@ -167,6 +167,171 @@ describe('dh-sidebar', () => {
   })
 })
 
+describe('dh-sidebar: grupos desplegables', () => {
+  const ITEMS_GRUPOS = [
+    { ruta: '/', etiqueta: 'Inicio', icono: 'home' },
+    {
+      etiqueta: 'Gestionar usuarios',
+      icono: 'users',
+      hijos: [
+        { ruta: '/escuela/estudiantes', etiqueta: 'Estudiantes' },
+        { ruta: '/escuela/instructores', etiqueta: 'Instructores' },
+      ],
+    },
+    {
+      etiqueta: 'Gestionar escuela',
+      icono: 'school',
+      hijos: [{ ruta: '/escuela/autos', etiqueta: 'Autos' }],
+    },
+  ]
+  const botones = (el) => qa(el, 'button.item')
+  const grupo = (el, etiqueta) => qa(el, '.padre').find((g) => g.querySelector('button.item strong').textContent === etiqueta)
+  const hijosDe = (el, etiqueta) => [...grupo(el, etiqueta).querySelectorAll('a.item.hijo')]
+
+  it('un item con hijos es un botón padre (no un enlace) con sus opciones adentro', async () => {
+    const el = await crear('dh-sidebar', { items: ITEMS_GRUPOS, activo: '/' })
+
+    expect(botones(el).map((b) => b.querySelector('strong').textContent)).toEqual(['Gestionar usuarios', 'Gestionar escuela'])
+    expect(qa(el, 'a.item:not(.hijo)').map((a) => a.getAttribute('href'))).toEqual(['/'])
+    expect(hijosDe(el, 'Gestionar usuarios').map((a) => a.textContent.trim())).toEqual(['Estudiantes', 'Instructores'])
+    expect(hijosDe(el, 'Gestionar usuarios').map((a) => a.getAttribute('href'))).toEqual([
+      '/escuela/estudiantes',
+      '/escuela/instructores',
+    ])
+  })
+
+  it('los grupos arrancan cerrados: aria-expanded en false y las opciones fuera del foco (inert)', async () => {
+    const el = await crear('dh-sidebar', { items: ITEMS_GRUPOS, activo: '/' })
+
+    for (const b of botones(el)) expect(b.getAttribute('aria-expanded')).toBe('false')
+    expect(qa(el, '.hijos').every((h) => h.hasAttribute('inert'))).toBe(true)
+  })
+
+  it('pulsar el padre abre y cierra su grupo; los demás grupos no se tocan', async () => {
+    const el = await crear('dh-sidebar', { items: ITEMS_GRUPOS, activo: '/' })
+
+    botones(el)[0].click()
+    await el.updateComplete
+    expect(botones(el)[0].getAttribute('aria-expanded')).toBe('true')
+    expect(grupo(el, 'Gestionar usuarios').classList.contains('abierto')).toBe(true)
+    expect(grupo(el, 'Gestionar usuarios').querySelector('.hijos').hasAttribute('inert')).toBe(false)
+    expect(botones(el)[1].getAttribute('aria-expanded')).toBe('false')
+
+    botones(el)[1].click()
+    await el.updateComplete
+    expect(botones(el).map((b) => b.getAttribute('aria-expanded'))).toEqual(['true', 'true'])
+
+    botones(el)[0].click()
+    await el.updateComplete
+    expect(botones(el).map((b) => b.getAttribute('aria-expanded'))).toEqual(['false', 'true'])
+  })
+
+  it('el grupo que contiene la ruta actual arranca abierto, con su opción activa y el padre resaltado', async () => {
+    const el = await crear('dh-sidebar', { items: ITEMS_GRUPOS, activo: '/escuela/instructores' })
+
+    expect(botones(el).map((b) => b.getAttribute('aria-expanded'))).toEqual(['true', 'false'])
+    expect(qa(el, 'a.item.activo').map((a) => a.getAttribute('href'))).toEqual(['/escuela/instructores'])
+    expect(q(el, 'a.activo').getAttribute('aria-current')).toBe('page')
+    expect(grupo(el, 'Gestionar usuarios').classList.contains('con-activo')).toBe(true)
+    expect(grupo(el, 'Gestionar escuela').classList.contains('con-activo')).toBe(false)
+  })
+
+  it('al navegar a otro grupo ese se abre solo y el anterior queda como estaba', async () => {
+    const el = await crear('dh-sidebar', { items: ITEMS_GRUPOS, activo: '/escuela/estudiantes' })
+
+    el.activo = '/escuela/autos/abc?x=1'
+    await el.updateComplete
+
+    expect(botones(el).map((b) => b.getAttribute('aria-expanded'))).toEqual(['true', 'true'])
+    expect(qa(el, 'a.item.activo').map((a) => a.getAttribute('href'))).toEqual(['/escuela/autos'])
+  })
+
+  it('un grupo que la persona cerró a mano no se reabre mientras siga en una de sus opciones', async () => {
+    const el = await crear('dh-sidebar', { items: ITEMS_GRUPOS, activo: '/escuela/estudiantes' })
+
+    botones(el)[0].click()
+    await el.updateComplete
+    expect(botones(el)[0].getAttribute('aria-expanded')).toBe('false')
+
+    el.requestUpdate()
+    await el.updateComplete
+    expect(botones(el)[0].getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('elegir una opción emite dh-navegar con su ruta y pide cerrar el cajón', async () => {
+    const el = await crear('dh-sidebar', { items: ITEMS_GRUPOS, activo: '/' })
+    botones(el)[0].click()
+    await el.updateComplete
+    const navegar = []
+    let cerrar = 0
+    el.addEventListener('dh-navegar', (e) => navegar.push(e.detail.ruta))
+    el.addEventListener('dh-cerrar', () => (cerrar += 1))
+
+    hijosDe(el, 'Gestionar usuarios')[1].click()
+
+    expect(navegar).toEqual(['/escuela/instructores'])
+    expect(cerrar).toBe(1)
+  })
+
+  it('con el menú contraído, pulsar un padre expande el menú, abre ese grupo y avisa', async () => {
+    const el = await crear('dh-sidebar', { items: ITEMS_GRUPOS, activo: '/', colapsado: true })
+    const colapsos = []
+    el.addEventListener('dh-colapsar', (e) => colapsos.push(e.detail.colapsado))
+
+    botones(el)[0].click()
+    await el.updateComplete
+
+    expect(el.colapsado).toBe(false)
+    expect(colapsos).toEqual([false])
+    expect(botones(el)[0].getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('los items sueltos y los grupos conviven: solo queda activo el de la ruta más específica', async () => {
+    const items = [
+      { ruta: '/', etiqueta: 'Inicio' },
+      { ruta: '/escuela', etiqueta: 'Escuela' },
+      { etiqueta: 'Gestionar usuarios', hijos: [{ ruta: '/escuela/estudiantes', etiqueta: 'Estudiantes' }] },
+    ]
+    const el = await crear('dh-sidebar', { items, activo: '/escuela/estudiantes' })
+
+    expect(qa(el, 'a.item.activo').map((a) => a.getAttribute('href'))).toEqual(['/escuela/estudiantes'])
+  })
+
+  it('una opción con icono lo dibuja delante de su etiqueta; sin icono no deja hueco', async () => {
+    const items = [
+      {
+        etiqueta: 'Gestionar usuarios',
+        icono: 'users',
+        hijos: [
+          { ruta: '/escuela/estudiantes', etiqueta: 'Estudiantes', icono: 'user' },
+          { ruta: '/escuela/instructores', etiqueta: 'Instructores' },
+        ],
+      },
+    ]
+    const el = await crear('dh-sidebar', { items, activo: '/' })
+    const [conIcono, sinIcono] = qa(el, 'a.item.hijo')
+
+    expect(conIcono.querySelector('.icono svg')).not.toBeNull()
+    expect(conIcono.firstElementChild.classList.contains('icono')).toBe(true)
+    expect(sinIcono.querySelector('.icono')).toBeNull()
+  })
+
+  it('una opción con un icono que no existe no rompe el menú', async () => {
+    const items = [{ etiqueta: 'G', icono: 'users', hijos: [{ ruta: '/x', etiqueta: 'X', icono: 'no-existe' }] }]
+    const el = await crear('dh-sidebar', { items, activo: '/' })
+
+    expect(q(el, 'a.item.hijo strong').textContent).toBe('X')
+    expect(q(el, 'a.item.hijo svg')).toBeNull()
+  })
+
+  it('un grupo sin hijos se dibuja como un enlace normal', async () => {
+    const el = await crear('dh-sidebar', { items: [{ ruta: '/pagos', etiqueta: 'Pagos', hijos: [] }], activo: '/' })
+
+    expect(qa(el, 'button.item')).toHaveLength(0)
+    expect(q(el, 'a.item').getAttribute('href')).toBe('/pagos')
+  })
+})
+
 describe('dh-select', () => {
   const OPCIONES = [
     { valor: 'M', etiqueta: 'Masculino' },

@@ -1,7 +1,10 @@
-/** Un enlace del menú lateral. */
+/**
+ * Un enlace del menú lateral, o un grupo desplegable si trae `hijos` (un botón padre sin ruta propia que
+ * despliega sus opciones; se abre solo cuando la ruta actual es una de ellas).
+ */
 export interface ItemNavegacion {
-  /** Ruta a la que lleva (ej. `/escuelas`). Es también lo que se compara con `activo`. */
-  ruta: string
+  /** Ruta a la que lleva (ej. `/escuelas`). Es también lo que se compara con `activo`. Un grupo no la lleva. */
+  ruta?: string
   etiqueta: string
   descripcion?: string
   /** Nombre de un icono de `ICONOS` (ej. `school`). */
@@ -9,6 +12,8 @@ export interface ItemNavegacion {
   /** Si cambia entre items consecutivos, se dibuja un título de grupo. */
   grupo?: string
   insignia?: string | number
+  /** Las opciones de un grupo desplegable: enlaces simples, cada uno con su `icono` (un grupo no se anida dentro de otro). */
+  hijos?: ItemNavegacion[]
 }
 
 export interface MarcaShell {
