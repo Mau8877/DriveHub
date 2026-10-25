@@ -39,7 +39,7 @@ describe('navItemsDeRoles', () => {
       ['Instructores', '/escuela/instructores'],
     ])
     expect(opciones('Gestionar escuela')).toEqual([['Autos', '/escuela/autos']])
-    expect(opciones('Gestionar pagos')).toEqual([['Plan de pagos y cuotas', '/pagos']])
+    expect(opciones('Gestionar pagos')).toEqual([['Planes de horas', '/pagos/planes']])
     expect(opciones('Gestionar exámenes')).toEqual([['Banco de preguntas', '/examenes']])
     expect(opciones('Gestionar contenido')).toEqual([['Manuales', '/contenido']])
   })
@@ -158,6 +158,16 @@ describe('migasDeRuta', () => {
       { etiqueta: 'Inicio', ruta: '/' },
       { etiqueta: 'Gestionar exámenes' },
       { etiqueta: 'Banco de preguntas' },
+    ])
+    expect(migasDeRuta('/pagos/planes', items)).toEqual([
+      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar pagos' },
+      { etiqueta: 'Planes de horas' },
+    ])
+    expect(migasDeRuta('/pagos/planes?search=plan', items)).toEqual([
+      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar pagos' },
+      { etiqueta: 'Planes de horas' },
     ])
   })
 
