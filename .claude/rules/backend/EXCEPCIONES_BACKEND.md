@@ -45,6 +45,7 @@ de sumar una excepción más a la lista de 5.
 | `NotFoundException` | `404` | El recurso solicitado no existe |
 | `ConflictException` | `409` | Conflicto de estado (recurso duplicado, transición de estado inválida, etc.) |
 | `LockedException` | `423` | El recurso está bloqueado temporalmente por una política de seguridad (ej. cuenta de usuario bloqueada tras superar el máximo de intentos fallidos de login) |
+| `ServicioNoDisponibleException` | `503` | Un servicio del que depende la operación no responde (la pasarela de pago, otro microservicio): se puede reintentar más tarde |
 
 > **Nota de nombres:** `UnauthorizedException` → `401` y no `403` a pesar de
 > que en español "no autorizado" suena más a `403`. Se sigue la semántica
@@ -53,14 +54,14 @@ de sumar una excepción más a la lista de 5.
 > "suenen mejor" en español — el nombre sigue el estándar HTTP, no la
 > traducción literal.
 
-> **Este listado de 6 es deliberadamente el completo, no un ejemplo
+> **Este listado es deliberadamente el completo, no un ejemplo
 > parcial.** Coincide exactamente con los códigos HTTP que
 > [RESPONSES_BACKEND.md](RESPONSES_BACKEND.md#códigos-http) documenta como
-> disparables por una excepción de negocio (`400`/`401`/`403`/`404`/`409`/`423`).
+> disparables por una excepción de negocio (`400`/`401`/`403`/`404`/`409`/`423`/`503`).
 > `429` y `500` quedan fuera a propósito (ver abajo, y
 > [SEGURIDAD_AUTH_BACKEND.md](SEGURIDAD_AUTH_BACKEND.md#rate-limit) para el
 > primero) — no son un hueco pendiente de llenar. Si en algún momento el
-> dominio necesita de verdad un código HTTP nuevo que ninguna de estas 6
+> dominio necesita de verdad un código HTTP nuevo que ninguna de estas
 > cubre (ej. `422`), se agrega una excepción nueva a este mismo listado
 > **antes** de usarla, no se fuerza el caso dentro de una existente que no
 > le corresponde semánticamente.
@@ -71,6 +72,12 @@ de sumar una excepción más a la lista de 5.
 > "no tenés permiso sobre esto", `423 Locked` es "el recurso existe, tenés
 > permiso en principio, pero está temporalmente bloqueado" (la cuenta se
 > desbloquea sola pasado el tiempo de bloqueo, no es un permiso que falte).
+>
+> `ServicioNoDisponibleException` se agregó con la pasarela de pago (CU26):
+> "no pudimos conectar con el pago" no es un error del cliente (`4xx`) ni un
+> fallo no previsto del servicio (`500`), es una dependencia caída que el
+> cliente puede reintentar. Hoy la usa Pagos; los demás servicios la suman
+> cuando la necesiten (Escuela ya tiene `IdentidadNoDisponibleException`).
 
 `500` no tiene una excepción de negocio propia: es el resultado de **no**
 mapear la excepción — un `Exception`/`RuntimeException` no controlada, o una

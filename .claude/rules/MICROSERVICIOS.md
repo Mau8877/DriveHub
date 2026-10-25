@@ -38,7 +38,7 @@ el espejo de las rutas de
 | --- | --- |
 | `identidad` | `auth`, `usuarios`, `estudiantes`, `roles`, `permisos` |
 | `escuela` | `escuelas`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
-| `pagos` | `planes-pago`, `inscripciones-plan`, `cuotas`, `pagos`, `comprobantes` |
+| `pagos` | `planes-pago`, `pagos`, `comprobantes` |
 | `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
 | `contenido` | `manuales`, `tutoriales` |
 | `notificaciones` | `notificaciones`, `preferencias-notificacion`, `dispositivos-push` |
@@ -95,6 +95,7 @@ existen son:
 | Escuela → Identidad | Crear al Administrador de una escuela y, si algo falla, revertirlo | CU05 |
 | Identidad → Escuela | Validar que una categoría de licencia existe (reenvía el Bearer del Administrador) | CU08 |
 | Escuela → Identidad | Crear, consultar, buscar, reubicar y revertir la cuenta de un instructor (reenvía el Bearer del Administrador) | CU09 |
+| Pagos → Identidad | Consultar el perfil del estudiante que compra, para copiar su nombre y el de su escuela al pago (reenvía el Bearer del estudiante) | CU26 |
 
 Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
 Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque

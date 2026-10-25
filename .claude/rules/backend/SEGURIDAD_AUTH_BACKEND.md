@@ -137,5 +137,7 @@ un único límite por IP para toda la API, los servicios no lo repiten.
 Solo `/health`, `/prometheus`, Swagger/OpenAPI de cada servicio, y en
 Identidad `POST /api/v1/auth/login`, `/refresh`, la recuperación de
 contraseña (CU04) y `POST /api/v1/usuarios` si el registro (CU01) es
-abierto. Cualquier otro endpoint es privado por default: hacerlo público es
+abierto. En Pagos, `GET /api/v1/pagos/retorno` (la página fija a la que vuelve
+el estudiante de la pasarela de pago, CU26; no lee ni muestra datos) y, con
+CU27, el aviso firmado de la pasarela (se autentica por su firma). Cualquier otro endpoint es privado por default: hacerlo público es
 una decisión explícita, no un olvido.
