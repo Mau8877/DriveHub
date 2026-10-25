@@ -2191,7 +2191,7 @@ describe('<dh-gestion> campos textarea, opciones y seleccion numerica, y datos b
   })
 })
 
-// ---------------------------------------------------------------------- CU25a: decimal y moneda
+// ---------------------------------------------------------------------- CU25: decimal y moneda
 
 describe('<dh-gestion> campo decimal y columna moneda', () => {
   let el
