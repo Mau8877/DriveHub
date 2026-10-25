@@ -98,7 +98,6 @@ CA15 es de frontend.
 
 - Que `INACTIVO` o `LICENCIA` bloqueen el inicio de sesión, la asignación de autos o alumnos y los horarios (lo decide cada CU que los use).
 - Avisar de licencias por vencer o vencidas, y buscar por número de licencia.
-- Una ficha para la cuenta de desarrollo `instructorexample@gmail.com`: hoy existe como cuenta pero no tiene ficha, así que no aparece en el listado.
 - Limpieza automática de cuentas sobrantes cuando falló la compensación.
 - Más de 500 coincidencias en una búsqueda por nombre (hoy se corta en 500).
 
