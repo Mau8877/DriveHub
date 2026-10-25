@@ -4,17 +4,23 @@ import { ROLES } from '../core/sesion/roles'
  * Menú de primer nivel, distinto por rol (CU05): el Super admin y el Administrador de escuela
  * no comparten ítems.
  *
+ * * Un ítem con `hijos` es un grupo desplegable (un botón padre sin ruta propia, ver `<dh-sidebar>`).
+ * * Solo hay opciones que ya tienen pantalla: una opción nueva se agrega con el caso de uso que la
+ * * crea (y no antes), dentro del grupo que le corresponda.
  * * Ocultar un ítem NO protege la ruta: la protegen el `rolGuard` del shell y la autorización
  * * del backend.
  */
 export interface NavItem {
-  ruta: string
+  /** Un grupo no lleva ruta: solo despliega sus `hijos`. */
+  ruta?: string
   etiqueta: string
-  descripcion: string
+  descripcion?: string
   /** Nombre de un icono de @drivehub/ui (ver `ICONOS`). */
-  icono: string
+  icono?: string
   /** Roles que ven este ítem: basta con tener uno. */
   roles: readonly string[]
+  /** Las opciones de un grupo (un solo nivel: un grupo no se anida dentro de otro). Cada una lleva su icono. */
+  hijos?: NavItem[]
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -33,79 +39,96 @@ export const NAV_ITEMS: NavItem[] = [
     roles: [ROLES.SUPER_ADMIN],
   },
   {
-    ruta: '/identidad',
-    etiqueta: 'Identidad',
-    descripcion: 'Usuarios, roles y perfil',
+    etiqueta: 'Gestionar usuarios',
     icono: 'users',
     roles: [ROLES.ADMIN_ESCUELA],
+    hijos: [
+      {
+        ruta: '/escuela/estudiantes',
+        etiqueta: 'Estudiantes',
+        icono: 'user',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
+      {
+        ruta: '/escuela/instructores',
+        etiqueta: 'Instructores',
+        icono: 'road',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
+    ],
   },
-  // * Va ANTES de '/escuela': migasDeRuta toma el primer ítem cuya ruta coincide por prefijo, y
-  // * '/escuela/estudiantes' también empieza con '/escuela/' (si no, las migas dirían "Escuela")
   {
-    ruta: '/escuela/estudiantes',
-    etiqueta: 'Estudiantes',
-    descripcion: 'Alumnos de tu escuela',
-    icono: 'users',
+    etiqueta: 'Gestionar escuela',
+    icono: 'school',
     roles: [ROLES.ADMIN_ESCUELA],
-  },
-  // * Igual que "Estudiantes": va ANTES de '/escuela' para que las migas digan "Autos" y no "Escuela"
-  {
-    ruta: '/escuela/autos',
-    etiqueta: 'Autos',
-    descripcion: 'Flota de la escuela',
-    icono: 'car',
-    roles: [ROLES.ADMIN_ESCUELA],
+    hijos: [
+      { ruta: '/escuela/autos', etiqueta: 'Autos', icono: 'car', roles: [ROLES.ADMIN_ESCUELA] },
+    ],
   },
   {
-    ruta: '/escuela/instructores',
-    etiqueta: 'Instructores',
-    descripcion: 'Docentes de tu escuela',
-    icono: 'road',
-    roles: [ROLES.ADMIN_ESCUELA],
-  },
-  {
-    ruta: '/escuela',
-    etiqueta: 'Escuela',
-    descripcion: 'Autos, alumnos y docentes',
-    icono: 'car',
-    roles: [ROLES.ADMIN_ESCUELA],
-  },
-  {
-    ruta: '/pagos',
-    etiqueta: 'Pagos',
-    descripcion: 'Planes y cuotas',
+    etiqueta: 'Gestionar pagos',
     icono: 'wallet',
     roles: [ROLES.ADMIN_ESCUELA],
+    hijos: [
+      {
+        ruta: '/pagos',
+        etiqueta: 'Plan de pagos y cuotas',
+        icono: 'receipt',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
+    ],
   },
   {
-    ruta: '/examenes',
-    etiqueta: 'Exámenes',
-    descripcion: 'Preguntas y simulacros',
+    etiqueta: 'Gestionar exámenes',
     icono: 'clipboard',
     roles: [ROLES.ADMIN_ESCUELA],
+    hijos: [
+      {
+        ruta: '/examenes',
+        etiqueta: 'Banco de preguntas',
+        icono: 'help-circle',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
+    ],
   },
   {
-    ruta: '/contenido',
-    etiqueta: 'Contenido',
-    descripcion: 'Manuales de la escuela',
+    etiqueta: 'Gestionar contenido',
     icono: 'book',
     roles: [ROLES.ADMIN_ESCUELA],
-  },
-  {
-    ruta: '/asistente-ia',
-    etiqueta: 'Asistente IA',
-    descripcion: 'Agentes n8n e IA local',
-    icono: 'bot',
-    roles: [ROLES.ADMIN_ESCUELA],
+    hijos: [
+      {
+        ruta: '/contenido',
+        etiqueta: 'Manuales',
+        icono: 'file-text',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
+    ],
   },
 ]
 
-/** Los ítems que ve alguien con esos roles. Sin roles reconocidos, ninguno. */
+const verPor = (item: NavItem, roles: readonly string[]) =>
+  item.roles.some((rol) => roles.includes(rol))
+
+/**
+ * Los ítems que ve alguien con esos roles. Sin roles reconocidos, ninguno. Un grupo solo aparece si
+ * le queda alguna opción visible, y con las que le quedan.
+ */
 export function navItemsDeRoles(roles: readonly string[]): NavItem[] {
-  return NAV_ITEMS.filter((item) => item.roles.some((rol) => roles.includes(rol)))
+  return NAV_ITEMS.flatMap((item) => {
+    if (!verPor(item, roles)) return []
+    if (!item.hijos) return [item]
+    const hijos = item.hijos.filter((hijo) => verPor(hijo, roles))
+    return hijos.length > 0 ? [{ ...item, hijos }] : []
+  })
 }
 
-/** Miga de pan de una ruta: "Inicio > Sección" para los módulos y "Inicio > Mi perfil" para el perfil. */
+const coincide = (actual: string, ruta?: string) =>
+  !!ruta && ruta !== '/' && (actual === ruta || actual.startsWith(`${ruta}/`))
+
+/**
+ * Miga de pan de una ruta: "Inicio > Sección" para una opción suelta, "Inicio > Grupo > Opción" para
+ * una opción de un grupo (el grupo no es una página: no es un enlace) y "Inicio > Mi perfil" para el perfil.
+ */
 export function migasDeRuta(
   ruta: string,
   items: readonly NavItem[]
@@ -113,8 +136,11 @@ export function migasDeRuta(
   const actual = ruta.split(/[?#]/)[0]
   if (actual === '/' || actual === '') return [{ etiqueta: 'Inicio' }]
   if (actual === '/perfil') return [{ etiqueta: 'Inicio', ruta: '/' }, { etiqueta: 'Mi perfil' }]
-  const item = items.find(
-    (i) => i.ruta !== '/' && (actual === i.ruta || actual.startsWith(`${i.ruta}/`))
-  )
-  return item ? [{ etiqueta: 'Inicio', ruta: '/' }, { etiqueta: item.etiqueta }] : []
+  const inicio = { etiqueta: 'Inicio', ruta: '/' }
+  for (const item of items) {
+    if (coincide(actual, item.ruta)) return [inicio, { etiqueta: item.etiqueta }]
+    const hijo = item.hijos?.find((h) => coincide(actual, h.ruta))
+    if (hijo) return [inicio, { etiqueta: item.etiqueta }, { etiqueta: hijo.etiqueta }]
+  }
+  return []
 }

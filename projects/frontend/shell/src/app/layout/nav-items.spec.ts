@@ -1,30 +1,62 @@
+import { ICONOS } from '@drivehub/ui'
+
 import { ROLES } from '../core/sesion/roles'
 import { NAV_ITEMS, migasDeRuta, navItemsDeRoles } from './nav-items'
 
-describe('navItemsDeRoles', () => {
-  const rutas = (roles: string[]) => navItemsDeRoles(roles).map((i) => i.ruta)
+/** Las rutas de todas las opciones con pantalla que ve ese rol, con los hijos de los grupos aplanados. */
+const rutas = (roles: string[]) =>
+  navItemsDeRoles(roles).flatMap((i) => (i.hijos ? i.hijos.map((h) => h.ruta) : [i.ruta]))
+const grupo = (roles: string[], etiqueta: string) =>
+  navItemsDeRoles(roles).find((i) => i.etiqueta === etiqueta)
 
-  it('el Super admin ve "Inicio" y "Gestionar escuelas"', () => {
+describe('navItemsDeRoles', () => {
+  it('el Super admin ve "Inicio" y "Gestionar escuelas", sin grupos', () => {
     expect(navItemsDeRoles([ROLES.SUPER_ADMIN]).map((i) => i.etiqueta)).toEqual([
       'Inicio',
       'Gestionar escuelas',
     ])
     expect(rutas([ROLES.SUPER_ADMIN])).toEqual(['/', '/escuelas'])
+    expect(navItemsDeRoles([ROLES.SUPER_ADMIN]).some((i) => i.hijos)).toBe(false)
   })
 
-  it('el Administrador de escuela ve Inicio, "Estudiantes", "Autos", "Instructores" y los seis módulos de siempre, y no "Gestionar escuelas"', () => {
-    expect(rutas([ROLES.ADMIN_ESCUELA])).toEqual([
-      '/',
-      '/identidad',
-      '/escuela/estudiantes',
-      '/escuela/autos',
-      '/escuela/instructores',
-      '/escuela',
-      '/pagos',
-      '/examenes',
-      '/contenido',
-      '/asistente-ia',
+  it('el Administrador de escuela ve Inicio y cinco grupos de gestión', () => {
+    expect(navItemsDeRoles([ROLES.ADMIN_ESCUELA]).map((i) => i.etiqueta)).toEqual([
+      'Inicio',
+      'Gestionar usuarios',
+      'Gestionar escuela',
+      'Gestionar pagos',
+      'Gestionar exámenes',
+      'Gestionar contenido',
     ])
+  })
+
+  it('cada grupo del Administrador reúne solo opciones que ya tienen pantalla', () => {
+    const opciones = (etiqueta: string) =>
+      grupo([ROLES.ADMIN_ESCUELA], etiqueta)?.hijos?.map((h) => [h.etiqueta, h.ruta])
+
+    expect(opciones('Gestionar usuarios')).toEqual([
+      ['Estudiantes', '/escuela/estudiantes'],
+      ['Instructores', '/escuela/instructores'],
+    ])
+    expect(opciones('Gestionar escuela')).toEqual([['Autos', '/escuela/autos']])
+    expect(opciones('Gestionar pagos')).toEqual([['Plan de pagos y cuotas', '/pagos']])
+    expect(opciones('Gestionar exámenes')).toEqual([['Banco de preguntas', '/examenes']])
+    expect(opciones('Gestionar contenido')).toEqual([['Manuales', '/contenido']])
+  })
+
+  it('los grupos no llevan ruta propia: son botones que despliegan', () => {
+    const grupos = navItemsDeRoles([ROLES.ADMIN_ESCUELA]).filter((i) => i.hijos)
+
+    expect(grupos.length).toBe(5)
+    expect(grupos.every((g) => g.ruta === undefined)).toBe(true)
+  })
+
+  it('las opciones que todavía no tienen pantalla no están en el menú', () => {
+    const todas = rutas([ROLES.ADMIN_ESCUELA])
+
+    for (const ruta of ['/identidad', '/escuela', '/asistente-ia']) {
+      expect(todas).not.toContain(ruta)
+    }
   })
 
   it('los menús de los dos roles solo comparten Inicio', () => {
@@ -34,65 +66,62 @@ describe('navItemsDeRoles', () => {
     expect(superAdmin.filter((r) => admin.includes(r))).toEqual(['/'])
   })
 
-  it('"Estudiantes" lleva a /escuela/estudiantes y solo lo ve el Administrador de escuela', () => {
-    const estudiantes = NAV_ITEMS.find((i) => i.etiqueta === 'Estudiantes')
+  it('Estudiantes, Instructores y Autos solo los ve el Administrador de escuela', () => {
+    for (const ruta of ['/escuela/estudiantes', '/escuela/instructores', '/escuela/autos']) {
+      expect(rutas([ROLES.ADMIN_ESCUELA])).toContain(ruta)
+      expect(rutas([ROLES.SUPER_ADMIN])).not.toContain(ruta)
+      expect(rutas([ROLES.INSTRUCTOR])).not.toContain(ruta)
+      expect(rutas([ROLES.ESTUDIANTE])).not.toContain(ruta)
+    }
+  })
 
-    expect(estudiantes).toMatchObject({
-      ruta: '/escuela/estudiantes',
-      descripcion: 'Alumnos de tu escuela',
+  it('un grupo se oculta si a ese rol no le queda ninguna opción, y solo muestra las que le quedan', () => {
+    NAV_ITEMS.push({
+      etiqueta: 'Grupo de prueba',
       icono: 'users',
+      roles: [ROLES.ADMIN_ESCUELA, ROLES.INSTRUCTOR],
+      hijos: [
+        { ruta: '/solo-instructor', etiqueta: 'Solo instructor', roles: [ROLES.INSTRUCTOR] },
+        { ruta: '/solo-admin', etiqueta: 'Solo admin', roles: [ROLES.ADMIN_ESCUELA] },
+      ],
     })
-    expect(rutas([ROLES.ADMIN_ESCUELA])).toContain('/escuela/estudiantes')
-    expect(rutas([ROLES.SUPER_ADMIN])).not.toContain('/escuela/estudiantes')
-    expect(rutas([ROLES.INSTRUCTOR])).not.toContain('/escuela/estudiantes')
-    expect(rutas([ROLES.ESTUDIANTE])).not.toContain('/escuela/estudiantes')
+    try {
+      expect(
+        grupo([ROLES.ADMIN_ESCUELA], 'Grupo de prueba')?.hijos?.map((h) => h.etiqueta)
+      ).toEqual(['Solo admin'])
+      expect(grupo([ROLES.INSTRUCTOR], 'Grupo de prueba')?.hijos?.map((h) => h.etiqueta)).toEqual([
+        'Solo instructor',
+      ])
+      // * El Super admin no ve el grupo (no está en sus roles) y un grupo sin opciones visibles tampoco aparece
+      expect(grupo([ROLES.SUPER_ADMIN], 'Grupo de prueba')).toBeUndefined()
+      NAV_ITEMS[NAV_ITEMS.length - 1].hijos = [
+        { ruta: '/solo-admin', etiqueta: 'Solo admin', roles: [ROLES.ADMIN_ESCUELA] },
+      ]
+      expect(grupo([ROLES.INSTRUCTOR], 'Grupo de prueba')).toBeUndefined()
+    } finally {
+      NAV_ITEMS.pop()
+    }
   })
 
-  it('"Autos" lleva a /escuela/autos, solo lo ve el Administrador de escuela y va antes que "Escuela"', () => {
-    const autos = NAV_ITEMS.find((i) => i.etiqueta === 'Autos')
-    const etiquetas = NAV_ITEMS.map((i) => i.etiqueta)
+  it('todos los ítems, los grupos y cada una de sus opciones tienen un icono que existe en @drivehub/ui', () => {
+    const todos = NAV_ITEMS.flatMap((i) => [i, ...(i.hijos ?? [])])
 
-    expect(autos).toMatchObject({
-      ruta: '/escuela/autos',
-      descripcion: 'Flota de la escuela',
-      icono: 'car',
-    })
-    expect(rutas([ROLES.ADMIN_ESCUELA])).toContain('/escuela/autos')
-    expect(rutas([ROLES.SUPER_ADMIN])).not.toContain('/escuela/autos')
-    expect(rutas([ROLES.INSTRUCTOR])).not.toContain('/escuela/autos')
-    expect(etiquetas.indexOf('Autos')).toBeLessThan(etiquetas.indexOf('Escuela'))
+    expect(todos.every((i) => !!i.icono && i.icono in ICONOS)).toBe(true)
   })
 
-  it('"Instructores" lleva a /escuela/instructores, va justo después de "Autos" y solo lo ve el Administrador de escuela', () => {
-    const instructores = NAV_ITEMS.find((i) => i.etiqueta === 'Instructores')
-    const etiquetas = NAV_ITEMS.map((i) => i.etiqueta)
-
-    expect(instructores).toMatchObject({ ruta: '/escuela/instructores', icono: 'road' })
-    expect(etiquetas.indexOf('Instructores')).toBe(etiquetas.indexOf('Autos') + 1)
-    expect(etiquetas.indexOf('Instructores')).toBeLessThan(etiquetas.indexOf('Escuela'))
-    expect(rutas([ROLES.ADMIN_ESCUELA])).toContain('/escuela/instructores')
-    expect(rutas([ROLES.SUPER_ADMIN])).not.toContain('/escuela/instructores')
-    expect(rutas([ROLES.INSTRUCTOR])).not.toContain('/escuela/instructores')
-    expect(rutas([ROLES.ESTUDIANTE])).not.toContain('/escuela/instructores')
-  })
-
-  it('"Estudiantes" va antes que "Escuela" (las migas toman el primer ítem que coincide por prefijo)', () => {
-    const etiquetas = NAV_ITEMS.map((i) => i.etiqueta)
-
-    expect(etiquetas.indexOf('Estudiantes')).toBeLessThan(etiquetas.indexOf('Escuela'))
-  })
-
-  it('todos los ítems tienen un icono', () => {
-    expect(NAV_ITEMS.every((i) => i.icono.length > 0)).toBe(true)
+  it('las opciones de un grupo no repiten el icono de su grupo', () => {
+    for (const grupo of NAV_ITEMS.filter((i) => i.hijos)) {
+      expect(grupo.hijos!.every((h) => h.icono !== grupo.icono)).toBe(true)
+    }
   })
 
   it('un rol sin ítems (o sin roles) no ve nada', () => {
-    expect(rutas([ROLES.ESTUDIANTE])).toEqual([])
-    expect(rutas([])).toEqual([])
+    expect(navItemsDeRoles([ROLES.ESTUDIANTE])).toEqual([])
+    expect(navItemsDeRoles([])).toEqual([])
   })
 
   it('con varios roles ve la unión de sus ítems', () => {
-    expect(rutas([ROLES.SUPER_ADMIN, ROLES.ADMIN_ESCUELA])).toHaveLength(NAV_ITEMS.length)
+    expect(navItemsDeRoles([ROLES.SUPER_ADMIN, ROLES.ADMIN_ESCUELA])).toHaveLength(NAV_ITEMS.length)
   })
 })
 
@@ -103,31 +132,32 @@ describe('migasDeRuta', () => {
     expect(migasDeRuta('/', items)).toEqual([{ etiqueta: 'Inicio' }])
   })
 
-  it('un módulo cuelga de Inicio, también en sus subrutas y con query', () => {
+  it('una opción suelta cuelga de Inicio, también en sus subrutas y con query', () => {
     const esperado = [{ etiqueta: 'Inicio', ruta: '/' }, { etiqueta: 'Gestionar escuelas' }]
     expect(migasDeRuta('/escuelas', items)).toEqual(esperado)
     expect(migasDeRuta('/escuelas/nueva?x=1', items)).toEqual(esperado)
   })
 
-  it('/escuela/estudiantes cuelga de Inicio como "Estudiantes" y /escuela sigue siendo "Escuela"', () => {
+  it('una opción de un grupo cuelga de Inicio > su grupo (que no es un enlace)', () => {
     expect(migasDeRuta('/escuela/estudiantes', items)).toEqual([
       { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar usuarios' },
       { etiqueta: 'Estudiantes' },
     ])
-    expect(migasDeRuta('/escuela/estudiantes?search=ana', items)).toEqual([
+    expect(migasDeRuta('/escuela/instructores?search=ana', items)).toEqual([
       { etiqueta: 'Inicio', ruta: '/' },
-      { etiqueta: 'Estudiantes' },
-    ])
-    expect(migasDeRuta('/escuela', items)).toEqual([
-      { etiqueta: 'Inicio', ruta: '/' },
-      { etiqueta: 'Escuela' },
-    ])
-  })
-
-  it('/escuela/instructores cuelga de Inicio como "Instructores"', () => {
-    expect(migasDeRuta('/escuela/instructores', items)).toEqual([
-      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar usuarios' },
       { etiqueta: 'Instructores' },
+    ])
+    expect(migasDeRuta('/escuela/autos', items)).toEqual([
+      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar escuela' },
+      { etiqueta: 'Autos' },
+    ])
+    expect(migasDeRuta('/examenes', items)).toEqual([
+      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar exámenes' },
+      { etiqueta: 'Banco de preguntas' },
     ])
   })
 
@@ -138,7 +168,8 @@ describe('migasDeRuta', () => {
     ])
   })
 
-  it('una ruta desconocida no tiene migas', () => {
+  it('una ruta desconocida, o sin opción en el menú, no tiene migas', () => {
     expect(migasDeRuta('/nada', items)).toEqual([])
+    expect(migasDeRuta('/escuela', items)).toEqual([])
   })
 })
