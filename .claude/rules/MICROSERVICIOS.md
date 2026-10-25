@@ -132,7 +132,7 @@ Detalle en [ARQUITECTURA_FRONTEND.md](ARQUITECTURA_FRONTEND.md). Mapa:
 | `shell` | Angular 22 | Host (Native Federation) | 4200 | CU02 login, layout, menú por rol, avisos | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
 | `identidad` | Angular 22 | Remoto (Native Federation) | 4201 | CU01, CU06 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
 | `escuela` | Angular 22 | Remoto (Native Federation) | 4202 | CU05, CU07 a CU11 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
-| `pagos` | Angular 22 | Remoto (Native Federation) | 4203 | CU25 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
+| `pagos` | Angular 22 | Remoto (Native Federation) | 4203 | CU25, CU25a | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
 | `examenes` | React 19 | Remoto (Module Federation) | 4204 | CU19, CU20, CU22, CU23 | rules de `frontend/` (React) |
 | `contenido` | React 19 | Remoto (Module Federation) | 4205 | CU32 | rules de `frontend/` (React) |
 | `asistente-ia` | React 19 | Remoto (Module Federation) | 4206 | CU41, CU43 | rules de `frontend/` (React) |

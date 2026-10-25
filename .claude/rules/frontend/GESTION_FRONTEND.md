@@ -59,6 +59,11 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
   `fechaFutura` (posterior a hoy; el calendario arranca mañana). Con `soloSiCambia: true` en el campo, al
   **editar** sus `validaciones` solo se aplican si el valor cambió (un vencimiento ya pasado no impide
   guardar otros datos); en el alta se aplican siempre. `porDefecto: 'hoy'` en un campo `fecha` lo precarga al crear.
+- **Decimal y moneda**: un campo `tipo: 'decimal'` (con `decimales`, 2 por defecto) pide un número con centavos en un
+  input de texto con teclado decimal (no el `type="number"` nativo); se escribe con punto o con coma, `min` y `max`
+  son el rango del valor y viaja como **número** (`1250,5` → `1250.5`). El tipo `numero` sigue siendo solo enteros.
+  Una columna o dato de detalle `tipo: 'moneda'` (con `moneda: 'BOB' | 'USD'`) dibuja el valor como `Bs 1.250,00` o
+  `US$ 179,60`, igual en cualquier navegador; vacío o no numérico se ve vacío (en el detalle, "—").
 - **Foto** (`tipo: 'foto'` en una columna o un dato del detalle): dibuja un `<dh-avatar>` con la URL de
   la foto y, sin foto, las iniciales del campo que dice `nombre` (el nombre completo). La URL es
   prefirmada y vence: el avatar vuelve a las iniciales si la imagen ya no carga.
