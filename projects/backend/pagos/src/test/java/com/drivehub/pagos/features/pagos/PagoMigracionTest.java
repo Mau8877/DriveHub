@@ -35,9 +35,7 @@ class PagoMigracionTest extends PostgresIntegrationTestBase {
 
     @BeforeEach
     void preparar() {
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
         jdbc.update("INSERT INTO plan_pago (codigo_plan_pago, escuela_codigo, nombre, horas, costo_bs)"
             + " VALUES (?, ?, 'Plan 10', 10, 450)", UUID.randomUUID(), ESCUELA);
         planId = jdbc.queryForObject("SELECT id FROM plan_pago WHERE escuela_codigo = ?", Long.class, ESCUELA);
@@ -53,9 +51,7 @@ class PagoMigracionTest extends PostgresIntegrationTestBase {
     // * La base se comparte con los demas tests: sin esto, los pagos que quedan impiden borrar los planes
     @AfterEach
     void limpiarAlTerminar() {
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     @Test

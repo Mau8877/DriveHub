@@ -45,18 +45,15 @@ class ComprobanteMigracionTest extends PostgresIntegrationTestBase {
             + " VALUES (?, ?, ?, 'HORAS', ?, 'Plan 10', 10, 10, 38.23, 450, 11.7700, 'TARJETA', 'CONFIRMADO',"
             + " 'clave-comprobante')", UUID.randomUUID(), escuela, UUID.randomUUID(), planId);
         pagoId = jdbc.queryForObject("SELECT id FROM pago", Long.class);
-        jdbc.update("INSERT INTO reversion_pago (codigo_reversion_pago, pago_id, monto) VALUES (?, ?, 36.32)",
+        jdbc.update("INSERT INTO reversion_pago (codigo_reversion_pago, pago_id, origen, motivo, monto, monto_retenido)"
+            + " VALUES (?, ?, 'ESTUDIANTE', 'MUDANZA', 36.32, 1.91)",
             UUID.randomUUID(), pagoId);
         reversionId = jdbc.queryForObject("SELECT id FROM reversion_pago", Long.class);
     }
 
     @AfterEach
     void limpiar() {
-        jdbc.update("DELETE FROM comprobante");
-        jdbc.update("DELETE FROM reversion_pago");
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     private void insertar(String tipo, Long reversion) {

@@ -41,7 +41,7 @@ class PlanPagoRepositoryTest extends PostgresIntegrationTestBase {
 
     @BeforeEach
     void limpiar() {
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     /** Guarda un plan y fija su fecha de alta, para que el orden de los tests no dependa del reloj. */

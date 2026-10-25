@@ -247,6 +247,16 @@ public class BilleteraService {
     // ------------------------------------------------------------------ reembolso (CU31)
 
     /**
+     * Toma el bloqueo de la billetera del estudiante, si la tiene. Quien necesita la billetera Y una de sus compras
+     * la bloquea PRIMERO, igual que `consumir` y `devolver`: con el orden contrario (compra y luego billetera) dos
+     * operaciones simultáneas se esperan una a la otra y la base aborta una por interbloqueo.
+     */
+    @Transactional
+    public void bloquearBilletera(UUID escuelaCodigo, UUID estudianteCodigo) {
+        billeteraRepository.buscarParaActualizar(escuelaCodigo, estudianteCodigo);
+    }
+
+    /**
      * Aparta las horas de una compra que se va a reembolsar: salen del saldo y dejan la compra sin horas, así nadie
      * las gasta mientras la pasarela devuelve el dinero. Guarda un movimiento `REEMBOLSO`.
      *

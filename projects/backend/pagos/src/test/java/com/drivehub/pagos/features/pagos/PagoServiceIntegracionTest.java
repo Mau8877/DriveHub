@@ -65,9 +65,7 @@ class PagoServiceIntegracionTest extends PostgresIntegrationTestBase {
 
     @BeforeEach
     void preparar() {
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
         planCodigo = planes.saveAndFlush(new PlanPago(ESCUELA, "Plan 10 horas", (short) 10, new BigDecimal("450.00")))
             .getCodigo();
         when(bearer.cabecera()).thenReturn("Bearer token");
@@ -94,9 +92,7 @@ class PagoServiceIntegracionTest extends PostgresIntegrationTestBase {
     // * La base se comparte con los demas tests: sin esto, los pagos que quedan impiden borrar los planes
     @AfterEach
     void limpiarAlTerminar() {
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     @Test

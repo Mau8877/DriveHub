@@ -61,10 +61,7 @@ class PagoConsultaRepositoryTest extends PostgresIntegrationTestBase {
 
     @AfterEach
     void limpiar() {
-        jdbc.update("DELETE FROM reversion_pago");
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     private Pago guardar(UUID escuela, UUID estudiante, EstadoPago estado) {
@@ -80,7 +77,8 @@ class PagoConsultaRepositoryTest extends PostgresIntegrationTestBase {
     }
 
     private void reversion(Pago pago, EstadoReversion estado) {
-        jdbc.update("INSERT INTO reversion_pago (codigo_reversion_pago, pago_id, estado) VALUES (?, ?, ?)",
+        jdbc.update("INSERT INTO reversion_pago (codigo_reversion_pago, pago_id, origen, motivo, monto, estado)"
+            + " VALUES (?, ?, 'ESTUDIANTE', 'MUDANZA', 36.32, ?)",
             UUID.randomUUID(), pago.getId(), estado.name());
     }
 

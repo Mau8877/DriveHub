@@ -187,6 +187,17 @@ class MinioAlmacenComprobantesTest {
     }
 
     @Test
+    void sinCredencialesConfiguradas_crearElAlmacenNoFalla_yUsarloEsServicioNoDisponible() {
+        MinioAlmacenComprobantes almacen = new MinioAlmacenComprobantes(
+            new AlmacenProperties("http://127.0.0.1:9", "", "", "drivehub-pagos", 1));
+
+        assertThatThrownBy(() -> almacen.guardar("k.pdf", new byte[] {1}))
+            .isInstanceOfSatisfying(ServicioNoDisponibleException.class,
+                e -> org.assertj.core.api.Assertions.assertThat(e.getErrorCode()).isEqualTo("ERR_PAG_15"));
+        assertThatThrownBy(() -> almacen.leer("k.pdf")).isInstanceOf(ServicioNoDisponibleException.class);
+    }
+
+    @Test
     void unaRespuestaLenta_vencePorTimeout_yEsServicioNoDisponible() {
         demoraMs = 3000;
 

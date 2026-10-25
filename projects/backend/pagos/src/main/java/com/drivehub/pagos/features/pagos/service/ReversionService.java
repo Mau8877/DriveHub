@@ -139,6 +139,8 @@ public class ReversionService {
         String detalle = validarMotivo(motivo, motivoDetalle);
 
         Devolucion devolucion = escritura.execute(estado -> {
+            // * Primero la billetera y después la compra, como `consumir`: el orden contrario provoca interbloqueos
+            billeteraService.bloquearBilletera(escuelaCodigo, estudianteCodigo);
             Pago pago = pagoRepository.buscarDeEstudianteParaActualizar(pagoCodigo, estudianteCodigo, escuelaCodigo)
                 .orElseThrow(() -> new NotFoundException(PagosErrorCodes.PAGO_NO_ENCONTRADO, "El pago no existe"));
             if (pago.getEstado() != EstadoPago.CONFIRMADO

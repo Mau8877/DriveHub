@@ -90,12 +90,7 @@ class ConfirmarPagoIntegracionTest extends PostgresIntegrationTestBase {
 
     @AfterEach
     void limpiar() {
-        jdbc.update("DELETE FROM movimiento_horas");
-        jdbc.update("DELETE FROM billetera_horas");
-        jdbc.update("DELETE FROM outbox_evento");
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     private AvisoPasarela cobro(long centavos, String moneda) {

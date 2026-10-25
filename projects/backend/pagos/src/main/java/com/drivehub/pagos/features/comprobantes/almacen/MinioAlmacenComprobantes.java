@@ -43,13 +43,40 @@ public class MinioAlmacenComprobantes implements AlmacenComprobantes {
     private static final String MENSAJE_NO_DISPONIBLE =
         "No pudimos guardar o leer el comprobante. Inténtalo de nuevo más tarde.";
 
-    private final S3Client cliente;
+    private final AlmacenProperties propiedades;
     private final String bucket;
+    private volatile S3Client clienteS3;
 
     public MinioAlmacenComprobantes(AlmacenProperties propiedades) {
+        this.propiedades = propiedades;
         this.bucket = propiedades.bucket();
+    }
+
+    /**
+     * El cliente S3, creado al primer uso: sin credenciales configuradas (tests, desarrollo sin MinIO) el servicio
+     * arranca igual y recién al guardar o leer un PDF responde `ERR_PAG_15`.
+     */
+    private S3Client cliente() {
+        S3Client actual = clienteS3;
+        if (actual == null) {
+            synchronized (this) {
+                actual = clienteS3;
+                if (actual == null) {
+                    actual = crearCliente();
+                    clienteS3 = actual;
+                }
+            }
+        }
+        return actual;
+    }
+
+    private S3Client crearCliente() {
+        if (propiedades.accessKey().isBlank() || propiedades.secretKey().isBlank()) {
+            LOG.warn("No hay credenciales del almacén de comprobantes configuradas", kv("module", "comprobantes"));
+            throw noDisponible();
+        }
         Duration espera = Duration.ofSeconds(propiedades.timeoutSegundos());
-        this.cliente = S3Client.builder()
+        return S3Client.builder()
             .endpointOverride(URI.create(propiedades.endpoint()))
             .region(Region.US_EAST_1)
             .credentialsProvider(StaticCredentialsProvider.create(
@@ -67,7 +94,7 @@ public class MinioAlmacenComprobantes implements AlmacenComprobantes {
     @Override
     public void guardar(String clave, byte[] pdf) {
         try {
-            cliente.putObject(PutObjectRequest.builder().bucket(bucket).key(clave).contentType("application/pdf")
+            cliente().putObject(PutObjectRequest.builder().bucket(bucket).key(clave).contentType("application/pdf")
                 .build(), RequestBody.fromBytes(pdf));
         } catch (SdkException e) {
             LOG.warn("No se pudo guardar un comprobante en el almacén (tipo {})", e.getClass().getSimpleName(),
@@ -79,7 +106,7 @@ public class MinioAlmacenComprobantes implements AlmacenComprobantes {
     @Override
     public byte[] leer(String clave) {
         try {
-            return cliente.getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(clave).build())
+            return cliente().getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(clave).build())
                 .asByteArray();
         } catch (NoSuchKeyException e) {
             throw new NoSuchElementException("No hay un comprobante guardado con esa clave");

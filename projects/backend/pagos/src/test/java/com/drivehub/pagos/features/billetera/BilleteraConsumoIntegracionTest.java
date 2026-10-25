@@ -72,11 +72,7 @@ class BilleteraConsumoIntegracionTest extends PostgresIntegrationTestBase {
     @AfterEach
     void limpiar() {
         SecurityContextHolder.clearContext();
-        jdbc.update("DELETE FROM movimiento_horas");
-        jdbc.update("DELETE FROM billetera_horas");
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     private static void entrarComoAdministrador() {

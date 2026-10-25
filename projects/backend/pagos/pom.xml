@@ -24,6 +24,10 @@
 		<!-- JasperReports: el PDF de los comprobantes (CU30). El JDT compila las expresiones de la plantilla:
 		     el contenedor corre con un JRE, sin javac. -->
 		<jasperreports.version>7.1.0</jasperreports.version>
+		<!-- Testcontainers 1.21 habla con Docker usando la API 1.32 por defecto y Docker 29 en adelante la rechaza
+		     (exige 1.40 o más): se fija una versión de API que los dos entienden. Lo lee el cliente de Docker
+		     de los tests (propiedad de sistema `api.version`). -->
+		<argLine>-Dapi.version=1.44</argLine>
 		<!-- Para leer el texto de los PDF en los tests de los comprobantes (CU30). -->
 		<pdfbox.version>3.0.8</pdfbox.version>
 		<!-- Cliente S3 para guardar los comprobantes en MinIO (CU30). -->

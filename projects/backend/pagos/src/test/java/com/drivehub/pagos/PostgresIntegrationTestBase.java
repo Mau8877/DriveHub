@@ -36,6 +36,18 @@ public abstract class PostgresIntegrationTestBase {
         }
     }
 
+    /**
+     * Vacía todas las tablas de Pagos en el orden de sus claves foráneas. Los tests comparten la base: cada uno
+     * parte de cero y deja todo limpio, sin importar qué más escribió el servicio (comprobantes, billeteras...).
+     */
+    protected static void vaciarTablas(org.springframework.jdbc.core.JdbcTemplate jdbc) {
+        String[] tablas = {"comprobante", "movimiento_horas", "billetera_horas", "reversion_pago",
+            "transaccion_pasarela", "outbox_evento", "pago", "plan_pago"};
+        for (String tabla : tablas) {
+            jdbc.update("DELETE FROM " + tabla);
+        }
+    }
+
     @DynamicPropertySource
     static void propiedadesDeBaseDeDatos(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", () -> postgres.getJdbcUrl());
