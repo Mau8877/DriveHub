@@ -141,7 +141,7 @@ class PagosPropertiesTest {
         java.util.function.IntFunction<Boolean> valida = minutos -> esValido(new PagosProperties(
             new BigDecimal(PagosPropertiesPrueba.TIPO_CAMBIO),
             new PagosProperties.Pasarela("", "", minutos, PagosPropertiesPrueba.URL_RETORNO,
-                PagosPropertiesPrueba.ENLACE_APP, ""),
+                PagosPropertiesPrueba.ENLACE_APP, "", 300),
             new PagosProperties.Vencimiento(300, 10)));
 
         assertThat(valida.apply(29)).isFalse();

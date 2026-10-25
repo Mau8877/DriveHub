@@ -19,6 +19,9 @@ public final class PagosErrorCodes {
     public static final String PASARELA_NO_DISPONIBLE = "ERR_PAG_06";
     public static final String PAGO_NO_ENCONTRADO = "ERR_PAG_07";
     public static final String SERVICIO_DEPENDIENTE_NO_DISPONIBLE = "ERR_PAG_15";
+    public static final String AVISO_FIRMA_INVALIDA = "ERR_PAG_08";
+    public static final String HORAS_INSUFICIENTES = "ERR_PAG_09";
+    public static final String CONSUMO_NO_ENCONTRADO = "ERR_PAG_16";
     public static final String COMPRA_EN_CURSO = "ERR_PAG_17";
     public static final String CLAVE_DE_COMPRA_REUTILIZADA = "ERR_PAG_18";
 

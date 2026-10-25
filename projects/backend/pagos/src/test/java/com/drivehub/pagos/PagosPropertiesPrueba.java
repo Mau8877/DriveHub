@@ -34,6 +34,11 @@ public final class PagosPropertiesPrueba {
 
     /** Una pasarela de prueba: la clave y la dirección de la API de Stripe se eligen; lo demás es de prueba. */
     public static PagosProperties.Pasarela pasarela(String stripeSecretKey, String stripeBaseUrl) {
-        return new PagosProperties.Pasarela(stripeSecretKey, "", 30, URL_RETORNO, ENLACE_APP, stripeBaseUrl);
+        return new PagosProperties.Pasarela(stripeSecretKey, "", 30, URL_RETORNO, ENLACE_APP, stripeBaseUrl, 300);
+    }
+
+    /** Una pasarela de prueba con el secreto con que se firman los avisos y la tolerancia dada, en segundos. */
+    public static PagosProperties.Pasarela pasarelaConAvisos(String webhookSecret, long toleranciaSegundos) {
+        return new PagosProperties.Pasarela("", webhookSecret, 30, URL_RETORNO, ENLACE_APP, "", toleranciaSegundos);
     }
 }

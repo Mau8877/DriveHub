@@ -74,7 +74,8 @@ class StripePasarelaTest {
     }
 
     private StripePasarela pasarela(String clave, String baseUrl) {
-        return new StripePasarela(PagosPropertiesPrueba.conPasarela(PagosPropertiesPrueba.pasarela(clave, baseUrl)));
+        return new StripePasarela(PagosPropertiesPrueba.conPasarela(PagosPropertiesPrueba.pasarela(clave, baseUrl)),
+            java.time.Clock.systemUTC());
     }
 
     private String urlServidor() {

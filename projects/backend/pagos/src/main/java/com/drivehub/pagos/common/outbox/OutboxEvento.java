@@ -38,4 +38,15 @@ public class OutboxEvento extends BaseModel {
     @Setter
     @Column(name = "publicado_en")
     private Instant publicadoEn;
+
+    /**
+     * Evento nuevo, todavía sin publicar.
+     *
+     * @param tipo ej. `pago.confirmado`
+     * @param payload el contenido, como texto JSON
+     */
+    public OutboxEvento(String tipo, String payload) {
+        this.tipo = tipo;
+        this.payload = payload;
+    }
 }

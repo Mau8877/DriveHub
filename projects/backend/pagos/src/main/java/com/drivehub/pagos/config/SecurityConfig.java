@@ -41,6 +41,8 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 // * La página a la que vuelve el estudiante de la pasarela de pago (CU26): fija y sin datos
                 .requestMatchers(HttpMethod.GET, "/api/v1/pagos/retorno").permitAll()
+                // * Los avisos de la pasarela (CU27): no llevan JWT, los autentica la firma del aviso
+                .requestMatchers(HttpMethod.POST, "/api/v1/webhooks-stripe").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth

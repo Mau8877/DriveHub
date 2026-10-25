@@ -1,0 +1,28 @@
+package com.drivehub.pagos.features.pagos.pasarela;
+
+import java.util.UUID;
+
+/**
+ * Un aviso de la pasarela ya verificado (firma válida) y traducido a lo que Pagos entiende (CU27).
+ *
+ * @param eventoId el id del aviso en la pasarela
+ * @param referenciaExterna el id de la sesión de cobro: con él se encuentra el pago
+ * @param pagoCodigo el código del pago que Pagos le puso a la sesión al crearla; puede faltar
+ * @param montoCentavos lo que se cobró, en centavos de la moneda; nulo si el aviso no lo trae
+ * @param moneda la moneda del cobro, en minúscula (`usd`)
+ * @param cobroReferencia el id del cobro en la pasarela: lo necesita CU31 para devolverlo
+ */
+public record AvisoPasarela(
+        String eventoId,
+        TipoAviso tipo,
+        String referenciaExterna,
+        UUID pagoCodigo,
+        Long montoCentavos,
+        String moneda,
+        String cobroReferencia) {
+
+    /** Un aviso que Pagos no necesita. */
+    public static AvisoPasarela otro(String eventoId) {
+        return new AvisoPasarela(eventoId, TipoAviso.OTRO, null, null, null, null, null);
+    }
+}

@@ -40,7 +40,7 @@ class RetornoPagoControllerTest {
         @Bean
         PagosProperties propiedades() {
             return new PagosProperties(new java.math.BigDecimal(PagosPropertiesPrueba.TIPO_CAMBIO),
-                new PagosProperties.Pasarela("", "", 30, PagosPropertiesPrueba.URL_RETORNO, ENLACE_CON_AMPERSAND, ""),
+                new PagosProperties.Pasarela("", "", 30, PagosPropertiesPrueba.URL_RETORNO, ENLACE_CON_AMPERSAND, "", 300),
                 new PagosProperties.Vencimiento(300, 10));
         }
     }

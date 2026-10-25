@@ -46,6 +46,8 @@ public record PagosProperties(
      * * variable obligatoria y no tiene valor por defecto.
      * * `enlaceApp`: el enlace con el que esa página abre la app (`PAGOS_ENLACE_APP`); también obligatorio.
      * * `stripeBaseUrl`: vacía = la API real de Stripe; solo la cambian los tests, con un servidor falso.
+     * * `toleranciaFirmaSegundos`: cuánto puede diferir la hora de un aviso de la pasarela de la hora del servicio
+     * * para que se acepte (por defecto 5 minutos): frena que alguien repita un aviso viejo y bien firmado.
      */
     public record Pasarela(
             @DefaultValue("") String stripeSecretKey,
@@ -53,7 +55,8 @@ public record PagosProperties(
             @Min(30) @Max(1440) @DefaultValue("30") int vigenciaSesionMinutos,
             @NotBlank String urlRetorno,
             @NotBlank String enlaceApp,
-            @DefaultValue("") String stripeBaseUrl) {
+            @DefaultValue("") String stripeBaseUrl,
+            @Min(1) @DefaultValue("300") long toleranciaFirmaSegundos) {
     }
 
     /**
