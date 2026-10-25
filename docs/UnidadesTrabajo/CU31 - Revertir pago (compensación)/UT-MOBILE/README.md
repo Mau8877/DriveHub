@@ -35,6 +35,13 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_MOBILE.md](..
 
 La compensación automática y la ejecución del reembolso son de backend ([UT-BACKEND](../UT-BACKEND/README.md)). Necesita el backend de CU31 y el detalle de CU28-MOB.
 
+## Notas de implementación (desviaciones de la ficha)
+
+- **Seguimiento del reembolso:** vive en `reembolsoProvider` (`vigilar()`), no en la pantalla. La pantalla lo arranca también cuando abre una compra que ya está `REEMBOLSO_EN_PROCESO`, no solo tras pedirlo.
+- **Comprobante del reembolso:** el detalle móvil todavía no muestra comprobantes (son del caso de uso móvil de CU30); al terminar solo se avisa «Tu reembolso se completó.» y la compra pasa a «Reembolsado».
+- **Mensajes de error:** en `widgets/mensajes_de_reembolso.dart`; el diálogo, en `widgets/dialogo_reembolso.dart` (`RadioGroup` de Flutter 3.44).
+- Los plazos (5 s y 5 min) son providers (`intervaloConsultaReembolsoProvider`, `plazoConsultaReembolsoProvider`) para acortarlos en los tests.
+
 ## Follow-ups (no se implementan en estas UT)
 
 - Notificación push cuando el reembolso termina.

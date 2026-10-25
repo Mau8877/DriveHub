@@ -95,6 +95,8 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_PAG_07`](pagos/ERRORES_PAGOS.md#err_pag_07) — El pago no existe o es de otra persona (404)
 - [`ERR_PAG_08`](pagos/ERRORES_PAGOS.md#err_pag_08) — El aviso de la pasarela no se pudo verificar (400)
 - [`ERR_PAG_09`](pagos/ERRORES_PAGOS.md#err_pag_09) — No hay horas suficientes en la billetera (409)
+- [`ERR_PAG_10`](pagos/ERRORES_PAGOS.md#err_pag_10) — La compra no se puede reembolsar: sin confirmar o con una devolución vigente (409)
+- [`ERR_PAG_11`](pagos/ERRORES_PAGOS.md#err_pag_11) — Ya se usó al menos una hora de la compra: no hay reembolso parcial (409)
 - [`ERR_PAG_12`](pagos/ERRORES_PAGOS.md#err_pag_12) — El estudiante no es alumno de este instructor (404)
 - [`ERR_PAG_13`](pagos/ERRORES_PAGOS.md#err_pag_13) — El comprobante no existe o no es del que lo pide (404)
 - [`ERR_PAG_14`](pagos/ERRORES_PAGOS.md#err_pag_14) — El PDF del comprobante todavía se está preparando (409)

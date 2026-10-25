@@ -49,17 +49,19 @@ Las constantes viven en `PagosErrorCodes` (`common/exception/`).
 
 - **HTTP:** 503
 - **Excepción:** `ServicioNoDisponibleException`
-- **Significado:** La pasarela de pago (Stripe) no pudo crear la sesión de cobro (CU26): no responde, rechazó el
-  pedido, respondió algo incompleto, o el servicio no tiene la clave configurada. No se cobró nada y se puede
-  reintentar más tarde.
-- **Dónde se lanza:** `StripePasarela.crearSesionCobro()`
+- **Significado:** La pasarela de pago (Stripe) no pudo crear la sesión de cobro (CU26) ni la devolución de un
+  reembolso o una compensación (CU31): no responde, rechazó el pedido, respondió algo incompleto, o el servicio no
+  tiene la clave configurada. No se cobró ni se devolvió nada; en un reembolso las horas apartadas vuelven al
+  estudiante. Se puede reintentar más tarde.
+- **Dónde se lanza:** `StripePasarela.crearSesionCobro()`, `StripePasarela.reembolsar()` y
+  `ReversionService.solicitarReembolso()` (cuando el pago confirmado no tiene guardado el cobro de la pasarela)
 
 ## `ERR_PAG_07`
 
 - **HTTP:** 404
 - **Excepción:** `NotFoundException`
-- **Significado:** El pago pedido no existe o es de otra persona (CU26 y CU28). Un pago ajeno y un código inexistente responden igual: no se distinguen.
-- **Dónde se lanza:** `PagoService.estado()` y `ConsultaPagosService.detalle()`
+- **Significado:** El pago pedido no existe o es de otra persona (CU26, CU28 y CU31). Un pago ajeno y un código inexistente responden igual: no se distinguen.
+- **Dónde se lanza:** `PagoService.estado()`, `ConsultaPagosService.detalle()` y `ReversionService.solicitarReembolso()`
 
 ## `ERR_PAG_08`
 
@@ -77,6 +79,23 @@ Las constantes viven en `PagosErrorCodes` (`common/exception/`).
 - **Significado:** Se quiso gastar más horas de las que tiene la billetera del estudiante, o el estudiante todavía no
   tiene billetera (CU27). No se descuenta nada.
 - **Dónde se lanza:** `BilleteraService.consumir()`
+
+## `ERR_PAG_10`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La compra no se puede reembolsar (CU31): el pago no está confirmado (pendiente, fallido o ya
+  reembolsado) o ya tiene una devolución vigente (pedida o ejecutada). También cuando dos pedidos del mismo reembolso
+  llegan a la vez y uno pierde la carrera. No se cambia nada.
+- **Dónde se lanza:** `ReversionService.solicitarReembolso()`
+
+## `ERR_PAG_11`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Ya se usó al menos una hora de la compra (CU31): el reembolso es de la compra entera o de nada, no
+  hay reembolso parcial. No se cambia nada.
+- **Dónde se lanza:** `ReversionService.solicitarReembolso()`
 
 ## `ERR_PAG_12`
 
