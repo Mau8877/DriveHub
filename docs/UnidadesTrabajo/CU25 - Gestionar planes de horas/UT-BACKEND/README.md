@@ -1,8 +1,8 @@
-# Unidades de trabajo — CU25a-BE
+# Unidades de trabajo — CU25-BE
 
 **Caso de uso:** Gestionar planes de horas (Administrador de escuela): crear, listar, editar, desactivar y reactivar los planes de horas de su escuela (nombre, horas y costo en bolivianos, con su equivalente en dólares como referencia), aislado por escuela.
 **Microservicio(s) / micro-frontend(s):** `pagos` (Spring Boot, capas, PostgreSQL) — ver [MICROSERVICIOS.md](../../../../.claude/rules/MICROSERVICIOS.md)
-**Fuente CU:** [`CU25a - Gestionar planes de horas`](../../../CasosDeUso/CU25a%20-%20Gestionar%20planes%20de%20horas.md)
+**Fuente CU:** [`CU25 - Gestionar planes de horas`](../../../CasosDeUso/CU25%20-%20Gestionar%20planes%20de%20horas.md)
 **Recurso HTTP / contrato:** `/api/v1/planes-pago` (ya enrutado por el gateway a `pagos`)
 
 ## Antes de implementar cualquier UT
@@ -12,7 +12,7 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_BACKEND.md](.
 ## Decisiones de diseño
 
 1. **El catálogo de planes vive en Pagos**, no en Escuela: es dinero, y `inscripcion_plan` apunta a `plan_pago` con una FK física que solo es posible dentro de la misma base. La tabla `plan_pago` ya existe en el diseño (CU25) y se **reutiliza**: se ajusta, no se crea otra.
-2. **`plan_pago` cambia así** (la tabla está vacía en todos los entornos, ningún caso de uso había escrito planes): se quitan `categoria_sigla`, `nro_clases` y `nro_cuotas` (las cuotas son del CU25, no de un plan de horas); `monto_total` pasa a llamarse `costo_bs`; se suman `horas` y `escuela_codigo`. Queda: `nombre`, `horas`, `costo_bs`, `activo`, `escuela_codigo` y las columnas de `BaseModel`.
+2. **`plan_pago` cambia así** (la tabla está vacía en todos los entornos, ningún caso de uso había escrito planes): se quitan `categoria_sigla`, `nro_clases` y `nro_cuotas` (las cuotas son de la contratación del plan, no de un plan de horas); `monto_total` pasa a llamarse `costo_bs`; se suman `horas` y `escuela_codigo`. Queda: `nombre`, `horas`, `costo_bs`, `activo`, `escuela_codigo` y las columnas de `BaseModel`.
 3. **Multitenant con una clase abstracta.** `common/model/BaseEscuelaModel extends BaseModel` (`@MappedSuperclass`) trae `escuelaCodigo` (`escuela_codigo UUID NOT NULL`, sin FK: es el `codigo_escuela` de Escuela). Todo Model de Pagos que sea de una escuela la extiende; `PlanPago` es el primero. El filtro por escuela es explícito en cada consulta del repositorio, con la escuela del claim `escuela` del token (no hay filtro automático).
 4. **Restricciones en la base, no solo en el servicio:** `CHECK (horas BETWEEN 1 AND 500)`, `CHECK (costo_bs > 0)` y un índice único `uq_plan_pago_escuela_nombre` sobre `(escuela_codigo, lower(nombre))` donde `deleted_at IS NULL`. El servicio comprueba el nombre antes de guardar (para dar un mensaje claro) y la base cierra la carrera entre dos altas simultáneas: esa violación se traduce al mismo `ERR_PAG_01`.
 5. **El dólar no se guarda.** `costoUsd` se calcula al responder: `costo_bs ÷ tipo de cambio`, `RoundingMode.HALF_UP`, dos decimales. El tipo de cambio es una configuración de Pagos (`app.pagos.tipo-cambio-bs-usd`, variable de entorno `TIPO_CAMBIO_BS_USD`, por defecto `6.96`) y el servicio **no arranca** si no es mayor a 0. Sin servicio externo.
@@ -42,11 +42,11 @@ Validación de entrada: `nombre` 1 a 80 caracteres (se recorta); `horas` entero 
 
 | Código | Nombre | Depende de |
 |--------|--------|------------|
-| [UT-CU25a-BE-01](./UT-CU25a-BE-01.md) | Migración y modelo por escuela | — |
-| [UT-CU25a-BE-02](./UT-CU25a-BE-02.md) | Errores, escuela del token y tipo de cambio | — |
-| [UT-CU25a-BE-03](./UT-CU25a-BE-03.md) | Repositorio y listado de planes | 01 |
-| [UT-CU25a-BE-04](./UT-CU25a-BE-04.md) | Servicio y reglas de los planes | 01, 02, 03 |
-| [UT-CU25a-BE-05](./UT-CU25a-BE-05.md) | Controller, errores documentados y seed | 04 |
+| [UT-CU25-BE-01](./UT-CU25-BE-01.md) | Migración y modelo por escuela | — |
+| [UT-CU25-BE-02](./UT-CU25-BE-02.md) | Errores, escuela del token y tipo de cambio | — |
+| [UT-CU25-BE-03](./UT-CU25-BE-03.md) | Repositorio y listado de planes | 01 |
+| [UT-CU25-BE-04](./UT-CU25-BE-04.md) | Servicio y reglas de los planes | 01, 02, 03 |
+| [UT-CU25-BE-05](./UT-CU25-BE-05.md) | Controller, errores documentados y seed | 04 |
 
 **Cadena:** `01, 02 → 03 → 04 → 05` (la 02 no depende de la 01 y pueden hacerse en paralelo).
 
@@ -68,14 +68,14 @@ CA11 es de frontend.
 
 ## Follow-ups (no se implementan en estas UT)
 
-- Que la contratación del estudiante (CU25 y siguientes) lea los planes activos y guarde el monto en `inscripcion_plan`.
+- Que la contratación del estudiante (CU26 y siguientes, por documentar) lea los planes activos y guarde el monto en `inscripcion_plan`.
 - Búsqueda del nombre sin distinguir tildes (hoy distingue tildes, no mayúsculas).
 - Tipo de cambio en vivo desde una fuente externa, y una pantalla para cambiarlo.
 - Extender `BaseEscuelaModel` a las demás tablas de Pagos que sean de una escuela (inscripciones, pagos) cuando tengan su caso de uso.
 
 ## Qué NO incluyen estas UT
 
-- Cuotas, contratación y pago de un plan (CU25 y siguientes).
+- Cuotas, contratación y pago de un plan (CU26 y siguientes, por documentar).
 - Categoría de licencia, descuentos o vigencia de un plan.
 - Cambios en el gateway: `planes-pago` ya está enrutado a `pagos`.
 - El frontend ([UT-FRONTEND](../UT-FRONTEND/README.md)).

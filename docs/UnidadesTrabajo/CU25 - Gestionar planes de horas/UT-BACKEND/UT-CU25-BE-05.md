@@ -1,12 +1,12 @@
-# UT-CU25a-BE-05 — Controller, errores documentados y seed
+# UT-CU25-BE-05 — Controller, errores documentados y seed
 
 | Campo | Valor |
 |-------|-------|
-| **Código** | `UT-CU25a-BE-05` |
+| **Código** | `UT-CU25-BE-05` |
 | **Nombre** | Controller, errores documentados y seed |
-| **Caso de uso** | CU25a-BE |
+| **Caso de uso** | CU25-BE |
 | **Microservicio** | `pagos` |
-| **Depende de** | UT-CU25a-BE-04 |
+| **Depende de** | UT-CU25-BE-04 |
 
 ## Antes de implementar
 

@@ -1,10 +1,10 @@
-# UT-CU25a-FE-01 — Campo decimal y columna moneda en `<dh-gestion>`
+# UT-CU25-FE-01 — Campo decimal y columna moneda en `<dh-gestion>`
 
 | Campo | Valor |
 |-------|-------|
-| **Código** | `UT-CU25a-FE-01` |
+| **Código** | `UT-CU25-FE-01` |
 | **Nombre** | Campo decimal y columna moneda en `<dh-gestion>` |
-| **Caso de uso** | CU25a-FE |
+| **Caso de uso** | CU25-FE |
 | **Microservicio** | `packages/gestion` |
 | **Depende de** | — |
 

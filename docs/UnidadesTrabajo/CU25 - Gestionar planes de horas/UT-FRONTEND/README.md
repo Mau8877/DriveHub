@@ -1,13 +1,13 @@
-# Unidades de trabajo — CU25a-FE
+# Unidades de trabajo — CU25-FE
 
 **Caso de uso:** Gestionar planes de horas (Administrador de escuela): pantalla "Planes de horas" con listado (nombre, horas, costo en Bs y en USD, estado), búsqueda, filtro de estado, creación, edición, desactivar y reactivar.
 **Micro-frontend(s):** `pagos` (web, Angular) y `shell` (menú), más el paquete compartido `@drivehub/gestion` y el `docker-compose.yml` — ver [MICROSERVICIOS.md](../../../../.claude/rules/MICROSERVICIOS.md)
-**Fuente CU:** [`CU25a - Gestionar planes de horas`](../../../CasosDeUso/CU25a%20-%20Gestionar%20planes%20de%20horas.md)
-**Recurso HTTP / contrato:** el de [CU25a-BE](../UT-BACKEND/README.md#contrato-de-datos--recurso-http) (`/api/v1/planes-pago`, vía el gateway); pantalla `/pagos/planes`
+**Fuente CU:** [`CU25 - Gestionar planes de horas`](../../../CasosDeUso/CU25%20-%20Gestionar%20planes%20de%20horas.md)
+**Recurso HTTP / contrato:** el de [CU25-BE](../UT-BACKEND/README.md#contrato-de-datos--recurso-http) (`/api/v1/planes-pago`, vía el gateway); pantalla `/pagos/planes`
 
 ## Antes de implementar cualquier UT
 
-**Requiere el backend (CU25a-BE-05)** para probar la pantalla contra la API real; el esquema y los componentes se pueden hacer antes. Leer [`.claude/rules/`](../../../../.claude/rules/): [GESTION_FRONTEND.md](../../../../.claude/rules/frontend/GESTION_FRONTEND.md), [UI_FRONTEND.md](../../../../.claude/rules/frontend/UI_FRONTEND.md) (en especial "Nada de componentes nativos"), [ANGULAR_FRONTEND.md](../../../../.claude/rules/frontend/ANGULAR_FRONTEND.md), [ARQUITECTURA_FRONTEND.md](../../../../.claude/rules/ARQUITECTURA_FRONTEND.md), [TAILWIND_STYLES_FRONTEND.md](../../../../.claude/rules/frontend/TAILWIND_STYLES_FRONTEND.md) y [RUTAS_NAVEGACION_FRONTEND.md](../../../../.claude/rules/frontend/RUTAS_NAVEGACION_FRONTEND.md). Estas fichas **no** sustituyen esas reglas: si hay conflicto, ganan las rules del proyecto.
+**Requiere el backend (CU25-BE-05)** para probar la pantalla contra la API real; el esquema y los componentes se pueden hacer antes. Leer [`.claude/rules/`](../../../../.claude/rules/): [GESTION_FRONTEND.md](../../../../.claude/rules/frontend/GESTION_FRONTEND.md), [UI_FRONTEND.md](../../../../.claude/rules/frontend/UI_FRONTEND.md) (en especial "Nada de componentes nativos"), [ANGULAR_FRONTEND.md](../../../../.claude/rules/frontend/ANGULAR_FRONTEND.md), [ARQUITECTURA_FRONTEND.md](../../../../.claude/rules/ARQUITECTURA_FRONTEND.md), [TAILWIND_STYLES_FRONTEND.md](../../../../.claude/rules/frontend/TAILWIND_STYLES_FRONTEND.md) y [RUTAS_NAVEGACION_FRONTEND.md](../../../../.claude/rules/frontend/RUTAS_NAVEGACION_FRONTEND.md). Estas fichas **no** sustituyen esas reglas: si hay conflicto, ganan las rules del proyecto.
 
 ## Decisiones de diseño
 
@@ -25,9 +25,9 @@
 
 | Código | Nombre | Depende de |
 |--------|--------|------------|
-| [UT-CU25a-FE-01](./UT-CU25a-FE-01.md) | Campo decimal y columna moneda en `<dh-gestion>` | — |
-| [UT-CU25a-FE-02](./UT-CU25a-FE-02.md) | Pantalla de planes de horas (esquema y ruta) en `pagos` | UT-CU25a-FE-01 |
-| [UT-CU25a-FE-03](./UT-CU25a-FE-03.md) | Menú del shell y `pagos` en el contenedor `frontend` | UT-CU25a-FE-02 |
+| [UT-CU25-FE-01](./UT-CU25-FE-01.md) | Campo decimal y columna moneda en `<dh-gestion>` | — |
+| [UT-CU25-FE-02](./UT-CU25-FE-02.md) | Pantalla de planes de horas (esquema y ruta) en `pagos` | UT-CU25-FE-01 |
+| [UT-CU25-FE-03](./UT-CU25-FE-03.md) | Menú del shell y `pagos` en el contenedor `frontend` | UT-CU25-FE-02 |
 
 **Cadena:** `01 → 02 → 03`.
 
@@ -43,17 +43,17 @@
 | CA05 | El dólar se muestra, no se escribe | 01, 02 |
 | CA11 | Opción de menú solo para el Administrador, dentro de "Gestionar pagos" | 03 |
 
-Los criterios CA08, CA09 y CA10 son del backend ([CU25a-BE](../UT-BACKEND/README.md#cobertura-del-caso-de-uso)).
+Los criterios CA08, CA09 y CA10 son del backend ([CU25-BE](../UT-BACKEND/README.md#cobertura-del-caso-de-uso)).
 
 ## Follow-ups (no se implementan en estas UT)
 
 - Mostrar el tipo de cambio usado, o poder cambiarlo desde la pantalla.
-- Columna con el número de estudiantes que contrataron cada plan (cuando exista la contratación, CU25).
+- Columna con el número de estudiantes que contrataron cada plan (cuando exista la contratación, CU26 y siguientes).
 - Ordenar el listado por horas o por costo.
 
 ## Qué NO incluyen estas UT
 
-- Cambios en el backend (CU25a-BE) ni en el gateway.
+- Cambios en el backend (CU25-BE) ni en el gateway.
 - La contratación y el pago de un plan por el estudiante, ni su pantalla móvil.
 - Las pantallas de cuotas.
 - La app móvil.

@@ -1,12 +1,12 @@
-# UT-CU25a-BE-04 — Servicio y reglas de los planes
+# UT-CU25-BE-04 — Servicio y reglas de los planes
 
 | Campo | Valor |
 |-------|-------|
-| **Código** | `UT-CU25a-BE-04` |
+| **Código** | `UT-CU25-BE-04` |
 | **Nombre** | Servicio y reglas de los planes |
-| **Caso de uso** | CU25a-BE |
+| **Caso de uso** | CU25-BE |
 | **Microservicio** | `pagos` |
-| **Depende de** | UT-CU25a-BE-01, UT-CU25a-BE-02, UT-CU25a-BE-03 |
+| **Depende de** | UT-CU25-BE-01, UT-CU25-BE-02, UT-CU25-BE-03 |
 
 ## Antes de implementar
 

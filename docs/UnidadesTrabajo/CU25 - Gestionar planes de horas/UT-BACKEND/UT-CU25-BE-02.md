@@ -1,10 +1,10 @@
-# UT-CU25a-BE-02 — Errores, escuela del token y tipo de cambio
+# UT-CU25-BE-02 — Errores, escuela del token y tipo de cambio
 
 | Campo | Valor |
 |-------|-------|
-| **Código** | `UT-CU25a-BE-02` |
+| **Código** | `UT-CU25-BE-02` |
 | **Nombre** | Errores, escuela del token y tipo de cambio |
-| **Caso de uso** | CU25a-BE |
+| **Caso de uso** | CU25-BE |
 | **Microservicio** | `pagos` |
 | **Depende de** | — |
 

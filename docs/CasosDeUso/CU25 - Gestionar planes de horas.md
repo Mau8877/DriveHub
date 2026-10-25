@@ -1,15 +1,15 @@
 # Caso de uso
 
-| Id    | Nombre                    | Paquete   | Prioridad | Estado    |
-| ----- | ------------------------- | --------- | --------- | --------- |
-| CU25a | Gestionar planes de horas | P5. Pagos | Alta      | Pendiente |
+| Id   | Nombre                    | Paquete   | Prioridad | Estado    |
+| ---- | ------------------------- | --------- | --------- | --------- |
+| CU25 | Gestionar planes de horas | P5. Pagos | Alta      | Pendiente |
 
 **Actor principal:** Administrador de escuela
 **Actores secundarios:** —
 **Objetivo:** Definir los planes que ofrece su escuela para tomar clases: cada plan tiene un nombre, una cantidad de horas y un costo en bolivianos (con su equivalente en dólares como referencia).
 **Plataforma:** Web
 
-> **Relación con [CU25: Gestionar plan de pagos y cuotas](../DriveHub/DriveHub_Casos_de_Uso_por_Paquete.pdf).** Este CU solo **define y mantiene el catálogo de planes** de la escuela. Que un estudiante contrate un plan, cómo lo paga y cómo se divide en cuotas es del CU25 y de los CU de pago, y **no** forma parte de este CU. Un plan de horas no lleva cuotas ni categoría de licencia.
+> **Reemplaza al CU25 del diseño original** ("Gestionar plan de pagos y cuotas", [PDF](../DriveHub/DriveHub_Casos_de_Uso_por_Paquete.pdf)): el CU25 del proyecto es este. Este CU solo **define y mantiene el catálogo de planes** de la escuela. Que un estudiante contrate un plan, cómo lo paga y cómo se divide en cuotas **no** forma parte de este CU: son de otros casos de uso (CU26 en adelante), todavía por documentar. Un plan de horas no lleva cuotas ni categoría de licencia.
 
 **Descripción:**
 El Administrador de escuela tiene en su menú el grupo "Gestionar pagos" y, dentro, "Planes de horas". Ahí ve el listado de los planes de su escuela, del más reciente al más antiguo, con su nombre, sus horas, su costo en bolivianos, su equivalente en dólares y su estado, con búsqueda por nombre, filtro de estado y paginación. Desde el listado crea un plan nuevo (nombre, horas y costo en bolivianos), corrige sus datos y lo desactiva o lo reactiva. El sistema calcula el costo en dólares a partir del costo en bolivianos con el tipo de cambio configurado; no se escribe ni se guarda. Un plan desactivado deja de ofrecerse a los estudiantes, pero no se borra: conserva su historia y se puede reactivar. Cada escuela ve y toca únicamente sus propios planes.
@@ -96,7 +96,7 @@ El Administrador de escuela tiene en su menú el grupo "Gestionar pagos" y, dent
 
 ## Fuera de alcance
 
-- **Cuotas, contratación y pago de un plan** por el estudiante: son del [CU25](../DriveHub/DriveHub_Casos_de_Uso_por_Paquete.pdf) y de los CU de pago (CU26 en adelante). Un plan de horas no tiene cuotas.
+- **Cuotas, contratación y pago de un plan** por el estudiante: son de otros casos de uso (CU26 en adelante), todavía por documentar. Un plan de horas no tiene cuotas.
 - **Categoría de licencia** del plan y **descuentos, promociones o vigencia** de un plan.
 - **Tipo de cambio en vivo** (consultar una API externa) y una pantalla para cambiarlo: hoy es una configuración del servicio.
 - **Borrar un plan:** se desactiva.

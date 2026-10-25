@@ -1,10 +1,10 @@
-# UT-CU25a-BE-01 — Migración y modelo por escuela
+# UT-CU25-BE-01 — Migración y modelo por escuela
 
 | Campo | Valor |
 |-------|-------|
-| **Código** | `UT-CU25a-BE-01` |
+| **Código** | `UT-CU25-BE-01` |
 | **Nombre** | Migración y modelo por escuela |
-| **Caso de uso** | CU25a-BE |
+| **Caso de uso** | CU25-BE |
 | **Microservicio** | `pagos` |
 | **Depende de** | — |
 

@@ -1,12 +1,12 @@
-# UT-CU25a-BE-03 — Repositorio y listado de planes
+# UT-CU25-BE-03 — Repositorio y listado de planes
 
 | Campo | Valor |
 |-------|-------|
-| **Código** | `UT-CU25a-BE-03` |
+| **Código** | `UT-CU25-BE-03` |
 | **Nombre** | Repositorio y listado de planes |
-| **Caso de uso** | CU25a-BE |
+| **Caso de uso** | CU25-BE |
 | **Microservicio** | `pagos` |
-| **Depende de** | UT-CU25a-BE-01 |
+| **Depende de** | UT-CU25-BE-01 |
 
 ## Antes de implementar
 

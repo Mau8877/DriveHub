@@ -1,12 +1,12 @@
-# UT-CU25a-FE-03 — Menú del shell y `pagos` en el contenedor `frontend`
+# UT-CU25-FE-03 — Menú del shell y `pagos` en el contenedor `frontend`
 
 | Campo | Valor |
 |-------|-------|
-| **Código** | `UT-CU25a-FE-03` |
+| **Código** | `UT-CU25-FE-03` |
 | **Nombre** | Menú del shell y `pagos` en el contenedor `frontend` |
-| **Caso de uso** | CU25a-FE |
+| **Caso de uso** | CU25-FE |
 | **Microservicio** | `shell` y `docker-compose.yml` |
-| **Depende de** | UT-CU25a-FE-02 |
+| **Depende de** | UT-CU25-FE-02 |
 
 ## Antes de implementar
 

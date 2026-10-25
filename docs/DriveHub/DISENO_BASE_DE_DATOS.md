@@ -395,7 +395,7 @@ Instructor asignado a cada estudiante. Un estudiante tiene un solo instructor vi
 
 ## 4. Pagos — PostgreSQL
 
-Planes, cuotas, pagos, pasarela, comprobantes y reversiones. Migraciones: `V20261018120000__crear_esquema_pagos.sql` y `V20261025100000__plan_pago_de_horas.sql` (CU25a). El estado de la saga reserva-pago **no** vive acá ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
+Planes, cuotas, pagos, pasarela, comprobantes y reversiones. Migraciones: `V20261018120000__crear_esquema_pagos.sql` y `V20261025100000__plan_pago_de_horas.sql` (CU25). El estado de la saga reserva-pago **no** vive acá ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 
 ```mermaid
 erDiagram
@@ -447,7 +447,7 @@ erDiagram
     }
 ```
 
-### `plan_pago` (CU25, CU25a)
+### `plan_pago` (CU25)
 
 Plan de horas que ofrece una escuela: un nombre, una cantidad de horas y un costo en bolivianos. Es de una escuela (multitenant): extiende `BaseEscuelaModel`. El costo en dólares **no se guarda**: lo calcula el servicio con el tipo de cambio configurado (`app.pagos.tipo-cambio-bs-usd`, 6,96 por defecto). Se desactiva (`activo = false`), no se borra.
 
@@ -459,9 +459,9 @@ Plan de horas que ofrece una escuela: un nombre, una cantidad de horas y un cost
 | `costo_bs` | `NUMERIC(10,2) NOT NULL` | `CHECK (costo_bs > 0)` (`ck_plan_pago_costo_bs`). Hasta 99 999 999,99 |
 | `activo` | `BOOLEAN NOT NULL DEFAULT TRUE` | |
 
-La migración de CU25a quitó `categoria_sigla`, `nro_clases` y `nro_cuotas` (las cuotas son de la contratación, CU25) y renombró `monto_total` a `costo_bs`.
+La migración de CU25 quitó `categoria_sigla`, `nro_clases` y `nro_cuotas` (las cuotas son de la contratación del plan, que todavía no tiene caso de uso) y renombró `monto_total` a `costo_bs`.
 
-### `inscripcion_plan` (CU25, CU28)
+### `inscripcion_plan` (CU28 y la contratación del plan)
 
 Plan contratado por un estudiante.
 
@@ -474,7 +474,7 @@ Plan contratado por un estudiante.
 | `estado` | `VARCHAR(12) NOT NULL DEFAULT 'ACTIVO'` | `CHECK IN ('ACTIVO','COMPLETADO','CANCELADO')` |
 | `fecha_inicio` | `DATE NOT NULL` | |
 
-### `cuota` (CU25, CU28)
+### `cuota` (CU28 y la contratación del plan)
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |

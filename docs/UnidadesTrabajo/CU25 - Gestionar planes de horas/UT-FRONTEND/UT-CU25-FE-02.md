@@ -1,12 +1,12 @@
-# UT-CU25a-FE-02 — Pantalla de planes de horas (esquema y ruta) en `pagos`
+# UT-CU25-FE-02 — Pantalla de planes de horas (esquema y ruta) en `pagos`
 
 | Campo | Valor |
 |-------|-------|
-| **Código** | `UT-CU25a-FE-02` |
+| **Código** | `UT-CU25-FE-02` |
 | **Nombre** | Pantalla de planes de horas (esquema y ruta) en `pagos` |
-| **Caso de uso** | CU25a-FE |
+| **Caso de uso** | CU25-FE |
 | **Microservicio** | `pagos` (web) |
-| **Depende de** | UT-CU25a-FE-01 |
+| **Depende de** | UT-CU25-FE-01 |
 
 ## Antes de implementar
 
@@ -37,7 +37,7 @@ Existe la pantalla "Planes de horas" completa en `/pagos/planes`: listado con b�
   - `tests/planes-gestion.spec.ts`: el componente monta `<dh-gestion>` con el esquema como propiedad.
 - `projects/frontend/pagos/src/app/app.routes.ts`: una hija más de la ruta raíz, `path: 'planes'` con `loadComponent` a `PlanesGestion` (una sola ruta: el drawer maneja crear y editar), junto a `Inicio`; no se toca `federation.config.mjs`.
 - `app.routes.spec.ts` del remoto (créalo si no existe): `planes` carga `PlanesGestion` de forma perezosa, es una sola ruta, y `''` sigue cargando `Inicio`.
-- `.claude/rules/MICROSERVICIOS.md`: en la fila del remoto `pagos`, "CU25" pasa a "CU25, CU25a".
+- `.claude/rules/MICROSERVICIOS.md`: en la fila del remoto `pagos`, la columna de casos de uso queda en "CU25".
 
 Archivos esperados (crear/tocar):
 
