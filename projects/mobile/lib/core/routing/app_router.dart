@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/alumnos/screens/alumno_detalle_screen.dart';
 import '../../features/auth/providers/sesion_provider.dart';
 import '../../features/auth/screens/cargando_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
@@ -46,6 +47,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           // * Los horarios son del Instructor (CU12): otro rol vuelve al inicio
           final roles = ref.read(sesionProvider).usuario?.roles ?? const [];
           if (ubicacion.startsWith('/schedules') &&
+              !roles.contains('INSTRUCTOR')) {
+            return '/inicio';
+          }
+          // * Los alumnos son del Instructor (CU29): otro rol vuelve al inicio
+          if (ubicacion.startsWith('/students') &&
               !roles.contains('INSTRUCTOR')) {
             return '/inicio';
           }
@@ -109,6 +115,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/payments/:codigo',
         builder: (context, state) =>
             PagoDetalleScreen(codigo: state.pathParameters['codigo']!),
+      ),
+      // * El detalle de un alumno del instructor (CU29)
+      GoRoute(
+        path: '/students/:codigo',
+        builder: (context, state) =>
+            AlumnoDetalleScreen(codigo: state.pathParameters['codigo']!),
       ),
       // * Perfil (CU06): no son públicas, las cubre el redirect global por sesión
       GoRoute(

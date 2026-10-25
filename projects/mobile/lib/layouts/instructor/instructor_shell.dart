@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../features/alumnos/screens/mis_alumnos_screen.dart';
 import '../../features/clases/screens/clases_screen.dart';
 import '../../features/horarios/screens/horarios_screen.dart';
 import '../../features/inicio/screens/inicio_screen.dart';
@@ -30,7 +31,12 @@ final seccionesInstructor = [
     'CU16 a CU18',
     builder: (_) => const ClasesScreen(),
   ),
-  const SeccionShell('Pagos', Icons.account_balance_wallet_outlined, 'CU29'),
+  SeccionShell(
+    'Alumnos',
+    Icons.groups_outlined,
+    'CU29',
+    builder: (_) => const MisAlumnosScreen(),
+  ),
   SeccionShell(
     'Perfil',
     Icons.person_outline,
