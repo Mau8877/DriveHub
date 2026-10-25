@@ -3,6 +3,10 @@ import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/pagina.dart';
 import '../models/estado_de_pago.dart';
+import '../models/estado_pago_visible.dart';
+import '../models/motivo_reembolso.dart';
+import '../models/pago_detalle.dart';
+import '../models/pago_resumen.dart';
 import '../models/pago_iniciado.dart';
 import '../models/plan_disponible.dart';
 
@@ -68,6 +72,55 @@ class PagosService {
         '/billeteras-horas/mia',
       );
       return (response.data!['horasDisponibles'] as num).toInt();
+    });
+  }
+
+  /// Las compras del estudiante (CU28), de la más reciente a la más antigua. [estado] filtra por el estado que
+  /// ve el estudiante (`filter[estado]`); sin él trae todas.
+  Future<Pagina<PagoResumen>> listarPagos({
+    EstadoPagoVisible? estado,
+    int page = 1,
+    int pageSize = 20,
+  }) {
+    return _llamar(() async {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/pagos',
+        queryParameters: {
+          'page': page,
+          'pageSize': pageSize,
+          if (estado != null) 'filter[estado]': estado.valorApi,
+        },
+      );
+      return Pagina.fromJson(response.data!, PagoResumen.fromJson);
+    });
+  }
+
+  /// Pide el reembolso de una compra intacta (CU31) y devuelve su detalle ya como "reembolso en proceso". El
+  /// [motivoDetalle] solo se envía con [MotivoReembolso.otro], recortado. Los errores de negocio llegan como
+  /// [ApiException] (`ERR_PAG_07`, `ERR_PAG_10`, `ERR_PAG_11`, `ERR_PAG_06`).
+  Future<PagoDetalle> solicitarReembolso(
+    String codigo,
+    MotivoReembolso motivo, {
+    String? motivoDetalle,
+  }) {
+    return _llamar(() async {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/pagos/$codigo/reembolso',
+        data: {
+          'motivo': motivo.valorApi,
+          if (motivo == MotivoReembolso.otro && motivoDetalle != null)
+            'motivoDetalle': motivoDetalle.trim(),
+        },
+      );
+      return PagoDetalle.fromJson(response.data!);
+    });
+  }
+
+  /// El detalle de una compra (CU28). Una compra ajena o inexistente llega como [ApiException] `ERR_PAG_07`.
+  Future<PagoDetalle> detallePago(String codigo) {
+    return _llamar(() async {
+      final response = await _dio.get<Map<String, dynamic>>('/pagos/$codigo');
+      return PagoDetalle.fromJson(response.data!);
     });
   }
 }

@@ -14,6 +14,15 @@ public interface PasarelaPago {
     SesionCobro crearSesionCobro(SolicitudCobro solicitud);
 
     /**
+     * Pide a la pasarela devolver un cobro (todo o una parte). La devolución es asíncrona: crearla no significa que
+     * el dinero ya volvió, eso llega después como aviso.
+     *
+     * * La clave de idempotencia es el código de la reversión: repetir la llamada no devuelve dos veces.
+     * * Debe llamarse SIN una transacción de base de datos abierta.
+     */
+    DevolucionCreada reembolsar(SolicitudDevolucion solicitud);
+
+    /**
      * Comprueba que un aviso de la pasarela es de verdad de ella (la firma) y lo traduce.
      *
      * * Una firma que falta, que no es válida, de una hora fuera de la tolerancia, o sin secreto configurado es

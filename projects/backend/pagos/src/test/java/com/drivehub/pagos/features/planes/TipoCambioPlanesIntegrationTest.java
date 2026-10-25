@@ -40,7 +40,7 @@ class TipoCambioPlanesIntegrationTest extends PostgresIntegrationTestBase {
 
     @BeforeEach
     void limpiar() {
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     private static JwtRequestPostProcessor admin() {

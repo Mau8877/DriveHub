@@ -543,7 +543,7 @@ Libro de la billetera: el saldo se puede reconstruir sumándolo. Cada fila afect
 
 ### `comprobante` (CU30)
 
-Recibo interno en PDF, sin validez fiscal: uno por pago confirmado y uno por reembolso ejecutado. Los números salen de la secuencia `comprobante_nro_seq` (`CMP-{año}-{6 dígitos}`).
+Recibo interno en PDF, sin validez fiscal: uno por pago confirmado y uno por reembolso ejecutado. Los números salen de la secuencia `comprobante_nro_seq` (`CMP-{año}-{6 dígitos}` para el de pago, `RMB-{año}-{6 dígitos}` para el de reembolso: la misma secuencia).
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
@@ -563,10 +563,11 @@ Devolución del cobro: compensación de la saga o reembolso pedido por el estudi
 | --- | --- | --- |
 | `pago_id` | `BIGINT NOT NULL REFERENCES pago(id)` | Índice `idx_reversion_pago_pago_id`. Una sola reversión vigente (no fallida) por pago |
 | `origen` | `VARCHAR(10) NOT NULL` | `CHECK IN ('SAGA','ESTUDIANTE')` |
-| `motivo` | `VARCHAR(200)` | |
-| `monto` | `NUMERIC(10,2)` | Lo devuelto en USD: el 100 % en `SAGA`, el pagado menos el 5 % en `ESTUDIANTE` |
+| `motivo` | `VARCHAR(30) NOT NULL` | El **código** del motivo: `MotivoReembolso` en `ESTUDIANTE` (`CAMBIO_DE_PLANES`, `MUDANZA`, `SIN_TIEMPO`, `COMPRA_POR_ERROR`, `PROBLEMAS_ECONOMICOS`, `INSATISFECHO`, `OTRO`) y `MotivoCompensacion` en `SAGA` (`MONTO_DISTINTO`, `ACREDITACION_FALLIDA`, `COBRO_TARDIO`) |
+| `motivo_detalle` | `VARCHAR(200)` | Lo que escribe el estudiante con `OTRO`. `CHECK ((motivo = 'OTRO') = (motivo_detalle IS NOT NULL))` |
+| `monto` | `NUMERIC(10,2) NOT NULL` | `CHECK (monto > 0)`. Lo devuelto en USD: el 100 % en `SAGA`, el pagado menos el 5 % en `ESTUDIANTE` |
 | `monto_retenido` | `NUMERIC(10,2) NOT NULL DEFAULT 0` | La retención del 5 % (0 en `SAGA`) |
-| `referencia_externa` | `VARCHAR(80)` | Id de la devolución en la pasarela; `NULL` hasta que la pasarela la crea |
+| `referencia_externa` | `VARCHAR(80)` | Id de la devolución en la pasarela; `NULL` hasta que la pasarela la crea. Índice `idx_reversion_pago_referencia_externa` |
 | `estado` | `VARCHAR(10) NOT NULL DEFAULT 'SOLICITADA'` | `CHECK IN ('SOLICITADA','EJECUTADA','FALLIDA')` |
 | `saga_codigo` | `UUID` | |
 | `ejecutado_en` | `TIMESTAMPTZ` | |

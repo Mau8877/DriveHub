@@ -1,5 +1,7 @@
 package com.drivehub.pagos.features.billetera.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,6 +22,15 @@ import jakarta.persistence.LockModeType;
 public interface BilleteraRepository extends JpaRepository<BilleteraHoras, Long> {
 
     Optional<BilleteraHoras> findByEscuelaCodigoAndEstudianteCodigo(UUID escuelaCodigo, UUID estudianteCodigo);
+
+    /**
+     * Las horas disponibles de esos estudiantes (CU29), en una sola consulta. Cada fila es
+     * `[estudianteCodigo (UUID), horasDisponibles (Integer)]`; el que no tiene billetera no aparece.
+     */
+    @Query("select b.estudianteCodigo, b.horasDisponibles from BilleteraHoras b"
+        + " where b.escuelaCodigo = :escuela and b.estudianteCodigo in :estudiantes")
+    List<Object[]> horasDisponiblesDe(@Param("escuela") UUID escuelaCodigo,
+            @Param("estudiantes") Collection<UUID> estudiantes);
 
     /**
      * Lee la billetera CON bloqueo de escritura: dos operaciones sobre la misma billetera (acreditar, consumir,

@@ -138,6 +138,17 @@ class GatewayRoutingTest {
         assertThat(aviso.body()).isEqualTo("pagos:/api/v1/webhooks-stripe");
     }
 
+    // * CU29: las horas de los alumnos de un instructor tambien las atiende Pagos
+    @Test
+    void horasDeLosAlumnos_seReenvianAPagosConLaMismaRuta() throws Exception {
+        HttpResponse<String> lista = get("/api/v1/horas-alumnos", TokensDePrueba.valido());
+        HttpResponse<String> detalle = get("/api/v1/horas-alumnos/0198f0a0-0000-7000-8000-000000000001",
+            TokensDePrueba.valido());
+
+        assertThat(lista.body()).isEqualTo("pagos:/api/v1/horas-alumnos");
+        assertThat(detalle.body()).isEqualTo("pagos:/api/v1/horas-alumnos/0198f0a0-0000-7000-8000-000000000001");
+    }
+
     // * CU26: no hay cuotas ni inscripciones a un plan; Pagos ya no las tiene y el gateway no las enruta
     @Test
     void cuotasEInscripcionesAUnPlan_yaNoSeEnrutan() throws Exception {

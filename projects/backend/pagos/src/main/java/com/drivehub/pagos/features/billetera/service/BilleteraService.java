@@ -244,6 +244,73 @@ public class BilleteraService {
         return new DevolucionResultado(total, billetera.getHorasDisponibles());
     }
 
+    // ------------------------------------------------------------------ reembolso (CU31)
+
+    /**
+     * Toma el bloqueo de la billetera del estudiante, si la tiene. Quien necesita la billetera Y una de sus compras
+     * la bloquea PRIMERO, igual que `consumir` y `devolver`: con el orden contrario (compra y luego billetera) dos
+     * operaciones simultáneas se esperan una a la otra y la base aborta una por interbloqueo.
+     */
+    @Transactional
+    public void bloquearBilletera(UUID escuelaCodigo, UUID estudianteCodigo) {
+        billeteraRepository.buscarParaActualizar(escuelaCodigo, estudianteCodigo);
+    }
+
+    /**
+     * Aparta las horas de una compra que se va a reembolsar: salen del saldo y dejan la compra sin horas, así nadie
+     * las gasta mientras la pasarela devuelve el dinero. Guarda un movimiento `REEMBOLSO`.
+     *
+     * * La llama el sistema dentro de la transacción del reembolso, con el pago ya leído con bloqueo de escritura
+     * * (no lleva `@PreAuthorize`). La billetera se lee con bloqueo, así que no hace falta reintentar por versión.
+     * * Idempotente: con la misma reversión no aparta dos veces.
+     * * Si el saldo no alcanza (no debería: la compra está intacta) responde `ERR_PAG_09` y no cambia nada.
+     */
+    @Transactional
+    public void apartarPorReembolso(Pago pago, UUID reversionCodigo) {
+        String clave = "reembolso:" + reversionCodigo;
+        BilleteraHoras billetera = billeteraRepository
+            .buscarParaActualizar(pago.getEscuelaCodigo(), pago.getEstudianteCodigo())
+            .orElseThrow(BilleteraService::horasInsuficientes);
+        if (movimientoRepository.existsByIdempotencyKeyAndPagoId(clave, pago.getId())) {
+            return;
+        }
+        int horas = pago.getHoras();
+        if (billetera.getHorasDisponibles() < horas) {
+            throw horasInsuficientes();
+        }
+        billetera.setHorasDisponibles(billetera.getHorasDisponibles() - horas);
+        billeteraRepository.save(billetera);
+        pago.setHorasRestantes((short) 0);
+        movimientoRepository.save(new MovimientoHoras(billetera, pago, TipoMovimiento.REEMBOLSO, horas, null, null,
+            clave));
+        LOG.info("Horas apartadas por un reembolso", kv("module", MODULO), kv("pagoCodigo", pago.getCodigo()),
+            kv("reversionCodigo", reversionCodigo));
+    }
+
+    /**
+     * Lo inverso de {@link #apartarPorReembolso}: la devolución no se pudo hacer, así que las horas vuelven al saldo
+     * y a la compra. Guarda un movimiento `DEVOLUCION` (sin instructor ni clase: no cuenta como gasto de nadie).
+     * Idempotente por reversión.
+     */
+    @Transactional
+    public void restituirApartadas(Pago pago, int horas, UUID reversionCodigo) {
+        String clave = "restitucion:" + reversionCodigo;
+        BilleteraHoras billetera = billeteraRepository
+            .buscarParaActualizar(pago.getEscuelaCodigo(), pago.getEstudianteCodigo())
+            .orElseThrow(BilleteraService::horasInsuficientes);
+        if (movimientoRepository.existsByIdempotencyKeyAndPagoId(clave, pago.getId())) {
+            return;
+        }
+        billetera.setHorasDisponibles(billetera.getHorasDisponibles() + horas);
+        billeteraRepository.save(billetera);
+        int actuales = pago.getHorasRestantes() == null ? 0 : pago.getHorasRestantes();
+        pago.setHorasRestantes((short) (actuales + horas));
+        movimientoRepository.save(new MovimientoHoras(billetera, pago, TipoMovimiento.DEVOLUCION, horas, null, null,
+            clave));
+        LOG.info("Horas restituidas tras un reembolso que no se pudo hacer", kv("module", MODULO),
+            kv("pagoCodigo", pago.getCodigo()), kv("reversionCodigo", reversionCodigo));
+    }
+
     // ------------------------------------------------------------------ utilidades
 
     static String claveDeAcreditacion(Pago pago) {

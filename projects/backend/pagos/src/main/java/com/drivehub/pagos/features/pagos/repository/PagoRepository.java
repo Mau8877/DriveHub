@@ -1,12 +1,14 @@
 package com.drivehub.pagos.features.pagos.repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,12 +22,27 @@ import jakarta.persistence.LockModeType;
  * Acceso a datos de los pagos, sin lógica. El id interno Long nunca sale del servicio: se busca por el codigo
  * público y siempre con el estudiante y la escuela (nadie ve el pago de otro).
  */
-public interface PagoRepository extends JpaRepository<Pago, Long> {
+public interface PagoRepository extends JpaRepository<Pago, Long>, JpaSpecificationExecutor<Pago> {
 
     Optional<Pago> findByIdempotencyKey(String idempotencyKey);
 
+    Optional<Pago> findByCodigo(UUID codigo);
+
     Optional<Pago> findByCodigoAndEstudianteCodigoAndEscuelaCodigo(UUID codigo, UUID estudianteCodigo,
             UUID escuelaCodigo);
+
+    /**
+     * Las horas compradas de esos estudiantes (CU29): la suma de las horas de sus pagos `CONFIRMADO` de horas.
+     * Los pagos pendientes, fallidos y reembolsados (`REVERTIDO`) no cuentan. Cada fila es
+     * `[estudianteCodigo (UUID), horas (Number)]`; el que no compró nada no aparece.
+     */
+    @Query("select p.estudianteCodigo, sum(p.horas) from Pago p where p.escuelaCodigo = :escuela"
+        + " and p.estudianteCodigo in :estudiantes"
+        + " and p.estado = com.drivehub.pagos.features.pagos.enums.EstadoPago.CONFIRMADO"
+        + " and p.concepto = com.drivehub.pagos.features.pagos.enums.ConceptoPago.HORAS"
+        + " group by p.estudianteCodigo")
+    List<Object[]> horasCompradasPor(@Param("escuela") UUID escuelaCodigo,
+            @Param("estudiantes") Collection<UUID> estudiantes);
 
     /**
      * Los ids de los pagos en ese estado cuya página de pago venció antes de `limite`, los más viejos primero.
@@ -41,6 +58,18 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Pago p where p.id = :id")
     Optional<Pago> buscarParaActualizar(@Param("id") Long id);
+
+    /** El pago de ese estudiante en esa escuela con bloqueo de escritura: lo que lee el reembolso (CU31). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Pago p where p.codigo = :codigo and p.estudianteCodigo = :estudiante"
+        + " and p.escuelaCodigo = :escuela")
+    Optional<Pago> buscarDeEstudianteParaActualizar(@Param("codigo") UUID codigo,
+            @Param("estudiante") UUID estudianteCodigo, @Param("escuela") UUID escuelaCodigo);
+
+    /** El pago por su codigo público con bloqueo de escritura: lo que lee la compensación automática (CU31). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Pago p where p.codigo = :codigo")
+    Optional<Pago> buscarPorCodigoParaActualizar(@Param("codigo") UUID codigo);
 
     /**
      * Las compras confirmadas del estudiante a las que todavía le quedan horas, las más antiguas primero, con

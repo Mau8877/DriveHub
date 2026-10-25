@@ -44,7 +44,7 @@ class GestionPlanesPagoIntegrationTest extends PostgresIntegrationTestBase {
 
     @BeforeEach
     void limpiar() {
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     private static JwtRequestPostProcessor como(String rol, UUID escuela) {

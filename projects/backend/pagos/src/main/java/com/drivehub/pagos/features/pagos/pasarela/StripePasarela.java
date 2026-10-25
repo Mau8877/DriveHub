@@ -17,9 +17,11 @@ import com.drivehub.pagos.config.PagosProperties;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
+import com.stripe.model.Refund;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.net.Webhook;
+import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 
 import lombok.RequiredArgsConstructor;
@@ -103,6 +105,43 @@ public class StripePasarela implements PasarelaPago {
         return new SesionCobro(sesion.getId(), sesion.getUrl(), expira);
     }
 
+    @Override
+    public DevolucionCreada reembolsar(SolicitudDevolucion solicitud) {
+        PagosProperties.Pasarela config = propiedades.pasarela();
+        if (config.stripeSecretKey() == null || config.stripeSecretKey().isBlank()) {
+            LOG.warn("No hay clave de la pasarela configurada", kv("module", MODULO));
+            throw noDisponible();
+        }
+        RefundCreateParams params = RefundCreateParams.builder()
+            .setPaymentIntent(solicitud.cobroReferencia())
+            .setAmount(solicitud.montoCentavosUsd())
+            .putMetadata("pagoCodigo", solicitud.pagoCodigo().toString())
+            .putMetadata("reversionCodigo", solicitud.reversionCodigo().toString())
+            .build();
+        RequestOptions.RequestOptionsBuilder opciones = RequestOptions.builder()
+            .setApiKey(config.stripeSecretKey())
+            .setIdempotencyKey(solicitud.idempotencyKey())
+            .setConnectTimeout(TIMEOUT_CONEXION_MS)
+            .setReadTimeout(TIMEOUT_LECTURA_MS)
+            .setMaxNetworkRetries(0);
+        if (config.stripeBaseUrl() != null && !config.stripeBaseUrl().isBlank()) {
+            opciones.setBaseUrl(config.stripeBaseUrl());
+        }
+        Refund devolucion;
+        try {
+            devolucion = Refund.create(params, opciones.build());
+        } catch (StripeException | RuntimeException e) {
+            LOG.warn("Falló la llamada a la pasarela para crear la devolución (tipo {})",
+                e.getClass().getSimpleName(), kv("module", MODULO), kv("reversionCodigo", solicitud.reversionCodigo()));
+            throw noDisponible();
+        }
+        if (devolucion.getId() == null) {
+            LOG.warn("La pasarela respondió una devolución incompleta", kv("module", MODULO));
+            throw noDisponible();
+        }
+        return new DevolucionCreada(devolucion.getId(), devolucion.getStatus());
+    }
+
     private static ServicioNoDisponibleException noDisponible() {
         return new ServicioNoDisponibleException(PagosErrorCodes.PASARELA_NO_DISPONIBLE, MENSAJE_NO_DISPONIBLE);
     }
@@ -131,8 +170,39 @@ public class StripePasarela implements PasarelaPago {
             case "checkout.session.completed" -> "paid".equals(texto(objeto, "payment_status"))
                 ? deLaSesion(evento.getId(), TipoAviso.COBRO_COMPLETADO, objeto) : AvisoPasarela.otro(evento.getId());
             case "checkout.session.expired" -> deLaSesion(evento.getId(), TipoAviso.COBRO_VENCIDO, objeto);
+            case "refund.updated" -> deLaDevolucion(evento.getId(), tipoSegunEstado(texto(objeto, "status")), objeto);
+            case "refund.failed" -> deLaDevolucion(evento.getId(), TipoAviso.REEMBOLSO_FALLIDO, objeto);
+            case "charge.refunded" -> deLaDevolucionDelCobro(evento.getId(), objeto);
             default -> AvisoPasarela.otro(evento.getId());
         };
+    }
+
+    /** `succeeded` es una devolución hecha; `failed` y `canceled`, una que no se hará; lo demás sigue en curso. */
+    private static TipoAviso tipoSegunEstado(String estado) {
+        if ("succeeded".equals(estado)) {
+            return TipoAviso.REEMBOLSO_EJECUTADO;
+        }
+        return "failed".equals(estado) || "canceled".equals(estado) ? TipoAviso.REEMBOLSO_FALLIDO : TipoAviso.OTRO;
+    }
+
+    private static AvisoPasarela deLaDevolucion(String eventoId, TipoAviso tipo, JsonNode devolucion) {
+        UUID pago = uuid(texto(devolucion.path("metadata"), "pagoCodigo"));
+        UUID reversion = uuid(texto(devolucion.path("metadata"), "reversionCodigo"));
+        if (tipo == TipoAviso.OTRO || (pago == null && reversion == null && texto(devolucion, "id") == null)) {
+            return AvisoPasarela.otro(eventoId);
+        }
+        return new AvisoPasarela(eventoId, tipo, texto(devolucion, "id"), pago, numero(devolucion, "amount"),
+            texto(devolucion, "currency"), texto(devolucion, "payment_intent"), reversion);
+    }
+
+    /** El cobro devuelto trae sus devoluciones: se toma la primera (la que Pagos creó lleva la metadata). */
+    private static AvisoPasarela deLaDevolucionDelCobro(String eventoId, JsonNode cobro) {
+        JsonNode devoluciones = cobro.path("refunds").path("data");
+        if (!devoluciones.isArray() || devoluciones.isEmpty()) {
+            return AvisoPasarela.otro(eventoId);
+        }
+        JsonNode primera = devoluciones.get(0);
+        return deLaDevolucion(eventoId, tipoSegunEstado(texto(primera, "status")), primera);
     }
 
     private static AvisoPasarela deLaSesion(String eventoId, TipoAviso tipo, JsonNode sesion) {

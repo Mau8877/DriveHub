@@ -123,3 +123,12 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 - **Significado:** Una de las categorías elegidas para el instructor no existe en el catálogo
   (CU09). La opción "sin categoría" (`SIN`) tampoco vale: un instructor enseña categorías reales.
 - **Dónde se lanza:** `CrearInstructorUseCase.ejecutar()` y `EditarInstructorUseCase.ejecutar()`
+
+## `ERR_ESC_15`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El estudiante no es alumno vigente del instructor que pregunta (CU29). Un alumno de otro
+  instructor, uno de otra escuela, uno cuya asignación ya terminó y un código inexistente responden igual: no
+  se distingue "no existe" de "no es tuyo".
+- **Dónde se lanza:** `ConfirmarMiAlumnoUseCase.ejecutar()`

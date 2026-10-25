@@ -43,9 +43,7 @@ class PagoRepositoryTest extends PostgresIntegrationTestBase {
 
     @BeforeEach
     void preparar() {
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
         plan = planes.saveAndFlush(new PlanPago(ESCUELA, "Plan", (short) 10, new BigDecimal("450.00")));
     }
 
@@ -59,9 +57,7 @@ class PagoRepositoryTest extends PostgresIntegrationTestBase {
     // * La base se comparte con los demas tests: sin esto, los pagos que quedan impiden borrar los planes
     @AfterEach
     void limpiarAlTerminar() {
-        jdbc.update("DELETE FROM transaccion_pasarela");
-        jdbc.update("DELETE FROM pago");
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     @Test

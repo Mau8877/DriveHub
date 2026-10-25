@@ -4,11 +4,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * Arranca el contexto completo contra la base real del servicio (en CI la
- * levanta el job como service container, ver .github/workflows/ci.yml).
+ * Arranca el contexto completo contra un Postgres real (Testcontainers, con Flyway): si una migración, un Model o
+ * una consulta no coinciden, el servicio no arranca. Sin Docker se salta (ver PostgresIntegrationTestBase).
  */
 @SpringBootTest
-class PagosApplicationTests {
+class PagosApplicationTests extends PostgresIntegrationTestBase {
 
     @Test
     void contextLoads() {

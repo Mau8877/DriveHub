@@ -172,6 +172,13 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://drivehub-postgres:5432/pagos
       # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
       - IDENTIDAD_URL=http://drivehub-identidad:8081
+      # Alumnos asignados a un instructor (CU29).
+      - ESCUELA_URL=http://drivehub-escuela:8082
+      # PDF de los comprobantes (CU30): bucket privado de MinIO. En desarrollo, con la cuenta de MinIO.
+      - MINIO_ENDPOINT=http://drivehub-minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_COMPROBANTES=drivehub-pagos
       - SPRING_DATASOURCE_USERNAME=pagos
       - SPRING_DATASOURCE_PASSWORD=${PAGOS_DB_PASSWORD}
       # Pasarela de pago, Stripe (CU26). Vacias, el servicio arranca igual y responde 503 al cobrar.
@@ -199,8 +206,11 @@ services:
     profiles: ['stripe']
     command: >-
       listen --api-key ${STRIPE_SECRET_KEY:?Define STRIPE_SECRET_KEY en el .env para usar el perfil stripe}
-      --events checkout.session.completed,checkout.session.expired
+      --events checkout.session.completed,checkout.session.expired,refund.updated,refund.failed,charge.refunded
       --forward-to http://gateway:8080/api/v1/webhooks-stripe
+    # * En la misma red que el gateway: sin esto cae en la red por defecto y no resuelve el nombre `gateway`
+    networks:
+      - drivehub-network
     restart: unless-stopped
 
   # Académico (Spring Boot, capas) -- MongoDB `academico`

@@ -32,7 +32,7 @@ class PlanPagoMigracionTest extends PostgresIntegrationTestBase {
 
     @BeforeEach
     void limpiar() {
-        jdbc.update("DELETE FROM plan_pago");
+        vaciarTablas(jdbc);
     }
 
     private void insertar(UUID escuela, String nombre, int horas, String costo) {

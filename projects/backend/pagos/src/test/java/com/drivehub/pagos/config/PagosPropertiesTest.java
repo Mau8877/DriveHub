@@ -142,7 +142,7 @@ class PagosPropertiesTest {
             new BigDecimal(PagosPropertiesPrueba.TIPO_CAMBIO),
             new PagosProperties.Pasarela("", "", minutos, PagosPropertiesPrueba.URL_RETORNO,
                 PagosPropertiesPrueba.ENLACE_APP, "", 300),
-            new PagosProperties.Vencimiento(300, 10)));
+            new PagosProperties.Vencimiento(300, 10), PagosPropertiesPrueba.RETENCION_REEMBOLSO));
 
         assertThat(valida.apply(29)).isFalse();
         assertThat(valida.apply(30)).isTrue();
@@ -158,10 +158,27 @@ class PagosPropertiesTest {
 
         java.util.function.BiFunction<Integer, Integer, Boolean> valida = (cada, margen) -> esValido(
             new PagosProperties(new BigDecimal(PagosPropertiesPrueba.TIPO_CAMBIO),
-                PagosPropertiesPrueba.pasarela("", ""), new PagosProperties.Vencimiento(cada, margen)));
+                PagosPropertiesPrueba.pasarela("", ""), new PagosProperties.Vencimiento(cada, margen),
+                PagosPropertiesPrueba.RETENCION_REEMBOLSO));
         assertThat(valida.apply(9, 10)).isFalse();
         assertThat(valida.apply(10, 0)).isTrue();
         assertThat(valida.apply(300, -1)).isFalse();
+    }
+
+    @Test
+    void laRetencionDelReembolso_valeCincoPorDefecto_yVaDeCeroACincuenta() {
+        assertThat(enlazar(obligatorias()).retencionReembolsoPorcentaje()).isEqualTo(5);
+
+        Map<String, String> propias = obligatorias();
+        propias.put("app.pagos.retencion-reembolso-porcentaje", "10");
+        assertThat(enlazar(propias).retencionReembolsoPorcentaje()).isEqualTo(10);
+
+        java.util.function.IntFunction<Boolean> valida = porcentaje -> esValido(
+            PagosPropertiesPrueba.conRetencion(porcentaje));
+        assertThat(valida.apply(-1)).isFalse();
+        assertThat(valida.apply(0)).isTrue();
+        assertThat(valida.apply(50)).isTrue();
+        assertThat(valida.apply(51)).isFalse();
     }
 
     @Test

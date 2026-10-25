@@ -120,6 +120,17 @@ se hace con `MINIO_PUBLIC_URL` (el que alcanza el navegador o el teléfono), dis
 | `MINIO_URL` | `http://drivehub-minio:9000` | Subir y borrar objetos (red de Docker) |
 | `MINIO_PUBLIC_URL` | `http://localhost:9000` | Firmar las URLs de lectura. Para el emulador o un teléfono real: la IP de la PC en la red (`http://192.168.1.50:9000`) |
 
+**`drivehub-pagos` y los comprobantes (CU30).** Pagos guarda el PDF de cada comprobante
+con la clave `comprobantes/{escuelaCodigo}/{yyyy}/{numero}.pdf` y nunca genera una URL de
+lectura: el PDF solo sale por `GET /api/v1/comprobantes/{codigo}/pdf`, que comprueba quién
+lo pide. Pagos no crea el bucket si falta: avisa (503 `ERR_PAG_15`).
+
+| Variable (Pagos) | Valor en desarrollo | Para qué |
+| --- | --- | --- |
+| `MINIO_ENDPOINT` | `http://drivehub-minio:9000` | Guardar y leer los PDF (red de Docker) |
+| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | las de `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | Credenciales (nunca en el repo) |
+| `MINIO_BUCKET_COMPROBANTES` | `drivehub-pagos` | El bucket privado de los comprobantes |
+
 nginx deja pasar cuerpos de hasta 6 MB hacia `/api/` (`client_max_body_size`) para que
 quepa la foto de 5 MB.
 
@@ -174,6 +185,11 @@ instalarla: va como un contenedor opcional.
    El secreto de la CLI se mantiene mientras uses la misma clave, así que se copia una sola vez por máquina.
 4. Pagar una compra de horas con la tarjeta de prueba `4242 4242 4242 4242` deja el pago en `CONFIRMADO` y las
    horas en `GET /api/v1/billeteras-horas/mia`.
+
+Los avisos que Pagos entiende son `checkout.session.completed` y `checkout.session.expired` (el cobro, CU27) y
+`refund.updated`, `refund.failed` y `charge.refunded` (la devolución de un reembolso o una compensación, CU31): la
+CLI ya reenvía esos cinco, y el aviso del panel de Stripe en un despliegue debe suscribirse a los mismos. Sin los de
+devolución, un reembolso se queda en «en proceso» porque Pagos nunca se entera de que Stripe devolvió el dinero.
 
 Quien no trabaja con pagos no necesita nada de esto: sin el perfil `stripe` el contenedor no arranca, y sin
 claves `pagos` arranca igual (responde 503 al intentar cobrar). Cada persona usa su propia cuenta de prueba de

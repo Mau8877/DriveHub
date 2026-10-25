@@ -7,6 +7,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.drivehub.escuela.presentation.controller.EscuelaActualArgumentResolver;
+import com.drivehub.escuela.presentation.controller.UsuarioActualArgumentResolver;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -14,5 +15,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(new EscuelaActualArgumentResolver());
+        resolvers.add(new UsuarioActualArgumentResolver());
     }
 }

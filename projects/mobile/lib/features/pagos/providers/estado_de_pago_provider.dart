@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/estado_de_pago.dart';
 import '../models/estado_pago.dart';
 import 'pagos_service_provider.dart';
-import 'saldo_horas_provider.dart';
+import 'refrescar_pagos.dart';
 
 /// Cada cuánto se consulta el estado de un pago mientras sigue pendiente. Es un provider para acortarlo en los
 /// tests.
@@ -84,11 +84,9 @@ class EstadoDePagoNotifier
     final estado = await ref
         .read(pagosServiceProvider)
         .estadoDePago(arg.codigo);
-    // * Un pago confirmado acredita horas: el saldo del encabezado se vuelve a pedir
-    if (estado.estado == EstadoPago.confirmado &&
-        _vivo &&
-        ref.exists(saldoHorasProvider)) {
-      ref.invalidate(saldoHorasProvider);
+    // * Un pago confirmado acredita horas: el saldo, el historial y el detalle se vuelven a pedir
+    if (estado.estado == EstadoPago.confirmado && _vivo) {
+      refrescarPagos(ref.invalidate, ref.exists);
     }
     return estado;
   }

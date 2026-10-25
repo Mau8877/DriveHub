@@ -8,7 +8,7 @@ import java.util.UUID;
  *
  * * Puede publicarse más de una vez para el mismo pago (la pasarela reintenta sus avisos): quien lo escucha tiene
  * * que ser idempotente.
- * ! Mientras CU31 no exista, nadie lo escucha: el pago queda fallido y el cobro sin devolver (queda en el registro).
+ * * Lo escucha `CompensacionListener` (CU31), que crea la reversión del 100 % y pide la devolución.
  *
  * @param cobroReferencia el id del cobro en la pasarela: lo que hace falta para devolverlo
  */

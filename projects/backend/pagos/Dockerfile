@@ -28,6 +28,10 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+# 4b. Java2D (JasperReports, los PDF de los comprobantes) necesita estas librerías aun sin pantalla: las fuentes
+# de la marca van dentro del proyecto, el contenedor no depende de las del sistema.
+RUN apk add --no-cache fontconfig freetype
+
 # 5. Práctica de Seguridad: Evitar ejecutar la app como ROOT
 # Creamos un grupo y un usuario sin privilegios del sistema
 RUN addgroup -S springgroup && adduser -S springuser -G springgroup
@@ -41,4 +45,4 @@ COPY --from=builder --chown=springuser:springgroup /build/target/*.jar app.jar
 EXPOSE 8083
 
 # 8. Punto de entrada de la aplicación
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Djava.awt.headless=true", "-jar", "app.jar"]

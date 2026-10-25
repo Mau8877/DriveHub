@@ -66,6 +66,12 @@ public interface UsuarioRepositoryPort {
     List<Usuario> buscarInstructoresPorCodigos(UUID escuelaCodigo, Collection<UUID> codigos);
 
     /**
+     * Las cuentas ESTUDIANTE de esa escuela cuyo código está en la lista (CU29), en una sola consulta. Solo
+     * las que existen, son estudiantes y son de esa escuela; sin orden garantizado. Los roles no se cargan.
+     */
+    List<Usuario> buscarEstudiantesPorCodigos(UUID escuelaCodigo, Collection<UUID> codigos);
+
+    /**
      * La cuenta INSTRUCTOR con ese código dentro de esa escuela (CU09). Vacío si no existe, si no es
      * un instructor o si es de otra escuela: no se distinguen. Los roles no se cargan.
      */

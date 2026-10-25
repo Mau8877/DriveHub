@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Las fuentes de la marca para los PDF (CU30): van dentro del proyecto, el contenedor no depende de fuentes del sistema.
+     Inter y JetBrains Mono tienen licencia libre (SIL OFL). -->
+<fontFamilies>
+  <fontFamily name="Inter">
+    <normal><![CDATA[reportes/fuentes/Inter_400Regular.ttf]]></normal>
+    <bold><![CDATA[reportes/fuentes/Inter_700Bold.ttf]]></bold>
+    <italic><![CDATA[reportes/fuentes/Inter_400Regular.ttf]]></italic>
+    <boldItalic><![CDATA[reportes/fuentes/Inter_700Bold.ttf]]></boldItalic>
+    <pdfEncoding><![CDATA[Identity-H]]></pdfEncoding>
+    <pdfEmbedded><![CDATA[true]]></pdfEmbedded>
+  </fontFamily>
+  <fontFamily name="Inter ExtraBold">
+    <normal><![CDATA[reportes/fuentes/Inter_800ExtraBold.ttf]]></normal>
+    <bold><![CDATA[reportes/fuentes/Inter_800ExtraBold.ttf]]></bold>
+    <italic><![CDATA[reportes/fuentes/Inter_800ExtraBold.ttf]]></italic>
+    <boldItalic><![CDATA[reportes/fuentes/Inter_800ExtraBold.ttf]]></boldItalic>
+    <pdfEncoding><![CDATA[Identity-H]]></pdfEncoding>
+    <pdfEmbedded><![CDATA[true]]></pdfEmbedded>
+  </fontFamily>
+  <fontFamily name="Inter SemiBold">
+    <normal><![CDATA[reportes/fuentes/Inter_600SemiBold.ttf]]></normal>
+    <bold><![CDATA[reportes/fuentes/Inter_600SemiBold.ttf]]></bold>
+    <italic><![CDATA[reportes/fuentes/Inter_600SemiBold.ttf]]></italic>
+    <boldItalic><![CDATA[reportes/fuentes/Inter_600SemiBold.ttf]]></boldItalic>
+    <pdfEncoding><![CDATA[Identity-H]]></pdfEncoding>
+    <pdfEmbedded><![CDATA[true]]></pdfEmbedded>
+  </fontFamily>
+  <fontFamily name="JetBrains Mono">
+    <normal><![CDATA[reportes/fuentes/JetBrainsMono_500Medium.ttf]]></normal>
+    <bold><![CDATA[reportes/fuentes/JetBrainsMono_700Bold.ttf]]></bold>
+    <italic><![CDATA[reportes/fuentes/JetBrainsMono_500Medium.ttf]]></italic>
+    <boldItalic><![CDATA[reportes/fuentes/JetBrainsMono_700Bold.ttf]]></boldItalic>
+    <pdfEncoding><![CDATA[Identity-H]]></pdfEncoding>
+    <pdfEmbedded><![CDATA[true]]></pdfEmbedded>
+  </fontFamily>
+</fontFamilies>

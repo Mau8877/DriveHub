@@ -4,6 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/network/pagina.dart';
 import 'package:mobile/features/pagos/models/estado_de_pago.dart';
 import 'package:mobile/features/pagos/models/estado_pago.dart';
+import 'package:mobile/features/pagos/models/estado_pago_visible.dart';
+import 'package:mobile/features/pagos/models/comprobante_resumen.dart';
+import 'package:mobile/features/pagos/models/motivo_reembolso.dart';
+import 'package:mobile/features/pagos/models/pago_detalle.dart';
+import 'package:mobile/features/pagos/models/reembolso_previsto.dart';
+import 'package:mobile/features/pagos/models/pago_resumen.dart';
 import 'package:mobile/features/pagos/models/pago_iniciado.dart';
 import 'package:mobile/features/pagos/models/plan_disponible.dart';
 import 'package:mobile/features/pagos/providers/pagos_service_provider.dart';
@@ -29,6 +35,47 @@ PagoIniciado pagoDePrueba({
   montoUsd: 38.23,
   montoBs: 450,
 );
+
+PagoResumen compraDePrueba({
+  String codigo = 'c1',
+  String planNombre = 'Plan 10 horas',
+  int horas = 10,
+  EstadoPagoVisible estado = EstadoPagoVisible.confirmado,
+  DateTime? creadoEn,
+}) => PagoResumen(
+  codigo: codigo,
+  planNombre: planNombre,
+  horas: horas,
+  montoUsd: 38.23,
+  montoBs: 450,
+  estado: estado,
+  creadoEn: creadoEn ?? DateTime(2026, 5, 4, 12),
+);
+
+PagoDetalle detalleDePrueba({
+  String codigo = 'c1',
+  EstadoPagoVisible estado = EstadoPagoVisible.confirmado,
+  int? horasRestantes = 7,
+  bool confirmado = true,
+  bool reembolsable = false,
+  List<ComprobanteResumen> comprobantes = const [],
+}) =>
+    PagoDetalle(
+      codigo: codigo,
+      planNombre: 'Plan 10 horas',
+      horas: 10,
+      montoUsd: 38.23,
+      montoBs: 450,
+      estado: estado,
+      creadoEn: DateTime(2026, 5, 4, 12),
+      horasRestantes: horasRestantes,
+      confirmadoEn: confirmado ? DateTime(2026, 5, 4, 12, 1) : null,
+      reembolsable: reembolsable,
+      comprobantes: comprobantes,
+      reembolso: reembolsable
+          ? const ReembolsoPrevisto(montoDevuelto: 36.32, montoRetenido: 1.91, porcentajeRetenido: 5)
+          : null,
+    );
 
 /// Servicio de pagos controlado desde el test: responde lo configurado y anota cada llamada.
 ///
@@ -60,6 +107,56 @@ class PagosServiceFalso extends PagosService {
   int saldo = 0;
   Object? errorSaldo;
   int pedidosDeSaldo = 0;
+
+  /// Las compras del historial: `listarPagos` las filtra por estado y las parte en páginas del tamaño pedido.
+  List<PagoResumen> compras = [];
+  Object? errorListado;
+
+  /// Si es verdadero, [errorListado] solo se lanza al pedir una página mayor a la 1.
+  bool errorListadoSoloDesdeLaPagina2 = false;
+  final List<({EstadoPagoVisible? estado, int page})> listados = [];
+
+  /// Los detalles que responde `detallePago`, por código; [errorDetalle] hace que falle.
+  Map<String, PagoDetalle> detalles = {};
+  Object? errorDetalle;
+  int pedidosDeDetalle = 0;
+
+  @override
+  Future<Pagina<PagoResumen>> listarPagos({EstadoPagoVisible? estado, int page = 1, int pageSize = 20}) async {
+    listados.add((estado: estado, page: page));
+    final error = errorListado;
+    if (error != null && (!errorListadoSoloDesdeLaPagina2 || page > 1)) throw error;
+    final filtradas = compras.where((c) => estado == null || c.estado == estado).toList();
+    final total = filtradas.length;
+    final paginas = total == 0 ? 1 : (total / pageSize).ceil();
+    final desde = (page - 1) * pageSize;
+    final items = desde >= total ? <PagoResumen>[] : filtradas.sublist(desde, (desde + pageSize).clamp(0, total));
+    return Pagina(items: items, page: page, pageSize: pageSize, totalItems: total, totalPages: paginas);
+  }
+
+  /// Lo que responde `solicitarReembolso`; [errorReembolso] hace que falle. Anota cada pedido.
+  Object? errorReembolso;
+  Future<void> Function()? antesDeReembolsar;
+  final List<({String codigo, MotivoReembolso motivo, String? detalle})> reembolsos = [];
+
+  @override
+  Future<PagoDetalle> solicitarReembolso(String codigo, MotivoReembolso motivo, {String? motivoDetalle}) async {
+    reembolsos.add((codigo: codigo, motivo: motivo, detalle: motivoDetalle));
+    await antesDeReembolsar?.call();
+    final error = errorReembolso;
+    if (error != null) throw error;
+    final enProceso = detalleDePrueba(codigo: codigo, estado: EstadoPagoVisible.reembolsoEnProceso, horasRestantes: 0);
+    detalles = {...detalles, codigo: enProceso};
+    return enProceso;
+  }
+
+  @override
+  Future<PagoDetalle> detallePago(String codigo) async {
+    pedidosDeDetalle++;
+    final error = errorDetalle;
+    if (error != null) throw error;
+    return detalles[codigo] ?? detalleDePrueba(codigo: codigo);
+  }
 
   @override
   Future<int> saldoDeHoras() async {

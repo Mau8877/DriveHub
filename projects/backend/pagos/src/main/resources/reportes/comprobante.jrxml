@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Comprobante de pago y de reembolso (CU30): diseño "Ruta", A4 vertical. Formato JRXML de JasperReports 7.
+     Un solo diseño para los dos tipos: ES_REEMBOLSO cambia el color de acento (ámbar en la compra, azul técnico en el
+     reembolso). Los montos y las fechas llegan ya formateados desde ComprobantePdfGenerador. -->
+<jasperReport name="comprobante" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0" whenNoDataType="AllSectionsNoDetail">
+
+  <style name="FondoAcento" mode="Opaque" forecolor="#1E293B" backcolor="#F59E0B">
+    <conditionalStyle forecolor="#FFFFFF" backcolor="#0284C7">
+      <conditionExpression><![CDATA[$P{ES_REEMBOLSO}]]></conditionExpression>
+    </conditionalStyle>
+  </style>
+  <style name="TextoAcento" forecolor="#B45309">
+    <conditionalStyle forecolor="#0369A1">
+      <conditionExpression><![CDATA[$P{ES_REEMBOLSO}]]></conditionExpression>
+    </conditionalStyle>
+  </style>
+  <style name="TextoAcentoClaro" forecolor="#FBBF24">
+    <conditionalStyle forecolor="#38BDF8">
+      <conditionExpression><![CDATA[$P{ES_REEMBOLSO}]]></conditionExpression>
+    </conditionalStyle>
+  </style>
+  <style name="BordeAcento" forecolor="#F59E0B">
+    <pen lineWidth="2.0" lineColor="#F59E0B"/>
+    <conditionalStyle forecolor="#38BDF8">
+      <pen lineWidth="2.0" lineColor="#38BDF8"/>
+      <conditionExpression><![CDATA[$P{ES_REEMBOLSO}]]></conditionExpression>
+    </conditionalStyle>
+  </style>
+
+  <parameter name="ES_REEMBOLSO" class="java.lang.Boolean"/>
+  <parameter name="MARCA_D" class="java.lang.String"/>
+  <parameter name="ETIQUETA" class="java.lang.String"/>
+  <parameter name="TITULO" class="java.lang.String"/>
+  <parameter name="NUMERO" class="java.lang.String"/>
+  <parameter name="ESCUELA" class="java.lang.String"/>
+  <parameter name="ESTUDIANTE" class="java.lang.String"/>
+  <parameter name="DATO_K1" class="java.lang.String"/>
+  <parameter name="DATO_V1" class="java.lang.String"/>
+  <parameter name="DATO_K2" class="java.lang.String"/>
+  <parameter name="DATO_V2" class="java.lang.String"/>
+  <parameter name="DATO_K3" class="java.lang.String"/>
+  <parameter name="DATO_V3" class="java.lang.String"/>
+  <parameter name="DATO_K4" class="java.lang.String"/>
+  <parameter name="DATO_V4" class="java.lang.String"/>
+  <parameter name="DATO_K5" class="java.lang.String"/>
+  <parameter name="DATO_V5" class="java.lang.String"/>
+  <parameter name="LINEA_C1" class="java.lang.String"/>
+  <parameter name="LINEA_D1" class="java.lang.String"/>
+  <parameter name="LINEA_V1" class="java.lang.String"/>
+  <parameter name="LINEA_C2" class="java.lang.String"/>
+  <parameter name="LINEA_D2" class="java.lang.String"/>
+  <parameter name="LINEA_V2" class="java.lang.String"/>
+  <parameter name="TOTAL_ETIQUETA" class="java.lang.String"/>
+  <parameter name="TOTAL_NOTA" class="java.lang.String"/>
+  <parameter name="TOTAL_USD" class="java.lang.String"/>
+  <parameter name="TOTAL_BS" class="java.lang.String"/>
+
+  <!-- Franja de carretera a la izquierda, con la línea central discontinua, y el pie legal a todo el ancho -->
+  <background height="842">
+    <element kind="rectangle" x="0" y="0" width="58" height="722" backcolor="#1E293B">
+      <pen lineWidth="0.0"/>
+    </element>
+    <element kind="line" x="29" y="64" width="1" height="652">
+      <pen lineWidth="3.0" lineStyle="Dashed" lineColor="#F59E0B"/>
+    </element>
+    <element kind="rectangle" x="0" y="0" width="58" height="58" backcolor="#F59E0B">
+      <pen lineWidth="0.0"/>
+    </element>
+    <element kind="image" x="14" y="14" width="30" height="30" scaleImage="FillFrame">
+      <expression><![CDATA[$P{MARCA_D}]]></expression>
+    </element>
+    <element kind="rectangle" x="0" y="722" width="595" height="120" backcolor="#F1F5F9">
+      <pen lineWidth="0.0"/>
+    </element>
+    <element kind="line" x="0" y="723" width="595" height="1">
+      <pen lineWidth="3.0" lineColor="#1E293B"/>
+    </element>
+    <element kind="staticText" x="38" y="738" width="519" height="86" forecolor="#475569" markup="styled" fontName="Inter" fontSize="10.0" hTextAlign="Left" vTextAlign="Top">
+      <paragraph lineSpacing="1_1_2"/>
+      <text><![CDATA[<style isBold="true" forecolor="#1E293B">Documento sin validez fiscal.</style> Este comprobante no es una factura, no lleva NIT y no sustituye ningún documento tributario. Es la constancia de una operación realizada en DriveHub entre tú y tu escuela de conducción, con los datos fijados al momento de la operación: un cambio posterior del plan o del tipo de cambio no lo altera. Consérvalo y cítalo por su número ante cualquier consulta con tu escuela.]]></text>
+    </element>
+  </background>
+
+  <title height="600">
+    <!-- Encabezado -->
+    <element kind="textField" x="94" y="34" width="290" height="14" fontName="Inter" fontSize="11.0" bold="true" style="TextoAcento">
+      <expression><![CDATA[$P{ETIQUETA}]]></expression>
+    </element>
+    <element kind="textField" x="94" y="54" width="300" height="62" fontName="Inter ExtraBold" fontSize="26.0" textAdjust="StretchHeight" vTextAlign="Top">
+      <expression><![CDATA[$P{TITULO}]]></expression>
+    </element>
+    <element kind="rectangle" x="407" y="34" width="150" height="50" forecolor="#1E293B" radius="12">
+      <pen lineWidth="3.0" lineColor="#1E293B"/>
+    </element>
+    <element kind="rectangle" x="410" y="37" width="144" height="44" radius="9" style="FondoAcento">
+      <pen lineWidth="1.5" lineColor="#1E293B"/>
+    </element>
+    <element kind="staticText" x="410" y="42" width="144" height="10" mode="Transparent" fontName="Inter" fontSize="8.0" bold="true" hTextAlign="Center" style="FondoAcento">
+      <text><![CDATA[NÚMERO]]></text>
+    </element>
+    <element kind="textField" x="410" y="54" width="144" height="20" mode="Transparent" fontName="JetBrains Mono" fontSize="14.0" bold="true" hTextAlign="Center" style="FondoAcento">
+      <expression><![CDATA[$P{NUMERO}]]></expression>
+    </element>
+    <element kind="line" x="94" y="124" width="463" height="1">
+      <pen lineWidth="2.0" lineStyle="Dashed" lineColor="#CBD5E1"/>
+    </element>
+
+    <!-- Escuela y estudiante -->
+    <element kind="rectangle" x="94" y="142" width="4" height="46" backcolor="#F59E0B" positionType="Float">
+      <pen lineWidth="0.0"/>
+    </element>
+    <element kind="staticText" x="108" y="142" width="214" height="14" forecolor="#64748B" fontName="Inter" fontSize="10.0" bold="true">
+      <text><![CDATA[ESCUELA]]></text>
+    </element>
+    <element kind="textField" x="108" y="156" width="214" height="20" fontName="Inter" fontSize="15.0" bold="true" textAdjust="StretchHeight">
+      <expression><![CDATA[$P{ESCUELA}]]></expression>
+    </element>
+    <element kind="staticText" x="108" y="176" width="214" height="14" forecolor="#475569" fontName="Inter" fontSize="11.0" positionType="Float">
+      <text><![CDATA[Escuela de conducción]]></text>
+    </element>
+    <element kind="rectangle" x="334" y="142" width="4" height="46" backcolor="#0284C7" positionType="Float">
+      <pen lineWidth="0.0"/>
+    </element>
+    <element kind="staticText" x="348" y="142" width="209" height="14" forecolor="#64748B" fontName="Inter" fontSize="10.0" bold="true">
+      <text><![CDATA[ESTUDIANTE]]></text>
+    </element>
+    <element kind="textField" x="348" y="156" width="209" height="20" fontName="Inter" fontSize="15.0" bold="true" textAdjust="StretchHeight">
+      <expression><![CDATA[$P{ESTUDIANTE}]]></expression>
+    </element>
+    <element kind="textField" x="348" y="176" width="209" height="14" forecolor="#475569" fontName="Inter" fontSize="11.0" positionType="Float" textAdjust="StretchHeight">
+      <expression><![CDATA["Alumno de " + $P{ESCUELA}]]></expression>
+    </element>
+
+    <!-- Datos de la operación -->
+    <element kind="frame" x="94" y="214" width="463" height="137" backcolor="#F1F5F9" mode="Opaque" positionType="Float">
+      <element kind="textField" x="16" y="12" width="150" height="16" forecolor="#475569" fontName="Inter" fontSize="12.0">
+        <expression><![CDATA[$P{DATO_K1}]]></expression>
+      </element>
+      <element kind="textField" x="170" y="12" width="277" height="14" fontName="Inter SemiBold" fontSize="12.0" hTextAlign="Right" textAdjust="StretchHeight">
+        <expression><![CDATA[$P{DATO_V1}]]></expression>
+      </element>
+      <element kind="line" x="16" y="30" width="431" height="1">
+        <pen lineWidth="1.0" lineStyle="Dashed" lineColor="#CBD5E1"/>
+      </element>
+      <element kind="textField" x="16" y="37" width="150" height="16" forecolor="#475569" fontName="Inter" fontSize="12.0">
+        <expression><![CDATA[$P{DATO_K2}]]></expression>
+      </element>
+      <element kind="textField" x="170" y="37" width="277" height="14" fontName="Inter SemiBold" fontSize="12.0" hTextAlign="Right" textAdjust="StretchHeight">
+        <expression><![CDATA[$P{DATO_V2}]]></expression>
+      </element>
+      <element kind="line" x="16" y="55" width="431" height="1">
+        <pen lineWidth="1.0" lineStyle="Dashed" lineColor="#CBD5E1"/>
+      </element>
+      <element kind="textField" x="16" y="62" width="150" height="16" forecolor="#475569" fontName="Inter" fontSize="12.0">
+        <expression><![CDATA[$P{DATO_K3}]]></expression>
+      </element>
+      <element kind="textField" x="170" y="62" width="277" height="14" fontName="Inter SemiBold" fontSize="12.0" hTextAlign="Right" textAdjust="StretchHeight">
+        <expression><![CDATA[$P{DATO_V3}]]></expression>
+      </element>
+      <element kind="line" x="16" y="80" width="431" height="1">
+        <pen lineWidth="1.0" lineStyle="Dashed" lineColor="#CBD5E1"/>
+      </element>
+      <element kind="textField" x="16" y="87" width="150" height="16" forecolor="#475569" fontName="Inter" fontSize="12.0">
+        <expression><![CDATA[$P{DATO_K4}]]></expression>
+      </element>
+      <element kind="textField" x="170" y="87" width="277" height="14" fontName="Inter SemiBold" fontSize="12.0" hTextAlign="Right" textAdjust="StretchHeight">
+        <expression><![CDATA[$P{DATO_V4}]]></expression>
+      </element>
+      <element kind="line" x="16" y="105" width="431" height="1">
+        <pen lineWidth="1.0" lineStyle="Dashed" lineColor="#CBD5E1"/>
+      </element>
+      <element kind="textField" x="16" y="112" width="150" height="16" forecolor="#475569" fontName="Inter" fontSize="12.0">
+        <expression><![CDATA[$P{DATO_K5}]]></expression>
+      </element>
+      <element kind="textField" x="170" y="112" width="277" height="14" fontName="Inter SemiBold" fontSize="12.0" hTextAlign="Right" textAdjust="StretchHeight">
+        <expression><![CDATA[$P{DATO_V5}]]></expression>
+      </element>
+    </element>
+
+    <!-- Detalle de la operación -->
+    <element kind="staticText" x="94" y="372" width="463" height="14" forecolor="#64748B" fontName="Inter" fontSize="10.0" bold="true" positionType="Float">
+      <text><![CDATA[DETALLE DE LA OPERACIÓN]]></text>
+    </element>
+    <element kind="ellipse" x="94" y="397" width="10" height="10" positionType="Float" style="FondoAcento">
+      <pen lineWidth="0.0"/>
+    </element>
+    <element kind="textField" x="116" y="392" width="320" height="18" fontName="Inter" fontSize="14.0" bold="true" positionType="Float" textAdjust="StretchHeight">
+      <expression><![CDATA[$P{LINEA_C1}]]></expression>
+    </element>
+    <element kind="textField" x="116" y="411" width="320" height="14" forecolor="#64748B" fontName="Inter" fontSize="11.0" positionType="Float" textAdjust="StretchHeight">
+      <expression><![CDATA[$P{LINEA_D1}]]></expression>
+    </element>
+    <element kind="textField" x="437" y="390" width="120" height="22" fontName="JetBrains Mono" fontSize="14.0" bold="true" hTextAlign="Right" positionType="Float">
+      <expression><![CDATA[$P{LINEA_V1}]]></expression>
+    </element>
+    <element kind="line" x="94" y="432" width="463" height="1" forecolor="#E2E8F0" positionType="Float">
+      <pen lineWidth="1.0" lineColor="#E2E8F0"/>
+    </element>
+
+    <element kind="ellipse" x="94" y="451" width="10" height="10" positionType="Float" style="FondoAcento">
+      <printWhenExpression><![CDATA[$P{LINEA_C2} != null && !$P{LINEA_C2}.isBlank()]]></printWhenExpression>
+      <pen lineWidth="0.0"/>
+    </element>
+    <element kind="textField" x="116" y="446" width="320" height="18" fontName="Inter" fontSize="14.0" bold="true" positionType="Float" textAdjust="StretchHeight" blankWhenNull="true">
+      <printWhenExpression><![CDATA[$P{LINEA_C2} != null && !$P{LINEA_C2}.isBlank()]]></printWhenExpression>
+      <expression><![CDATA[$P{LINEA_C2}]]></expression>
+    </element>
+    <element kind="textField" x="116" y="465" width="320" height="14" forecolor="#64748B" fontName="Inter" fontSize="11.0" positionType="Float" textAdjust="StretchHeight" blankWhenNull="true">
+      <printWhenExpression><![CDATA[$P{LINEA_C2} != null && !$P{LINEA_C2}.isBlank()]]></printWhenExpression>
+      <expression><![CDATA[$P{LINEA_D2}]]></expression>
+    </element>
+    <element kind="textField" x="437" y="444" width="120" height="22" fontName="JetBrains Mono" fontSize="14.0" bold="true" hTextAlign="Right" positionType="Float" blankWhenNull="true">
+      <printWhenExpression><![CDATA[$P{LINEA_C2} != null && !$P{LINEA_C2}.isBlank()]]></printWhenExpression>
+      <expression><![CDATA[$P{LINEA_V2}]]></expression>
+    </element>
+    <element kind="line" x="94" y="486" width="463" height="1" forecolor="#E2E8F0" positionType="Float">
+      <printWhenExpression><![CDATA[$P{LINEA_C2} != null && !$P{LINEA_C2}.isBlank()]]></printWhenExpression>
+      <pen lineWidth="1.0" lineColor="#E2E8F0"/>
+    </element>
+
+    <!-- Total -->
+    <element kind="rectangle" x="94" y="506" width="463" height="86" backcolor="#1E293B" mode="Opaque" radius="14" positionType="Float">
+      <pen lineWidth="0.0"/>
+    </element>
+    <element kind="rectangle" x="100" y="512" width="451" height="74" mode="Transparent" radius="10" positionType="Float" style="BordeAcento"/>
+    <element kind="textField" x="120" y="530" width="210" height="14" fontName="Inter" fontSize="11.0" bold="true" positionType="Float" style="TextoAcentoClaro">
+      <expression><![CDATA[$P{TOTAL_ETIQUETA}.toUpperCase()]]></expression>
+    </element>
+    <element kind="textField" x="120" y="548" width="210" height="14" forecolor="#CBD5E1" fontName="Inter" fontSize="11.0" positionType="Float" textAdjust="StretchHeight">
+      <expression><![CDATA[$P{TOTAL_NOTA}]]></expression>
+    </element>
+    <element kind="textField" x="320" y="518" width="215" height="40" forecolor="#FFFFFF" fontName="JetBrains Mono" fontSize="28.0" bold="true" hTextAlign="Right" positionType="Float">
+      <expression><![CDATA[$P{TOTAL_USD}]]></expression>
+    </element>
+    <element kind="textField" x="320" y="560" width="215" height="18" forecolor="#CBD5E1" fontName="Inter" fontSize="12.0" hTextAlign="Right" positionType="Float">
+      <expression><![CDATA["≈ " + $P{TOTAL_BS}]]></expression>
+    </element>
+  </title>
+</jasperReport>

@@ -8,6 +8,7 @@ import 'package:mobile/layouts/estudiante/estudiante_shell.dart';
 import 'package:mobile/layouts/inicio_por_rol.dart';
 import 'package:mobile/layouts/instructor/instructor_shell.dart';
 
+import '../helpers/alumnos_falsos.dart';
 import '../helpers/horarios_falsos.dart';
 import '../helpers/pagos_falsos.dart';
 import '../helpers/sesion_falsa.dart';
@@ -29,6 +30,7 @@ Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
         sesionFalsa(sesion),
         horariosServiceFalso(HorariosServiceFalso()),
         pagosServiceFalso(PagosServiceFalso()),
+        horasAlumnosServiceFalso(HorasAlumnosServiceFalso()),
       ],
       child: const MaterialApp(home: InicioPorRol()),
     ),
@@ -99,7 +101,7 @@ void main() {
           'Inicio',
           'Horarios',
           'Clases',
-          'Pagos',
+          'Alumnos',
           'Perfil',
         ]) {
           expect(_enLaBarra(label), findsOneWidget);

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -58,14 +60,17 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onResponse: (response, handler) {
-          final envelope = response.data as Map<String, dynamic>;
-          response.data = envelope['meta'] != null
-              ? {'data': envelope['data'], 'meta': envelope['meta']}
-              : envelope['data'];
+          // * Una respuesta que no es el sobre JSON (un PDF, CU30) pasa tal cual
+          final envelope = response.data;
+          if (envelope is Map<String, dynamic>) {
+            response.data = envelope['meta'] != null
+                ? {'data': envelope['data'], 'meta': envelope['meta']}
+                : envelope['data'];
+          }
           handler.next(response);
         },
         onError: (error, handler) {
-          final envelope = error.response?.data;
+          final envelope = _sobreDelError(error.response?.data);
           if (envelope is Map<String, dynamic> && envelope['error'] != null) {
             handler.reject(
               DioException(
@@ -93,6 +98,19 @@ class ApiClient {
     }
 
     return dio;
+  }
+
+  /// El sobre de un error. Una descarga pide los bytes de la respuesta (`ResponseType.bytes`): si falla, el sobre
+  /// JSON del error llega como bytes y se lee de ahí.
+  static Object? _sobreDelError(Object? cuerpo) {
+    if (cuerpo is List<int>) {
+      try {
+        return jsonDecode(utf8.decode(cuerpo));
+      } catch (_) {
+        return null;
+      }
+    }
+    return cuerpo;
   }
 
   /// Agrega el Bearer y, ante un 401 de una petición de negocio, renueva la
