@@ -38,7 +38,7 @@ el espejo de las rutas de
 | --- | --- |
 | `identidad` | `auth`, `usuarios`, `estudiantes`, `roles`, `permisos` |
 | `escuela` | `escuelas`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
-| `pagos` | `planes-pago`, `pagos`, `comprobantes` |
+| `pagos` | `planes-pago`, `pagos`, `comprobantes`, `billeteras-horas`, `webhooks-stripe` |
 | `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
 | `contenido` | `manuales`, `tutoriales` |
 | `notificaciones` | `notificaciones`, `preferencias-notificacion`, `dispositivos-push` |

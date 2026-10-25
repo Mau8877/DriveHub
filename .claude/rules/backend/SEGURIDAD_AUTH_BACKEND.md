@@ -139,5 +139,6 @@ Identidad `POST /api/v1/auth/login`, `/refresh`, la recuperación de
 contraseña (CU04) y `POST /api/v1/usuarios` si el registro (CU01) es
 abierto. En Pagos, `GET /api/v1/pagos/retorno` (la página fija a la que vuelve
 el estudiante de la pasarela de pago, CU26; no lee ni muestra datos) y, con
-CU27, el aviso firmado de la pasarela (se autentica por su firma). Cualquier otro endpoint es privado por default: hacerlo público es
+CU27, `POST /api/v1/webhooks-stripe`, el aviso de la pasarela (no lleva JWT: se autentica por su firma
+`Stripe-Signature`, y sin firma válida responde `400 ERR_PAG_08`). Cualquier otro endpoint es privado por default: hacerlo público es
 una decisión explícita, no un olvido.

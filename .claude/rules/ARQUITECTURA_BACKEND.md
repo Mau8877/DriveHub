@@ -60,7 +60,8 @@ com.drivehub.{servicio}
 Módulos que ya existen (solo con sus Models, sin casos de uso todavía):
 
 - **Pagos**: `planes`, `pagos`
-  (pago, transacción con la pasarela, reversión), `comprobantes`.
+  (pago, transacción con la pasarela, reversión), `billetera` (saldo y movimientos de
+  horas), `comprobantes`.
 - **Académico**: `horarios` (plantillas + franjas), `solicitudes`,
   `reservas`, `clases` (clase + prueba de clase), `examenes`, `preguntas`,
   `simulacros` (configuración + intentos), `resultados`.

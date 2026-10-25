@@ -26,7 +26,7 @@ lógica de negocio.
 | Enrutar `/api/v1/{recurso}/**` al servicio dueño | `application.properties` (`spring.cloud.gateway.server.webmvc.routes[*]`) |
 | CORS de toda la API | `config/CorsConfig.java` (filtro servlet con máxima prioridad) |
 | Rate limit por IP sobre `/api/v1/**` | `security/RateLimitFilter.java` (Bucket4j, ver [SEGURIDAD_AUTH_BACKEND.md](SEGURIDAD_AUTH_BACKEND.md#rate-limit)) |
-| Validar el JWT (primera barrera) | `security/SecurityConfig.java`: toda la API exige token válido, salvo lo público (login, refresh, logout, verificar y recuperar correo/contraseña, el registro, `GET /api/v1/escuelas/{slug}` y `GET /api/v1/pagos/retorno`, la página fija a la que vuelve el estudiante de la pasarela de pago) |
+| Validar el JWT (primera barrera) | `security/SecurityConfig.java`: toda la API exige token válido, salvo lo público (login, refresh, logout, verificar y recuperar correo/contraseña, el registro, `GET /api/v1/escuelas/{slug}` y `GET /api/v1/pagos/retorno`, la página fija a la que vuelve el estudiante de la pasarela de pago, y `POST /api/v1/webhooks-stripe`, el aviso de la pasarela, que Pagos autentica con su firma) |
 
 Los microservicios **no** configuran CORS ni rate limit: el navegador
 nunca les habla directo.
