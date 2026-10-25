@@ -38,6 +38,7 @@ class GatewayAuthTest {
         String url = "http://localhost:" + SERVICIO_FALSO.getAddress().getPort();
         registry.add("IDENTIDAD_URL", () -> url);
         registry.add("ESCUELA_URL", () -> url);
+        registry.add("PAGOS_URL", () -> url);
         registry.add("app.auth.jwks-uri", () -> url + "/.well-known/jwks.json");
     }
 
@@ -201,6 +202,24 @@ class GatewayAuthTest {
 
         assertThat(r.statusCode()).isEqualTo(200);
         assertThat(r.headers().firstValue("Access-Control-Allow-Origin")).hasValue("http://localhost:4200");
+    }
+
+    // * CU26: la pagina de retorno de la pasarela de pago es lo unico publico de Pagos
+    @Test
+    void pagos_exigenTokenSalvoLaPaginaDeRetornoDeLaPasarela() throws Exception {
+        assertThat(enviar("GET", "/api/v1/pagos/retorno", null).statusCode()).isEqualTo(200);
+
+        assertThat(enviar("POST", "/api/v1/pagos/retorno", null).statusCode()).isEqualTo(401);
+        for (String[] peticion : new String[][] {
+            {"POST", "/api/v1/pagos"},
+            {"GET", "/api/v1/pagos/0198f0a0-0000-7000-8000-000000000001/estado"},
+            {"GET", "/api/v1/planes-pago/disponibles"},
+        }) {
+            var r = enviar(peticion[0], peticion[1], null);
+            assertThat(r.statusCode()).as(peticion[0] + " " + peticion[1]).isEqualTo(401);
+            assertThat(r.body()).contains("ERR_SYS_04");
+            assertThat(enviar(peticion[0], peticion[1], TokensDePrueba.valido()).statusCode()).isEqualTo(200);
+        }
     }
 
     @Test

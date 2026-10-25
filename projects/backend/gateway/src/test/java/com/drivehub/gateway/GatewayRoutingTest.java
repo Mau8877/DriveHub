@@ -31,6 +31,7 @@ class GatewayRoutingTest {
 
     private static final HttpServer IDENTIDAD_FALSA = levantarServicioFalso("identidad");
     private static final HttpServer ESCUELA_FALSA = levantarServicioFalso("escuela");
+    private static final HttpServer PAGOS_FALSO = levantarServicioFalso("pagos");
     private static final HttpClient CLIENTE = HttpClient.newHttpClient();
 
     @LocalServerPort
@@ -41,12 +42,14 @@ class GatewayRoutingTest {
         registry.add("app.auth.jwks-uri", () -> "http://localhost:" + IDENTIDAD_FALSA.getAddress().getPort() + "/.well-known/jwks.json");
         registry.add("IDENTIDAD_URL", () -> "http://localhost:" + IDENTIDAD_FALSA.getAddress().getPort());
         registry.add("ESCUELA_URL", () -> "http://localhost:" + ESCUELA_FALSA.getAddress().getPort());
+        registry.add("PAGOS_URL", () -> "http://localhost:" + PAGOS_FALSO.getAddress().getPort());
     }
 
     @AfterAll
     static void apagarIdentidadFalsa() {
         IDENTIDAD_FALSA.stop(0);
         ESCUELA_FALSA.stop(0);
+        PAGOS_FALSO.stop(0);
     }
 
     @Test
@@ -103,6 +106,33 @@ class GatewayRoutingTest {
 
         assertThat(respuesta.statusCode()).isEqualTo(200);
         assertThat(respuesta.body()).isEqualTo("escuela:/api/v1/categorias-licencia");
+    }
+
+    // * CU25 y CU26: los planes y los pagos los atiende Pagos
+    @Test
+    void recursosDePagos_seReenvianAPagosConLaMismaRuta() throws Exception {
+        HttpResponse<String> disponibles = get("/api/v1/planes-pago/disponibles", TokensDePrueba.valido());
+        HttpResponse<String> compra = post("/api/v1/pagos", TokensDePrueba.valido());
+        HttpResponse<String> estado = get("/api/v1/pagos/0198f0a0-0000-7000-8000-000000000001/estado",
+            TokensDePrueba.valido());
+        HttpResponse<String> retorno = get("/api/v1/pagos/retorno");
+
+        assertThat(disponibles.body()).isEqualTo("pagos:/api/v1/planes-pago/disponibles");
+        assertThat(compra.body()).isEqualTo("pagos:/api/v1/pagos");
+        assertThat(estado.body()).isEqualTo("pagos:/api/v1/pagos/0198f0a0-0000-7000-8000-000000000001/estado");
+        assertThat(retorno.body()).isEqualTo("pagos:/api/v1/pagos/retorno");
+    }
+
+    // * CU26: no hay cuotas ni inscripciones a un plan; Pagos ya no las tiene y el gateway no las enruta
+    @Test
+    void cuotasEInscripcionesAUnPlan_yaNoSeEnrutan() throws Exception {
+        HttpResponse<String> cuotas = get("/api/v1/cuotas", TokensDePrueba.valido());
+        HttpResponse<String> inscripciones = get("/api/v1/inscripciones-plan", TokensDePrueba.valido());
+
+        assertThat(cuotas.statusCode()).isEqualTo(404);
+        assertThat(inscripciones.statusCode()).isEqualTo(404);
+        assertThat(cuotas.body()).doesNotContain("pagos:");
+        assertThat(inscripciones.body()).doesNotContain("pagos:");
     }
 
     @Test
