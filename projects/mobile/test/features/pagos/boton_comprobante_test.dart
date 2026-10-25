@@ -44,7 +44,7 @@ void main() {
     await tocar(tester);
 
     expect(servicio.descargas, ['c1']);
-    expect(abridor.abiertos.single, endsWith('comprobante-c1.pdf'));
+    expect(abridor.abiertos.single, 'comprobante-c1.pdf');
     expect(find.byType(SnackBar), findsNothing);
   });
 

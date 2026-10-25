@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,27 +15,27 @@ class ComprobantesServiceFalso extends ComprobantesService {
   final List<String> descargas = [];
 
   @override
-  Future<File> descargarPdf(String codigoComprobante) async {
+  Future<List<int>> descargarPdf(String codigoComprobante) async {
     descargas.add(codigoComprobante);
     await antes?.call();
     final fallo = error;
     if (fallo != null) throw fallo;
-    return File('comprobante-$codigoComprobante.pdf');
+    return [37, 80, 68, 70];
   }
 }
 
-/// Un abridor de archivos que no abre nada: anota las rutas y responde si "había visor".
+/// Un abridor de PDF que no abre nada: anota los nombres y responde si "había visor".
 class AbridorFalso {
   bool hayVisor = true;
   final List<String> abiertos = [];
 
-  Future<bool> call(String ruta) async {
-    abiertos.add(ruta);
+  Future<bool> call(List<int> bytes, String nombre) async {
+    abiertos.add(nombre);
     return hayVisor;
   }
 }
 
 List<Override> comprobantesFalsos(ComprobantesServiceFalso servicio, AbridorFalso abridor) => [
   comprobantesServiceProvider.overrideWithValue(servicio),
-  abridorDeArchivosProvider.overrideWithValue(abridor.call),
+  abridorDePdfProvider.overrideWithValue(abridor.call),
 ];

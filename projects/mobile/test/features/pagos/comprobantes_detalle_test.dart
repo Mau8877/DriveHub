@@ -109,7 +109,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(comprobantes.descargas, ['k2']);
-    expect(abridor.abiertos.single, endsWith('comprobante-k2.pdf'));
+    expect(abridor.abiertos.single, 'comprobante-k2.pdf');
   });
 
   group('fromJson', () {

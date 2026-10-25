@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:open_filex/open_filex.dart';
 
+import '../../../core/archivos/abrir_pdf.dart';
 import '../services/comprobantes_service.dart';
 
 /// El servicio que baja los PDF de los comprobantes; es un provider para sustituirlo en los tests.
@@ -11,13 +10,10 @@ final comprobantesServiceProvider = Provider<ComprobantesService>(
   (ref) => ComprobantesService(),
 );
 
-/// Abre un archivo con el visor del teléfono; devuelve `false` si no hay ninguna app que lo abra. Es un provider
-/// para sustituirlo en los tests: ninguno abre un visor de verdad.
-final abridorDeArchivosProvider = Provider<Future<bool> Function(String ruta)>(
-  (ref) => (ruta) async {
-    final resultado = await OpenFilex.open(ruta, type: 'application/pdf');
-    return resultado.type == ResultType.done;
-  },
+/// Abre un PDF con el visor de la plataforma (el teléfono o el navegador); devuelve `false` si no hay ninguna app
+/// que lo abra. Es un provider para sustituirlo en los tests: ninguno abre un visor de verdad.
+final abridorDePdfProvider = Provider<Future<bool> Function(List<int> bytes, String nombre)>(
+  (ref) => abrirPdf,
 );
 
 /// No hay ninguna app en el teléfono que abra PDF.
@@ -42,10 +38,8 @@ class ComprobanteDescargaNotifier
     _enCurso = true;
     state = const AsyncLoading<void>();
     try {
-      final File archivo = await ref
-          .read(comprobantesServiceProvider)
-          .descargarPdf(arg);
-      final abierto = await ref.read(abridorDeArchivosProvider)(archivo.path);
+      final bytes = await ref.read(comprobantesServiceProvider).descargarPdf(arg);
+      final abierto = await ref.read(abridorDePdfProvider)(bytes, 'comprobante-$arg.pdf');
       if (!abierto) throw const SinVisorDePdf();
       state = const AsyncData(null);
       return true;
