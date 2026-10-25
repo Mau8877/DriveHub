@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * Datos para crear un plan de horas (CU25a). La escuela NO viaja acá: sale del token.
+ * Datos para crear un plan de horas (CU25). La escuela NO viaja acá: sale del token.
  *
  * * Las reglas de cada campo son las de la base (`CHECK`) y las de la pantalla; el nombre único por
  * * escuela lo comprueba el service.

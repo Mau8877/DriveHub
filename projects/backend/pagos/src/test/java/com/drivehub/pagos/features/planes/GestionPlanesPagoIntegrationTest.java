@@ -25,7 +25,7 @@ import com.drivehub.pagos.PostgresIntegrationTestBase;
 import com.jayway.jsonpath.JsonPath;
 
 /**
- * CU25a de punta a punta: controller, service, repositorio y Postgres reales (Testcontainers); si no hay
+ * CU25 de punta a punta: controller, service, repositorio y Postgres reales (Testcontainers); si no hay
  * Docker, se salta. Un método por criterio de aceptación.
  */
 @SpringBootTest

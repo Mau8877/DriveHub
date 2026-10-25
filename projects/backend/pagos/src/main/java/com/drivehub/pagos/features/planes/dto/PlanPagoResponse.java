@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Un plan de horas tal como lo ve el cliente (CU25a). `costoUsd` es solo una referencia, calculada al
+ * Un plan de horas tal como lo ve el cliente (CU25). `costoUsd` es solo una referencia, calculada al
  * responder con el tipo de cambio configurado: no existe en la base. El id interno y la escuela no salen.
  */
 public record PlanPagoResponse(

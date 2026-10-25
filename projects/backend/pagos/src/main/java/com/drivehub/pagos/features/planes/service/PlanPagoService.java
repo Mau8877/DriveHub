@@ -29,7 +29,7 @@ import com.drivehub.pagos.features.planes.repository.PlanPagoSpecification;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Planes de horas de la escuela (CU25a): crear, listar, obtener, editar, desactivar y activar.
+ * Planes de horas de la escuela (CU25): crear, listar, obtener, editar, desactivar y activar.
  *
  * * La escuela es siempre la del token (la pasa el controller): un plan de otra escuela responde "no
  * * encontrado", no "prohibido", para no revelar que existe.

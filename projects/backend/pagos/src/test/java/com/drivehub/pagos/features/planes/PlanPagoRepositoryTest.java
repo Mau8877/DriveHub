@@ -23,7 +23,7 @@ import com.drivehub.pagos.features.planes.repository.PlanPagoRepository;
 import com.drivehub.pagos.features.planes.repository.PlanPagoSpecification;
 
 /**
- * Las consultas de planes (CU25a), siempre aisladas por escuela. Corre contra un Postgres real
+ * Las consultas de planes (CU25), siempre aisladas por escuela. Corre contra un Postgres real
  * (Testcontainers): si no hay Docker, se salta.
  */
 @SpringBootTest

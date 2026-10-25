@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Plan de horas que ofrece una escuela (CU25a): un nombre, una cantidad de horas y un costo en bolivianos.
+ * Plan de horas que ofrece una escuela (CU25): un nombre, una cantidad de horas y un costo en bolivianos.
  *
  * * El costo en dólares NO se guarda: lo calcula el servicio con el tipo de cambio configurado.
  * * Se desactiva (`activo = false`), no se borra: conserva su historia.

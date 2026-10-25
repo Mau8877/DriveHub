@@ -7,7 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 import com.drivehub.pagos.features.planes.model.PlanPago;
 
 /**
- * Los filtros del listado de planes (CU25a). Se combinan con `Specification.allOf`: el de la escuela va
+ * Los filtros del listado de planes (CU25). Se combinan con `Specification.allOf`: el de la escuela va
  * siempre; los otros solo si la persona los pidió.
  *
  * * El orden NO está acá: lo define quien consulta, con un `Sort`.

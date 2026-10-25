@@ -18,7 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.drivehub.pagos.PostgresIntegrationTestBase;
 
 /**
- * La migración de `plan_pago` (CU25a): las columnas que quedan y las reglas que protege la base.
+ * La migración de `plan_pago` (CU25): las columnas que quedan y las reglas que protege la base.
  * Corre contra un Postgres real (Testcontainers) con Flyway: si no hay Docker, se salta.
  */
 @SpringBootTest

@@ -29,7 +29,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Planes de horas de la escuela (CU25a): solo el Administrador de escuela. La decisión por rol vive en el
+ * Planes de horas de la escuela (CU25): solo el Administrador de escuela. La decisión por rol vive en el
  * service (@PreAuthorize), no acá.
  *
  * * La escuela sale del claim `escuela` del token, nunca del cuerpo ni de la URL: así un Administrador no

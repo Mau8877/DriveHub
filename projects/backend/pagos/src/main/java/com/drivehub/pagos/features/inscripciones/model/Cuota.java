@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Cuota de un plan contratado (CU25, CU28).
+ * Cuota de un plan contratado (CU28 y la contratación del plan).
  */
 @Getter
 @NoArgsConstructor

@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import com.drivehub.pagos.features.planes.model.PlanPago;
 
 /**
- * Acceso a los planes de horas (CU25a). Sin lógica: todo está aislado por escuela y nunca devuelve el
+ * Acceso a los planes de horas (CU25). Sin lógica: todo está aislado por escuela y nunca devuelve el
  * plan de otra.
  *
  * * `BaseModel` ya filtra `deleted_at IS NULL` en todas las consultas (`@SQLRestriction`).

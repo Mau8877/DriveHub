@@ -8,7 +8,7 @@ package com.drivehub.pagos.common.exception;
  */
 public final class PagosErrorCodes {
 
-    // * CU25a: planes de horas
+    // * CU25: planes de horas
     public static final String PLAN_NOMBRE_EN_USO = "ERR_PAG_01";
     public static final String PLAN_NO_ENCONTRADO = "ERR_PAG_02";
     public static final String PLAN_YA_EN_ESE_ESTADO = "ERR_PAG_03";

@@ -12,7 +12,7 @@ import jakarta.validation.constraints.Positive;
 /**
  * Configuración de Pagos, prefijo `app.pagos`.
  *
- * * `tipoCambioBsUsd`: bolivianos por dólar, para mostrar el costo de un plan en dólares (CU25a). Por
+ * * `tipoCambioBsUsd`: bolivianos por dólar, para mostrar el costo de un plan en dólares (CU25). Por
  * * defecto 6,96, el cambio oficial. No hay servicio externo: cambiarlo es cambiar la variable de
  * * entorno `TIPO_CAMBIO_BS_USD`, y el costo en dólares de todos los planes se recalcula solo.
  * ! Si no es mayor a 0 el servicio no arranca: dividir por cero o por un negativo daría dólares absurdos.

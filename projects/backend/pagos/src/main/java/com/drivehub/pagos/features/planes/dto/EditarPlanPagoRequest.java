@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
 /**
- * Datos para corregir un plan (CU25a, PATCH): cada campo es opcional y lo que no se envía no se toca. Las
+ * Datos para corregir un plan (CU25, PATCH): cada campo es opcional y lo que no se envía no se toca. Las
  * reglas de cada campo, cuando viene, son las mismas que al crear. El estado no se cambia por acá.
  */
 public record EditarPlanPagoRequest(

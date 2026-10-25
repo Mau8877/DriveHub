@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Plan contratado por un estudiante (CU25, CU28).
+ * Plan contratado por un estudiante (CU28 y la contratación del plan).
  */
 @Getter
 @NoArgsConstructor
