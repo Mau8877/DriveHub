@@ -1,3 +1,4 @@
+import 'package:mobile/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,7 +52,7 @@ Future<GoRouter> montarPagos(WidgetTester tester, ProviderContainer container, {
     ],
   );
   await tester.pumpWidget(
-    UncontrolledProviderScope(container: container, child: MaterialApp.router(routerConfig: router)),
+    UncontrolledProviderScope(container: container, child: MaterialApp.router(theme: AppTheme.light, routerConfig: router)),
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));

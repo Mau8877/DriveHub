@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/providers/sesion_provider.dart';
+import '../../features/pagos/widgets/saldo_horas_chip.dart';
 import '../../features/perfil/providers/perfil_provider.dart';
 import '../../shared/widgets/aviso_cockpit.dart';
 import '../../shared/widgets/aviso_snack.dart';
@@ -122,6 +123,11 @@ class _ShellConBarraState extends ConsumerState<ShellConBarra>
       titleSpacing: 20,
       title: const LogoDriveHub(tamano: 30),
       actions: [
+        // * Solo el estudiante tiene billetera de horas (la cuenta con rol de instructor entra al shell de instructor)
+        if (usuario != null &&
+            usuario.roles.contains('ESTUDIANTE') &&
+            !usuario.roles.contains('INSTRUCTOR'))
+          const SaldoHorasChip(),
         IconButton(
           tooltip: 'Avisos',
           icon: const Icon(Icons.notifications_none),

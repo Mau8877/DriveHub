@@ -10,8 +10,10 @@ String mensajeDeErrorDeCompra(Object error) {
   if (error is ApiException) {
     return switch (error.code) {
       'ERR_PAG_05' => 'Ese plan ya no está disponible. Elige otro.',
-      'ERR_PAG_06' || 'ERR_PAG_15' => 'No pudimos conectar con el pago. Inténtalo de nuevo más tarde.',
-      'ERR_PAG_17' => 'Tu compra ya se está procesando. Espera unos segundos e inténtalo de nuevo.',
+      'ERR_PAG_06' || 'ERR_PAG_15' =>
+        'No pudimos conectar con el pago. Inténtalo de nuevo más tarde.',
+      'ERR_PAG_17' =>
+        'Tu compra ya se está procesando. Espera unos segundos e inténtalo de nuevo.',
       'ERR_PAG_18' => 'No pudimos repetir esa compra. Vuelve a elegir el plan.',
       _ => 'No pudimos iniciar la compra. Inténtalo de nuevo más tarde.',
     };

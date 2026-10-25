@@ -7,6 +7,7 @@ import 'package:mobile/features/auth/models/usuario_sesion.dart';
 import 'package:mobile/features/auth/providers/sesion_provider.dart';
 import 'package:mobile/layouts/shared/shell_con_barra.dart';
 
+import '../../helpers/pagos_falsos.dart';
 import '../../helpers/sesion_falsa.dart';
 
 const _sinVerificar = UsuarioSesion(
@@ -39,7 +40,7 @@ Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
   final sesion = SesionFalsa(EstadoSesion.conSesion(usuario));
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sesionFalsa(sesion)],
+      overrides: [sesionFalsa(sesion), pagosServiceFalso(PagosServiceFalso())],
       child: const MaterialApp(home: ShellConBarra(secciones: _secciones)),
     ),
   );

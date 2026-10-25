@@ -15,11 +15,16 @@ import 'planes_provider.dart';
 /// * un segundo cobro. Cabe en el máximo de 64 caracteres que acepta el backend.
 String generarClaveDeCompra([Random? azar]) {
   final generador = azar ?? Random.secure();
-  return List.generate(16, (_) => generador.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+  return List.generate(
+    16,
+    (_) => generador.nextInt(256).toRadixString(16).padLeft(2, '0'),
+  ).join();
 }
 
 /// De dónde sale la clave de cada compra; es un provider para fijarla en los tests.
-final generadorDeClaveProvider = Provider<String Function()>((ref) => generarClaveDeCompra);
+final generadorDeClaveProvider = Provider<String Function()>(
+  (ref) => generarClaveDeCompra,
+);
 
 /// La compra que el estudiante tiene entre manos: el plan elegido, la clave de idempotencia de esa
 /// intención de compra y, cuando el backend la creó, el pago.
@@ -47,7 +52,10 @@ class CompraEnCursoNotifier extends Notifier<CompraEnCurso> {
       state = CompraEnCurso(plan: plan, clave: state.clave, pago: state.pago);
       return;
     }
-    state = CompraEnCurso(plan: plan, clave: ref.read(generadorDeClaveProvider)());
+    state = CompraEnCurso(
+      plan: plan,
+      clave: ref.read(generadorDeClaveProvider)(),
+    );
   }
 
   void registrarPago(PagoIniciado pago) {
@@ -58,7 +66,9 @@ class CompraEnCursoNotifier extends Notifier<CompraEnCurso> {
   void terminar() => state = CompraEnCurso.vacia;
 }
 
-final compraUiProvider = NotifierProvider<CompraEnCursoNotifier, CompraEnCurso>(CompraEnCursoNotifier.new);
+final compraUiProvider = NotifierProvider<CompraEnCursoNotifier, CompraEnCurso>(
+  CompraEnCursoNotifier.new,
+);
 
 /// Iniciar la compra (CU26): pide al backend el pago y la página de pago de la pasarela.
 ///
@@ -82,7 +92,9 @@ class CompraNotifier extends AsyncNotifier<PagoIniciado?> {
     _enCurso = true;
     state = const AsyncLoading<PagoIniciado?>().copyWithPrevious(state);
     try {
-      final pago = await ref.read(pagosServiceProvider).iniciarPago(plan.codigo, clave);
+      final pago = await ref
+          .read(pagosServiceProvider)
+          .iniciarPago(plan.codigo, clave);
       ref.read(compraUiProvider.notifier).registrarPago(pago);
       state = AsyncData(pago);
       return pago;
@@ -103,4 +115,6 @@ class CompraNotifier extends AsyncNotifier<PagoIniciado?> {
   }
 }
 
-final compraProvider = AsyncNotifierProvider<CompraNotifier, PagoIniciado?>(CompraNotifier.new);
+final compraProvider = AsyncNotifierProvider<CompraNotifier, PagoIniciado?>(
+  CompraNotifier.new,
+);

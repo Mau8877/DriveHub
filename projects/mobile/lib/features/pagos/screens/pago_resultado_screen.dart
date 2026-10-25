@@ -26,16 +26,19 @@ class PagoResultadoScreen extends ConsumerStatefulWidget {
   const PagoResultadoScreen({super.key});
 
   @override
-  ConsumerState<PagoResultadoScreen> createState() => _PagoResultadoScreenState();
+  ConsumerState<PagoResultadoScreen> createState() =>
+      _PagoResultadoScreenState();
 }
 
-class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen> with WidgetsBindingObserver {
+class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen>
+    with WidgetsBindingObserver {
   /// El pago que se está siguiendo. Se toma al abrir la pantalla: terminar la compra lo borra de la compra en
   /// curso, y la pantalla tiene que seguir mostrándolo.
   PagoIniciado? _pago;
   bool _terminada = false;
 
-  ConsultaDeEstado? get _consulta => _pago == null ? null : ConsultaDeEstado(_pago!.codigo, _pago!.expiraEn);
+  ConsultaDeEstado? get _consulta =>
+      _pago == null ? null : ConsultaDeEstado(_pago!.codigo, _pago!.expiraEn);
 
   @override
   void initState() {
@@ -73,7 +76,13 @@ class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen> with 
     if (!abrio) {
       mensajes
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('No pudimos abrir la página de pago. Inténtalo de nuevo.')));
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No pudimos abrir la página de pago. Inténtalo de nuevo.',
+            ),
+          ),
+        );
     }
   }
 
@@ -83,7 +92,10 @@ class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen> with 
     final consulta = _consulta;
     if (pago == null || consulta == null) {
       return CockpitScaffold(
-        appBar: AppBar(title: const Text('Tu pago'), automaticallyImplyLeading: false),
+        appBar: AppBar(
+          title: const Text('Tu pago'),
+          automaticallyImplyLeading: false,
+        ),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -91,9 +103,13 @@ class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen> with 
               const EstadoVacio(
                 icono: Icons.receipt_long_outlined,
                 titulo: 'No hay una compra en curso',
-                texto: 'Cuando compres un plan, aquí verás el resultado de tu pago.',
+                texto:
+                    'Cuando compres un plan, aquí verás el resultado de tu pago.',
               ),
-              FilledButton(onPressed: () => context.go('/inicio'), child: const Text('Ir al inicio')),
+              FilledButton(
+                onPressed: () => context.go('/inicio'),
+                child: const Text('Ir al inicio'),
+              ),
             ],
           ),
         ),
@@ -107,7 +123,10 @@ class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen> with 
     final seguimiento = ref.watch(estadoDePagoProvider(consulta));
 
     return CockpitScaffold(
-      appBar: AppBar(title: const Text('Tu pago'), automaticallyImplyLeading: false),
+      appBar: AppBar(
+        title: const Text('Tu pago'),
+        automaticallyImplyLeading: false,
+      ),
       body: SafeArea(
         child: seguimiento.when(
           loading: () => const _Mensaje(
@@ -120,7 +139,8 @@ class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen> with 
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
             children: [
               const AvisoCockpit(
-                texto: 'No pudimos consultar el estado de tu pago. Revisa tu conexión e inténtalo de nuevo.',
+                texto:
+                    'No pudimos consultar el estado de tu pago. Revisa tu conexión e inténtalo de nuevo.',
                 tono: TonoAviso.error,
               ),
               const SizedBox(height: 12),
@@ -129,7 +149,10 @@ class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen> with 
                 onPressed: () => ref.invalidate(estadoDePagoProvider(consulta)),
                 child: const Text('Reintentar'),
               ),
-              TextButton(onPressed: () => context.go('/inicio'), child: const Text('Volver al inicio')),
+              TextButton(
+                onPressed: () => context.go('/inicio'),
+                child: const Text('Volver al inicio'),
+              ),
             ],
           ),
           data: (datos) => _contenido(context, pago, datos),
@@ -138,7 +161,11 @@ class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen> with 
     );
   }
 
-  Widget _contenido(BuildContext context, PagoIniciado pago, SeguimientoDePago datos) {
+  Widget _contenido(
+    BuildContext context,
+    PagoIniciado pago,
+    SeguimientoDePago datos,
+  ) {
     switch (datos.estado.estado) {
       case EstadoPago.confirmado:
         return _Mensaje(
@@ -161,7 +188,8 @@ class _PagoResultadoScreenState extends ConsumerState<PagoResultadoScreen> with 
         return _Mensaje(
           icono: Icons.error_outline,
           titulo: 'No se pudo completar la compra',
-          texto: 'No se acreditaron horas. Si te cobraron, te devolveremos el dinero.',
+          texto:
+              'No se acreditaron horas. Si te cobraron, te devolveremos el dinero.',
           tono: TonoAviso.error,
           acciones: [
             FilledButton(
@@ -252,18 +280,33 @@ class _Mensaje extends StatelessWidget {
           children: [
             Icon(icono, size: 56, color: color),
             const SizedBox(height: 16),
-            Text(titulo, style: tema.textTheme.titleLarge, textAlign: TextAlign.center),
+            Text(
+              titulo,
+              style: tema.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 8),
             Text(
               texto,
-              style: tema.textTheme.bodyMedium?.copyWith(color: tema.colorScheme.onSurfaceVariant),
+              style: tema.textTheme.bodyMedium?.copyWith(
+                color: tema.colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
             if (cargando) ...[
               const SizedBox(height: 20),
-              const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))),
+              const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              ),
             ],
-            if (acciones.isNotEmpty) ...[const SizedBox(height: 24), ...acciones],
+            if (acciones.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              ...acciones,
+            ],
           ],
         ),
       ),

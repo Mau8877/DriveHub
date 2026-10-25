@@ -56,6 +56,19 @@ class PagosServiceFalso extends PagosService {
   List<Object?> erroresDeEstado = [];
   final List<String> consultasDeEstado = [];
 
+  /// Las horas de la billetera que responde `saldoDeHoras`; [errorSaldo] hace que falle.
+  int saldo = 0;
+  Object? errorSaldo;
+  int pedidosDeSaldo = 0;
+
+  @override
+  Future<int> saldoDeHoras() async {
+    pedidosDeSaldo++;
+    final error = errorSaldo;
+    if (error != null) throw error;
+    return saldo;
+  }
+
   @override
   Future<Pagina<PlanDisponible>> planesDisponibles({int page = 1, int pageSize = 50}) async {
     pedidosDePlanes++;

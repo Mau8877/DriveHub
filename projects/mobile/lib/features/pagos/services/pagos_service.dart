@@ -26,7 +26,10 @@ class PagosService {
   }
 
   /// Los planes activos de la escuela del estudiante, de menos a más horas.
-  Future<Pagina<PlanDisponible>> planesDisponibles({int page = 1, int pageSize = 50}) {
+  Future<Pagina<PlanDisponible>> planesDisponibles({
+    int page = 1,
+    int pageSize = 50,
+  }) {
     return _llamar(() async {
       final response = await _dio.get<Map<String, dynamic>>(
         '/planes-pago/disponibles',
@@ -51,8 +54,20 @@ class PagosService {
 
   Future<EstadoDePago> estadoDePago(String codigo) {
     return _llamar(() async {
-      final response = await _dio.get<Map<String, dynamic>>('/pagos/$codigo/estado');
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/pagos/$codigo/estado',
+      );
       return EstadoDePago.fromJson(response.data!);
+    });
+  }
+
+  /// Las horas que el estudiante puede gastar hoy (su billetera).
+  Future<int> saldoDeHoras() {
+    return _llamar(() async {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/billeteras-horas/mia',
+      );
+      return (response.data!['horasDisponibles'] as num).toInt();
     });
   }
 }

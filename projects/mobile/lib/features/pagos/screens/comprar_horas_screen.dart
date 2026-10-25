@@ -31,7 +31,8 @@ class ComprarHorasScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             children: [
               const AvisoCockpit(
-                texto: 'No pudimos cargar los planes. Revisa tu conexión e inténtalo de nuevo.',
+                texto:
+                    'No pudimos cargar los planes. Revisa tu conexión e inténtalo de nuevo.',
                 tono: TonoAviso.error,
               ),
               const SizedBox(height: 12),
@@ -51,7 +52,8 @@ class ComprarHorasScreen extends ConsumerWidget {
                   ),
                 )
               : RefreshIndicator(
-                  onRefresh: () => ref.refresh(planesDisponiblesProvider.future),
+                  onRefresh: () =>
+                      ref.refresh(planesDisponiblesProvider.future),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                     itemCount: lista.length,
@@ -85,15 +87,22 @@ class _TarjetaPlan extends ConsumerWidget {
                 children: [
                   Text(plan.nombre, style: tema.textTheme.titleMedium),
                   const SizedBox(height: 2),
-                  Text(plan.horas == 1 ? '1 hora' : '${plan.horas} horas', style: tema.textTheme.bodyMedium),
+                  Text(
+                    plan.horas == 1 ? '1 hora' : '${plan.horas} horas',
+                    style: tema.textTheme.bodyMedium,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     formatearBs(plan.costoBs),
-                    style: tema.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                    style: tema.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   Text(
                     '≈ ${formatearUsd(plan.costoUsd)}',
-                    style: tema.textTheme.bodySmall?.copyWith(color: tema.colorScheme.onSurfaceVariant),
+                    style: tema.textTheme.bodySmall?.copyWith(
+                      color: tema.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -101,6 +110,9 @@ class _TarjetaPlan extends ConsumerWidget {
             const SizedBox(width: 12),
             FilledButton(
               key: Key('comprar-${plan.codigo}'),
+              // * El tema da a los botones ancho infinito (ocupan toda la fila); dentro de este Row eso rompe el
+              // * layout, así que acá el botón mide lo que su texto
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
               onPressed: () {
                 ref.read(compraProvider.notifier).limpiar();
                 ref.read(compraUiProvider.notifier).elegirPlan(plan);

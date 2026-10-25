@@ -9,6 +9,7 @@ import 'package:mobile/layouts/inicio_por_rol.dart';
 import 'package:mobile/layouts/instructor/instructor_shell.dart';
 
 import '../helpers/horarios_falsos.dart';
+import '../helpers/pagos_falsos.dart';
 import '../helpers/sesion_falsa.dart';
 
 const _instructor = UsuarioSesion(
@@ -27,6 +28,7 @@ Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
       overrides: [
         sesionFalsa(sesion),
         horariosServiceFalso(HorariosServiceFalso()),
+        pagosServiceFalso(PagosServiceFalso()),
       ],
       child: const MaterialApp(home: InicioPorRol()),
     ),

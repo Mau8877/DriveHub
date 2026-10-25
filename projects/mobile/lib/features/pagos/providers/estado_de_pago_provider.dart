@@ -4,11 +4,15 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/estado_de_pago.dart';
+import '../models/estado_pago.dart';
 import 'pagos_service_provider.dart';
+import 'saldo_horas_provider.dart';
 
 /// Cada cuánto se consulta el estado de un pago mientras sigue pendiente. Es un provider para acortarlo en los
 /// tests.
-final intervaloConsultaEstadoProvider = Provider<Duration>((ref) => const Duration(seconds: 3));
+final intervaloConsultaEstadoProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 3),
+);
 
 /// Cuánto se sigue consultando después de que la página de pago venció, por si el aviso de la pasarela llega tarde.
 const margenTrasElVencimiento = Duration(minutes: 2);
@@ -23,7 +27,9 @@ class ConsultaDeEstado {
 
   @override
   bool operator ==(Object other) =>
-      other is ConsultaDeEstado && other.codigo == codigo && other.expiraEn == expiraEn;
+      other is ConsultaDeEstado &&
+      other.codigo == codigo &&
+      other.expiraEn == expiraEn;
 
   @override
   int get hashCode => Object.hash(codigo, expiraEn);
@@ -46,7 +52,9 @@ class SeguimientoDePago {
 /// * la PRIMERA consulta el provider queda en error (la pantalla ofrece reintentar).
 /// * [refrescar] consulta de inmediato: se usa al volver a la app desde la página de pago.
 /// * ! El tiempo se mide sumando los intervalos, no con el reloj del teléfono: así no depende de que la hora esté bien.
-class EstadoDePagoNotifier extends AutoDisposeFamilyAsyncNotifier<SeguimientoDePago, ConsultaDeEstado> {
+class EstadoDePagoNotifier
+    extends
+        AutoDisposeFamilyAsyncNotifier<SeguimientoDePago, ConsultaDeEstado> {
   Timer? _temporizador;
   late Duration _intervalo;
   late Duration _limite;
@@ -58,7 +66,9 @@ class EstadoDePagoNotifier extends AutoDisposeFamilyAsyncNotifier<SeguimientoDeP
     _vivo = true;
     _intervalo = ref.read(intervaloConsultaEstadoProvider);
     final faltaParaVencer = arg.expiraEn.difference(DateTime.now());
-    _limite = Duration(milliseconds: max(0, faltaParaVencer.inMilliseconds)) + margenTrasElVencimiento;
+    _limite =
+        Duration(milliseconds: max(0, faltaParaVencer.inMilliseconds)) +
+        margenTrasElVencimiento;
     _transcurrido = Duration.zero;
     ref.onDispose(() {
       _vivo = false;
@@ -70,7 +80,18 @@ class EstadoDePagoNotifier extends AutoDisposeFamilyAsyncNotifier<SeguimientoDeP
     return SeguimientoDePago(primero);
   }
 
-  Future<EstadoDePago> _consultar() => ref.read(pagosServiceProvider).estadoDePago(arg.codigo);
+  Future<EstadoDePago> _consultar() async {
+    final estado = await ref
+        .read(pagosServiceProvider)
+        .estadoDePago(arg.codigo);
+    // * Un pago confirmado acredita horas: el saldo del encabezado se vuelve a pedir
+    if (estado.estado == EstadoPago.confirmado &&
+        _vivo &&
+        ref.exists(saldoHorasProvider)) {
+      ref.invalidate(saldoHorasProvider);
+    }
+    return estado;
+  }
 
   void _programar() {
     _temporizador?.cancel();
@@ -84,7 +105,9 @@ class EstadoDePagoNotifier extends AutoDisposeFamilyAsyncNotifier<SeguimientoDeP
     if (!await _actualizar()) return;
     if (_transcurrido >= _limite) {
       final actual = state.valueOrNull;
-      if (_vivo && actual != null) state = AsyncData(SeguimientoDePago(actual.estado, sinNovedades: true));
+      if (_vivo && actual != null) {
+        state = AsyncData(SeguimientoDePago(actual.estado, sinNovedades: true));
+      }
       return;
     }
     _programar();
@@ -109,7 +132,9 @@ class EstadoDePagoNotifier extends AutoDisposeFamilyAsyncNotifier<SeguimientoDeP
     if (!await _actualizar()) return;
     if (_transcurrido >= _limite) {
       final actual = state.valueOrNull;
-      if (_vivo && actual != null) state = AsyncData(SeguimientoDePago(actual.estado, sinNovedades: true));
+      if (_vivo && actual != null) {
+        state = AsyncData(SeguimientoDePago(actual.estado, sinNovedades: true));
+      }
       return;
     }
     _programar();
@@ -117,4 +142,6 @@ class EstadoDePagoNotifier extends AutoDisposeFamilyAsyncNotifier<SeguimientoDeP
 }
 
 final estadoDePagoProvider = AsyncNotifierProvider.autoDispose
-    .family<EstadoDePagoNotifier, SeguimientoDePago, ConsultaDeEstado>(EstadoDePagoNotifier.new);
+    .family<EstadoDePagoNotifier, SeguimientoDePago, ConsultaDeEstado>(
+      EstadoDePagoNotifier.new,
+    );

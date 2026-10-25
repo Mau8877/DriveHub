@@ -23,5 +23,6 @@ enum EstadoPago {
   }
 
   /// El pago ya no va a cambiar solo: o se acreditó, o falló, o se reembolsó.
-  bool get esFinal => this == confirmado || this == fallido || this == revertido;
+  bool get esFinal =>
+      this == confirmado || this == fallido || this == revertido;
 }

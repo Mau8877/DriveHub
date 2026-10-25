@@ -35,7 +35,9 @@ class ResumenCompraScreen extends ConsumerWidget {
       if (error is ApiException && error.code == 'ERR_PAG_05') {
         mensajes
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(mensajeDeErrorDeCompra(error))));
+          ..showSnackBar(
+            SnackBar(content: Text(mensajeDeErrorDeCompra(error))),
+          );
         router.go('/payments/plans');
       } else if (error is ApiException && error.code == 'ERR_PAG_18') {
         ref.read(compraUiProvider.notifier).terminar();
@@ -48,7 +50,11 @@ class ResumenCompraScreen extends ConsumerWidget {
         mensajes
           ..hideCurrentSnackBar()
           ..showSnackBar(
-            const SnackBar(content: Text('No pudimos abrir la página de pago. Puedes volver a intentarlo desde aquí.')),
+            const SnackBar(
+              content: Text(
+                'No pudimos abrir la página de pago. Puedes volver a intentarlo desde aquí.',
+              ),
+            ),
           );
       }
     }
@@ -89,18 +95,25 @@ class ResumenCompraScreen extends ConsumerWidget {
                   children: [
                     Text(plan.nombre, style: tema.textTheme.titleLarge),
                     const SizedBox(height: 2),
-                    Text(plan.horas == 1 ? '1 hora' : '${plan.horas} horas', style: tema.textTheme.bodyMedium),
+                    Text(
+                      plan.horas == 1 ? '1 hora' : '${plan.horas} horas',
+                      style: tema.textTheme.bodyMedium,
+                    ),
                     const Divider(height: 28),
                     Text('Pagarás', style: tema.textTheme.bodySmall),
                     Text(
                       formatearUsd(plan.costoUsd),
                       key: const Key('montoAPagar'),
-                      style: tema.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                      style: tema.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     Text(
                       '≈ ${formatearBs(plan.costoBs)}',
                       key: const Key('equivalenteEnBs'),
-                      style: tema.textTheme.bodyMedium?.copyWith(color: tema.colorScheme.onSurfaceVariant),
+                      style: tema.textTheme.bodyMedium?.copyWith(
+                        color: tema.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -114,7 +127,10 @@ class ResumenCompraScreen extends ConsumerWidget {
             ),
             if (compra.hasError && !enCurso) ...[
               const SizedBox(height: 12),
-              AvisoCockpit(texto: mensajeDeErrorDeCompra(compra.error!), tono: TonoAviso.error),
+              AvisoCockpit(
+                texto: mensajeDeErrorDeCompra(compra.error!),
+                tono: TonoAviso.error,
+              ),
             ],
             const SizedBox(height: 20),
             FilledButton(
@@ -123,7 +139,11 @@ class ResumenCompraScreen extends ConsumerWidget {
               child: enCurso
                   ? const Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: [IndicadorBoton(), SizedBox(width: 10), Text('Procesando…')],
+                      children: [
+                        IndicadorBoton(),
+                        SizedBox(width: 10),
+                        Text('Procesando…'),
+                      ],
                     )
                   : const Text('Confirmar y pagar'),
             ),
