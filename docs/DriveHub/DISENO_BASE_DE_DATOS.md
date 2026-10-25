@@ -543,7 +543,7 @@ Libro de la billetera: el saldo se puede reconstruir sumándolo. Cada fila afect
 
 ### `comprobante` (CU30)
 
-Recibo interno en PDF, sin validez fiscal: uno por pago confirmado y uno por reembolso ejecutado. Los números salen de la secuencia `comprobante_nro_seq` (`CMP-{año}-{6 dígitos}`).
+Recibo interno en PDF, sin validez fiscal: uno por pago confirmado y uno por reembolso ejecutado. Los números salen de la secuencia `comprobante_nro_seq` (`CMP-{año}-{6 dígitos}` para el de pago, `RMB-{año}-{6 dígitos}` para el de reembolso: la misma secuencia).
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |

@@ -22,8 +22,8 @@ La app necesita un botón que inicie el reembolso de una compra.
 
 ## Alcance
 
-- `PagoController` suma `POST /api/v1/pagos/{codigo}/reembolso` (sin cuerpo; `@CurrentUserId` y `@CurrentEscuelaId`): llama a `ReversionService.solicitarReembolso` y responde `202 Accepted` con el `PagoDetalleResponse` ya actualizado (estado `REEMBOLSO_EN_PROCESO`); la devolución termina cuando la pasarela avisa. Delgado, sin lógica ni logs.
-- Tests `@WebMvcTest`: `202` con el sobre y el estado nuevo; `404 ERR_PAG_07`; `409 ERR_PAG_10` y `409 ERR_PAG_11`; `503 ERR_PAG_06`; `401` sin sesión y `403` para otro rol.
+- `PagoController` suma `POST /api/v1/pagos/{codigo}/reembolso` con cuerpo `SolicitarReembolsoRequest(motivo: MotivoReembolso, motivoDetalle: String?)` (`@Valid`; `motivo` obligatorio; un valor fuera de la lista es `400 ERR_SYS_01`; el detalle de `OTRO` lo valida el service), `@CurrentUserId` y `@CurrentEscuelaId`: llama a `ReversionService.solicitarReembolso` y responde `202 Accepted` con el `PagoDetalleResponse` ya actualizado (estado `REEMBOLSO_EN_PROCESO`); la devolución termina cuando la pasarela avisa. Delgado, sin lógica ni logs.
+- Tests `@WebMvcTest`: `202` con el sobre y el estado nuevo, y el motivo y su detalle llegan al service; sin cuerpo o sin `motivo`, o con un motivo desconocido → `400 ERR_SYS_01` sin llamar al service; `404 ERR_PAG_07`; `409 ERR_PAG_10` y `409 ERR_PAG_11`; `503 ERR_PAG_06`; `401` sin sesión y `403` para otro rol.
 
 Archivos esperados (crear/tocar):
 

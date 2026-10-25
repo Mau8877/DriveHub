@@ -23,7 +23,7 @@ Hay dos orígenes. **Compensación:** si después de cobrar al estudiante no se 
 
 ## Flujo principal (reembolso del estudiante)
 
-1. El estudiante confirma "Solicitar reembolso" en el detalle de una compra ([CU28](CU28%20-%20Consultar%20historial%20de%20pagos.md)).
+1. El estudiante confirma "Solicitar reembolso" en el detalle de una compra ([CU28](CU28%20-%20Consultar%20historial%20de%20pagos.md)), habiendo elegido el motivo de una lista cerrada y, si el motivo es "Otro", escrito cuál.
 2. El sistema comprueba que la compra es suya, está confirmada, no tiene reembolso previo y conserva todas sus horas.
 3. El sistema calcula el monto a devolver (el pagado menos el 5 %) y el monto retenido.
 4. El sistema registra la reversión como solicitada y aparta las horas de esa compra de la billetera.
@@ -50,6 +50,7 @@ Hay dos orígenes. **Compensación:** si después de cobrar al estudiante no se 
 - **A8 (paso 1):** Mientras la reversión está en curso, el instructor o Académico intentan gastar esas horas → no están disponibles; no se pueden gastar.
 - **A9 (cualquier paso):** La persona no es estudiante → 403; sin sesión o con sesión vencida → 401.
 - **A10 (cualquier paso):** Se superó el límite de peticiones → 429 (`ERR_SYS_02`).
+- **A11 (paso 1):** No se eligió motivo, el motivo no está en la lista, o es "Otro" sin explicación → 400 (`ERR_SYS_01`); no se crea la reversión.
 
 ## Reglas de negocio
 
@@ -60,6 +61,8 @@ Hay dos orígenes. **Compensación:** si después de cobrar al estudiante no se 
 - **Asíncrona e idempotente:** la devolución se da por hecha solo con el aviso firmado de la pasarela; procesarlo dos veces equivale a una.
 - **Quién la inicia:** el estudiante, solo sobre sus propios pagos; la compensación es automática del sistema. Ningún otro rol revierte pagos en este CU (el panel del Administrador queda para más adelante).
 - **Todo reembolso tiene su comprobante** ([CU30](CU30%20-%20Generar%20comprobante.md)).
+- **El motivo es obligatorio en el reembolso del estudiante:** se elige de una lista cerrada (cambié de planes, me mudé de ciudad, no tengo tiempo para las clases, compré el plan por error, tengo problemas económicos, no quedé conforme con el servicio y **otro**). Con "Otro", el estudiante escribe el motivo con sus palabras (de 5 a 200 caracteres); con cualquier otro, no se guarda texto libre. El motivo queda en la reversión y se muestra en el comprobante de reembolso.
+- **La compensación automática no pide motivo al estudiante:** el sistema guarda la causa (no se pudo acreditar las horas, el monto no coincidía o el cobro llegó vencido) y el comprobante dice "La compra no se pudo completar".
 - **Una compensación fallida no se pierde:** si no se puede devolver, queda registrada y se reintenta o se revisa a mano.
 - Mensajes en español, sin detalles técnicos. Nunca se loguean datos de tarjeta ([LOGGING_BACKEND.md](../../.claude/rules/backend/LOGGING_BACKEND.md)).
 
@@ -81,6 +84,8 @@ Hay dos orígenes. **Compensación:** si después de cobrar al estudiante no se 
 - **CA09:** Dado un aviso sin firma válida, el sistema debe rechazarlo con 400 sin cambiar nada.
 - **CA10:** Dadas horas apartadas por un reembolso en curso, el sistema no debe permitir gastarlas.
 - **CA11:** Dada una persona que no es estudiante, el sistema debe responder 403 al pedir un reembolso, y 401 si no hay sesión válida.
+- **CA12:** Dado un reembolso pedido sin motivo, con un motivo fuera de la lista, o con "Otro" sin explicación, el sistema debe responder 400 y no crear la reversión.
+- **CA13:** Dado un reembolso pedido con un motivo válido (y su explicación si es "Otro"), el sistema debe guardarlo en la reversión y mostrarlo en el comprobante de reembolso.
 
 ## Fuera de alcance
 

@@ -35,8 +35,8 @@ El estudiante abre "Mis pagos" y ve arriba cuántas horas tiene disponibles, y d
 ## Flujo F2: pedir el reembolso
 
 1. En el detalle de una compra confirmada cuyas horas están todas sin usar, el estudiante elige "Solicitar reembolso".
-2. El sistema muestra cuánto se le devolverá, cuánto se retiene y cuántas horas se descontarán, y pide confirmar.
-3. El estudiante confirma.
+2. El sistema muestra cuánto se le devolverá, cuánto se retiene y cuántas horas se descontarán, le pide elegir el motivo del reembolso de una lista (si elige "Otro", debe escribir cuál) y pide confirmar.
+3. El estudiante elige el motivo y confirma.
 4. El sistema inicia la reversión ([CU31](CU31%20-%20Revertir%20pago%20%28compensaci%C3%B3n%29.md)) y muestra la compra como "Reembolso en proceso".
 5. Cuando la pasarela confirma la devolución, la compra pasa a "Reembolsado" y aparece su comprobante de reembolso.
 

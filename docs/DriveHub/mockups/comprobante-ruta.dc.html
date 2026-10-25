@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Comprobante · Ruta</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+<style>
+body{margin:0;font-family:'Inter',system-ui,'Segoe UI',Roboto,sans-serif;color:#1E293B}
+</style>
+</helmet>
+<div style="width:1310px;height:922px;box-sizing:border-box;padding:40px;background:#CBD5E1;display:flex;gap:40px">
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="2">
+<div style="width:595px;height:842px;background:#FFFFFF;box-sizing:border-box;display:flex;flex-direction:column;position:relative;overflow:hidden">
+
+<div style="flex:1 1 auto;min-height:0;display:flex">
+<div style="width:58px;background:#1E293B;position:relative;flex:none">
+<div style="position:absolute;left:28px;top:0;bottom:0;width:3px;background:repeating-linear-gradient(to bottom,#F59E0B 0,#F59E0B 22px,transparent 22px,transparent 40px)"></div>
+<div style="position:absolute;left:0;top:0;width:58px;height:58px;background:#F59E0B;display:flex;align-items:center;justify-content:center">
+<svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="DriveHub"><path d="M10 8H16.5A8 8 0 0 1 16.5 24H10Z" fill="none" stroke="#1E293B" stroke-width="2.8" stroke-linejoin="round"/><path d="M13.5 12.5V14M13.5 17.5V19.5" stroke="#1E293B" stroke-width="2.4" stroke-linecap="round"/></svg>
+</div>
+</div>
+
+<div style="flex:1 1 0;min-width:0;padding:34px 38px 26px 36px;display:flex;flex-direction:column">
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+<div>
+<div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:{{d.acentoTexto}}">DriveHub · {{d.etiquetaTipo}}</div>
+<div style="font-size:26px;font-weight:800;letter-spacing:-0.6px;line-height:1.1;margin-top:8px">{{d.titulo}}</div>
+</div>
+<div style="border:3px solid #1E293B;border-radius:12px;padding:3px;flex:none"><div style="border:1.5px solid #1E293B;border-radius:8px;background:{{d.acento}};color:{{d.sobreAcento}};padding:7px 12px;text-align:center"><div style="font-size:8px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase">Número</div><div style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;font-weight:700;margin-top:2px">{{d.numero}}</div></div></div>
+</div>
+
+<div style="margin-top:22px;border-top:2px dashed #CBD5E1"></div>
+
+<div style="display:flex;gap:14px;margin-top:20px">
+<div style="flex:1 1 0;min-width:0;border-left:4px solid #F59E0B;padding:2px 0 2px 12px">
+<div style="font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#64748B">Escuela</div>
+<div style="font-size:15px;font-weight:700;margin-top:4px">{{d.escuela}}</div>
+<div style="font-size:11px;color:#475569;margin-top:2px">{{d.escuelaNota}}</div>
+</div>
+<div style="flex:1 1 0;min-width:0;border-left:4px solid #0284C7;padding:2px 0 2px 12px">
+<div style="font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#64748B">Estudiante</div>
+<div style="font-size:15px;font-weight:700;margin-top:4px">{{d.estudiante}}</div>
+<div style="font-size:11px;color:#475569;margin-top:2px">Alumno de {{d.escuela}}</div>
+</div>
+</div>
+
+<div style="margin-top:22px;background:#F1F5F9;border-radius:12px;padding:6px 16px">
+<sc-for list="{{d.datos}}" as="x" hint-placeholder-count="5">
+<div style="display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px dashed #CBD5E1;font-size:12px"><span style="color:#475569">{{x.k}}</span><span style="font-weight:600;text-align:right">{{x.v}}</span></div>
+</sc-for>
+</div>
+
+<div style="margin-top:22px">
+<div style="font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#64748B;margin-bottom:6px">Detalle de la operación</div>
+<sc-for list="{{d.lineas}}" as="l" hint-placeholder-count="2">
+<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #E2E8F0"><div style="width:10px;height:10px;border-radius:50%;background:{{d.acento}};margin-top:5px;flex:none"></div><div style="flex:1"><div style="font-size:14px;font-weight:700">{{l.concepto}}</div><div style="font-size:11px;color:#64748B;margin-top:2px">{{l.detalle}}</div></div><div style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;font-weight:700;white-space:nowrap">{{l.valor}}</div></div>
+</sc-for>
+</div>
+
+<div style="margin-top:22px;background:#1E293B;color:#FFFFFF;border-radius:14px;padding:6px;">
+<div style="border:2px solid {{d.acento}};border-radius:10px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+<div><div style="font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:{{d.acentoClaro}}">{{d.totalEtiqueta}}</div><div style="font-size:11px;color:#CBD5E1;margin-top:4px">{{d.totalNota}}</div></div>
+<div style="text-align:right"><div style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:28px;font-weight:700">{{d.totalUsd}}</div><div style="font-size:12px;color:#CBD5E1;margin-top:2px">≈ {{d.totalBs}}</div></div>
+</div>
+</div>
+
+<div style="flex:1 1 auto"></div>
+
+</div>
+</div>
+
+<div style="flex:none;border-top:3px solid #1E293B;background:#F1F5F9;padding:14px 38px 20px;font-size:10px;line-height:1.55;color:#475569"><strong style="color:#1E293B">Documento sin validez fiscal.</strong> Este comprobante no es una factura, no lleva NIT y no sustituye ningún documento tributario. Es la constancia de una operación realizada en DriveHub entre tú y tu escuela de conducción, con los datos fijados al momento de la operación: un cambio posterior del plan o del tipo de cambio no lo altera. Consérvalo y cítalo por su número ante cualquier consulta con tu escuela.</div>
+
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1310,"height":922}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const compra = {
+      etiquetaTipo: 'Compra', titulo: 'Comprobante de pago', numero: 'CP-2026-000184',
+      escuela: 'Autoescuela Cóndor', escuelaNota: 'Escuela de conducción',
+      estudiante: 'María José Peña Núñez',
+      datos: [
+        { k: 'Fecha de emisión', v: '18 oct 2026 · 10:42' },
+        { k: 'Referencia del pago', v: 'PAG-0198F0A0' },
+        { k: 'Método de pago', v: 'Tarjeta · procesado por Stripe' },
+        { k: 'Tipo de cambio aplicado', v: 'Bs 11,77 por US$ 1' },
+        { k: 'Estado', v: 'Pago confirmado' }
+      ],
+      lineas: [{ concepto: 'Plan 10 horas', detalle: '10 horas de práctica de manejo acreditadas a tu cuenta', valor: 'US$ 38,23' }],
+      totalEtiqueta: 'Total pagado', totalNota: 'Costo del plan: Bs 450,00', totalUsd: 'US$ 38,23', totalBs: 'Bs 450,00',
+      acento: '#F59E0B', acentoTexto: '#B45309', acentoClaro: '#FBBF24', sobreAcento: '#1E293B'
+    };
+    const reembolso = {
+      etiquetaTipo: 'Reembolso', titulo: 'Comprobante de reembolso', numero: 'RE-2026-000031',
+      escuela: 'Autoescuela Cóndor', escuelaNota: 'Escuela de conducción',
+      estudiante: 'María José Peña Núñez',
+      datos: [
+        { k: 'Fecha de emisión', v: '25 oct 2026 · 16:08' },
+        { k: 'Compra original', v: 'CP-2026-000184 · 18 oct 2026' },
+        { k: 'Referencia del pago', v: 'PAG-0198F0A0' },
+        { k: 'Devolución', v: 'A la tarjeta usada en la compra' },
+        { k: 'Motivo del reembolso', v: 'Otro · Me mudé a otra ciudad' }
+      ],
+      lineas: [
+        { concepto: 'Monto original pagado', detalle: 'Plan 10 horas · Bs 450,00 al tipo de cambio de Bs 11,77', valor: 'US$ 38,23' },
+        { concepto: 'Retención por reembolso', detalle: '5 % del monto pagado', valor: '− US$ 1,91' }
+      ],
+      totalEtiqueta: 'Monto devuelto', totalNota: 'Referencial en bolivianos', totalUsd: 'US$ 36,32', totalBs: 'Bs 427,49',
+      acento: '#0284C7', acentoTexto: '#0369A1', acentoClaro: '#38BDF8', sobreAcento: '#FFFFFF'
+    };
+    return { docs: [compra, reembolso] };
+  }
+}
+</script>
+</body>
+</html>

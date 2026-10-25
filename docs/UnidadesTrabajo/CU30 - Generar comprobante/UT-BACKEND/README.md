@@ -11,7 +11,7 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_BACKEND.md](.
 
 ## Decisiones de diseño
 
-1. **El PDF se genera con JasperReports** (una plantilla `.jrxml` con la marca de DriveHub, A5, un solo diseño para compra y reembolso), compilada una vez al arrancar, con la fuente incluida en el proyecto.
+1. **El PDF se genera con JasperReports** (una plantilla `.jrxml` con la marca de DriveHub, A4, diseño «Ruta» aprobado, un solo diseño para compra y reembolso), compilada una vez al arrancar, con la fuente incluida en el proyecto.
 2. **Los datos del comprobante salen del propio pago** (nombres, plan, horas, montos y tipo de cambio copiados al comprar, CU26), no de Escuela ni de Identidad: el aviso de la pasarela no trae sesión de nadie y el comprobante tiene que mostrar lo fijado al pagar.
 3. **Una falla del PDF nunca afecta al pago:** el comprobante queda creado con `url_pdf` nulo (pendiente) y un proceso lo reintenta cada 5 minutos. Mientras tanto la app muestra "en preparación" (409 `ERR_PAG_14`).
 4. **Uno por pago y por tipo** (`UNIQUE (pago_id, tipo)`) y con número propio (`CMP-2026-000123`, secuencia de la base). Un pago reembolsado tiene dos comprobantes.

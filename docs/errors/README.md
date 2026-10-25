@@ -96,6 +96,8 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_PAG_08`](pagos/ERRORES_PAGOS.md#err_pag_08) — El aviso de la pasarela no se pudo verificar (400)
 - [`ERR_PAG_09`](pagos/ERRORES_PAGOS.md#err_pag_09) — No hay horas suficientes en la billetera (409)
 - [`ERR_PAG_12`](pagos/ERRORES_PAGOS.md#err_pag_12) — El estudiante no es alumno de este instructor (404)
+- [`ERR_PAG_13`](pagos/ERRORES_PAGOS.md#err_pag_13) — El comprobante no existe o no es del que lo pide (404)
+- [`ERR_PAG_14`](pagos/ERRORES_PAGOS.md#err_pag_14) — El PDF del comprobante todavía se está preparando (409)
 - [`ERR_PAG_15`](pagos/ERRORES_PAGOS.md#err_pag_15) — Un servicio del que depende la operación no está disponible (503)
 - [`ERR_PAG_16`](pagos/ERRORES_PAGOS.md#err_pag_16) — No hay horas gastadas en esa clase para devolver (404)
 - [`ERR_PAG_17`](pagos/ERRORES_PAGOS.md#err_pag_17) — La compra con esa clave todavía se está procesando (409)

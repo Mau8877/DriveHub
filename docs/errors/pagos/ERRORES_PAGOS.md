@@ -87,15 +87,33 @@ Las constantes viven en `PagosErrorCodes` (`common/exception/`).
   distingue "no existe" de "no es tuyo". También se devuelve si Identidad no conoce a la persona.
 - **Dónde se lanza:** `HorasAlumnosService.detalle()`
 
+## `ERR_PAG_13`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El comprobante no existe o quien lo pide no puede verlo (CU30): no es el estudiante dueño del
+  pago ni el instructor al que ese estudiante está asignado, o es de otra escuela. No se distingue "no existe" de "no es
+  tuyo".
+- **Dónde se lanza:** `ComprobanteDescargaService.obtener()`
+
+## `ERR_PAG_14`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El comprobante ya está registrado pero su PDF todavía se está preparando (CU30). Se reintenta
+  solo cada pocos minutos; el cliente debe volver a pedirlo más tarde.
+- **Dónde se lanza:** `ComprobanteDescargaService.obtener()`
+
 ## `ERR_PAG_15`
 
 - **HTTP:** 503
 - **Excepción:** `ServicioNoDisponibleException`
 - **Significado:** Un servicio del que depende la operación no respondió o respondió algo inesperado: Identidad al
-  pedir el perfil del estudiante que compra un plan (CU26), y Escuela o Identidad al pedir los alumnos de un
-  instructor y sus nombres (CU29). No se cambió nada y se puede reintentar más tarde.
+  pedir el perfil del estudiante que compra un plan (CU26), Escuela o Identidad al pedir los alumnos de un
+  instructor y sus nombres (CU29), y el almacén de archivos al leer el PDF de un comprobante (CU30). No se cambió nada y
+  se puede reintentar más tarde.
 - **Dónde se lanza:** `IdentidadClient.perfilPropio()`, `IdentidadClient.nombresDe()`,
-  `EscuelaClient.alumnosDelInstructor()` y `EscuelaClient.esMiAlumno()`
+  `EscuelaClient.alumnosDelInstructor()`, `EscuelaClient.esMiAlumno()` y `ComprobanteDescargaService.obtener()`
 
 ## `ERR_PAG_16`
 

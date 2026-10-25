@@ -39,9 +39,10 @@ Cuando un pago queda confirmado, el sistema genera un comprobante profesional en
 
 - **Uno por pago confirmado y uno por reembolso ejecutado.** Un pago reembolsado tiene dos: el de la compra y el del reembolso.
 - **Número único** y legible, que el estudiante puede citar ante la escuela.
-- **Contenido del comprobante de pago:** escuela, estudiante, plan, horas, monto cobrado en USD, equivalente en Bs y tipo de cambio usados, fecha y número. **Del reembolso:** además, el monto original, la retención del 5 % y el monto devuelto.
-- **Sin validez fiscal:** el PDF lo indica con una leyenda. No es factura y no lleva NIT.
-- **Diseño profesional:** un solo formato visual para todos, con la marca de DriveHub y los datos de la escuela, en español.
+- **Contenido del comprobante de pago:** escuela, estudiante, plan, horas, monto cobrado en USD, equivalente en Bs y tipo de cambio usados, fecha y número. **Del reembolso:** además, el monto original, la retención del 5 % y el monto devuelto, el número del comprobante de la compra original y el motivo ([CU31](CU31%20-%20Revertir%20pago%20%28compensaci%C3%B3n%29.md)): el que el estudiante eligió, o lo que escribió si eligió "Otro". En una compensación automática no hay retención y el motivo es "La compra no se pudo completar". Los dos llevan además la referencia del pago y el método de pago.
+- **Sin validez fiscal:** el PDF lo indica con una leyenda al pie, a todo el ancho de la hoja, que aclara que no es factura, no lleva NIT y que los datos quedaron fijados al momento de la operación.
+- **Diseño profesional:** un solo formato visual para todos (el modelo "Ruta": hoja A4 con la franja de carretera de DriveHub, el número del comprobante en un recuadro de señal, y azul para el reembolso en lugar de ámbar), con la marca de DriveHub y los datos de la escuela, en español.
+- **Dónde se descarga:** desde el detalle de la compra en el historial ([CU28](CU28%20-%20Consultar%20historial%20de%20pagos.md)) —el de la compra apenas se confirma, y el de reembolso cuando se ejecuta—, y desde el detalle de un alumno ([CU29](CU29%20-%20Consultar%20pagos%20de%20mis%20alumnos.md)).
 - **Quién lo ve:** el estudiante dueño del pago ([CU28](CU28%20-%20Consultar%20historial%20de%20pagos.md)) y el instructor al que ese estudiante está asignado ([CU29](CU29%20-%20Consultar%20pagos%20de%20mis%20alumnos.md)); es el mismo documento para ambos. Nadie más.
 - **Los datos son los fijados al pagar:** un cambio posterior del plan o del tipo de cambio no altera comprobantes ya emitidos.
 - **No bloquea al pago:** una falla del comprobante nunca revierte ni retrasa un pago confirmado.
@@ -62,6 +63,8 @@ Cuando un pago queda confirmado, el sistema genera un comprobante profesional en
 - **CA06:** Dado el estudiante dueño del pago o su instructor asignado, el sistema debe entregarles el mismo comprobante; a cualquier otra persona debe responder 404.
 - **CA07:** Dado un cambio posterior del plan o del tipo de cambio, el sistema no debe alterar los comprobantes ya emitidos.
 - **CA08:** Dado un pago que no está confirmado, el sistema no debe generar su comprobante.
+- **CA09:** Dado un reembolso ejecutado, el comprobante debe mostrar el motivo elegido por el estudiante (o el texto que escribió si eligió "Otro") y el número del comprobante de la compra original.
+- **CA10:** Dada una compensación automática, el comprobante de reembolso debe mostrar el monto completo devuelto, sin retención, y el motivo "La compra no se pudo completar".
 
 ## Fuera de alcance
 

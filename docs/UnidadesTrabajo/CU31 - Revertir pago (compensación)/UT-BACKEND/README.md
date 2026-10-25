@@ -25,6 +25,8 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_BACKEND.md](.
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/v1/pagos/{codigo}/reembolso` | `ESTUDIANTE` | 202 | `PagoDetalleResponse` (estado `REEMBOLSO_EN_PROCESO`) |
 
+Cuerpo: `{ "motivo": "<MotivoReembolso>", "motivoDetalle": "<texto, solo con OTRO>" }`. `MotivoReembolso`: `CAMBIO_DE_PLANES`, `MUDANZA`, `SIN_TIEMPO`, `COMPRA_POR_ERROR`, `PROBLEMAS_ECONOMICOS`, `INSATISFECHO` y `OTRO` (con `OTRO`, `motivoDetalle` de 5 a 200 caracteres). Un motivo faltante, desconocido o un `OTRO` sin explicación responde `400 ERR_SYS_01`.
+
 La compensación automática no tiene endpoint: la dispara el evento `CompensacionRequerida` de CU27. Errores: `404 ERR_PAG_07` pago inexistente o ajeno, `409 ERR_PAG_10` el pago no está confirmado o ya tiene un reembolso, `409 ERR_PAG_11` ya se usó al menos una hora de la compra, `503 ERR_PAG_06` la pasarela no está disponible. Catálogo: [docs/errors](../../../errors/README.md).
 
 ## Orden de ejecución
@@ -53,6 +55,7 @@ La compensación automática no tiene endpoint: la dispara el evento `Compensaci
 | A6, A7, CA08, CA09 | Aviso repetido o sin firma válida | 05 (la firma es de CU27) |
 | A8, CA10 | Horas apartadas no se pueden gastar | 03 (y CU27-BE-03) |
 | A9, CA11 | Solo estudiante | 03, 06 |
+| A11, CA12, CA13 | Motivo obligatorio del reembolso (lista cerrada con «Otro» y su explicación) | 01, 03, 06 |
 
 El botón y los diálogos están en [UT-MOBILE](../UT-MOBILE/README.md) (esa UT depende de la pantalla de CU28).
 
