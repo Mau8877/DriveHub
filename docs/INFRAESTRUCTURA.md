@@ -120,6 +120,17 @@ se hace con `MINIO_PUBLIC_URL` (el que alcanza el navegador o el teléfono), dis
 | `MINIO_URL` | `http://drivehub-minio:9000` | Subir y borrar objetos (red de Docker) |
 | `MINIO_PUBLIC_URL` | `http://localhost:9000` | Firmar las URLs de lectura. Para el emulador o un teléfono real: la IP de la PC en la red (`http://192.168.1.50:9000`) |
 
+**`drivehub-pagos` y los comprobantes (CU30).** Pagos guarda el PDF de cada comprobante
+con la clave `comprobantes/{escuelaCodigo}/{yyyy}/{numero}.pdf` y nunca genera una URL de
+lectura: el PDF solo sale por `GET /api/v1/comprobantes/{codigo}/pdf`, que comprueba quién
+lo pide. Pagos no crea el bucket si falta: avisa (503 `ERR_PAG_15`).
+
+| Variable (Pagos) | Valor en desarrollo | Para qué |
+| --- | --- | --- |
+| `MINIO_ENDPOINT` | `http://drivehub-minio:9000` | Guardar y leer los PDF (red de Docker) |
+| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | las de `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | Credenciales (nunca en el repo) |
+| `MINIO_BUCKET_COMPROBANTES` | `drivehub-pagos` | El bucket privado de los comprobantes |
+
 nginx deja pasar cuerpos de hasta 6 MB hacia `/api/` (`client_max_body_size`) para que
 quepa la foto de 5 MB.
 
