@@ -120,7 +120,11 @@ public class ComprobantePdfGenerador {
         p.put("ETIQUETA", "DriveHub · Reembolso");
         p.put("TITULO", "Comprobante de reembolso");
         dato(p, 1, "Fecha de emisión", fecha(d.fecha()));
-        dato(p, 2, "Compra original", o(d.comprobanteOriginalNumero()) + " · " + fecha(d.fechaCompra(), false));
+        // * Una compra anterior a los comprobantes no tiene número: se muestra solo su fecha, sin un guion suelto
+        String numeroOriginal = d.comprobanteOriginalNumero();
+        String fechaCompra = fecha(d.fechaCompra(), false);
+        dato(p, 2, "Compra original", numeroOriginal == null || numeroOriginal.isBlank() ? fechaCompra
+            : numeroOriginal.trim() + " · " + fechaCompra);
         dato(p, 3, "Referencia del pago", o(d.pagoReferencia()));
         dato(p, 4, "Devolución", "A la tarjeta usada en la compra");
         dato(p, 5, "Motivo del reembolso", o(d.motivo()));

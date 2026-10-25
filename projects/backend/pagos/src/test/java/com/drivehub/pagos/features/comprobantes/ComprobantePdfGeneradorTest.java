@@ -47,6 +47,13 @@ class ComprobantePdfGeneradorTest {
             retenido, devuelto, new BigDecimal("427.49"), motivo);
     }
 
+    private static DatosComprobante reembolsoSinComprobanteOriginal() {
+        return DatosComprobante.deReembolso("RMB-2026-000001", "Autoescuela Cóndor", "María José Peña Núñez",
+            "Plan 10 horas", 10, new BigDecimal("450.00"), new BigDecimal("11.77"), REEMBOLSO, "PAG-0198F0A0",
+            "Tarjeta · procesado por Stripe", null, COMPRA, new BigDecimal("38.23"), 5, new BigDecimal("1.91"),
+            new BigDecimal("36.32"), new BigDecimal("427.49"), "Cambié de planes");
+    }
+
     private static String texto(byte[] pdf) throws IOException {
         try (PDDocument documento = Loader.loadPDF(pdf)) {
             return new PDFTextStripper().getText(documento).replaceAll("\\s+", " ");
@@ -154,5 +161,18 @@ class ComprobantePdfGeneradorTest {
         generador.generar(reembolso(5, "Otro"));
 
         assertThat(generador.plantilla()).isSameAs(primera);
+    }
+
+    @Test
+    void unReembolsoDeUnaCompraSinComprobante_muestraSoloLaFechaDeLaCompra_sinGuionSuelto() throws IOException {
+        String texto = texto(generador.generar(reembolsoSinComprobanteOriginal()));
+
+        assertThat(texto).contains("Compra original").contains("RMB-2026-000001");
+        assertThat(texto).doesNotContain("— ·").doesNotContain("· —");
+    }
+
+    @Test
+    void unReembolsoConComprobanteOriginal_muestraSuNumeroYLaFecha() throws IOException {
+        assertThat(texto(generador.generar(reembolso(5, "Otro")))).contains("CMP-2026-000184 ·");
     }
 }
