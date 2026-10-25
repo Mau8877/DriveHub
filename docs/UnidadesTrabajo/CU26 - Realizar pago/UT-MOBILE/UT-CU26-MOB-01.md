@@ -24,7 +24,7 @@ La app puede abrir una dirección web en una pestaña del navegador y reconoce e
 
 - Dependencia `url_launcher` en `pubspec.yaml` (versión fijada).
 - Android (`android/app/src/main/AndroidManifest.xml`): un `intent-filter` para el esquema `drivehub` con host `app`, y la declaración `queries` para abrir enlaces `https`. iOS (`ios/Runner/Info.plist`): el esquema `drivehub` en `CFBundleURLTypes` y `LSApplicationQueriesSchemes` con `https`.
-- `core/routing/app_router.dart`: el enlace `drivehub://app/payments/return` llega a la ruta `/payments/return`, que **redirige** a `/payments/result` (la pantalla de la UT 04). Sin una compra en curso, redirige a `/inicio`. Es la misma ruta de [UT-CU26-BE-07](../UT-BACKEND/UT-CU26-BE-07.md): el enlace de la página de retorno del backend.
+- La ruta `/payments/return` (a la que llega ese enlace) se declara en la UT 05 junto con las demás rutas de la compra: necesita la pantalla del resultado, que es posterior a esta UT. El enlace es el de la página de retorno del backend ([UT-CU26-BE-07](../UT-BACKEND/UT-CU26-BE-07.md), variable `PAGOS_ENLACE_APP`).
 - `core/network/abrir_pagina_de_pago.dart`: `Future<bool> abrirPaginaDePago(String url)` abre la dirección con `launchUrl(..., mode: LaunchMode.inAppBrowserView)` (pestaña del navegador dentro de la app); solo acepta `https` (cualquier otra dirección se rechaza y devuelve `false`) y atrapa los errores de la plataforma.
 - Test del router: el enlace con y sin compra en curso redirige donde corresponde; test de `abrirPaginaDePago` con `UrlLauncherPlatform` falso: rechaza `http`, `javascript:` y vacío; acepta `https`.
 

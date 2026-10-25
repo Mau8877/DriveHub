@@ -69,7 +69,7 @@ El Administrador de escuela tiene en su menú el grupo "Gestionar pagos" y, dent
 - **Horas:** número entero entre 1 y 500. No hay horas fraccionarias.
 - **Costo en bolivianos:** mayor a 0, con hasta dos decimales y hasta 99 999 999,99. Es el único precio que se guarda.
 - **Costo en dólares:** es solo una referencia. Se calcula al responder, como `costo en Bs ÷ tipo de cambio`, redondeado a dos decimales (hacia arriba desde el medio centavo). **No se guarda** en la base ni se escribe en el formulario.
-- **Tipo de cambio:** es una configuración del servicio de Pagos (por defecto 6,96 Bs por dólar, el cambio oficial). No hay un servicio externo ni una pantalla para cambiarlo: cambiarlo es cambiar esa configuración, y el costo en dólares de todos los planes se recalcula solo.
+- **Tipo de cambio:** es una configuración del servicio de Pagos (hoy 11,77 Bs por dólar, definido en la variable de entorno `TIPO_CAMBIO_BS_USD`). No hay un servicio externo ni una pantalla para cambiarlo: cambiarlo es cambiar esa configuración, y el costo en dólares de todos los planes se recalcula solo.
 - **Cambiar un plan no afecta lo ya contratado:** cada contratación de un estudiante guarda su propio monto, así que editar el costo o las horas de un plan, o desactivarlo, no cambia lo que ya contrataron los estudiantes.
 - **Desactivar no es borrado:** el plan conserva su historia y se ve en el listado con estado desactivado. Reactivarlo lo deja activo con sus datos.
 - **El listado es paginado** ([ENDPOINTS_BACKEND.md](../../.claude/rules/backend/ENDPOINTS_BACKEND.md)). Mensajes en español, sin detalles técnicos.

@@ -25,7 +25,7 @@ Un proceso periódico marca como fallidos los pagos pendientes cuya página de p
 - Un bean `java.time.Clock` en `config/` (si no existe) para poder fijar la hora en los tests, y `@EnableScheduling` en la aplicación.
 - `PagoService.vencerPendientes(Instant ahora)`: busca por páginas de 100 los pagos `PENDIENTE` con `expira_en` anterior a `ahora - margenVencimientoMinutos` (por defecto 10, para dar tiempo a un aviso tardío de la pasarela) y los pasa a `FALLIDO`, cada uno en su transacción; devuelve cuántos cambió. Un pago que ya no está `PENDIENTE` al leerlo (llegó el aviso) se salta.
 - `features/pagos/service/PagosVencidosJob` con `@Scheduled(fixedDelayString = "${app.pagos.vencimiento-cada-segundos:300}")` que llama al método; un error se registra `ERROR` y no detiene el proceso. Registra `INFO` solo cuando cambió algo (`module = pagos`, `cantidad`).
-- `PagosProperties`: `vencimientoCadaSegundos` (por defecto 300) y `margenVencimientoMinutos` (por defecto 10).
+- `PagosProperties.Vencimiento` (prefijo `app.pagos.vencimiento`): `cadaSegundos` (por defecto 300, al menos 10) y `margenMinutos` (por defecto 10); variables `PAGOS_VENCIMIENTO_CADA_SEGUNDOS` y `PAGOS_VENCIMIENTO_MARGEN_MINUTOS`. El proceso arranca después de esa espera, no al levantar el servicio.
 - Tests: con `Clock` fijo, un pago vencido pasa a `FALLIDO`, uno vigente no, uno ya `CONFIRMADO` no se toca, el margen se respeta y el proceso sigue si un pago falla al guardarse; `PagoRepositoryTest` de la consulta de vencidos (Testcontainers).
 
 Archivos esperados (crear/tocar):

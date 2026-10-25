@@ -24,10 +24,10 @@ Pagos tiene su catálogo de códigos de error, entrega la escuela del token a un
 
 - `common/exception/PagosErrorCodes`: `PLAN_NOMBRE_EN_USO = "ERR_PAG_01"`, `PLAN_NO_ENCONTRADO = "ERR_PAG_02"`, `PLAN_YA_EN_ESE_ESTADO = "ERR_PAG_03"`, `TOKEN_SIN_ESCUELA = "ERR_PAG_04"`, y los transversales `VALIDACION = "ERR_SYS_01"` y `SESION_INVALIDA = "ERR_SYS_04"` (sin JWT el resolver responde 401 con este). Constructor privado, comentario de por qué cada número.
 - `config/CurrentEscuelaId` (anotación de parámetro) y `config/CurrentUserArgumentResolvers` (entrega el claim `escuela` del `Jwt` como `UUID`; `null` si el token no lo trae; un valor que no sea UUID también da `null`), registrado en `config/WebMvcConfig`. Es la misma pieza que `academico`, copiada.
-- `config/PagosProperties` (`@ConfigurationProperties(prefix = "app.pagos")`, `record`): `BigDecimal tipoCambioBsUsd`, con valor por defecto `6.96` y validación `> 0` (`@Validated` + `@Positive`): un valor cero, negativo o no numérico impide que el servicio arranque. `@EnableConfigurationProperties` en una clase de configuración.
-- `application.properties`: `app.pagos.tipo-cambio-bs-usd=${TIPO_CAMBIO_BS_USD:6.96}` con un comentario (cambio oficial; para cambiarlo basta la variable de entorno).
+- `config/PagosProperties` (`@ConfigurationProperties(prefix = "app.pagos")`, `record`): `BigDecimal tipoCambioBsUsd`, sin valor por defecto (sale solo de la variable) y con validación `> 0` (`@Validated` + `@Positive`): un valor cero, negativo o no numérico impide que el servicio arranque. `@EnableConfigurationProperties` en una clase de configuración.
+- `application.properties`: `app.pagos.tipo-cambio-bs-usd=${TIPO_CAMBIO_BS_USD}` con un comentario (sin valor por defecto; para cambiarlo basta la variable de entorno, hoy 11,77 en `.env.example`).
 - `GlobalExceptionHandler`: 400 `ERR_SYS_01` para `HttpMessageNotReadableException` (cuerpo ilegible, número con formato inválido o valor desconocido) y `MethodArgumentTypeMismatchException` (código que no es UUID, filtro con valor inválido), con un mensaje en español sin detalles técnicos.
-- Tests: `CurrentUserArgumentResolversTest` (claim presente, ausente y no UUID), `PagosPropertiesTest` (por defecto 6.96, valor propio, 0 y negativo fallan) y casos nuevos en el test del handler o en un `@WebMvcTest` mínimo: cuerpo JSON roto y UUID inválido responden 400 `ERR_SYS_01`.
+- Tests: `CurrentUserArgumentResolversTest` (claim presente, ausente y no UUID), `PagosPropertiesTest` (sin la variable no es válido, valor propio, 0 y negativo fallan) y casos nuevos en el test del handler o en un `@WebMvcTest` mínimo: cuerpo JSON roto y UUID inválido responden 400 `ERR_SYS_01`.
 
 Archivos esperados (crear/tocar):
 
@@ -49,4 +49,4 @@ Un parámetro `@CurrentEscuelaId UUID` de un controller recibe la escuela del to
 ## Validación
 
 1. `./mvnw test` en `pagos` y `./mvnw checkstyle:check` sin errores.
-2. Arrancar el servicio con `TIPO_CAMBIO_BS_USD=0`: falla al iniciar con un mensaje claro; sin la variable arranca con 6.96.
+2. Arrancar el servicio con `TIPO_CAMBIO_BS_USD=0`: falla al iniciar con un mensaje claro; sin la variable tampoco arranca.

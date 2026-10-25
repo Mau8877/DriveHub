@@ -38,7 +38,7 @@ Exigen `INSTRUCTOR` (`401` sin sesión, `403` sin el rol).
 |--------|--------|------------|
 | [UT-CU29-BE-01](./UT-CU29-BE-01.md) | Identidad: consultar estudiantes por código (nombres) | — |
 | [UT-CU29-BE-02](./UT-CU29-BE-02.md) | Escuela: alumnos asignados a un instructor | — |
-| [UT-CU29-BE-03](./UT-CU29-BE-03.md) | Pagos: clientes hacia Escuela e Identidad | 01, 02 |
+| [UT-CU29-BE-03](./UT-CU29-BE-03.md) | Pagos: cliente hacia Escuela y consultas de nombres a Identidad | 01, 02 |
 | [UT-CU29-BE-04](./UT-CU29-BE-04.md) | Consulta de horas de los alumnos de un instructor | 03 |
 | [UT-CU29-BE-05](./UT-CU29-BE-05.md) | Controller de horas de los alumnos | 04 |
 | [UT-CU29-BE-06](./UT-CU29-BE-06.md) | Gateway: ruta de horas de los alumnos | 05 |

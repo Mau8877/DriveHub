@@ -12,14 +12,15 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_BACKEND.md](.
 ## Decisiones de diseño
 
 1. **Una compra, un pago, una clave.** El cliente manda `Idempotency-Key` en cada intento de compra; esa clave es la del pago (`idempotency_key`, única) y también la que se manda a Stripe. Reintentar devuelve el mismo pago y la misma página de pago.
-2. **Cobro en USD, monto fijado al crear.** El pago guarda `monto` (USD), `monto_bs`, `tipo_cambio`, `horas` y `plan_nombre` tal como estaban; el plan o el tipo de cambio pueden cambiar después sin tocar pagos ya creados. Se reutiliza `ConversionMoneda` de CU25.
-3. **Los nombres del estudiante y de la escuela se guardan en el pago** (`estudiante_nombre`, `escuela_nombre`) con el token del propio estudiante en el momento de la compra. Así el comprobante (CU30) se genera cuando llega el aviso de la pasarela, que no trae sesión de nadie, y muestra los datos fijados al pagar.
-4. **Nunca se llama a la pasarela con una transacción abierta:** se guarda el pago, se llama a Stripe, y recién después se guarda la sesión. Si Stripe falla, el pago queda `FALLIDO`.
-5. **Vencimiento por proceso periódico** (más un margen) en vez de depender solo del aviso `checkout.session.expired`: un aviso perdido no deja pagos pendientes para siempre. Un cobro que llegue tarde lo resuelve CU27 (A8) y CU31.
-6. **La página de retorno es del backend** (HTML fijo, pública) porque Stripe exige URLs `https` de retorno; la app **no depende** del enlace al esquema `drivehub://`: al volver de la página de pago consulta el estado.
-7. **`inscripcion_plan` y `cuota` se eliminan** (están vacías): el plan se compra completo, sin cuotas. El Model `Pago` ya no tiene `cuota`.
-8. **Excepción 503 nueva** (`ServicioNoDisponibleException`) para la pasarela y para los servicios de los que depende Pagos; se documenta en las rules antes de usarla.
-9. **El orden de implementación es CU26 → CU31.** Una UT puede depender de UT de un CU de número menor (que ya existe cuando ella empieza); nunca de uno mayor.
+2. **Nada de lo que cambia con el entorno está escrito en el código:** el tipo de cambio (`TIPO_CAMBIO_BS_USD`), la dirección de retorno (`PAGOS_URL_RETORNO`) y el enlace a la app (`PAGOS_ENLACE_APP`) salen solo de variables de entorno, son obligatorias y sin valor por defecto; `docker-compose.yml` exige que estén definidas en `.env`.
+3. **Cobro en USD, monto fijado al crear.** El pago guarda `monto` (USD), `monto_bs`, `tipo_cambio`, `horas` y `plan_nombre` tal como estaban; el plan o el tipo de cambio pueden cambiar después sin tocar pagos ya creados. Se reutiliza `ConversionMoneda` de CU25.
+4. **Los nombres del estudiante y de la escuela se guardan en el pago** (`estudiante_nombre`, `escuela_nombre`) con el token del propio estudiante en el momento de la compra. Así el comprobante (CU30) se genera cuando llega el aviso de la pasarela, que no trae sesión de nadie, y muestra los datos fijados al pagar.
+5. **Nunca se llama a la pasarela con una transacción abierta:** se guarda el pago, se llama a Stripe, y recién después se guarda la sesión. Si Stripe falla, el pago queda `FALLIDO`.
+6. **Vencimiento por proceso periódico** (más un margen) en vez de depender solo del aviso `checkout.session.expired`: un aviso perdido no deja pagos pendientes para siempre. Un cobro que llegue tarde lo resuelve CU27 (A8) y CU31.
+7. **La página de retorno es del backend** (HTML fijo, pública) porque Stripe exige URLs `https` de retorno; la app **no depende** del enlace a la app: al volver de la página de pago consulta el estado.
+8. **`inscripcion_plan` y `cuota` se eliminan** (están vacías): el plan se compra completo, sin cuotas. El Model `Pago` ya no tiene `cuota`.
+9. **Excepción 503 nueva** (`ServicioNoDisponibleException`) para la pasarela y para los servicios de los que depende Pagos; se documenta en las rules antes de usarla.
+10. **El orden de implementación es CU26 → CU31.** Una UT puede depender de UT de un CU de número menor (que ya existe cuando ella empieza); nunca de uno mayor.
 
 ## Contrato de datos / recurso HTTP
 
@@ -34,7 +35,7 @@ Todos exigen `ESTUDIANTE` (excepto la página de retorno): `401` sin sesión, `4
 
 `PlanDisponibleResponse`: `codigo`, `nombre`, `horas`, `costoBs`, `costoUsd`. `PagoIniciadoResponse`: `codigo`, `estado`, `urlPago`, `expiraEn`, `planNombre`, `horas`, `montoUsd`, `montoBs`. `EstadoPagoResponse`: `codigo`, `estado` (`PENDIENTE`, `CONFIRMADO`, `FALLIDO`, `REVERTIDO`). El id interno y `escuelaCodigo` nunca salen.
 
-Errores de negocio: `404 ERR_PAG_05` plan no disponible, `503 ERR_PAG_06` pasarela no disponible, `404 ERR_PAG_07` pago inexistente o ajeno, `503 ERR_PAG_15` Identidad o Escuela no disponibles, `409 ERR_PAG_17` compra en curso, `409 ERR_PAG_18` clave de idempotencia usada para otra compra, `400 ERR_SYS_01` datos inválidos. Catálogo: [docs/errors](../../../errors/README.md).
+Errores de negocio: `404 ERR_PAG_05` plan no disponible, `503 ERR_PAG_06` pasarela no disponible, `404 ERR_PAG_07` pago inexistente o ajeno, `503 ERR_PAG_15` Identidad no disponible, `409 ERR_PAG_17` compra en curso, `409 ERR_PAG_18` clave de idempotencia usada para otra compra, `400 ERR_SYS_01` datos inválidos. Catálogo: [docs/errors](../../../errors/README.md).
 
 ## Orden de ejecución
 
@@ -42,7 +43,7 @@ Errores de negocio: `404 ERR_PAG_05` plan no disponible, `503 ERR_PAG_06` pasare
 |--------|--------|------------|
 | [UT-CU26-BE-01](./UT-CU26-BE-01.md) | Migración de la compra de horas y modelos de `pago` | — |
 | [UT-CU26-BE-02](./UT-CU26-BE-02.md) | Pasarela de pago: sesión de cobro y excepción 503 | — |
-| [UT-CU26-BE-03](./UT-CU26-BE-03.md) | Clientes hacia Identidad y Escuela | 02 |
+| [UT-CU26-BE-03](./UT-CU26-BE-03.md) | Cliente hacia Identidad (nombres que se guardan al comprar) | 02 |
 | [UT-CU26-BE-04](./UT-CU26-BE-04.md) | Planes disponibles para el estudiante | — |
 | [UT-CU26-BE-05](./UT-CU26-BE-05.md) | Iniciar la compra: pago pendiente y sesión de cobro | 01, 02, 03, 04 |
 | [UT-CU26-BE-06](./UT-CU26-BE-06.md) | Vencimiento de pagos pendientes | 05 |

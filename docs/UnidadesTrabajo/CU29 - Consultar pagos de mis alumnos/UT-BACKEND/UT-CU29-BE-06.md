@@ -23,7 +23,7 @@ El gateway enruta `/api/v1/horas-alumnos/**` a `pagos` y el mapa de servicios lo
 ## Alcance
 
 - `application.properties` del gateway: se suma `/api/v1/horas-alumnos/**` al predicado `Path=` de la ruta `pagos`.
-- [MICROSERVICIOS.md](../../../../.claude/rules/MICROSERVICIOS.md): la fila de recursos de `pagos` suma `horas-alumnos`; la tabla de llamadas REST entre servicios suma **Pagos → Escuela** (alumnos asignados del instructor, reenvía el Bearer), **Pagos → Identidad** (nombres de estudiantes, y el perfil del estudiante al comprar, CU26) y **Pagos → Escuela** (nombre de la escuela, CU26).
+- [MICROSERVICIOS.md](../../../../.claude/rules/MICROSERVICIOS.md): la fila de recursos de `pagos` suma `horas-alumnos`; la tabla de llamadas REST entre servicios suma **Pagos → Escuela** (alumnos asignados del instructor, reenvía el Bearer) y amplía la fila de **Pagos → Identidad** (que CU26 ya registró) con la consulta de nombres de estudiantes.
 - `GatewayRoutingTest`: la ruta nueva llega al servicio falso.
 
 Archivos esperados (crear/tocar):

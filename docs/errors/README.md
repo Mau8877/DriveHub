@@ -89,6 +89,12 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_PAG_02`](pagos/ERRORES_PAGOS.md#err_pag_02) — El plan no existe en la escuela (404)
 - [`ERR_PAG_03`](pagos/ERRORES_PAGOS.md#err_pag_03) — El plan ya estaba en ese estado (409)
 - [`ERR_PAG_04`](pagos/ERRORES_PAGOS.md#err_pag_04) — El token no trae la escuela de la cuenta (403)
+- [`ERR_PAG_05`](pagos/ERRORES_PAGOS.md#err_pag_05) — El plan no está disponible para comprar (404)
+- [`ERR_PAG_06`](pagos/ERRORES_PAGOS.md#err_pag_06) — La pasarela de pago no está disponible (503)
+- [`ERR_PAG_07`](pagos/ERRORES_PAGOS.md#err_pag_07) — El pago no existe o es de otra persona (404)
+- [`ERR_PAG_15`](pagos/ERRORES_PAGOS.md#err_pag_15) — Un servicio del que depende la operación no está disponible (503)
+- [`ERR_PAG_17`](pagos/ERRORES_PAGOS.md#err_pag_17) — La compra con esa clave todavía se está procesando (409)
+- [`ERR_PAG_18`](pagos/ERRORES_PAGOS.md#err_pag_18) — La clave de compra ya se usó para otra compra (409)
 
 ### Académico (`ACA`)
 

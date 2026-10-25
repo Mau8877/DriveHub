@@ -1,9 +1,9 @@
-# UT-CU29-BE-03 — Pagos: clientes hacia Escuela e Identidad para alumnos y nombres
+# UT-CU29-BE-03 — Pagos: cliente hacia Escuela y consultas de nombres a Identidad
 
 | Campo | Valor |
 |-------|-------|
 | **Código** | `UT-CU29-BE-03` |
-| **Nombre** | Pagos: clientes hacia Escuela e Identidad para alumnos y nombres |
+| **Nombre** | Pagos: cliente hacia Escuela y consultas de nombres a Identidad |
 | **Caso de uso** | CU29-BE |
 | **Microservicio** | `pagos` |
 | **Depende de** | UT-CU29-BE-01, UT-CU29-BE-02 |
@@ -18,7 +18,7 @@ Pagos tiene que saber quiénes son los alumnos del instructor y cómo se llaman 
 
 ## Objetivo
 
-`EscuelaClient` e `IdentidadClient` (creados en CU26) suman las consultas de alumnos asignados y de nombres.
+Se crea `EscuelaClient` (alumnos asignados) y `IdentidadClient` (creado en CU26) suma la consulta de nombres.
 
 ## Alcance
 

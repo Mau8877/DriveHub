@@ -37,3 +37,49 @@ Las constantes viven en `PagosErrorCodes` (`common/exception/`).
 - **Significado:** El token de acceso no trae la escuela de la cuenta (claim `escuela`), así que no hay escuela
   sobre la cual operar (CU25). Un Administrador de escuela siempre la trae.
 - **Dónde se lanza:** `PlanPagoController.escuelaDe()`
+
+## `ERR_PAG_05`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El plan que el estudiante quiere comprar no existe, está desactivado o es de otra escuela (CU26). Una de otra escuela y un código inexistente responden igual: no se distinguen. No se creó ningún pago.
+- **Dónde se lanza:** `PagoService.iniciar()`
+
+## `ERR_PAG_06`
+
+- **HTTP:** 503
+- **Excepción:** `ServicioNoDisponibleException`
+- **Significado:** La pasarela de pago (Stripe) no pudo crear la sesión de cobro (CU26): no responde, rechazó el
+  pedido, respondió algo incompleto, o el servicio no tiene la clave configurada. No se cobró nada y se puede
+  reintentar más tarde.
+- **Dónde se lanza:** `StripePasarela.crearSesionCobro()`
+
+## `ERR_PAG_07`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El pago pedido no existe o es de otra persona (CU26 y CU28). Un pago ajeno y un código inexistente responden igual: no se distinguen.
+- **Dónde se lanza:** `PagoService.estado()` y `ConsultaPagosService.detalle()`
+
+## `ERR_PAG_15`
+
+- **HTTP:** 503
+- **Excepción:** `ServicioNoDisponibleException`
+- **Significado:** Un servicio del que depende la operación no respondió o respondió algo inesperado: hoy,
+  Identidad al pedir el perfil del estudiante que compra un plan (CU26). No se creó ningún pago y se puede
+  reintentar más tarde.
+- **Dónde se lanza:** `IdentidadClient.perfilPropio()`
+
+## `ERR_PAG_17`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se está procesando una compra con esa misma clave y su sesión de cobro todavía no quedó guardada (CU26): el estudiante debe esperar unos segundos y reintentar con la misma clave.
+- **Dónde se lanza:** `PagoService.crearSesion()`
+
+## `ERR_PAG_18`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La clave de compra (`Idempotency-Key`) ya se usó para otra compra: de otro estudiante, de otra escuela o de otro plan (CU26). Cada intento de compra lleva su propia clave.
+- **Dónde se lanza:** `PagoService.repetir()`

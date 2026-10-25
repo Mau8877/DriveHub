@@ -462,7 +462,7 @@ erDiagram
 
 ### `plan_pago` (CU25)
 
-Plan de horas que ofrece una escuela: un nombre, una cantidad de horas y un costo en bolivianos. Es de una escuela (multitenant): extiende `BaseEscuelaModel`. El costo en dólares **no se guarda**: lo calcula el servicio con el tipo de cambio configurado (`app.pagos.tipo-cambio-bs-usd`, 6,96 por defecto). Se desactiva (`activo = false`), no se borra.
+Plan de horas que ofrece una escuela: un nombre, una cantidad de horas y un costo en bolivianos. Es de una escuela (multitenant): extiende `BaseEscuelaModel`. El costo en dólares **no se guarda**: lo calcula el servicio con el tipo de cambio configurado (variable de entorno `TIPO_CAMBIO_BS_USD`, sin valor por defecto en el código; hoy 11,77). Se desactiva (`activo = false`), no se borra.
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
@@ -501,7 +501,7 @@ Una compra de un plan de horas. Es de una escuela (multitenant): extiende `BaseE
 | `expira_en` | `TIMESTAMPTZ` | Vigencia de la página de pago; vencida, el pago pasa a `FALLIDO` |
 | `confirmado_en` | `TIMESTAMPTZ` | |
 
-Se eliminaron `cuota_id` y el concepto `CUOTA` con las cuotas.
+Se eliminaron `cuota_id` y el concepto `CUOTA` con las cuotas. Índices: `idx_pago_escuela_codigo`, `idx_pago_plan_pago_id` y `idx_pago_estado_expira_en (estado, expira_en)` (para el proceso que vence los pendientes). Migración `V20261025190000__compra_de_horas_pago.sql`.
 
 ### `transaccion_pasarela` (CU26, CU27, CU31)
 
