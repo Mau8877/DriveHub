@@ -50,7 +50,7 @@ const CAMPOS: Campo[] = [
 ]
 
 /**
- * Gestionar planes de horas (CU25a, Administrador de escuela) como esquema de <dh-gestion>.
+ * Gestionar planes de horas (CU25, Administrador de escuela) como esquema de <dh-gestion>.
  *
  * * El recurso `planes-pago` lo atiende Pagos; el cliente solo conoce el gateway.
  * * El costo en dólares (`costoUsd`) es solo una referencia que calcula el backend con el tipo de cambio

@@ -5,7 +5,7 @@ import '@drivehub/gestion'
 import { ESQUEMA_PLANES } from '../schemas/planes.esquema'
 
 /**
- * Gestionar planes de horas (CU25a, Administrador de escuela). Es solo el anfitrión de <dh-gestion>: el
+ * Gestionar planes de horas (CU25, Administrador de escuela). Es solo el anfitrión de <dh-gestion>: el
  * listado y el formulario los dibuja el Web Component a partir del esquema. Ver GESTION_FRONTEND.md.
  */
 @Component({
