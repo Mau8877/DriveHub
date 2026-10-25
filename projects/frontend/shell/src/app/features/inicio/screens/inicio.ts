@@ -5,6 +5,14 @@ import '@drivehub/ui'
 import { SesionService } from '../../../core/sesion/sesion.service'
 import { navItemsDeRoles } from '../../../layout/nav-items'
 
+/** Una tarjeta del panel: una pantalla del menú. */
+interface Modulo {
+  ruta?: string
+  etiqueta: string
+  descripcion?: string
+  icono?: string
+}
+
 /**
  * Pantalla de bienvenida del panel: un acceso a cada módulo que ve el rol de la persona.
  */
@@ -44,8 +52,20 @@ import { navItemsDeRoles } from '../../../layout/nav-items'
 export class Inicio {
   private readonly sesion = inject(SesionService)
 
-  // * "Inicio" es esta misma pantalla: no se ofrece como módulo
-  protected readonly modulos = computed(() =>
-    navItemsDeRoles(this.sesion.usuario()?.roles ?? []).filter((item) => item.ruta !== '/')
+  // * Una tarjeta por pantalla del menú. "Inicio" es esta misma pantalla, así que no se ofrece, y un
+  // * grupo no es una pantalla: se ofrecen sus opciones, con el nombre del grupo como descripción.
+  protected readonly modulos = computed<Modulo[]>(() =>
+    navItemsDeRoles(this.sesion.usuario()?.roles ?? [])
+      .flatMap((item): Modulo[] =>
+        item.hijos
+          ? item.hijos.map((hijo) => ({
+              ruta: hijo.ruta,
+              etiqueta: hijo.etiqueta,
+              descripcion: item.etiqueta,
+              icono: hijo.icono ?? item.icono,
+            }))
+          : [item]
+      )
+      .filter((modulo) => modulo.ruta !== '/')
   )
 }

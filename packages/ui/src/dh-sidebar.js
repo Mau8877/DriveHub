@@ -8,7 +8,11 @@ import { icono } from './iconos.js'
  * avisa con eventos qué eligió la persona. Cada micro-frontend (o el shell) decide qué items hay.
  *
  * Propiedades
- *   items         ItemNavegacion[]  { ruta, etiqueta, descripcion?, icono?, grupo?, insignia? }
+ *   items         ItemNavegacion[]  { ruta, etiqueta, descripcion?, icono?, grupo?, insignia?, hijos? }
+ *                 Un item con `hijos` es un botón padre que despliega sus opciones (sin `ruta` propia):
+ *                 se abre solo si una de ellas es la ruta actual, y varios pueden estar abiertos a la vez.
+ *                 Cada opción puede llevar su `icono`.
+ *                 Con el menú contraído (solo iconos), pulsar un padre expande el menú y abre ese grupo
  *   activo        ruta actual; un item está activo si es esa ruta o una subruta suya, salvo que otro
  *                 item coincida con una ruta más específica (gana el más específico)
  *   marca         { prefijo, resaltado, ruta }  (por defecto "DriveHub")
@@ -37,6 +41,7 @@ export class DhSidebar extends LitElement {
     colapsable: { type: Boolean },
     abierto: { type: Boolean, reflect: true },
     navegacionNativa: { type: Boolean, attribute: 'navegacion-nativa' },
+    _abiertos: { state: true },
   }
 
   static styles = [
@@ -174,6 +179,69 @@ export class DhSidebar extends LitElement {
         background: var(--ambar-vial);
         color: var(--gris-asfalto);
       }
+      /* Grupos desplegables: un botón padre y sus opciones */
+      button.item {
+        width: 100%;
+        text-align: left;
+        font: inherit;
+        background: none;
+        border: 0;
+        cursor: pointer;
+      }
+      .padre.con-activo > .item .icono {
+        color: var(--sidebar-primary);
+        opacity: 1;
+      }
+      .flecha {
+        display: grid;
+        place-items: center;
+        margin-left: auto;
+        flex: none;
+        opacity: 0.6;
+        transition: transform 0.3s var(--ease, ease);
+      }
+      .padre.abierto > .item .flecha {
+        transform: rotate(180deg);
+      }
+      .hijos {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.3s var(--ease, ease);
+      }
+      .padre.abierto > .hijos {
+        grid-template-rows: 1fr;
+      }
+      .hijos-interior {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        min-height: 0;
+        overflow: hidden;
+        margin-left: 1.45rem;
+        padding-left: 0.5rem;
+        border-left: 1px solid var(--sidebar-border);
+      }
+      .padre.abierto > .hijos > .hijos-interior {
+        margin-block: 0.15rem 0.3rem;
+      }
+      .item.hijo {
+        gap: 0.6rem;
+        padding: 0.5rem 0.7rem;
+        font-size: 0.84rem;
+      }
+      .item.hijo .icono {
+        width: 1.25rem;
+      }
+      .item.hijo:hover {
+        transform: translateX(2px);
+      }
+      .item.hijo.activo::before {
+        display: none;
+      }
+      .item.hijo.activo {
+        font-weight: 650;
+        background: linear-gradient(90deg, color-mix(in srgb, var(--ambar-vial) 22%, transparent), transparent 90%);
+      }
       .pie {
         margin-top: auto;
         display: flex;
@@ -210,6 +278,8 @@ export class DhSidebar extends LitElement {
         :host([colapsado]) .marca-nombre,
         :host([colapsado]) .grupo,
         :host([colapsado]) .insignia,
+        :host([colapsado]) .flecha,
+        :host([colapsado]) .hijos,
         :host([colapsado]) .contraer span {
           display: none;
         }
@@ -238,6 +308,22 @@ export class DhSidebar extends LitElement {
     this.colapsable = true
     this.abierto = false
     this.navegacionNativa = false
+    this._abiertos = new Set()
+  }
+
+  willUpdate(cambios) {
+    // * Un grupo con la ruta actual adentro se abre solo; los demás quedan como estaban
+    if (cambios.has('activo') || cambios.has('items')) {
+      const padres = (this.items ?? []).filter((i) => i.hijos?.some((h) => this._esActivo(h)))
+      if (padres.some((p) => !this._abiertos.has(p.etiqueta))) {
+        this._abiertos = new Set([...this._abiertos, ...padres.map((p) => p.etiqueta)])
+      }
+    }
+  }
+
+  /** Todos los items con ruta, también los hijos de un grupo (para comparar cuál es el más específico). */
+  _planos() {
+    return (this.items ?? []).flatMap((item) => (item.hijos?.length ? item.hijos : [item]))
   }
 
   /**
@@ -251,7 +337,7 @@ export class DhSidebar extends LitElement {
     const ruta = String(item.ruta ?? '').split(/[?#]/)[0]
     if (!ruta) return false
     if (!this._coincide(actual, ruta)) return false
-    return !(this.items ?? []).some((otro) => {
+    return !this._planos().some((otro) => {
       const otraRuta = String(otro.ruta ?? '').split(/[?#]/)[0]
       return otraRuta.length > ruta.length && this._coincide(actual, otraRuta)
     })
@@ -275,6 +361,21 @@ export class DhSidebar extends LitElement {
     evento.preventDefault()
     this._emitir('dh-navegar', { ruta: item.ruta, item })
     this._emitir('dh-cerrar')
+  }
+
+  _alternarPadre(item) {
+    const abiertos = new Set(this._abiertos)
+    // * Con el menú contraído no hay dónde desplegar: se expande el menú y se abre ese grupo
+    if (this.colapsado) {
+      abiertos.add(item.etiqueta)
+      this.colapsado = false
+      this._emitir('dh-colapsar', { colapsado: false })
+    } else if (abiertos.has(item.etiqueta)) {
+      abiertos.delete(item.etiqueta)
+    } else {
+      abiertos.add(item.etiqueta)
+    }
+    this._abiertos = abiertos
   }
 
   _alternarColapso() {
@@ -321,17 +422,45 @@ export class DhSidebar extends LitElement {
     `
   }
 
-  _renderItem(item) {
+  _renderPadre(item) {
+    const abierto = this._abiertos.has(item.etiqueta)
+    const conActivo = item.hijos.some((h) => this._esActivo(h))
+    const id = `grupo-${String(item.etiqueta).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+    return html`<div class="padre ${abierto ? 'abierto' : ''} ${conActivo ? 'con-activo' : ''}">
+      <button
+        type="button"
+        class="item"
+        part=${conActivo ? 'item item-padre item-activo' : 'item item-padre'}
+        title=${item.etiqueta}
+        aria-expanded=${String(abierto)}
+        aria-controls=${id}
+        @click=${() => this._alternarPadre(item)}
+      >
+        <span class="icono">${icono(item.icono, 20)}</span>
+        <span class="texto">
+          <strong>${item.etiqueta}</strong>
+          ${item.descripcion ? html`<small>${item.descripcion}</small>` : nothing}
+        </span>
+        <span class="flecha">${icono('chevron-down', 16)}</span>
+      </button>
+      <div class="hijos" id=${id} role="group" aria-label=${item.etiqueta} ?inert=${!abierto}>
+        <div class="hijos-interior">${item.hijos.map((hijo) => this._renderItem(hijo, true))}</div>
+      </div>
+    </div>`
+  }
+
+  _renderItem(item, esHijo = false) {
+    if (item.hijos?.length) return this._renderPadre(item)
     const activo = this._esActivo(item)
     return html`<a
-      class="item ${activo ? 'activo' : ''}"
+      class="item ${esHijo ? 'hijo' : ''} ${activo ? 'activo' : ''}"
       part=${activo ? 'item item-activo' : 'item'}
       href=${item.ruta}
       title=${item.etiqueta}
       aria-current=${activo ? 'page' : nothing}
       @click=${(e) => this._ir(e, item)}
     >
-      <span class="icono">${icono(item.icono, 20)}</span>
+      ${esHijo && !item.icono ? nothing : html`<span class="icono">${icono(item.icono, esHijo ? 17 : 20)}</span>`}
       <span class="texto">
         <strong>${item.etiqueta}</strong>
         ${item.descripcion ? html`<small>${item.descripcion}</small>` : nothing}
