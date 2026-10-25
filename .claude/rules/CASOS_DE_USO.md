@@ -30,6 +30,13 @@ Super admin crea escuelas con su Administrador, edita su nombre y las
 desactiva o reactiva). La gestión de roles y permisos quedó sin CU asignado.
 El archivo, las UT y los comentarios usan solo el significado nuevo.
 
+**Excepción vigente: CU25.** El PDF lo llama "Gestionar plan de pagos y cuotas": un solo CU para el plan,
+su contratación por el estudiante y las cuotas. El CU25 del proyecto es **Gestionar planes de horas** (el
+Administrador define el nombre, las horas y el costo en bolivianos de cada plan, con su equivalente en
+dólares como referencia). La contratación del plan por el estudiante y sus cuotas quedaron sin CU asignado:
+cuando se documenten, toman número desde el CU26 en adelante. El archivo, las UT y los comentarios usan solo
+el significado nuevo.
+
 ## Granularidad: un CU, un flujo
 
 Si una funcionalidad agrupa más de un flujo de usuario independiente, se
