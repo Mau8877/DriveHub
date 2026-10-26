@@ -105,19 +105,25 @@ Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta
 Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque
 cada una consulta datos que son del otro servicio.
 
-### Saga reserva-pago (CU44)
+### Saga de clases y horas (CU44)
 
-Reservar una clase (Académico) y pagarla (Pagos) cruza dos bases: no hay
-una transacción que abarque las dos. La saga coordina los pasos y, si
-algo falla, **compensa** (libera la franja, revierte el pago). Diseño y
-decisión pendiente (quién es el dueño del estado de la saga) en
+Reservar, cancelar o reprogramar una clase (Académico) cambia las horas de la billetera (Pagos): dos bases, sin
+una transacción que abarque las dos. La saga coordina los pasos y, si algo falla, **compensa** (libera la
+franja, devuelve la hora). Decisiones (CU44, [`docs/CasosDeUso/CU44 - Orquestar clases y horas.md`](../../docs/CasosDeUso/CU44%20-%20Orquestar%20clases%20y%20horas.md)):
+
+- **Dueño: Académico.** No hay servicio orquestador nuevo ni tabla `SagaEstado`: el estado de cada operación es
+  el de la reserva (`PENDIENTE_PAGO` y los estados análogos de cancelar y reprogramar, con CU15).
+- **Dos momentos.** En el momento de actuar el estudiante, la saga corre dentro de su request (CU14, con su
+  Bearer). Lo que se interrumpe lo retoma un **job programado** de Académico, sin esperar al estudiante.
+- **El job no usa JWT.** Se identifica ante Pagos con un **secreto compartido** (un header, un secreto por par
+  Académico→Pagos, por variable de entorno, comparado en tiempo constante) contra **endpoints internos** de
+  Pagos para descontar y devolver horas, que reciben el `estudianteCodigo` de la reserva. Esos endpoints van
+  fuera de `/api/v1` y **no se registran en el gateway**: el navegador y la app nunca los alcanzan.
+- **Idempotencia siempre**: `reserva-{codigoReserva}` para descontar y `devolucion-{codigoReserva}` para devolver.
+- **Reprogramar**: primero se aparta la franja nueva y después se libera la anterior; las horas no cambian.
+
+No se implementa nada de la saga fuera de CU44 y de sus UT. Detalle y qué quedó del diseño original en
 [`docs/DriveHub/SAGA_RESERVA_PAGO.md`](../../docs/DriveHub/SAGA_RESERVA_PAGO.md).
-No se implementa nada de la saga fuera de CU44.
-
-**Excepción: reservar con horas (CU14).** Con la billetera de horas, reservar una clase es descontar
-una hora de Pagos, no un cobro asíncrono. Ese flujo es una saga simple coordinada por Académico (apartar la
-franja, descontar la hora, compensar liberando y devolviendo si falla), con la reserva como registro de su
-estado: no usa el orquestador, la tabla `SagaEstado` ni eventos de este diseño.
 
 ### Contrato común, sin importar el stack
 
