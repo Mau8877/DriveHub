@@ -2425,3 +2425,240 @@ describe('<dh-gestion> campo decimal y columna moneda', () => {
     expect(cuerpoEnviado(2)).toEqual({ costoBs: 500.25 })
   })
 })
+
+// CU10: acciones con formulario, detalle en forma de lista y texto de vacío
+describe('<dh-gestion> acciones con formulario y detalle en lista', () => {
+  let el
+
+  const AUTO_LIBRE = { vehiculoCodigo: 'v1', placa: 'ABC-123', instructor: null, fechaInicio: null }
+  const AUTO_ASIGNADO = {
+    vehiculoCodigo: 'v2',
+    placa: 'XYZ-999',
+    instructor: { codigo: 'i1', nombreCompleto: 'Ana Pérez' },
+    fechaInicio: '2026-10-01',
+  }
+
+  const ESQUEMA_ASIGNACION = {
+    recurso: 'asignaciones-vehiculo',
+    titulo: 'Asignación de autos',
+    idCampo: 'vehiculoCodigo',
+    nombreSingular: 'auto',
+    columnas: [
+      { campo: 'placa', titulo: 'Placa' },
+      { campo: 'instructor.nombreCompleto', titulo: 'Instructor', vacioTexto: 'Sin asignar' },
+    ],
+    detalle: {
+      titulo: 'Historial del auto',
+      etiqueta: 'Ver historial',
+      cargar: '{id}/historial?pageSize=100',
+      lista: {
+        vacio: 'Este auto todavía no tuvo instructor.',
+        columnas: [
+          { campo: 'instructor.nombreCompleto', titulo: 'Instructor' },
+          { campo: 'fechaInicio', titulo: 'Desde', tipo: 'fecha' },
+          { campo: 'fechaFin', titulo: 'Hasta', tipo: 'fecha', vacioTexto: 'Vigente' },
+        ],
+      },
+    },
+    acciones: [
+      {
+        id: 'asignar',
+        etiqueta: 'Asignar',
+        metodo: 'POST',
+        ruta: '{id}/asignar',
+        mensajeExito: 'Auto asignado.',
+        visibleSi: { campo: 'instructor', igual: null },
+        formulario: {
+          titulo: 'Asignar auto',
+          etiquetaEnviar: 'Asignar auto',
+          secciones: [
+            {
+              campos: [
+                {
+                  campo: 'instructorCodigo',
+                  titulo: 'Instructor',
+                  tipo: 'seleccion',
+                  requerido: true,
+                  opcionesDe: {
+                    recurso: 'instructores',
+                    valor: 'codigo',
+                    etiqueta: 'nombreCompleto',
+                    params: { 'filter[estado]': 'ACTIVO' },
+                  },
+                  mensajes: { requerido: 'Elige un instructor' },
+                },
+                { campo: 'fecha', titulo: 'Desde', tipo: 'fecha', porDefecto: 'hoy' },
+              ],
+            },
+          ],
+        },
+      },
+      { id: 'liberar', etiqueta: 'Liberar', metodo: 'POST', ruta: '{id}/liberar', mensajeExito: 'Liberado.', confirmar: '¿Liberar?' },
+    ],
+    erroresDeCampo: { ERR_ESC_16: { campo: 'instructorCodigo', mensaje: 'El auto ya tiene instructor' } },
+  }
+
+  const texto = () => el.shadowRoot.textContent.replace(/\s+/g, ' ')
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+
+  async function montar(filas = [AUTO_LIBRE, AUTO_ASIGNADO]) {
+    fetch.mockResolvedValueOnce(lista(filas))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_ASIGNACION
+    await asentar(el)
+  }
+
+  // * Abre el formulario de "Asignar" y elige al instructor `i1`
+  async function abrirYElegirInstructor() {
+    await montar()
+    fetch.mockResolvedValueOnce(lista([{ codigo: 'i1', nombreCompleto: 'Ana Pérez' }]))
+    boton('Asignar').click()
+    await asentar(el)
+    el.shadowRoot
+      .querySelector('dh-select')
+      .dispatchEvent(new CustomEvent('dh-cambio', { detail: { valor: 'i1' }, bubbles: true, composed: true }))
+    await asentar(el)
+  }
+
+  const enviar = async () => {
+    el.shadowRoot.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }))
+    await asentar(el)
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  it('una condición con null se cumple también cuando el campo no viene en la respuesta', async () => {
+    await montar([{ vehiculoCodigo: 'v9', placa: 'SIN-CAMPO' }, AUTO_ASIGNADO])
+    const filas = el.shadowRoot.querySelectorAll('tbody tr')
+
+    expect(filas[0].textContent).toContain('Asignar')
+    expect(filas[1].textContent).not.toContain('Asignar')
+  })
+
+  it('una columna con vacioTexto lo muestra cuando el valor está vacío', async () => {
+    await montar()
+    const filas = el.shadowRoot.querySelectorAll('tbody tr')
+
+    expect(filas[0].textContent).toContain('Sin asignar')
+    expect(filas[1].textContent).toContain('Ana Pérez')
+    expect(filas[1].textContent).not.toContain('Sin asignar')
+  })
+
+  it('una acción con formulario abre el panel, trae las opciones y precarga la fecha de hoy', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(lista([{ codigo: 'i1', nombreCompleto: 'Ana Pérez' }]))
+
+    boton('Asignar').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelector('aside.drawer')).not.toBeNull()
+    expect(texto()).toContain('Asignar auto')
+    expect(fetch.mock.calls[1][0]).toContain('instructores?page=1&pageSize=100&filter%5Bestado%5D=ACTIVO')
+    expect(el.shadowRoot.querySelector('dh-fecha').valor).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('no envía hasta que el formulario sea válido y marca el campo obligatorio', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(lista([{ codigo: 'i1', nombreCompleto: 'Ana Pérez' }]))
+    boton('Asignar').click()
+    await asentar(el)
+
+    await enviar()
+
+    expect(texto()).toContain('Elige un instructor')
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('al enviar llama a la ruta de la acción con el cuerpo, avisa y recarga el listado', async () => {
+    await abrirYElegirInstructor()
+    fetch.mockResolvedValueOnce(sobre({ vehiculoCodigo: 'v1' })).mockResolvedValueOnce(lista([AUTO_ASIGNADO]))
+
+    await enviar()
+
+    const [url, opciones] = fetch.mock.calls[2]
+    expect(url).toBe('http://api.test/v1/asignaciones-vehiculo/v1/asignar')
+    expect(opciones.method).toBe('POST')
+    const cuerpo = JSON.parse(opciones.body)
+    expect(cuerpo.instructorCodigo).toBe('i1')
+    expect(cuerpo.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+    expect(texto()).toContain('Auto asignado.')
+    expect(fetch).toHaveBeenCalledTimes(4)
+  })
+
+  it('un error del backend con campo en erroresDeCampo se muestra bajo ese campo y deja el panel abierto', async () => {
+    await abrirYElegirInstructor()
+    fetch.mockResolvedValueOnce(falla(409, 'ERR_ESC_16', 'ya asignado'))
+
+    await enviar()
+
+    expect(texto()).toContain('El auto ya tiene instructor')
+    expect(el.shadowRoot.querySelector('aside.drawer')).not.toBeNull()
+  })
+
+  it('un error de negocio sin campo muestra el mensaje del backend en el panel', async () => {
+    await abrirYElegirInstructor()
+    fetch.mockResolvedValueOnce(falla(409, 'ERR_ESC_17', 'Solo se asigna un auto disponible'))
+
+    await enviar()
+
+    expect(el.shadowRoot.querySelector('[role="alert"]').textContent).toContain('Solo se asigna un auto disponible')
+  })
+
+  it('una acción sin formulario sigue pidiendo confirmación, como antes', async () => {
+    await montar()
+
+    boton('Liberar').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelector('[role="alertdialog"]')).not.toBeNull()
+    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+  })
+
+  it('el detalle en lista dibuja una tarjeta por fila, con "Vigente" para la fecha de fin vacía', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(
+      sobre([
+        { instructor: { nombreCompleto: 'Luis Soto' }, fechaInicio: '2026-10-15', fechaFin: null },
+        { instructor: { nombreCompleto: 'Ana Pérez' }, fechaInicio: '2026-10-01', fechaFin: '2026-10-15' },
+      ])
+    )
+
+    el.shadowRoot.querySelectorAll('tbody tr')[1].querySelector('button.enlace').click()
+    await asentar(el)
+
+    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/asignaciones-vehiculo/v2/historial?pageSize=100')
+    const tarjetas = el.shadowRoot.querySelectorAll('.lista-fila')
+    expect(tarjetas).toHaveLength(2)
+    expect(tarjetas[0].textContent).toContain('Luis Soto')
+    expect(tarjetas[0].textContent).toContain('Vigente')
+    expect(tarjetas[1].textContent).toContain('15 oct 2026')
+    expect(tarjetas[1].textContent).not.toContain('Vigente')
+  })
+
+  it('el detalle en lista sin filas muestra el mensaje de vacío', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(sobre([]))
+
+    el.shadowRoot.querySelectorAll('tbody tr')[0].querySelector('button.enlace').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelectorAll('.lista-fila')).toHaveLength(0)
+    expect(texto()).toContain('Este auto todavía no tuvo instructor.')
+  })
+})

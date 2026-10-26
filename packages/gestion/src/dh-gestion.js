@@ -80,8 +80,9 @@ function escribir(objeto, ruta, valor) {
 function cumple(condicion, fila) {
   if (!condicion) return true
   const valor = leer(fila, condicion.campo)
-  if ('igual' in condicion) return valor === condicion.igual
-  if ('distinto' in condicion) return valor !== condicion.distinto
+  // * `null` en una condición significa "sin valor": también cuenta que el campo no venga en la respuesta
+  if ('igual' in condicion) return condicion.igual === null ? valor == null : valor === condicion.igual
+  if ('distinto' in condicion) return condicion.distinto === null ? valor != null : valor !== condicion.distinto
   return true
 }
 
@@ -360,7 +361,8 @@ export class DhGestion extends LitElement {
   }
 
   _alPulsarAccion(accion, fila) {
-    if (accion.confirmar) this._confirmando = { accion, fila }
+    if (accion.formulario) this._abrirAccionConFormulario(accion, fila)
+    else if (accion.confirmar) this._confirmando = { accion, fila }
     else this._ejecutarAccion(accion, fila)
   }
 
@@ -378,6 +380,27 @@ export class DhGestion extends LitElement {
     this._iniciales = {}
     this._vista = 'crear'
     this._cargarOpciones(camposDe(this.esquema.crear.secciones))
+  }
+
+  /**
+   * Una acción con `formulario` pide datos antes de enviarse: abre el mismo drawer de crear y editar con
+   * los campos de la acción y, al enviar, llama a la ruta y el método de la acción con ese cuerpo.
+   */
+  _abrirAccionConFormulario(accion, fila) {
+    this._prepararFormulario('accion')
+    this._accionActiva = accion
+    this._idAccion = fila[this._id]
+    const campos = camposDe(accion.formulario.secciones)
+    const valores = {}
+    campos.forEach((campo) => {
+      if (campo.tipo === 'seleccion' && campo.multiple) valores[campo.campo] = []
+      else if (campo.tipo === 'fecha' && campo.porDefecto === 'hoy') valores[campo.campo] = fechaDeHoy()
+      else if (campo.porDefecto !== undefined) valores[campo.campo] = campo.porDefecto
+    })
+    this._valores = valores
+    this._iniciales = {}
+    this._vista = 'accion'
+    this._cargarOpciones(campos)
   }
 
   /** Trae de la API las opciones de los campos `seleccion` que las piden con `opcionesDe`. */
@@ -502,6 +525,7 @@ export class DhGestion extends LitElement {
   }
 
   _secciones() {
+    if (this._vista === 'accion') return this._accionActiva.formulario.secciones
     return (this._vista === 'crear' ? this.esquema.crear : this.esquema.editar).secciones
   }
 
@@ -597,19 +621,37 @@ export class DhGestion extends LitElement {
       escribir(cuerpo, campo.campo, valor)
     })
 
-    const creando = this._vista === 'crear'
-    const definicion = creando ? this.esquema.crear : this.esquema.editar
-    const ruta = creando
-      ? this.esquema.recurso
-      : `${this.esquema.recurso}/${(definicion.ruta ?? '{id}').replace('{id}', encodeURIComponent(this._idEditando))}`
+    const { metodo, ruta, mensajeExito } = this._destinoDelEnvio()
     this._enviando = true
     try {
-      await solicitar(creando ? 'POST' : (definicion.metodo ?? 'PATCH'), ruta, { cuerpo })
+      await solicitar(metodo, ruta, { cuerpo })
       this._enviando = false
-      this._volverALista({ tipo: 'ok', texto: definicion.mensajeExito })
+      this._volverALista({ tipo: 'ok', texto: mensajeExito })
     } catch (error) {
       this._enviando = false
       this._mostrarErrorDelServidor(error)
+    }
+  }
+
+  /** A dónde va el formulario abierto: crear, editar o una acción con formulario. */
+  _destinoDelEnvio() {
+    const recurso = this.esquema.recurso
+    if (this._vista === 'accion') {
+      const accion = this._accionActiva
+      return {
+        metodo: accion.metodo,
+        ruta: `${recurso}/${accion.ruta.replace('{id}', encodeURIComponent(this._idAccion))}`,
+        mensajeExito: accion.mensajeExito,
+      }
+    }
+    if (this._vista === 'crear') {
+      return { metodo: 'POST', ruta: recurso, mensajeExito: this.esquema.crear.mensajeExito }
+    }
+    const editar = this.esquema.editar
+    return {
+      metodo: editar.metodo ?? 'PATCH',
+      ruta: `${recurso}/${(editar.ruta ?? '{id}').replace('{id}', encodeURIComponent(this._idEditando))}`,
+      mensajeExito: editar.mensajeExito,
     }
   }
 
@@ -619,6 +661,12 @@ export class DhGestion extends LitElement {
     if (regla) {
       this._tocados = new Set(this._tocados).add(regla.campo)
       this._erroresServidor = { [regla.campo]: regla.mensaje }
+      return
+    }
+    // * Una acción con formulario no tiene un "no pudimos guardar el auto" genérico que le sirva: un error de
+    // * negocio del backend (4xx con código) ya trae su mensaje en español, y es el que explica qué pasó.
+    if (this._vista === 'accion' && codigo && codigo !== 'ERR_SYS_01' && error.estado >= 400 && error.estado < 500) {
+      this._errorGeneral = error.message
       return
     }
     this._errorGeneral =
@@ -776,6 +824,7 @@ export class DhGestion extends LitElement {
 
   _celda(columna, fila) {
     const valor = leer(fila, columna.campo)
+    if (columna.vacioTexto && (valor === undefined || valor === null || valor === '')) return columna.vacioTexto
     if (columna.tipo === 'insignia') {
       const insignia = columna.insignias?.[valor]
       return html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
@@ -888,9 +937,15 @@ export class DhGestion extends LitElement {
 
   _renderDrawer() {
     const creando = this._vista === 'crear'
-    const definicion = creando ? this.esquema.crear : this.esquema.editar
+    const accion = this._vista === 'accion' ? this._accionActiva : null
+    const definicion = accion
+      ? { ...accion.formulario, etiquetaEnviar: accion.formulario.etiquetaEnviar ?? accion.etiqueta }
+      : creando
+        ? this.esquema.crear
+        : this.esquema.editar
     const titulo =
-      definicion.titulo ?? (creando ? this.esquema.crear.etiqueta : `Editar ${this.esquema.nombreSingular ?? 'registro'}`)
+      definicion.titulo ??
+      (accion ? accion.etiqueta : creando ? this.esquema.crear.etiqueta : `Editar ${this.esquema.nombreSingular ?? 'registro'}`)
     const numerar = definicion.secciones.length > 1
     return html`
       <div class="fondo" @mousedown=${(e) => e.target === e.currentTarget && this._cerrarDrawer()}>
@@ -951,7 +1006,9 @@ export class DhGestion extends LitElement {
           <div class="drawer-cuerpo" aria-busy=${String(this._cargandoRegistro)}>
             ${this._cargandoRegistro || !this._registro
               ? html`<span class="brillo"></span><span class="brillo"></span><span class="brillo"></span>`
-              : detalle.secciones.map((seccion) => this._renderSeccionDetalle(seccion))}
+              : detalle.lista
+                ? this._renderListaDetalle(detalle.lista)
+                : detalle.secciones.map((seccion) => this._renderSeccionDetalle(seccion))}
             <div class="drawer-pie">
               <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cerrar</button>
             </div>
@@ -959,6 +1016,19 @@ export class DhGestion extends LitElement {
         </aside>
       </div>
     `
+  }
+
+  /** Detalle en forma de lista (ej. el historial): `_registro` es un arreglo y cada fila es una tarjeta con sus datos. */
+  _renderListaDetalle(lista) {
+    const filas = Array.isArray(this._registro) ? this._registro : []
+    if (filas.length === 0) {
+      return html`<p class="secundaria">${lista.vacio ?? 'No hay registros.'}</p>`
+    }
+    return html`<div class="lista-detalle">
+      ${filas.map(
+        (fila) => html`<div class="lista-fila">${lista.columnas.map((columna) => this._renderDato(columna, fila))}</div>`
+      )}
+    </div>`
   }
 
   _renderSeccionDetalle(seccion) {
@@ -979,13 +1049,13 @@ export class DhGestion extends LitElement {
     </fieldset>`
   }
 
-  _renderDato(campo) {
-    const valor = leer(this._registro, campo.campo)
+  _renderDato(campo, registro = this._registro) {
+    const valor = leer(registro, campo.campo)
     const vacio = valor === undefined || valor === null || valor === '' || (Array.isArray(valor) && valor.length === 0)
     if (campo.tipo === 'foto') {
-      return html`<div class="dato foto">${this._avatar(campo, this._registro, valor, 72)}</div>`
+      return html`<div class="dato foto">${this._avatar(campo, registro, valor, 72)}</div>`
     }
-    let contenido = '—'
+    let contenido = campo.vacioTexto ?? '—'
     if (!vacio) {
       if (campo.tipo === 'insignia') {
         const insignia = campo.insignias?.[valor]
