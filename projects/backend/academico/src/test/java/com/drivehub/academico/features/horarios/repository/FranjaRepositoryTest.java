@@ -4,13 +4,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
+import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.mongodb.test.autoconfigure.DataMongoTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -367,5 +375,197 @@ class FranjaRepositoryTest extends MongoIntegrationTestBase {
 
         assertThat(repository.cambiarEstadoDelDia(instructor, HOY, EstadoFranja.LIBRE, EstadoFranja.BLOQUEADA, null))
             .isZero();
+    }
+
+    // ---------------------------------------------------------------- disponibles para reservar (CU14)
+
+    private Page<Franja> disponibles(LocalDate desde, LocalDate hasta, UUID deInstructor, String horaDesde,
+            String horaHasta) {
+        return repository.disponibles(escuela, HOY, "09:00", desde, hasta, deInstructor, horaDesde, horaHasta,
+            PageRequest.of(0, 50));
+    }
+
+    @Test
+    void disponibles_soloLibresFuturasDeLaEscuela_ordenadasPorFechaHoraEInstructor() {
+        libre(instructor, HOY.plusDays(1), "10:00");
+        libre(otroInstructor, HOY, "10:00");
+        libre(instructor, HOY, "10:00");
+        libre(instructor, HOY, "08:00");                              // ya empezó (ahora 09:00)
+        libre(instructor, HOY, "09:00");                              // empieza justo ahora: ya no
+        guardar(instructor, 1L, HOY, "11:00", EstadoFranja.RESERVADA);
+        guardar(instructor, 1L, HOY, "12:00", EstadoFranja.BLOQUEADA);
+        libre(instructor, HOY.minusDays(1), "10:00");
+        Franja deOtraEscuela = new Franja(UUID.randomUUID(), 1L, instructor, HOY, "13:00", "14:00");
+        repository.save(deOtraEscuela);
+        Franja borrada = libre(instructor, HOY, "15:00");
+        borrada.setDeletedAt(Instant.now());
+        repository.save(borrada);
+
+        Page<Franja> resultado = disponibles(null, null, null, null, null);
+
+        assertThat(resultado.getContent()).extracting(Franja::getFecha, Franja::getHoraInicio)
+            .containsExactly(Tuple.tuple(HOY, "10:00"), Tuple.tuple(HOY, "10:00"),
+                Tuple.tuple(HOY.plusDays(1), "10:00"));
+        assertThat(resultado.getTotalElements()).isEqualTo(3);
+    }
+
+    @Test
+    void disponibles_filtraPorFechaExactaYPorRango() {
+        libre(instructor, HOY, "10:00");
+        libre(instructor, HOY.plusDays(1), "10:00");
+        libre(instructor, HOY.plusDays(2), "10:00");
+
+        assertThat(disponibles(HOY.plusDays(1), HOY.plusDays(1), null, null, null).getContent())
+            .extracting(Franja::getFecha).containsExactly(HOY.plusDays(1));
+        assertThat(disponibles(HOY.plusDays(1), HOY.plusDays(2), null, null, null).getContent()).hasSize(2);
+        assertThat(disponibles(HOY.plusDays(2), null, null, null, null).getContent())
+            .extracting(Franja::getFecha).containsExactly(HOY.plusDays(2));
+    }
+
+    @Test
+    void disponibles_filtraPorInstructor() {
+        libre(instructor, HOY, "10:00");
+        libre(otroInstructor, HOY, "11:00");
+
+        assertThat(disponibles(null, null, otroInstructor, null, null).getContent())
+            .extracting(Franja::getInstructorCodigo).containsExactly(otroInstructor);
+    }
+
+    @Test
+    void disponibles_laHoraDesdeEsInclusiva_yLaHoraHastaExclusiva() {
+        libre(instructor, HOY.plusDays(1), "11:00");
+        libre(instructor, HOY.plusDays(1), "12:00");
+        libre(instructor, HOY.plusDays(1), "17:00");
+        libre(instructor, HOY.plusDays(1), "18:00");
+
+        assertThat(disponibles(null, null, null, "12:00", "18:00").getContent())
+            .extracting(Franja::getHoraInicio).containsExactly("12:00", "17:00");
+        assertThat(disponibles(null, null, null, "18:00", null).getContent())
+            .extracting(Franja::getHoraInicio).containsExactly("18:00");
+        assertThat(disponibles(null, null, null, null, "12:00").getContent())
+            .extracting(Franja::getHoraInicio).containsExactly("11:00");
+    }
+
+    @Test
+    void disponibles_combinaTodosLosFiltros() {
+        libre(instructor, HOY.plusDays(1), "10:00");
+        libre(instructor, HOY.plusDays(1), "15:00");
+        libre(otroInstructor, HOY.plusDays(1), "15:00");
+        libre(instructor, HOY.plusDays(2), "15:00");
+
+        assertThat(disponibles(HOY.plusDays(1), HOY.plusDays(1), instructor, "12:00", "18:00").getContent())
+            .hasSize(1).first().satisfies(f -> {
+                assertThat(f.getInstructorCodigo()).isEqualTo(instructor);
+                assertThat(f.getHoraInicio()).isEqualTo("15:00");
+            });
+    }
+
+    @Test
+    void disponibles_paginaConElTotalCorrecto() {
+        for (int i = 0; i < 5; i++) {
+            libre(instructor, HOY.plusDays(1), "1%d:00".formatted(i));
+        }
+
+        Page<Franja> segunda = repository.disponibles(escuela, HOY, "09:00", null, null, null, null, null,
+            PageRequest.of(1, 2));
+
+        assertThat(segunda.getContent()).extracting(Franja::getHoraInicio).containsExactly("12:00", "13:00");
+        assertThat(segunda.getTotalElements()).isEqualTo(5);
+        assertThat(segunda.getTotalPages()).isEqualTo(3);
+    }
+
+    @Test
+    void instructoresConDisponibles_sinRepetirYSoloLosQueTienenFranjasLibres() {
+        libre(instructor, HOY.plusDays(1), "10:00");
+        libre(instructor, HOY.plusDays(1), "11:00");
+        guardar(otroInstructor, 1L, HOY.plusDays(1), "10:00", EstadoFranja.RESERVADA);
+
+        assertThat(repository.instructoresConDisponibles(escuela, HOY, "09:00", null, null))
+            .containsExactly(instructor);
+        assertThat(repository.instructoresConDisponibles(escuela, HOY, "09:00", HOY.plusDays(5), null)).isEmpty();
+    }
+
+    // ---------------------------------------------------------------- apartar y liberar (CU14)
+
+    @Test
+    void apartar_pasaLaFranjaLibreAReservadaYGuardaLaReserva() {
+        Franja franja = libre(instructor, HOY.plusDays(1), "10:00");
+
+        var apartada = repository.apartar(franja.getCodigoFranja(), escuela, 77L, HOY, "09:00");
+
+        assertThat(apartada).isPresent();
+        assertThat(apartada.get().getEstado()).isEqualTo(EstadoFranja.RESERVADA);
+        assertThat(apartada.get().getReservaId()).isEqualTo(77L);
+    }
+
+    @Test
+    void apartar_noApartaFranjasDeOtraEscuelaBloqueadasReservadasYaEmpezadasOBorradas() {
+        Franja deOtraEscuela = repository.save(new Franja(UUID.randomUUID(), 1L, instructor, HOY.plusDays(1),
+            "10:00", "11:00"));
+        Franja bloqueada = guardar(instructor, 1L, HOY.plusDays(1), "11:00", EstadoFranja.BLOQUEADA);
+        Franja reservada = guardar(instructor, 1L, HOY.plusDays(1), "12:00", EstadoFranja.RESERVADA);
+        Franja empezada = libre(instructor, HOY, "08:00");
+        Franja borrada = libre(instructor, HOY.plusDays(1), "13:00");
+        borrada.setDeletedAt(Instant.now());
+        repository.save(borrada);
+
+        for (Franja f : new Franja[] {deOtraEscuela, bloqueada, reservada, empezada, borrada}) {
+            assertThat(repository.apartar(f.getCodigoFranja(), escuela, 1L, HOY, "09:00")).isEmpty();
+        }
+        assertThat(repository.findById(bloqueada.getId()).orElseThrow().getEstado())
+            .isEqualTo(EstadoFranja.BLOQUEADA);
+        assertThat(repository.findById(reservada.getId()).orElseThrow().getReservaId()).isNull();
+    }
+
+    @Test
+    void apartar_dosHilosALaVez_unoSoloSeQuedaConLaFranja() throws Exception {
+        Franja franja = libre(instructor, HOY.plusDays(1), "10:00");
+        int hilos = 8;
+        ExecutorService ejecutor = Executors.newFixedThreadPool(hilos);
+        CountDownLatch salida = new CountDownLatch(1);
+        List<Future<Boolean>> resultados = new ArrayList<>();
+        for (long reserva = 1; reserva <= hilos; reserva++) {
+            long reservaId = reserva;
+            resultados.add(ejecutor.submit(() -> {
+                salida.await();
+                return repository.apartar(franja.getCodigoFranja(), escuela, reservaId, HOY, "09:00").isPresent();
+            }));
+        }
+        salida.countDown();
+        int ganadoras = 0;
+        for (Future<Boolean> resultado : resultados) {
+            if (resultado.get()) {
+                ganadoras++;
+            }
+        }
+        ejecutor.shutdown();
+
+        assertThat(ganadoras).isEqualTo(1);
+    }
+
+    @Test
+    void liberar_devuelveLaFranjaALibreSoloSiSigueReservadaPorEsaReserva() {
+        Franja franja = libre(instructor, HOY.plusDays(1), "10:00");
+        repository.apartar(franja.getCodigoFranja(), escuela, 5L, HOY, "09:00");
+
+        assertThat(repository.liberar(franja.getCodigoFranja(), 99L)).isFalse();
+        assertThat(repository.findById(franja.getId()).orElseThrow().getEstado()).isEqualTo(EstadoFranja.RESERVADA);
+
+        assertThat(repository.liberar(franja.getCodigoFranja(), 5L)).isTrue();
+        Franja liberada = repository.findById(franja.getId()).orElseThrow();
+        assertThat(liberada.getEstado()).isEqualTo(EstadoFranja.LIBRE);
+        assertThat(liberada.getReservaId()).isNull();
+
+        assertThat(repository.liberar(franja.getCodigoFranja(), 5L)).isFalse();
+    }
+
+    @Test
+    void buscarPorCodigoYEscuela_distingueLaFranjaInexistenteDeLaDeOtraEscuela() {
+        Franja franja = libre(instructor, HOY.plusDays(1), "10:00");
+
+        assertThat(repository.findByCodigoFranjaAndEscuelaCodigoAndDeletedAtIsNull(franja.getCodigoFranja(), escuela))
+            .isPresent();
+        assertThat(repository.findByCodigoFranjaAndEscuelaCodigoAndDeletedAtIsNull(franja.getCodigoFranja(),
+            UUID.randomUUID())).isEmpty();
     }
 }

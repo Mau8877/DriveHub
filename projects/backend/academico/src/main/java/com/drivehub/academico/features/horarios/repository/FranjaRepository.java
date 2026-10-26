@@ -14,4 +14,10 @@ import com.drivehub.academico.features.horarios.model.Franja;
 public interface FranjaRepository extends MongoRepository<Franja, Long>, FranjaRepositoryCustom {
 
     Optional<Franja> findByCodigoFranjaAndInstructorCodigoAndDeletedAtIsNull(UUID codigoFranja, UUID instructorCodigo);
+
+    /**
+     * La franja de una escuela, sea cual sea su estado (CU14): sirve para distinguir «no existe» de «no está
+     * libre».
+     */
+    Optional<Franja> findByCodigoFranjaAndEscuelaCodigoAndDeletedAtIsNull(UUID codigoFranja, UUID escuelaCodigo);
 }
