@@ -233,8 +233,10 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=true
       - SPRING_MONGODB_URI=mongodb://drivehub-mongo:27017/academico?replicaSet=rs0
-      # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
+      # Claves públicas de Identidad (JWKS) para validar el JWT (CU02) y nombres de los instructores (CU14).
       - IDENTIDAD_URL=http://drivehub-identidad:8081
+      # Billetera de horas: saldo, descontar y devolver al reservar una clase (CU14).
+      - PAGOS_URL=http://drivehub-pagos:8083
       - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
       - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
       - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}

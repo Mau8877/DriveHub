@@ -55,10 +55,18 @@ La escuela sale siempre del token. Todas responden con el sobre estándar.
   posibilidad.
 - **Las horas no vencen.**
 
-## Pendiente de acordar con Leonel
+## Acordado con Leonel (CU14)
 
-- Si la reserva (CU14/CU44) descuenta las horas al reservar o al dar la clase, y qué pasa con el diseño de la saga
-  reserva-pago ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)): con la billetera, "pagar una reserva" pasa a ser
-  "descontar horas". Puede cambiar el CU44.
-- Por REST síncrono o por eventos (RabbitMQ) para devolver horas de una clase cancelada.
-- Qué hace Académico cuando Pagos no responde al descontar (reintentar con la misma clave o fallar la reserva).
+- **Cuándo se descuenta:** al reservar la clase, no al darla. `claseCodigo` es el código de la reserva y la clave
+  de idempotencia es `reserva-{codigoReserva}` (la devolución usa `devolucion-{codigoReserva}`).
+- **Cómo:** por REST síncrono, con el Bearer del estudiante. La devolución de CU15 usará el mismo mecanismo.
+- **Si Pagos no responde al descontar:** la reserva falla para esa franja, que queda libre; Académico pide devolver
+  la hora por si el descuento sí llegó a ocurrir (un `404 ERR_PAG_16` significa que no había nada que devolver).
+  Si tampoco puede devolver, la reserva queda a medias y se retoma repitiendo el descuento con la misma clave.
+- **Cuántas horas cuesta una clase:** 1, sin importar la duración de la franja (`app.reservas.horas-por-clase`).
+
+## Todavía pendiente
+
+- Qué pasa con el CU44 (saga reserva-pago, [SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)) ahora que reservar es
+  descontar horas: lo decide Mauro, dueño del CU44.
+- Si CU15 devuelve las horas por REST síncrono (como se hace ahora) o por eventos (RabbitMQ).

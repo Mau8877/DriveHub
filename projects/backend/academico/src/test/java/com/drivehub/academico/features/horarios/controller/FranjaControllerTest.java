@@ -30,11 +30,13 @@ import com.drivehub.academico.common.exception.ConflictException;
 import com.drivehub.academico.common.exception.GlobalExceptionHandler;
 import com.drivehub.academico.common.exception.NotFoundException;
 import com.drivehub.academico.common.exception.ValidationException;
+import com.drivehub.academico.config.BearerActual;
 import com.drivehub.academico.config.SecurityConfig;
 import com.drivehub.academico.config.WebMvcConfig;
 import com.drivehub.academico.features.horarios.dto.DiaBloqueadoResponse;
 import com.drivehub.academico.features.horarios.dto.FranjaResponse;
 import com.drivehub.academico.features.horarios.enums.EstadoFranja;
+import com.drivehub.academico.features.horarios.service.FranjaDisponibleService;
 import com.drivehub.academico.features.horarios.service.FranjaService;
 
 @WebMvcTest(FranjaController.class)
@@ -49,6 +51,12 @@ class FranjaControllerTest {
 
     @MockitoBean
     private FranjaService service;
+
+    // * Las usa la vista del estudiante (CU14), que tiene su propio test: FranjaDisponibleControllerTest
+    @MockitoBean
+    private FranjaDisponibleService disponibleService;
+    @MockitoBean
+    private BearerActual bearerActual;
 
     private final UUID instructor = UUID.randomUUID();
 

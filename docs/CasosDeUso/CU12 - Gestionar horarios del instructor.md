@@ -14,7 +14,7 @@ El instructor abre la sección "Horarios" de la app. Ahí ve sus **horarios** (e
 
 El instructor también consulta sus franjas por fecha o por semana, con su estado (libre, reservada o bloqueada). Si un día no puede atender, **bloquea el día completo** de una vez (o una sola franja libre) y nadie podrá reservarlo; cuando vuelve a poder, lo **desbloquea**. Si necesita parar un horario por un tiempo (por ejemplo, en vacaciones), lo **pausa**: el sistema quita las franjas futuras que nadie reservó y deja de generar nuevas; cuando quiere retomarlo, lo **reanuda** y el sistema vuelve a generarlas. Si un horario ya no le sirve, lo **desactiva** de forma definitiva. Un horario no se edita: para cambiar sus días u horas, el instructor desactiva el viejo y crea uno nuevo.
 
-Este CU cubre la oferta de horarios del instructor. Que un estudiante reserve una franja es CU14 (aún sin documentar); consultar la disponibilidad desde la escuela es CU11.
+Este CU cubre la oferta de horarios del instructor. Que un estudiante reserve una franja es [CU14](CU14%20-%20Reservar%20horario.md); consultar la disponibilidad desde la escuela es CU11.
 
 ---
 

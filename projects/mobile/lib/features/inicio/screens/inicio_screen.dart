@@ -4,13 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../auth/providers/sesion_provider.dart';
+import '../../clases/models/reserva.dart';
+import '../../clases/models/vista_reservas.dart';
+import '../../clases/providers/franjas_disponibles_provider.dart';
+import '../../clases/widgets/formato_clases.dart';
+import '../../clases/widgets/reserva_card.dart';
+
+/// Cuántas clases se muestran en Inicio: la próxima en la tarjeta y las siguientes debajo.
+const _maxClasesInicio = 3;
 
 /// Inicio de la app (pestaña "Inicio" del `UsuarioShell`): saludo, estado de la cuenta, la tarjeta
 /// de la próxima clase y los accesos rápidos.
 ///
-/// * Solo muestra datos reales de la sesión. La próxima clase, la reserva, los simulacros, los
-/// * manuales y el asistente son de otros casos de uso: hasta que existan, la tarjeta es un
-/// * estado vacío y los accesos avisan que llegan con su caso de uso (igual que el mockup).
+/// * La próxima clase y las siguientes del estudiante son las mismas que ve en «Mis clases» (CU14).
+/// * La agenda del instructor, la reserva, los simulacros, los manuales y el asistente son de otros
+/// * casos de uso: hasta que existan, los accesos avisan que llegan con su caso de uso (igual que el mockup).
 /// ? ¿Sumar el progreso del curso y la próxima cuota cuando existan Académico y Pagos en mobile?
 class InicioScreen extends ConsumerWidget {
   const InicioScreen({super.key});
@@ -21,6 +29,13 @@ class InicioScreen extends ConsumerWidget {
     final esInstructor = usuario?.roles.contains('INSTRUCTOR') ?? false;
     final tema = Theme.of(context);
     final colores = context.cockpit;
+    // * El instructor no reserva clases: su agenda es de CU16
+    final proximas = esInstructor
+        ? null
+        : ref.watch(reservasListProvider(VistaReservas.proximas));
+    final clases =
+        proximas?.asData?.value.where((r) => !r.terminada).take(_maxClasesInicio).toList() ??
+        const <Reserva>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -52,7 +67,28 @@ class InicioScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        _TarjetaProximaClase(esInstructor: esInstructor),
+        _TarjetaProximaClase(
+          esInstructor: esInstructor,
+          proxima: clases.isEmpty ? null : clases.first,
+          cargando: proximas?.isLoading ?? false,
+          error: proximas?.hasError ?? false,
+        ),
+        if (clases.length > 1) ...[
+          const SizedBox(height: 22),
+          Text(
+            'SIGUIENTES CLASES',
+            style: tema.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.4,
+              color: tema.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (final reserva in clases.skip(1)) ...[
+            ReservaCard(key: Key('inicio-reserva-${reserva.codigo}'), reserva: reserva),
+            const SizedBox(height: 10),
+          ],
+        ],
         if (!esInstructor) ...[
           const SizedBox(height: 22),
           Text(
@@ -131,12 +167,37 @@ class _Chip extends StatelessWidget {
 class _TarjetaProximaClase extends StatelessWidget {
   final bool esInstructor;
 
-  const _TarjetaProximaClase({required this.esInstructor});
+  /// La clase por venir más cercana del estudiante, o `null` si no tiene.
+  final Reserva? proxima;
+  final bool cargando;
+  final bool error;
+
+  const _TarjetaProximaClase({
+    required this.esInstructor,
+    this.proxima,
+    this.cargando = false,
+    this.error = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final colores = context.cockpit;
+    final reserva = proxima;
+    final titulo = reserva != null
+        ? '${tituloDeDia(reserva.fecha, DateTime.now())} · ${rangoDeHoras(reserva.horaInicio, reserva.horaFin)}'
+        : esInstructor
+        ? 'Sin clases por ahora'
+        : cargando
+        ? 'Buscando tus clases…'
+        : 'Aún no tienes clases reservadas';
+    final texto = reserva != null
+        ? 'Con ${reserva.instructorNombre}'
+        : esInstructor
+        ? 'Tu agenda aparecerá acá cuando tengas clases asignadas.'
+        : error
+        ? 'No pudimos cargar tus clases. Revisa tu conexión.'
+        : 'Cuando reserves una clase, verás acá la hora y tu instructor.';
 
     return Container(
       decoration: BoxDecoration(
@@ -182,9 +243,7 @@ class _TarjetaProximaClase extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  esInstructor
-                      ? 'Sin clases por ahora'
-                      : 'Aún no tienes clases reservadas',
+                  titulo,
                   style: tema.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -203,15 +262,13 @@ class _TarjetaProximaClase extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 70),
                   child: Text(
-                    esInstructor
-                        ? 'Tu agenda aparecerá acá cuando tengas clases asignadas.'
-                        : 'Cuando reserves una clase, verás acá la hora, tu instructor y cómo llegar.',
+                    texto,
                     style: tema.textTheme.bodyMedium?.copyWith(
                       color: tema.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
-                if (!esInstructor) ...[
+                if (!esInstructor && reserva == null) ...[
                   const SizedBox(height: 16),
                   SizedBox(
                     width: 190,

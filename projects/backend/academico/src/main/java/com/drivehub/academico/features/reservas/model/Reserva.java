@@ -2,6 +2,7 @@ package com.drivehub.academico.features.reservas.model;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -73,6 +74,30 @@ public class Reserva extends BaseDocument {
     // * Si no se paga a tiempo, la saga la cancela y libera la franja
     @Setter
     private Instant expiraPagoEn;
+
+    // * Horas de la billetera que costó (CU14: 1 por clase). CU15 devuelve exactamente esto al cancelar
+    @Setter
+    private int horasCobradas;
+
+    /**
+     * Reserva nueva, `PENDIENTE_PAGO` (CU14): la franja ya se apartó pero la hora todavía no se descontó.
+     *
+     * * `fecha`, `horaInicio` y `horaFin` son una copia de la franja (diseño de la colección), para consultar
+     * * las clases del estudiante sin cruzar con `franjas`.
+     * * El vehículo, el pago, la saga, el vencimiento y la solicitud quedan vacíos: no los usa el CU14.
+     */
+    public Reserva(UUID estudianteCodigo, UUID instructorCodigo, Long franjaId, LocalDate fecha, String horaInicio,
+            String horaFin, int horasCobradas, Instant ahora) {
+        this.estudianteCodigo = estudianteCodigo;
+        this.instructorCodigo = instructorCodigo;
+        this.franjaId = franjaId;
+        this.fecha = fecha;
+        this.horaInicio = horaInicio;
+        this.horaFin = horaFin;
+        this.horasCobradas = horasCobradas;
+        this.estado = EstadoReserva.PENDIENTE_PAGO;
+        this.historialEstados = new ArrayList<>(List.of(new HistorialEstado(EstadoReserva.PENDIENTE_PAGO, ahora, null)));
+    }
 
     @Override
     public void inicializarCodigo() {

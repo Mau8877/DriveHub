@@ -20,6 +20,7 @@ import com.drivehub.identidad.common.response.PageMeta;
 import com.drivehub.identidad.domain.port.in.BuscarInstructoresComando;
 import com.drivehub.identidad.domain.port.in.BuscarInstructoresUseCase;
 import com.drivehub.identidad.domain.port.in.ConsultarInstructoresUseCase;
+import com.drivehub.identidad.domain.port.in.ConsultarNombresInstructoresUseCase;
 import com.drivehub.identidad.domain.port.in.CrearCuentaInstructorComando;
 import com.drivehub.identidad.domain.port.in.CrearCuentaInstructorUseCase;
 import com.drivehub.identidad.domain.port.in.EditarUbicacionInstructorUseCase;
@@ -31,8 +32,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Cuentas de los instructores de una escuela (CU09). Solo las llama Escuela, con el token del
- * Administrador de escuela; el frontend usa `/api/v1/instructores` (Escuela).
+ * Cuentas de los instructores de una escuela (CU09). Las llama Escuela, con el token del
+ * Administrador de escuela; el frontend usa `/api/v1/instructores` (Escuela). La excepción es `/nombres`
+ * (CU14): lo llama Académico con el token de un estudiante o de un instructor.
  *
  * * El Administrador sale SIEMPRE de la sesión (`@CurrentUserId`), nunca de la URL ni del cuerpo; de
  * * su cuenta se toma la escuela.
@@ -45,6 +47,7 @@ public class InstructorCuentaController {
 
     private final CrearCuentaInstructorUseCase crearCuenta;
     private final ConsultarInstructoresUseCase consultarInstructores;
+    private final ConsultarNombresInstructoresUseCase consultarNombres;
     private final BuscarInstructoresUseCase buscarInstructores;
     private final EditarUbicacionInstructorUseCase editarUbicacion;
     private final RevertirCuentaInstructorUseCase revertirCuenta;
@@ -66,6 +69,18 @@ public class InstructorCuentaController {
         List<PersonaInstructorResponse> personas = consultarInstructores
             .consultar(administradorCodigo, request.codigos()).stream().map(PersonaInstructorResponse::de).toList();
         return ResponseEntity.ok(ApiResponse.success(personas, "Instructores obtenidos correctamente"));
+    }
+
+    /**
+     * CU14: solo el nombre de los instructores de la escuela de quien pregunta (un estudiante o un
+     * instructor). A diferencia de `/consulta`, no devuelve CI, correo ni teléfono.
+     */
+    @PostMapping("/nombres")
+    public ResponseEntity<ApiResponse<List<NombreInstructorResponse>>> nombres(
+            @CurrentUserId UUID solicitanteCodigo, @Valid @RequestBody ConsultarNombresInstructoresRequest request) {
+        List<NombreInstructorResponse> nombres = consultarNombres
+            .consultar(solicitanteCodigo, request.codigos()).stream().map(NombreInstructorResponse::de).toList();
+        return ResponseEntity.ok(ApiResponse.success(nombres, "Instructores obtenidos correctamente"));
     }
 
     @GetMapping

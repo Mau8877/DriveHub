@@ -45,6 +45,11 @@ reversión. **CU31 ya no es solo del sistema:** además de compensar una compra 
 que pide el estudiante (con el 5 % retenido). Ya no hay contratación de un plan ni cuotas: se eliminan
 `inscripcion_plan` y `cuota`. El archivo, las UT y los comentarios usan solo el significado nuevo.
 
+**Excepción vigente: CU13.** El PDF lo llama "Solicitar clase": el estudiante pedía clases y alguien las
+aprobaba antes de reservar. Con la compra de horas (CU26) y la billetera (CU27) el estudiante elige la franja
+directamente y la paga con sus horas, así que ese flujo es **CU14 (Reservar horario)**. El CU13 queda como un
+archivo corto que remite al CU14 y no tiene UT propias; su número no se reasigna.
+
 ## Granularidad: un CU, un flujo
 
 Si una funcionalidad agrupa más de un flujo de usuario independiente, se
