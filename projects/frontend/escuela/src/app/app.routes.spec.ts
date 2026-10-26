@@ -1,4 +1,5 @@
 import { routes } from './app.routes'
+import { AsignacionAutosGestion } from './features/asignacion-autos/screens/asignacion-autos-gestion'
 import { EstudiantesGestion } from './features/estudiantes/screens/estudiantes-gestion'
 import { InstructoresGestion } from './features/instructores/screens/instructores-gestion'
 import { Inicio } from './inicio'
@@ -33,6 +34,15 @@ describe('app.routes (las del Administrador de escuela)', () => {
 
   it('es una sola ruta de instructores: el listado, el detalle, crear y editar viven dentro del panel', () => {
     expect(hijas.filter((r) => r.path?.startsWith('instructores'))).toHaveLength(1)
+  })
+
+  it('expone asignacion-autos como una sola subruta, con carga perezosa de su pantalla', async () => {
+    const asignacion = hija('asignacion-autos')
+
+    expect(asignacion).toBeDefined()
+    expect(asignacion?.component).toBeUndefined()
+    expect(await asignacion?.loadComponent?.()).toBe(AsignacionAutosGestion)
+    expect(hijas.filter((r) => r.path?.startsWith('asignacion-autos'))).toHaveLength(1)
   })
 
   it('sigue proveyendo HttpClient con el interceptor a nivel de la ruta raíz', () => {
