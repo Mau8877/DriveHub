@@ -41,10 +41,12 @@ import com.drivehub.identidad.domain.model.SexoPersona;
 import com.drivehub.identidad.domain.port.in.BuscarInstructoresComando;
 import com.drivehub.identidad.domain.port.in.BuscarInstructoresUseCase;
 import com.drivehub.identidad.domain.port.in.ConsultarInstructoresUseCase;
+import com.drivehub.identidad.domain.port.in.ConsultarNombresInstructoresUseCase;
 import com.drivehub.identidad.domain.port.in.CrearCuentaInstructorComando;
 import com.drivehub.identidad.domain.port.in.CrearCuentaInstructorUseCase;
 import com.drivehub.identidad.domain.port.in.EditarUbicacionInstructorUseCase;
 import com.drivehub.identidad.domain.port.in.PaginaPersonasInstructor;
+import com.drivehub.identidad.domain.port.in.NombreInstructor;
 import com.drivehub.identidad.domain.port.in.PersonaInstructor;
 import com.drivehub.identidad.domain.port.in.RevertirCuentaInstructorUseCase;
 import com.drivehub.identidad.infrastructure.config.SecurityConfig;
@@ -65,6 +67,8 @@ class InstructorCuentaControllerTest {
     private CrearCuentaInstructorUseCase crearCuenta;
     @MockitoBean
     private ConsultarInstructoresUseCase consultarInstructores;
+    @MockitoBean
+    private ConsultarNombresInstructoresUseCase consultarNombres;
     @MockitoBean
     private BuscarInstructoresUseCase buscarInstructores;
     @MockitoBean
@@ -102,6 +106,8 @@ class InstructorCuentaControllerTest {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(cuerpoCrear("")))
             .andExpect(status().isUnauthorized());
         mockMvc.perform(post(RUTA + "/consulta").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"codigos\":[\"" + INSTRUCTOR + "\"]}")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post(RUTA + "/nombres").contentType(MediaType.APPLICATION_JSON)
             .content("{\"codigos\":[\"" + INSTRUCTOR + "\"]}")).andExpect(status().isUnauthorized());
         mockMvc.perform(get(RUTA)).andExpect(status().isUnauthorized());
         mockMvc.perform(patch(RUTA + "/" + INSTRUCTOR + "/ubicacion").contentType(MediaType.APPLICATION_JSON)
@@ -162,6 +168,38 @@ class InstructorCuentaControllerTest {
         crear(cuerpoCrear("")).andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_IDE_01"));
         crear(cuerpoCrear("")).andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ERR_IDE_19"));
         crear(cuerpoCrear("")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_IDE_02"));
+    }
+
+    @Test
+    void nombres_devuelveSoloElCodigoYElNombre_yPasaElSolicitanteDeLaSesion() throws Exception {
+        when(consultarNombres.consultar(any(), any()))
+            .thenReturn(List.of(new NombreInstructor(INSTRUCTOR, "Ivan Alfa")));
+
+        mockMvc.perform(post(RUTA + "/nombres").with(sesion()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"codigos\":[\"" + INSTRUCTOR + "\"]}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.data[0].codigo").value(INSTRUCTOR.toString()))
+            .andExpect(jsonPath("$.data[0].nombreCompleto").value("Ivan Alfa"))
+            .andExpect(jsonPath("$.data[0].email").doesNotExist())
+            .andExpect(jsonPath("$.data[0].ci").doesNotExist())
+            .andExpect(jsonPath("$.data[0].telefono").doesNotExist());
+
+        verify(consultarNombres).consultar(ADMIN, List.of(INSTRUCTOR));
+    }
+
+    @Test
+    void nombres_sinCodigosOConMasDeCien_responde400ErrSys01() throws Exception {
+        String ciento1 = IntStream.range(0, 101).mapToObj(i -> "\"" + UUID.randomUUID() + "\"")
+            .collect(java.util.stream.Collectors.joining(","));
+
+        mockMvc.perform(post(RUTA + "/nombres").with(sesion()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"codigos\":[]}"))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        mockMvc.perform(post(RUTA + "/nombres").with(sesion()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"codigos\":[" + ciento1 + "]}"))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        verifyNoInteractions(consultarNombres);
     }
 
     @Test
