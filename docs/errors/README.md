@@ -83,6 +83,10 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_13`](escuela/ERRORES_ESCUELA.md#err_esc_13) — El instructor no existe en la escuela (404)
 - [`ERR_ESC_14`](escuela/ERRORES_ESCUELA.md#err_esc_14) — Una categoría del instructor no es válida (400)
 - [`ERR_ESC_15`](escuela/ERRORES_ESCUELA.md#err_esc_15) — El estudiante no es alumno de este instructor (404)
+- [`ERR_ESC_16`](escuela/ERRORES_ESCUELA.md#err_esc_16) — El auto ya tiene instructor asignado (409)
+- [`ERR_ESC_17`](escuela/ERRORES_ESCUELA.md#err_esc_17) — El auto no está disponible para asignarse (409)
+- [`ERR_ESC_18`](escuela/ERRORES_ESCUELA.md#err_esc_18) — El instructor no está activo (409)
+- [`ERR_ESC_19`](escuela/ERRORES_ESCUELA.md#err_esc_19) — El auto no tiene un instructor asignado (409)
 
 ### Pagos (`PAG`)
 

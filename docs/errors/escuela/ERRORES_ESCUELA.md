@@ -132,3 +132,39 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
   instructor, uno de otra escuela, uno cuya asignación ya terminó y un código inexistente responden igual: no
   se distingue "no existe" de "no es tuyo".
 - **Dónde se lanza:** `ConfirmarMiAlumnoUseCase.ejecutar()`
+
+## `ERR_ESC_16`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El auto ya tiene un instructor vigente (CU10). También se responde al cambiar el auto al
+  mismo instructor que ya lo usa, y si dos asignaciones simultáneas del mismo auto chocan con el índice único:
+  la segunda pierde.
+- **Dónde se lanza:** `AsignarVehiculoUseCase.ejecutar()`, `CambiarInstructorVehiculoUseCase.ejecutar()` y
+  `AsignacionVehiculoRepositoryImpl.abrir()`
+
+## `ERR_ESC_17`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El auto no está `DISPONIBLE` (está en mantenimiento o de baja), así que no se asigna ni se
+  cambia de instructor (CU10).
+- **Dónde se lanza:** `AsignarVehiculoUseCase.ejecutar()` y `CambiarInstructorVehiculoUseCase.ejecutar()`
+  (vía `ReglasAsignacionVehiculo.vehiculoDisponible()`)
+
+## `ERR_ESC_18`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El instructor no está `ACTIVO` (está de licencia o inactivo), así que no se le asigna un
+  auto (CU10).
+- **Dónde se lanza:** `AsignarVehiculoUseCase.ejecutar()` y `CambiarInstructorVehiculoUseCase.ejecutar()`
+  (vía `ReglasAsignacionVehiculo.instructorActivo()`)
+
+## `ERR_ESC_19`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El auto no tiene un instructor vigente, así que no hay nada que cambiar ni liberar (CU10).
+- **Dónde se lanza:** `CambiarInstructorVehiculoUseCase.ejecutar()` y `LiberarVehiculoUseCase.ejecutar()`
+  (vía `ReglasAsignacionVehiculo.exigirVigente()`)
