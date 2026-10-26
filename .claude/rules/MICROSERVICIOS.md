@@ -98,6 +98,8 @@ existen son:
 | Pagos → Identidad | Consultar el perfil del estudiante que compra, para copiar su nombre y el de su escuela al pago (reenvía el Bearer del estudiante) | CU26 |
 | Pagos → Escuela | Consultar los alumnos asignados al instructor y si un estudiante es suyo (reenvía el Bearer del instructor) | CU29 |
 | Pagos → Identidad | Consultar el nombre de un conjunto de estudiantes, para mostrar a los alumnos del instructor sin guardar sus datos (reenvía el Bearer del instructor) | CU29 |
+| Académico → Pagos | Consultar el saldo de la billetera, descontar una hora al reservar una clase y devolverla si la reserva no se completa (reenvía el Bearer del estudiante) | CU14 |
+| Académico → Identidad | Consultar el nombre de un conjunto de instructores de la escuela, para mostrarlos en las franjas y en las clases del estudiante (reenvía el Bearer del estudiante) | CU14 |
 
 Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
 Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque
@@ -111,6 +113,11 @@ algo falla, **compensa** (libera la franja, revierte el pago). Diseño y
 decisión pendiente (quién es el dueño del estado de la saga) en
 [`docs/DriveHub/SAGA_RESERVA_PAGO.md`](../../docs/DriveHub/SAGA_RESERVA_PAGO.md).
 No se implementa nada de la saga fuera de CU44.
+
+**Excepción: reservar con horas (CU14).** Con la billetera de horas, reservar una clase es descontar
+una hora de Pagos, no un cobro asíncrono. Ese flujo es una saga simple coordinada por Académico (apartar la
+franja, descontar la hora, compensar liberando y devolviendo si falla), con la reserva como registro de su
+estado: no usa el orquestador, la tabla `SagaEstado` ni eventos de este diseño.
 
 ### Contrato común, sin importar el stack
 

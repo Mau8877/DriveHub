@@ -3,60 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/widgets/estado_vacio.dart';
 import '../../auth/providers/sesion_provider.dart';
+import 'clases_estudiante_screen.dart';
 
-enum _Vista { proximas, historial }
-
-/// Clases del estudiante ("Próximas" e "Historial") o agenda del día del instructor (pestaña
-/// "Clases" / "Agenda" del `UsuarioShell`).
+/// La pestaña «Clases» (estudiante) o «Agenda» (instructor) del `UsuarioShell`.
 ///
-/// * Las clases son de los casos de uso de Académico: hasta que existan, la lista es un estado
-/// * vacío con el diseño final (selector, tarjeta).
-class ClasesScreen extends ConsumerStatefulWidget {
+/// * El estudiante ve sus tres pestañas (CU14): [ClasesEstudianteScreen].
+/// * La agenda del instructor es de los casos de uso de Académico que le siguen (CU16): hasta que existan, es un
+/// * estado vacío con el diseño final.
+class ClasesScreen extends ConsumerWidget {
   const ClasesScreen({super.key});
 
   @override
-  ConsumerState<ClasesScreen> createState() => _ClasesScreenState();
-}
-
-class _ClasesScreenState extends ConsumerState<ClasesScreen> {
-  _Vista _vista = _Vista.proximas;
-
-  @override
-  Widget build(BuildContext context) {
-    final esInstructor =
-        ref.watch(sesionProvider).usuario?.roles.contains('INSTRUCTOR') ?? false;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final esInstructor = ref.watch(sesionProvider).usuario?.roles.contains('INSTRUCTOR') ?? false;
+    if (!esInstructor) return const ClasesEstudianteScreen();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-      children: [
-        if (!esInstructor) ...[
-          SegmentedButton<_Vista>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: _Vista.proximas, label: Text('Próximas')),
-              ButtonSegment(value: _Vista.historial, label: Text('Historial')),
-            ],
-            selected: {_vista},
-            onSelectionChanged: (elegida) =>
-                setState(() => _vista = elegida.first),
-          ),
-          const SizedBox(height: 16),
-        ],
+      children: const [
         Card(
           child: EstadoVacio(
-            icono: esInstructor
-                ? Icons.event_available_outlined
-                : Icons.calendar_today_outlined,
-            titulo: esInstructor
-                ? 'No tienes clases hoy'
-                : _vista == _Vista.proximas
-                ? 'No tienes clases próximas'
-                : 'Todavía no tienes historial',
-            texto: esInstructor
-                ? 'Cuando te asignen clases, aparecerán acá con su hora y su alumno.'
-                : _vista == _Vista.proximas
-                ? 'Las clases que reserves aparecerán acá.'
-                : 'Tus clases pasadas aparecerán acá.',
+            icono: Icons.event_available_outlined,
+            titulo: 'No tienes clases hoy',
+            texto: 'Cuando te asignen clases, aparecerán acá con su hora y su alumno.',
           ),
         ),
       ],

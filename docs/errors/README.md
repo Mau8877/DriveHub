@@ -123,6 +123,10 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_14`](academico/ERRORES_ACADEMICO.md#err_aca_14) — La pregunta no existe en la escuela (404)
 - [`ERR_ACA_15`](academico/ERRORES_ACADEMICO.md#err_aca_15) — La pregunta ya estaba en ese estado (409)
 - [`ERR_ACA_16`](academico/ERRORES_ACADEMICO.md#err_aca_16) — El token no trae la escuela de la cuenta (403)
+- [`ERR_ACA_17`](academico/ERRORES_ACADEMICO.md#err_aca_17) — Pagos o Identidad no responden al reservar o consultar clases (503)
+- [`ERR_ACA_18`](academico/ERRORES_ACADEMICO.md#err_aca_18) — La franja ya no está disponible para reservar (409)
+- [`ERR_ACA_19`](academico/ERRORES_ACADEMICO.md#err_aca_19) — El estudiante no tiene horas suficientes para reservar la franja (409)
+- [`ERR_ACA_20`](academico/ERRORES_ACADEMICO.md#err_aca_20) — El estudiante ya tiene una clase reservada a esa hora (409)
 
 ### Contenido (`CON`)
 

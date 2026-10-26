@@ -7,7 +7,8 @@ se conectan Pagos y las reservas. Está escrito para leerse de arriba abajo, sin
 > 1. Hoy el estudiante **paga dinero una sola vez**, al comprar un plan de horas. Esas horas van a una **billetera**.
 > 2. Reservar una clase **ya no cobra dinero**: **gasta horas** de esa billetera.
 > 3. Reservar toca dos servicios (Académico y la billetera de Pagos) con bases distintas, así que hace falta una
->    **saga**: una receta de pasos con «paso para deshacer». Es el CU44, pero **más chico** que como se diseñó al inicio.
+>    **saga**: una receta de pasos con «paso para deshacer». Leonel ya la resolvió **simple**, dentro de Académico
+>    (CU14), sin orquestador aparte. Lo que queda por decidir es qué hacer con el CU44 (sección 7).
 
 Documentos relacionados: [CONTRATO_BILLETERA_HORAS.md](CONTRATO_BILLETERA_HORAS.md) (las rutas exactas que usa
 Académico) y [SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md) (el diseño original de la saga, hoy desactualizado).
@@ -183,74 +184,55 @@ RESERVANDO ──▶ HORAS_DESCONTADAS ──▶ CONFIRMADA
 | --- | --- | --- |
 | Consultar saldo, descontar y devolver horas, con idempotencia | **Hecho** | Pagos (`/api/v1/billeteras-horas/...`) |
 | Rechazo si no hay horas (`ERR_PAG_09`) | **Hecho** | Pagos |
-| Campo `sagaCodigo` en `pago`, `reversion_pago` y `Reserva` | Existe, **nadie lo usa** | Pagos y Académico |
-| Reservar la franja (CU14) | **Falta** | Académico |
-| Llamar a la billetera al reservar y al cancelar | **Falta** | Académico |
-| Registrar el estado de la saga y reintentar | **Falta** | Por decidir |
-| Detectar reservas atascadas (un job) | **Falta** | Por decidir |
-| Publicar eventos a RabbitMQ (hoy se guardan en `outbox_evento` y nadie los publica) | **Falta**, solo si se eligen eventos | Pagos |
+| Reservar descontando una hora, con la saga simple (CU14) | **Hecho / en curso** (rama de Leonel) | Académico |
+| Devolver la hora al cancelar la clase (CU15) | Pendiente | Académico |
+| Campo `sagaCodigo` en `pago` y `reversion_pago` | Existe, **nadie lo usa** | Pagos |
+| Orquestador aparte y tabla `SagaEstado` (diseño original del CU44) | **No se hizo** | — |
+| Publicar eventos a RabbitMQ (hoy se guardan en `outbox_evento` y nadie los publica) | Falta, solo si se eligen eventos | Pagos |
 
-Del lado de **Pagos no hace falta nada nuevo** para una saga basada en la billetera: ya ofrece todo lo que Académico
-necesita. El trabajo está en Académico.
+Del lado de **Pagos no hizo falta nada nuevo**: ya ofrecía todo lo que Académico necesita.
 
 ---
 
-## 6. Decisiones que hay que tomar (Mauro y Leonel)
+## 6. Lo que ya se acordó (Mauro y Leonel)
 
-### 6.1. ¿Cuándo se descuentan las horas?
+Estas eran las preguntas abiertas de este documento. Leonel las resolvió al implementar el CU14, y coinciden con lo que
+se había propuesto. El detalle está en [CONTRATO_BILLETERA_HORAS.md](CONTRATO_BILLETERA_HORAS.md#acordado-con-leonel-cu14).
 
-| Opción | Cómo funciona | A favor | En contra |
-| --- | --- | --- | --- |
-| **Al reservar** (recomendada) | Reservar descuenta las horas; cancelar las devuelve | La franja y las horas quedan atadas desde el inicio; nadie reserva sin tener horas | Si el estudiante no va, hay que decidir qué pasa con las horas |
-| **Al dar la clase** | Reservar solo comprueba el saldo; las horas se descuentan al terminar la clase | Más natural para el estudiante | Puede reservar varias clases con las mismas horas |
+| Pregunta | Decisión |
+| --- | --- |
+| ¿Cuándo se descuentan las horas? | **Al reservar** la clase, no al darla |
+| ¿Cómo se comunican Académico y Pagos? | **REST síncrono**, con el Bearer del estudiante |
+| ¿Quién guarda el estado de la saga? | **Académico**: la reserva `PENDIENTE_PAGO` es el registro del estado |
+| ¿Qué pasa si Pagos no responde al descontar? | La reserva falla y la franja queda libre. Académico pide devolver la hora por si el descuento sí ocurrió (`404 ERR_PAG_16` = no había nada que devolver). Si tampoco puede devolver, la reserva queda a medias y se retoma repitiendo el descuento **con la misma clave** |
+| ¿Cuántas horas cuesta una clase? | **1**, sin importar la duración de la franja (`app.reservas.horas-por-clase`) |
+| Claves de idempotencia | `reserva-{codigoReserva}` para descontar y `devolucion-{codigoReserva}` para devolver |
 
-### 6.2. ¿Cómo se comunican Académico y Pagos?
-
-| Opción | A favor | En contra |
-| --- | --- | --- |
-| **REST directo** (recomendada para empezar) | Simple, la respuesta es inmediata, ya está implementado en Pagos | Si Pagos no responde hay que reintentar |
-| **Eventos por RabbitMQ** | Más desacoplado | Hay que implementar la publicación del outbox y los consumidores idempotentes: bastante más trabajo |
-
-### 6.3. ¿Quién guarda el estado de la saga?
-
-Con la billetera **ya no hace falta un servicio orquestador aparte ni una tabla en DynamoDB**.
-
-| Opción | A favor | En contra |
-| --- | --- | --- |
-| **Dentro de Académico** (recomendada) | Es quien inicia la reserva y quien tiene el estado que hay que deshacer; no suma servicios | La lógica de la saga convive con la agenda |
-| Dentro de Pagos | Pagos ya compensa dinero | Pagos tendría que conocer las reservas, que no son suyas |
-| Servicio nuevo | Responsabilidad aislada | Un microservicio más para tan poca lógica |
-
-### 6.4. ¿Qué hace Académico si Pagos no responde al descontar?
-
-- **Reintentar** con la misma clave (es seguro: no descuenta dos veces) y, si sigue sin responder, dejar la reserva
-  en un estado intermedio y que un job la complete o la cancele.
-- **Fallar la reserva** de inmediato y liberar la franja. Más simple, pero hay que estar seguro de que no se descontó:
-  consultar antes de liberar, o devolver con la misma clave.
-
-### 6.5. ¿Qué pasa con las horas si el estudiante no va a la clase?
-
-Es una regla de negocio, no técnica: ¿se pierden, se devuelven, las decide el instructor? Hay que definirla antes de
-escribir la saga.
+Es exactamente la «saga simple» de la sección 4: dos pasos, cada uno con su paso para deshacer, coordinada por una clase
+de Académico, **sin servicio orquestador y sin tabla `SagaEstado`**. Una reserva interrumpida se retoma cuando el
+estudiante consulta sus clases.
 
 ---
 
-## 7. Propuesta
+## 7. Lo que sigue pendiente
 
-1. Reservar **descuenta las horas al reservar**; cancelar las **devuelve**.
-2. Comunicación por **REST directo** con clave de idempotencia (el contrato ya existe).
-3. El estado de la saga lo guarda **Académico**, en MongoDB, en la propia reserva (`sagaCodigo` ya está).
-4. Si Pagos no responde: **reintentar con la misma clave**; un job revisa las reservas que llevan demasiado tiempo
-   sin confirmar y las completa o las cancela.
-5. Pagos no cambia. Si más adelante se quieren eventos, se agrega la publicación del outbox.
+1. **El CU44 como estaba escrito ya no tiene sentido.** Su diseño (QR por reserva, `SagaEstado` en DynamoDB, orquestador
+   propio) quedó reemplazado por el CU14. Mauro, dueño del CU44, tiene que decidir una de dos cosas:
+   - **Retirarlo**: la saga ya vive dentro del CU14.
+   - **Redefinirlo** para lo que el CU14 no cubre: un **job** que revise las reservas que llevan demasiado tiempo en
+     `PENDIENTE_PAGO` y las complete o las cancele, en vez de esperar a que el estudiante consulte sus clases.
+2. **La regla de negocio de siempre:** si el estudiante reservó y **no va a la clase**, ¿se pierde la hora, se
+   devuelve, o lo decide el instructor? No es técnica y todavía no está definida.
+3. **CU15 (cancelar):** si devuelve la hora por REST síncrono (como se hace ahora) o por eventos de RabbitMQ.
+4. Si se eligen eventos, hay que **implementar la publicación del outbox** de Pagos, que hoy solo guarda los eventos.
 
 ## 8. Qué hay que hacer después de decidir
 
-- Reescribir [SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md) y el CU44 con la decisión tomada (hoy hablan de QR y de
-  `reversion_pago` por reserva).
-- Actualizar el contrato en [CONTRATO_BILLETERA_HORAS.md](CONTRATO_BILLETERA_HORAS.md): su sección «Pendiente de acordar
-  con Leonel» se cierra con lo que se decida acá.
-- Escribir las UT: primero el CU14 (reservar la franja) y luego el CU44 (la saga) en Académico.
+- Reescribir [SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md) y el CU44 con lo que se decida (o marcarlos como retirados).
+- Si se redefine el CU44 como job de reservas atascadas, escribir sus UT en Académico.
+- Actualizar [MICROSERVICIOS.md](../../.claude/rules/MICROSERVICIOS.md#saga-reserva-pago-cu44) con el resultado.
+
+---
 
 ## 9. Glosario rápido
 
