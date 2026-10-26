@@ -1,6 +1,7 @@
 package com.drivehub.escuela.infrastructure.persistence.model;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -39,4 +40,15 @@ public class AsignacionVehiculoModel extends BaseModel {
     @Setter
     @Column(name = "fecha_fin")
     private LocalDate fechaFin;
+
+    /** El `codigo` lo genera el caso de uso: la fila nace con el código que ya tiene la entidad. */
+    public AsignacionVehiculoModel(UUID codigo, VehiculoModel vehiculo, InstructorModel instructor,
+            LocalDate fechaInicio) {
+        if (codigo != null) {
+            asignarCodigo(codigo);
+        }
+        this.vehiculo = vehiculo;
+        this.instructor = instructor;
+        this.fechaInicio = fechaInicio;
+    }
 }
