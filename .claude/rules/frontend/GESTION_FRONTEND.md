@@ -71,6 +71,16 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
   drawer sin formulario ni "Guardar", con secciones de campos (`texto`, `fecha`, `insignia`; un valor
   vacío se muestra "—") y un solo botón "Cerrar". Sirve para mostrar un registro sin ofrecer editarlo.
 - **Confirmar** una acción (`confirmar` en el esquema) abre un **diálogo**, no una fila inline.
+- **Acción con formulario** (`formulario` en la acción): pide datos antes de enviarse (ej. elegir un instructor y una
+  fecha). Abre el mismo drawer de crear y editar con las secciones de la acción y, al enviar, llama a la `ruta` y el
+  `metodo` de la acción con el cuerpo del formulario. Un código de `erroresDeCampo` sale bajo su campo; un error de
+  negocio del backend sin campo (4xx con código) se muestra con su mensaje en el panel. Gana sobre `confirmar`.
+- **Detalle en forma de lista** (`detalle.lista`): para mostrar varias filas de un registro (ej. el historial de un
+  auto). La respuesta de `cargar` es un **arreglo** y el panel dibuja una tarjeta por fila con las `columnas` de la
+  lista (`secciones` va como `[]`); sin filas, el mensaje `vacio`.
+- **Texto de vacío** (`vacioTexto` en una columna o dato): lo que se muestra cuando el valor es nulo o está vacío
+  (ej. "Sin asignar", "Vigente"). Una condición `visibleSi` con `igual: null` / `distinto: null` significa "sin valor" /
+  "con algún valor" (también cuenta que el campo no venga en la respuesta).
 - **Avisos** de éxito o error como toast abajo a la derecha, que se va solo.
 
 ## El esquema
