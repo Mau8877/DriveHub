@@ -62,6 +62,19 @@ Hace falta (1) una cuenta de estudiante de `escuelaexample` con horas (comprarla
 - **Cargar más** franjas si un día supera las 100.
 - **Recordatorio** de la próxima clase en Inicio (hoy `InicioScreen` tiene un estado vacío) y notificaciones (CU37, CU38).
 
+## Notas de implementación
+
+Lo que quedó distinto o más preciso al implementar (vale lo de acá sobre lo que digan las fichas):
+
+- **`SaldoHorasChip` NO se movió a `shared/widgets/`** (UT 04 y decisión 4): ese chip lee `saldoHorasProvider`, que es de `features/pagos/`, y `shared/` no puede importar de `features/` (regla de dependencia de ARQUITECTURA_MOBILE.md). Se queda en `pagos/widgets/` y la sección «Clases» lee el mismo `saldoHorasProvider` desde `HorasDisponiblesBanner`.
+- **El filtro de instructor son chips, no una lista desplegable** (UT 06 y decisión 6): «Todos los instructores» y un chip por instructor en una fila que se desliza. Un escuela tiene pocos instructores y los chips se prueban y se usan mejor con una mano. Si el número de instructores crece, se pasa a una lista.
+- **`HorasDisponiblesBanner` no usa `AppMotion`:** no existe en el tema; la animación del número es un `AnimatedSwitcher` de 200 ms.
+- **`.value` de un `AsyncValue` en error lanza** (Riverpod 3): el indicador y las pestañas leen con `maybeWhen`, para que un saldo caído muestre «– h» en vez de romper la pantalla.
+- **Los botones rellenos tienen ancho infinito en el tema:** dentro de una fila van en un `Expanded` (la barra «Confirmar (N)» y los botones del resumen).
+- **La barra «Confirmar» la pone `ClasesEstudianteScreen`** (fija abajo, fuera de la lista que se desliza) y solo en la pestaña «Reservar».
+- **«Reintentar las que fallaron»** deja elegidas de nuevo las franjas rechazadas con `ERR_ACA_17`; las toma de las que el resumen guardó antes de confirmar (al terminar la selección se vacía).
+- **Reuso entre features:** los modelos de `clases` usan `horarios/models/fechas.dart` (mismos formatos que CU12) y los providers leen `pagos/providers/saldo_horas_provider.dart`; la relación de negocio entre las features lo justifica.
+
 ## Qué NO incluyen estas UT
 
 - Cancelación, reprogramación, asistencia ni calendario (CU15, CU16, CU17).

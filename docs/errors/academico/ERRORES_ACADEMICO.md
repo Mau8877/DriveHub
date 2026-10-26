@@ -139,3 +139,41 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
   (`sub`) no es un código válido, así que no hay escuela sobre la cual operar (CU19). Un Administrador de
   escuela siempre los trae.
 - **Dónde se lanza:** `PreguntaController.escuelaDe()` y `PreguntaController.autorDe()`
+
+## `ERR_ACA_17`
+
+- **HTTP:** 503
+- **Excepción:** `ServicioNoDisponibleException`
+- **Significado:** Un servicio del que depende la operación no responde o responde algo inesperado: Pagos
+  (saldo, descontar o devolver una hora) o Identidad (nombre de los instructores). Se puede reintentar más tarde
+  (CU14). Al confirmar varias reservas viaja como motivo de la franja afectada, no como respuesta de toda la
+  petición, y esa franja queda libre.
+- **Dónde se lanza:** `PagosClient` (`saldo()`, `descontar()`, `devolver()`) e `IdentidadClient`
+  (`nombresDeInstructores()`)
+
+## `ERR_ACA_18`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Al reservar, la franja ya no está libre (otro estudiante la reservó antes, el instructor la
+  bloqueó o la quitó), no existe o no es de la escuela del estudiante. No se distingue entre esos casos para no
+  revelar qué franjas hay en otras escuelas (CU14). Viaja como motivo de esa franja dentro de `rechazadas`; las
+  demás franjas de la misma petición siguen su curso.
+- **Dónde se lanza:** `ReservaService.procesar()`
+
+## `ERR_ACA_19`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Al reservar, Pagos informa que el estudiante no tiene horas suficientes (`ERR_PAG_09`),
+  por ejemplo porque las gastó en otras franjas de la misma petición o en otro dispositivo (CU14). La franja
+  queda libre y no se descuenta nada. Viaja como motivo de esa franja dentro de `rechazadas`.
+- **Dónde se lanza:** `ReservaService.procesar()`
+
+## `ERR_ACA_20`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Al reservar, el estudiante ya tiene otra clase reservada a la misma fecha y hora de inicio,
+  aunque sea con otro instructor (CU14). Viaja como motivo de esa franja dentro de `rechazadas`.
+- **Dónde se lanza:** `ReservaService.procesar()`

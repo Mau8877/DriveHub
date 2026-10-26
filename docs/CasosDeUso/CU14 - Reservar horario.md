@@ -2,7 +2,7 @@
 
 | Id   | Nombre           | Paquete               | Prioridad | Estado    |
 | ---- | ---------------- | --------------------- | --------- | --------- |
-| CU14 | Reservar horario | P3. Clases y horarios | Alta      | Pendiente |
+| CU14 | Reservar horario | P3. Clases y horarios | Alta      | En progreso |
 
 **Actor principal:** Estudiante
 **Actores secundarios:** Pagos (descuenta las horas del estudiante), Identidad (nombres de los instructores)
@@ -77,7 +77,7 @@ En la sección "Clases" de la app, el estudiante ve siempre cuántas horas tiene
 - **Sin solapes:** un estudiante no puede tener dos clases reservadas a la misma fecha y hora, aunque sean de instructores distintos.
 - **Una hora de la billetera nunca se descuenta dos veces por la misma reserva:** cada descuento lleva una clave propia de la reserva, así que reintentar (por mala red o al retomar una reserva interrumpida) devuelve el mismo resultado.
 - **Estados de la reserva:** nace `PENDIENTE_PAGO` mientras se descuenta la hora, pasa a `CONFIRMADA` al lograrlo y a `CANCELADA` si no se pudo. `COMPLETADA` y `NO_ASISTIO` los registra el instructor (CU17); la cancelación por parte del estudiante es de CU15. Una reserva `PENDIENTE_PAGO` no se muestra al estudiante.
-- **Mis clases** muestra las reservas `CONFIRMADA` que todavía no terminaron, de la más próxima a la más lejana. **Historial** muestra las `COMPLETADA`, `NO_ASISTIO`, `CANCELADA` y las `CONFIRMADA` que ya terminaron (estas como "Pendiente de cierre"), de la más reciente a la más antigua.
+- **Mis clases** muestra las reservas `CONFIRMADA` que todavía no terminaron, de la más próxima a la más lejana. **Historial** muestra las `COMPLETADA`, `NO_ASISTIO`, las `CANCELADA` que alguna vez estuvieron confirmadas y las `CONFIRMADA` que ya terminaron (estas como "Pendiente de cierre"). Una reserva que nunca logró confirmarse (sin horas, Pagos caído) no fue una clase del estudiante y no aparece, de la más reciente a la más antigua.
 - **El indicador de horas** vive en la pantalla de Clases del estudiante. Mientras elige franjas muestra «disponibles → las que quedarían» (solo visual, no reserva nada ni descuenta); al confirmar se actualiza con el saldo real que informa Pagos.
 - **Filtros:** día (una fecha), momento del día (mañana: antes de las 12:00; tarde: desde las 12:00 hasta antes de las 18:00; noche: desde las 18:00) e instructor. Sin día, se muestran los próximos días de forma paginada.
 - **Instructor visible:** el estudiante ve el nombre del instructor, nunca su código interno ni su cuenta. Los nombres los entrega Identidad ([MICROSERVICIOS.md](../../.claude/rules/MICROSERVICIOS.md#comunicación)).

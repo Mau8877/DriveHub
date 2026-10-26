@@ -1,5 +1,12 @@
 # Saga reserva-pago (CU44)
 
+> **Nota (CU14, reservar con horas).** Este diseño es de cuando cada reserva se pagaba con su propio cobro (pago
+> `PENDIENTE`, QR, aviso de la pasarela). Con la billetera de horas (CU26 a CU31) reservar es **descontar una hora**
+> con una llamada síncrona e idempotente a Pagos, y el flujo del CU14 es una saga simple coordinada por Académico:
+> la reserva `PENDIENTE_PAGO` es el registro del estado, la compensación es liberar la franja y devolver la hora, y
+> una reserva interrumpida se retoma cuando el estudiante consulta sus clases. No usa el orquestador ni `SagaEstado`
+> de abajo. Lo que sigue queda como referencia hasta que Mauro decida si el CU44 se redefine o se retira.
+
 ## Qué problema resuelve
 
 Reservar una clase y pagarla toca **dos microservicios con bases

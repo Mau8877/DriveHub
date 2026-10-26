@@ -23,7 +23,7 @@ Las tomó este desglose porque el CU no las resolvía; si alguna no convence, se
 8. **Nombres de instructor con una consulta mínima a Identidad (UT 01):** `POST /api/v1/usuarios/instructores/nombres` devuelve solo `codigo` y `nombreCompleto` de los instructores de la escuela de quien pregunta, y la pueden llamar el Estudiante y el Instructor. No se reutiliza `/instructores/consulta` (solo Administrador) porque devuelve CI, correo y teléfono, que un estudiante no debe ver. Académico no guarda nombres: los pide por lotes de hasta 100 y los une a la respuesta.
 9. **Autorización en el servicio** con `@PreAuthorize("hasRole('ESTUDIANTE')")`; el estudiante y su escuela salen del token (`@CurrentUserId`, `@CurrentEscuelaId`). Una reserva de otro estudiante nunca aparece en sus listados.
 10. **Filtros de franjas:** `filter[fecha]` (un día) o `filter[fechaDesde]`/`filter[fechaHasta]` (hasta 28 días, el horizonte de generación), `filter[instructor]` (código), `filter[horaDesde]` y `filter[horaHasta]` (`HH:mm`, sobre la hora de inicio, `horaDesde` inclusiva y `horaHasta` exclusiva). La app traduce mañana/tarde/noche a `00:00–12:00`, `12:00–18:00` y `18:00–24:00` (la noche sin `horaHasta`). Sin fechas, desde hoy. Orden fijo: fecha, hora de inicio.
-11. **Mis clases e Historial son una sola consulta con `filter[vista]`:** `proximas` (confirmadas que no terminaron, ascendente) o `historial` (resto, descendente). Se calcula con la fecha y `horaFin` de la reserva (copia de la franja). Las `PENDIENTE_PAGO` no se listan.
+11. **Mis clases e Historial son una sola consulta con `filter[vista]`:** `proximas` (confirmadas que no terminaron, ascendente) o `historial` (resto, descendente; una `CANCELADA` entra solo si alguna vez estuvo `CONFIRMADA`, porque la que nunca logró confirmarse no fue una clase del estudiante). Se calcula con la fecha y `horaFin` de la reserva (copia de la franja). Las `PENDIENTE_PAGO` no se listan.
 12. **El saldo final sale de Pagos:** al terminar, Académico pide `GET /billeteras-horas/mia` con el token del estudiante y lo devuelve como `horasDisponibles`. Si esa lectura falla, la respuesta lleva `horasDisponibles: null` y la app lo vuelve a pedir; las reservas ya hechas no se deshacen.
 13. **Errores nuevos (siguiente libre `ERR_ACA_17`):** `ERR_ACA_17` (503), `ERR_ACA_18`, `ERR_ACA_19`, `ERR_ACA_20` (409). Los tres 409 viajan como `error` dentro de cada franja rechazada y no como respuesta HTTP de toda la petición. Cada uno se documenta en `docs/errors/academico/` en la UT que lo introduce.
 
@@ -119,6 +119,18 @@ Se reutilizan `ERR_ACA_10` (la franja ya empezó o pasó) y `ERR_ACA_16` (token 
 - **Limitar instructores por alumno** y asignar vehículo (CU10, CU11).
 - **Retirar la saga reserva-pago** de [SAGA_RESERVA_PAGO.md](../../../DriveHub/SAGA_RESERVA_PAGO.md) y el modelo `SolicitudClase` cuando se confirme que no se usan; avisar a Mauro (dueño de CU44).
 - **Notificar al instructor** de una reserva nueva (CU37, CU38).
+
+## Notas de implementación
+
+Lo que quedó distinto o más preciso al implementar (vale lo de acá sobre lo que digan las fichas):
+
+- **`ReservaService.reservar` devuelve el DTO** (`ReservasResultadoResponse`), no un resultado interno: el service une los nombres de los instructores y arma la respuesta, y el controller solo la envuelve. Lo mismo `listar` (devuelve `Page<ReservaResponse>`). No hay un `ReservaMapper` aparte.
+- **Los nombres de instructor faltan con un valor de respaldo, no con un error, al reservar:** si Identidad no responde cuando la reserva ya está hecha, el instructor se muestra como «Instructor» y nada se deshace. En los listados (franjas, mis clases, historial) sí es `503 ERR_ACA_17`.
+- **El historial no muestra las canceladas que nunca se confirmaron:** una reserva que falló al reservar (sin horas, Pagos caído) queda `CANCELADA` como registro del intento, pero no fue una clase del estudiante. El repositorio solo incluye una `CANCELADA` si su `historialEstados` contiene `CONFIRMADA` (decisión que salió de la prueba de punta a punta).
+- **La reserva repetida es inocua:** pedir otra vez una franja que ya es del estudiante y está `CONFIRMADA` cuenta como reservada sin descontar de nuevo (`ReservaRepository.findByFranjaIdAndEstudianteCodigoAndEstadoAndDeletedAtIsNull`).
+- **`app.reservas.minutos-para-retomar=2`** es la tercera propiedad de `ReservasProperties` (junto a `horas-por-clase` y `maximo-por-confirmacion`).
+- **Docker/Testcontainers en Windows:** los tests contra MongoDB real quedan `SKIPPED` con el socket restringido de Docker Desktop (ver TESTING_BACKEND.md). Se verificaron corriéndolos contra el Mongo del compose con una base temporal (`academico_ut_tmp`, borrada al terminar).
+- **`PAGOS_URL` en `docker-compose.yml`:** hay que recrear el contenedor (`docker compose up -d academico`); un `restart` no toma la variable.
 
 ## Qué NO incluyen estas UT
 
