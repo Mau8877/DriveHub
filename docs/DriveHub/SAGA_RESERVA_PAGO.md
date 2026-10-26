@@ -1,5 +1,9 @@
 # Saga reserva-pago (CU44)
 
+> **Desactualizado:** este diseño supone que cada reserva se paga con dinero (un QR por reserva). Con la billetera de
+> horas, reservar **gasta horas**, no dinero. Lo vigente y las decisiones pendientes están en
+> [FLUJO_PAGOS_HORAS_Y_RESERVAS.md](FLUJO_PAGOS_HORAS_Y_RESERVAS.md). Este documento se reescribe cuando se decida.
+
 ## Qué problema resuelve
 
 Reservar una clase y pagarla toca **dos microservicios con bases

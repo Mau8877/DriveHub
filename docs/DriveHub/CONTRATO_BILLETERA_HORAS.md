@@ -57,6 +57,9 @@ La escuela sale siempre del token. Todas responden con el sobre estándar.
 
 ## Pendiente de acordar con Leonel
 
+> La explicación completa, con ejemplos y una propuesta, está en
+> [FLUJO_PAGOS_HORAS_Y_RESERVAS.md](FLUJO_PAGOS_HORAS_Y_RESERVAS.md).
+
 - Si la reserva (CU14/CU44) descuenta las horas al reservar o al dar la clase, y qué pasa con el diseño de la saga
   reserva-pago ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)): con la billetera, "pagar una reserva" pasa a ser
   "descontar horas". Puede cambiar el CU44.
