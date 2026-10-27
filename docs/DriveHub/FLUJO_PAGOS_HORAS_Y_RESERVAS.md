@@ -216,21 +216,21 @@ estudiante consulta sus clases.
 
 ## 7. Lo que sigue pendiente
 
-1. **El CU44 como estaba escrito ya no tiene sentido.** Su diseño (QR por reserva, `SagaEstado` en DynamoDB, orquestador
-   propio) quedó reemplazado por el CU14. Mauro, dueño del CU44, tiene que decidir una de dos cosas:
-   - **Retirarlo**: la saga ya vive dentro del CU14.
-   - **Redefinirlo** para lo que el CU14 no cubre: un **job** que revise las reservas que llevan demasiado tiempo en
-     `PENDIENTE_PAGO` y las complete o las cancele, en vez de esperar a que el estudiante consulte sus clases.
-2. **La regla de negocio de siempre:** si el estudiante reservó y **no va a la clase**, ¿se pierde la hora, se
-   devuelve, o lo decide el instructor? No es técnica y todavía no está definida.
-3. **CU15 (cancelar):** si devuelve la hora por REST síncrono (como se hace ahora) o por eventos de RabbitMQ.
-4. Si se eligen eventos, hay que **implementar la publicación del outbox** de Pagos, que hoy solo guarda los eventos.
+1. **CU44: decidido.** Se **redefine** como [Orquestar clases y horas](../CasosDeUso/CU44%20-%20Orquestar%20clases%20y%20horas.md):
+   un job de Académico que retoma las reservas, cancelaciones y reprogramaciones a medias, sin esperar al estudiante.
+   Sin servicio nuevo y sin `SagaEstado`. El job se identifica ante Pagos con un secreto compartido y endpoints
+   internos, no con JWT. Según su edad, **completa** una reserva reciente o la **deshace** si ya es vieja (devuelve la hora, libera la franja y cancela). Si Pagos no responde, reintenta sin límite: solo las causas propias llevan a la revisión manual. Detalle en [SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md).
+2. **El estudiante que no asiste pierde la hora** (decidido).
+3. **CU15 (cancelar y reprogramar):** devuelve la hora por REST síncrono, igual que ahora, no por eventos, y reutiliza la
+   operación «deshacer una reserva» que construye el CU44 en Académico. Falta documentar el CU15, con sus reglas
+   (plazo para cancelar con devolución, cancelación tardía, quién puede cancelar y cuántas veces reprogramar).
+4. Los eventos de RabbitMQ no se usan, así que no hace falta publicar el outbox de Pagos por ahora.
 
-## 8. Qué hay que hacer después de decidir
+## 8. Qué hay que hacer ahora
 
-- Reescribir [SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md) y el CU44 con lo que se decida (o marcarlos como retirados).
-- Si se redefine el CU44 como job de reservas atascadas, escribir sus UT en Académico.
-- Actualizar [MICROSERVICIOS.md](../../.claude/rules/MICROSERVICIOS.md#saga-reserva-pago-cu44) con el resultado.
+- Implementar las UT del CU44 (13, de Pagos, gateway, infra y Académico): primero las de Pagos, después las de Académico.
+  Los flujos de cancelar y reprogramar interrumpidos (S2 y S3) esperan a CU15.
+- Documentar el CU15.
 
 ---
 
