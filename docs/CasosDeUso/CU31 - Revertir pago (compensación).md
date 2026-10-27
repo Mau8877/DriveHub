@@ -2,7 +2,7 @@
 
 | Id   | Nombre                            | Paquete   | Prioridad | Estado    |
 | ---- | --------------------------------- | --------- | --------- | --------- |
-| CU31 | Revertir pago (compensación)      | P5. Pagos | Alta      | Pendiente |
+| CU31 | Revertir pago (compensación)      | P5. Pagos | Alta      | Hecho     |
 
 **Actor principal:** Sistema
 **Actores secundarios:** Estudiante (cuando pide el reembolso), Pasarela de pago (Stripe)

@@ -186,6 +186,8 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
       - PAGOS_URL_RETORNO=${PAGOS_URL_RETORNO:?Define PAGOS_URL_RETORNO en .env (ver .env.example)}
       - PAGOS_ENLACE_APP=${PAGOS_ENLACE_APP:?Define PAGOS_ENLACE_APP en .env (ver .env.example)}
+      # * Credencial de servicio de las rutas internas (CU44): la misma que recibe academico
+      - PAGOS_CREDENCIAL_ACADEMICO=${PAGOS_CREDENCIAL_ACADEMICO:?Define PAGOS_CREDENCIAL_ACADEMICO en .env (ver .env.example)}
       # Bolivianos por dolar: solo de esta variable, sin valor por defecto en el codigo.
       - TIPO_CAMBIO_BS_USD=${TIPO_CAMBIO_BS_USD:?Define TIPO_CAMBIO_BS_USD en .env (ver .env.example)}
       - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
@@ -237,6 +239,8 @@ services:
       - IDENTIDAD_URL=http://drivehub-identidad:8081
       # Billetera de horas: saldo, descontar y devolver al reservar una clase (CU14).
       - PAGOS_URL=http://drivehub-pagos:8083
+      # * Credencial con la que el orquestador se identifica ante las rutas internas de Pagos (CU44): la misma de pagos
+      - PAGOS_CREDENCIAL_ACADEMICO=${PAGOS_CREDENCIAL_ACADEMICO:?Define PAGOS_CREDENCIAL_ACADEMICO en .env (ver .env.example)}
       - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
       - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
       - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}

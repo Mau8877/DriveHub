@@ -2,7 +2,7 @@
 
 | Id   | Nombre                  | Paquete             | Prioridad | Estado    |
 | ---- | ----------------------- | ------------------- | --------- | --------- |
-| CU09 | Gestionar instructores  | P2. Gestión escolar | Alta      | Pendiente |
+| CU09 | Gestionar instructores  | P2. Gestión escolar | Alta      | Hecho     |
 
 **Actor principal:** Administrador de escuela
 **Actores secundarios:** —

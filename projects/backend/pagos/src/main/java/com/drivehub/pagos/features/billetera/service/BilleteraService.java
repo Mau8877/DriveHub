@@ -133,6 +133,24 @@ public class BilleteraService {
     @Transactional
     public ConsumoResultado consumir(UUID escuelaCodigo, UUID solicitanteCodigo, UUID estudianteCodigo, int horas,
             UUID instructorCodigo, UUID claseCodigo, String idempotencyKey) {
+        return ejecutarConsumo(escuelaCodigo, estudianteCodigo, horas, instructorCodigo, claseCodigo, idempotencyKey);
+    }
+
+    /**
+     * Lo mismo que {@link #consumir} pero para el SISTEMA (CU44): lo llama el orquestador de Académico por una ruta
+     * interna ya autenticada con la credencial de servicio, sin sesión de ningún usuario.
+     *
+     * * Misma lógica, mismas reglas de saldo y de idempotencia: no hay un camino más permisivo.
+     * ! Solo lo llama un endpoint autenticado por credencial de servicio; NUNCA un endpoint de usuario.
+     */
+    @Transactional
+    public ConsumoResultado consumirDeSistema(UUID escuelaCodigo, UUID estudianteCodigo, int horas,
+            UUID instructorCodigo, UUID claseCodigo, String idempotencyKey) {
+        return ejecutarConsumo(escuelaCodigo, estudianteCodigo, horas, instructorCodigo, claseCodigo, idempotencyKey);
+    }
+
+    private ConsumoResultado ejecutarConsumo(UUID escuelaCodigo, UUID estudianteCodigo, int horas,
+            UUID instructorCodigo, UUID claseCodigo, String idempotencyKey) {
         validarClave(idempotencyKey);
         if (horas < 1 || horas > HORAS_MAXIMAS) {
             throw new ValidationException(PagosErrorCodes.VALIDACION,
@@ -192,6 +210,24 @@ public class BilleteraService {
     @Transactional
     public DevolucionResultado devolver(UUID escuelaCodigo, UUID solicitanteCodigo, UUID estudianteCodigo,
             UUID claseCodigo, String idempotencyKey) {
+        return ejecutarDevolucion(escuelaCodigo, estudianteCodigo, claseCodigo, idempotencyKey);
+    }
+
+    /**
+     * Lo mismo que {@link #devolver} pero para el SISTEMA (CU44): lo llama el orquestador de Académico por una ruta
+     * interna ya autenticada con la credencial de servicio, sin sesión de ningún usuario.
+     *
+     * * Misma lógica: devuelve a las mismas compras de las que salieron las horas, y repetir la clave no devuelve dos veces.
+     * ! Solo lo llama un endpoint autenticado por credencial de servicio; NUNCA un endpoint de usuario.
+     */
+    @Transactional
+    public DevolucionResultado devolverDeSistema(UUID escuelaCodigo, UUID estudianteCodigo, UUID claseCodigo,
+            String idempotencyKey) {
+        return ejecutarDevolucion(escuelaCodigo, estudianteCodigo, claseCodigo, idempotencyKey);
+    }
+
+    private DevolucionResultado ejecutarDevolucion(UUID escuelaCodigo, UUID estudianteCodigo, UUID claseCodigo,
+            String idempotencyKey) {
         validarClave(idempotencyKey);
         if (claseCodigo == null) {
             throw new ValidationException(PagosErrorCodes.VALIDACION, "Indica la clase");

@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 
 /**
  * Seguridad del microservicio: resource server de JWT (CU02).
@@ -32,7 +33,8 @@ public class SecurityConfig {
     static final String EMISOR = "drivehub-identidad";
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+            @Value("${app.internal.credencial-academico:}") String credencialAcademico) throws Exception {
         RestAuthenticationHandlers manejadores = new RestAuthenticationHandlers();
         http
             .csrf(csrf -> csrf.disable())
@@ -43,6 +45,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/pagos/retorno").permitAll()
                 // * Los avisos de la pasarela (CU27): no llevan JWT, los autentica la firma del aviso
                 .requestMatchers(HttpMethod.POST, "/api/v1/webhooks-stripe").permitAll()
+                // * Las rutas internas (CU44): no llevan JWT, las autentica la credencial de servicio de su filtro
+                .requestMatchers("/internal/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth
@@ -53,7 +57,9 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(manejadores)
                 .accessDeniedHandler(manejadores)
-            );
+            )
+            // * Se construye acá y NO es un `@Component`: así corre una sola vez en la cadena de seguridad
+            .addFilterBefore(new CredencialServicioFilter(credencialAcademico), BearerTokenAuthenticationFilter.class);
 
         return http.build();
     }

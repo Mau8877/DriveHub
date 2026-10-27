@@ -2,7 +2,7 @@
 
 | Id   | Nombre               | Paquete                 | Prioridad | Estado    |
 | ---- | -------------------- | ----------------------- | --------- | --------- |
-| CU01 | Registrar estudiante | P1. Identidad y acceso  | Alta      | Pendiente |
+| CU01 | Registrar estudiante | P1. Identidad y acceso  | Alta      | Hecho     |
 
 **Actor principal:** Estudiante (persona aún sin cuenta)
 **Actores secundarios:** —

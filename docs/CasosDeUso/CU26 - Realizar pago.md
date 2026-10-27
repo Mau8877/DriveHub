@@ -2,7 +2,7 @@
 
 | Id   | Nombre        | Paquete   | Prioridad | Estado    |
 | ---- | ------------- | --------- | --------- | --------- |
-| CU26 | Realizar pago | P5. Pagos | Alta      | Pendiente |
+| CU26 | Realizar pago | P5. Pagos | Alta      | Hecho     |
 
 **Actor principal:** Estudiante
 **Actores secundarios:** Pasarela de pago (Stripe)

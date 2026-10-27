@@ -43,6 +43,25 @@ La escuela sale siempre del token. Todas responden con el sobre estándar.
   `{ estudianteCodigo, claseCodigo }`.
 - Errores: `409 ERR_PAG_09` sin horas suficientes; `404 ERR_PAG_16` si esa clase no descontó horas.
 
+### Rutas internas (CU44): sin sesión de usuario
+
+El orquestador de Académico corre en un proceso programado, sin ningún estudiante conectado, así que no tiene un
+Bearer. Para eso Pagos expone dos rutas **internas**, equivalentes a descontar y devolver:
+
+| Operación | Ruta | Quién | Respuesta |
+| --- | --- | --- | --- |
+| Descontar | `POST /internal/v1/billeteras-horas/consumos` | Académico (credencial de servicio) | `201` `{ horasDescontadas, horasDisponibles }` |
+| Devolver | `POST /internal/v1/billeteras-horas/devoluciones` | Académico (credencial de servicio) | `200` `{ horasDevueltas, horasDisponibles }` |
+
+- Se identifican con el header **`X-Service-Key`** (un secreto compartido, variable `PAGOS_CREDENCIAL_ACADEMICO` en
+  los dos servicios); sin él o con otro valor responden `401 ERR_PAG_19`. No llevan `Authorization`.
+- Como no hay token, el cuerpo trae también la escuela: descontar `{ escuelaCodigo, estudianteCodigo, horas,
+  instructorCodigo, claseCodigo }`; devolver `{ escuelaCodigo, estudianteCodigo, claseCodigo }`.
+- Mismas reglas que las públicas: `Idempotency-Key` obligatoria, mismos errores (`ERR_PAG_09`, `ERR_PAG_16`) y misma
+  idempotencia. Descontar o devolver por una ruta y repetirlo por la otra con la misma clave da el mismo resultado.
+- **No pasan por el gateway** y no se registran en él: el navegador y la app nunca las alcanzan. Las rutas
+  `/api/v1/billeteras-horas/*` de arriba no cambian.
+
 ## Reglas que Académico tiene que respetar
 
 - **El `instructor_codigo` es obligatorio en cada consumo:** de ahí sale cuántas horas gastó cada alumno con cada
@@ -56,6 +75,8 @@ La escuela sale siempre del token. Todas responden con el sobre estándar.
 - **Las horas no vencen.**
 
 ## Acordado con Leonel (CU14)
+
+> Explicación completa, con ejemplos: [FLUJO_PAGOS_HORAS_Y_RESERVAS.md](FLUJO_PAGOS_HORAS_Y_RESERVAS.md).
 
 - **Cuándo se descuenta:** al reservar la clase, no al darla. `claseCodigo` es el código de la reserva y la clave
   de idempotencia es `reserva-{codigoReserva}` (la devolución usa `devolucion-{codigoReserva}`).

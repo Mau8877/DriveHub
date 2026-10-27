@@ -2,7 +2,7 @@
 
 | Id   | Nombre                    | Paquete   | Prioridad | Estado    |
 | ---- | ------------------------- | --------- | --------- | --------- |
-| CU25 | Gestionar planes de horas | P5. Pagos | Alta      | Pendiente |
+| CU25 | Gestionar planes de horas | P5. Pagos | Alta      | Hecho     |
 
 **Actor principal:** Administrador de escuela
 **Actores secundarios:** —

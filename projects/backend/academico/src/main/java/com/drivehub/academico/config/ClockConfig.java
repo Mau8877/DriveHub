@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
  * fijar la hora en los tests.
  */
 @Configuration
-@EnableConfigurationProperties({HorariosProperties.class, ReservasProperties.class})
+@EnableConfigurationProperties({HorariosProperties.class, ReservasProperties.class, OrquestadorProperties.class})
 public class ClockConfig {
 
     @Bean

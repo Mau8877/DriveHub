@@ -2,7 +2,7 @@
 
 | Id   | Nombre               | Paquete   | Prioridad | Estado    |
 | ---- | -------------------- | --------- | --------- | --------- |
-| CU30 | Generar comprobante  | P5. Pagos | Media     | Pendiente |
+| CU30 | Generar comprobante  | P5. Pagos | Media     | Hecho     |
 
 **Actor principal:** Sistema
 **Actores secundarios:** —

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -73,6 +74,46 @@ public class ReservaRepositoryImpl implements ReservaRepositoryCustom {
             .and("estado").is(EstadoReserva.PENDIENTE_PAGO)
             .and("createdAt").lt(anteriorA));
         return mongoTemplate.find(consulta, Reserva.class);
+    }
+
+    @Override
+    public List<Reserva> pendientesAntiguas(Set<EstadoReserva> estados, Instant anteriorA, int limite) {
+        Query consulta = Query.query(Criteria.where("estado").in(estados)
+            .and("deletedAt").is(null)
+            .and("requiereRevision").ne(true)
+            .and("createdAt").lt(anteriorA))
+            .with(Sort.by(Sort.Direction.ASC, "createdAt"))
+            .limit(limite);
+        return mongoTemplate.find(consulta, Reserva.class);
+    }
+
+    @Override
+    public Optional<Reserva> registrarIntentoFallido(UUID codigoReserva, Set<EstadoReserva> estados) {
+        Query consulta = Query.query(Criteria.where("codigoReserva").is(codigoReserva)
+            .and("estado").in(estados)
+            .and("deletedAt").is(null));
+        Reserva actualizada = mongoTemplate.findAndModify(consulta, new Update().inc("intentosRetomar", 1),
+            FindAndModifyOptions.options().returnNew(true), Reserva.class);
+        return Optional.ofNullable(actualizada);
+    }
+
+    @Override
+    public Optional<Reserva> marcarParaRevision(UUID codigoReserva, String motivo, Instant ahora,
+            Set<EstadoReserva> estados) {
+        Query consulta = Query.query(Criteria.where("codigoReserva").is(codigoReserva)
+            .and("estado").in(estados)
+            .and("requiereRevision").ne(true)
+            .and("deletedAt").is(null));
+        // * El estado NO cambia: el historial repite el estado actual con el motivo de la revisión
+        Reserva actual = mongoTemplate.findOne(consulta, Reserva.class);
+        if (actual == null) {
+            return Optional.empty();
+        }
+        Update cambio = new Update().set("requiereRevision", true)
+            .push("historialEstados", new HistorialEstado(actual.getEstado(), ahora, motivo));
+        Reserva actualizada = mongoTemplate.findAndModify(consulta, cambio,
+            FindAndModifyOptions.options().returnNew(true), Reserva.class);
+        return Optional.ofNullable(actualizada);
     }
 
     @Override
