@@ -10,7 +10,7 @@
 
 ## Antes de implementar
 
-Las decisiones 2, 7 y 8 del [README](./README.md#decisiones-de-diseño). Leer `ExtensionFranjasJob` (patrón de `@Scheduled` con cron y zona configurables) y `SchedulingConfig`. [LOGGING_BACKEND.md](../../../../.claude/rules/backend/LOGGING_BACKEND.md), [TESTING_BACKEND.md](../../../../.claude/rules/backend/TESTING_BACKEND.md).
+Las decisiones 2, 7, 8 y 15 del [README](./README.md#decisiones-de-diseño). Leer `ExtensionFranjasJob` (patrón de `@Scheduled` con cron y zona configurables) y `SchedulingConfig`. [LOGGING_BACKEND.md](../../../../.claude/rules/backend/LOGGING_BACKEND.md), [TESTING_BACKEND.md](../../../../.claude/rules/backend/TESTING_BACKEND.md).
 
 ## Solicitud de negocio
 
@@ -25,7 +25,7 @@ Un job de Académico revisa periódicamente las reservas `PENDIENTE_PAGO` antigu
 - `OrquestadorProperties` (UT 09 y 10) suma: `habilitado` (por defecto `true`), `cron` (por defecto `0 * * * * *`, cada minuto) y `lote` (por defecto `50`).
 - `OrquestadorClasesJob` (`@Component`) en `features/reservas/service/`, junto a `OrquestadorClases`:
   - `@Scheduled(cron = "${app.orquestador.cron}", zone = "${app.horarios.zona-horaria}")` y `@ConditionalOnProperty(prefix = "app.orquestador", name = "habilitado", matchIfMissing = true)`.
-  - En cada pasada: `pendientesAntiguas(ahora − minutosParaRetomar, lote)` con `app.reservas.minutos-para-retomar` y el `Clock` inyectado, y `OrquestadorClases.procesar(...)` por cada una.
+  - En cada pasada: `pendientesAntiguas(orquestador.estadosTransitorios(), ahora − minutosParaRetomar, lote)` con `app.reservas.minutos-para-retomar` y el `Clock` inyectado, y `OrquestadorClases.procesar(...)` por cada una. **No** conoce reservas ni cancelaciones: pide los estados al orquestador, así que un manejador nuevo queda cubierto sin editar el job.
   - Un fallo en una reserva **no** frena a las demás ni a la próxima pasada: se captura por reserva.
   - Al terminar, **un** `INFO` con el resumen (`module: reservas`, `revisadas`, `confirmadas`, `canceladas`, `pendientes`, `sinRespuestaDePagos`, `enRevision`); si no había ninguna, no loguea nada (no llena el log cada minuto).
   - Sin sesión: no usa `SecurityContext`, no lleva `@PreAuthorize`.

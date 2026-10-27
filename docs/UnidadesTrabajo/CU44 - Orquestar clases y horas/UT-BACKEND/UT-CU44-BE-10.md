@@ -10,7 +10,7 @@
 
 ## Antes de implementar
 
-La decisión 9 del [README](./README.md#decisiones-de-diseño) y los flujos alternativos A1 y A5 del [CU44](../../../CasosDeUso/CU44%20-%20Orquestar%20clases%20y%20horas.md). [LOGGING_BACKEND.md](../../../../.claude/rules/backend/LOGGING_BACKEND.md): un `WARN` recurrente "no es ruido a ignorar", y este lo es a propósito.
+Las decisiones 9 y 15 del [README](./README.md#decisiones-de-diseño) y los flujos alternativos A1 y A5 del [CU44](../../../CasosDeUso/CU44%20-%20Orquestar%20clases%20y%20horas.md). [LOGGING_BACKEND.md](../../../../.claude/rules/backend/LOGGING_BACKEND.md): un `WARN` recurrente "no es ruido a ignorar", y este lo es a propósito.
 
 ## Solicitud de negocio
 
@@ -23,10 +23,10 @@ Si una reserva a medias no se logra resolver tras varias pasadas por una causa p
 ## Alcance
 
 - Se suma `maximoIntentos` (propiedad `app.orquestador.maximo-intentos`, por defecto `5`) a la `OrquestadorProperties` que crea la UT 09.
-- `OrquestadorClases.procesar(Reserva reserva)` (nuevo, público, **sin `@PreAuthorize`**) que envuelve a `retomarReserva`:
+- `OrquestadorClases.procesar(Reserva reserva)` (nuevo, público, **sin `@PreAuthorize`**) que envuelve a `resolver(reserva, clienteDeServicio)` (UT 09), **sea cual sea el manejador que corresponda al estado de la reserva**, no solo `ManejadorDeReserva`:
   - `CONFIRMADA` o `CANCELADA` → las devuelve tal cual, sin sumar intentos.
   - **`PAGOS_NO_RESPONDE` → la devuelve tal cual, sin sumar intentos y sin marcar nada.** Se reintenta en la siguiente pasada, también si la caída dura horas. Si lleva más de 24 horas desde que se creó, registra un `ERROR` (`module: reservas`, `reservaCodigo`) en cada pasada, para quien opera el servicio.
-  - `PENDIENTE`, o cualquier excepción inesperada de `retomarReserva` → llama a `registrarIntentoFallido(codigoReserva)`; si el contador resultante es `>= maximoIntentos`, llama a `marcarParaRevision(...)` con el motivo «No se pudo resolver tras N intentos» y devuelve `EN_REVISION`; si no, devuelve `PENDIENTE`.
+  - `PENDIENTE`, o cualquier excepción inesperada de `resolver` → llama a `registrarIntentoFallido(codigoReserva, estadosTransitorios())`; si el contador resultante es `>= maximoIntentos`, llama a `marcarParaRevision(..., estadosTransitorios())` con el motivo «No se pudo resolver tras N intentos» y devuelve `EN_REVISION`; si no, devuelve `PENDIENTE`.
   - Si `registrarIntentoFallido` devuelve vacío (la reserva ya no estaba pendiente, la resolvió otro proceso), devuelve `PENDIENTE` sin marcar nada.
   - Al marcar para revisión registra un `WARN` (`module: reservas`, `reservaCodigo`, `intentos`) con un mensaje claro de que **requiere revisión manual**.
   - Una excepción dentro de `procesar` **nunca** se propaga: una reserva problemática no puede frenar a las demás.
@@ -41,7 +41,7 @@ Archivos esperados (crear/tocar):
 
 ## Fuera de alcance (no tocar)
 
-- La lógica de `retomarReserva` y `deshacerReserva` (UT 09): solo se envuelve.
+- La lógica de los manejadores y de `deshacerReserva` (UT 09): solo se envuelve. Los intentos y la revisión funcionan igual para **cualquier** manejador que se registre (CU15 incluido, UT 15).
 - Recorrer las pendientes, el cron y el lote (UT 11).
 - Un endpoint, listado o aviso para ver las reservas en revisión (follow-up).
 - Reactivar una reserva ya marcada.

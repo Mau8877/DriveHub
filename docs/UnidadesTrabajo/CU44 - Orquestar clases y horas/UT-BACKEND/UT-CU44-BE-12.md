@@ -6,7 +6,7 @@
 | **Nombre** | Prueba de punta a punta |
 | **Caso de uso** | CU44-BE |
 | **Microservicio** | `academico` + `pagos` + `gateway` (solo se prueba, no se cambia código) |
-| **Depende de** | `UT-CU44-BE-03`, `UT-CU44-BE-04`, `UT-CU44-BE-05`, `UT-CU44-BE-11` |
+| **Depende de** | `UT-CU44-BE-03`, `UT-CU44-BE-04`, `UT-CU44-BE-05`, `UT-CU44-BE-15` |
 
 ## Antes de implementar
 
@@ -34,6 +34,7 @@ Levantar `docker compose up -d` (perfil `backend`) con `PAGOS_CREDENCIAL_ACADEMI
 7. **Sin ningún estudiante conectado**: ninguna de las pasadas necesita un token.
 8. **Rutas internas desde afuera**: `POST http://localhost:8080/internal/v1/billeteras-horas/consumos` (por el gateway) → `404`; directo a Pagos sin `X-Service-Key` → `401 ERR_PAG_19`; con un JWT válido pero sin credencial → `401`.
 9. **Una reserva `NO_ASISTIO` o `CONFIRMADA`** presente en la base → el job no la toca.
+  9b. **El punto de extensión de CU15 en el stack real**: correr el test de la UT 15 contra el Mongo y el Pagos del compose y comprobar que un manejador de prueba queda cubierto por el job real.
 10. Anotar el resultado de cada escenario en las **Notas de implementación** del README (qué quedó distinto o más preciso), y borrar los datos temporales.
 
 Si un escenario falla, se corrige **en la UT que corresponda** (no acá) y se repite el recorrido completo.
@@ -45,7 +46,8 @@ Archivos esperados (crear/tocar):
 ## Fuera de alcance (no tocar)
 
 - Cambios de código en cualquier servicio.
-- Probar cancelaciones o reprogramaciones (CU15).
+- Probar cancelaciones o reprogramaciones reales (CU15): solo se prueba el punto de extensión (UT 15).
+- Probar el flujo en vivo migrado (UT 16): esa UT repite el escenario 1 por su cuenta.
 - Pruebas de carga o de varias réplicas.
 - Dejar datos de prueba en las bases.
 

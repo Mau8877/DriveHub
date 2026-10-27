@@ -2,11 +2,11 @@
 
 | Id   | Nombre                          | Paquete               | Prioridad | Estado      |
 | ---- | ------------------------------- | --------------------- | --------- | ----------- |
-| CU44 | Orquestar clases y horas (saga) | P3. Clases y horarios | Alta      | Pendiente   |
+| CU44 | Orquestar clases y horas (saga) | P3. Clases y horarios | Alta      | En progreso |
 
 **Actor principal:** Sistema (proceso programado de Académico)
 **Actores secundarios:** Pagos (descuenta y devuelve las horas)
-**Objetivo:** Que una clase y la hora que la paga nunca queden desfasadas: si reservar, cancelar o reprogramar se interrumpe a medias, el sistema lo completa o lo deshace solo, sin esperar a que el estudiante vuelva a la app.
+**Objetivo:** Que una clase y la hora que la paga nunca queden desfasadas: darle a la reserva de clases (CU14) una **saga orquestadora** que, si reservar se interrumpe a medias, la completa o la deshace sola, sin esperar a que el estudiante vuelva a la app, y que cancelar y reprogramar (CU15) puedan **enchufarse a esa misma saga** cuando existan.
 
 > **Redefine el CU44 del diseño original** ([PDF](../DriveHub/DriveHub_Casos_de_Uso_por_Paquete.pdf)), que
 > imaginaba un pago por QR en cada reserva y un orquestador como servicio aparte. Con la billetera de horas
@@ -25,6 +25,8 @@ devuelve la hora) si ya es vieja. Como no hay un estudiante con sesión en ese m
 **credencial propia** y no con la del estudiante, cuyo token dura solo unos minutos. Todo se repite con seguridad:
 un mismo paso nunca descuenta ni devuelve dos veces. Si Pagos no responde, no se toca nada y se reintenta en la
 siguiente pasada, sin límite de intentos por esa causa.
+
+> **Una sola saga, y lista para CU15.** Reservar en el momento, retomar al consultar las clases y el proceso programado usan **la misma coordinación**, para que una regla o una corrección se escriba una sola vez. Y cuando CU15 exista, agrega sus operaciones a esa saga sin reescribirla.
 
 > **Qué parte del sistema se modifica.** Este caso de uso toca **Académico** en tres momentos, y Pagos solo una vez:
 > **reservar** (CU14, ya hecho: no cambia su comportamiento); **retomar reservas a medias** (el flujo S1 de este CU:
@@ -127,6 +129,8 @@ siguiente pasada, sin límite de intentos por esa causa.
   se quede sin clase si algo falla en el medio.
 - **El estudiante que reservó y no asiste pierde la hora** (`NO_ASISTIO`, CU17): no hay compensación, porque la
   hora ya se gastó al reservar. Regla de negocio pendiente de confirmar con el equipo.
+- **Una sola saga para la reserva:** reservar, retomar al consultar y el proceso programado ejecutan la misma lógica; no hay dos copias que puedan diferir.
+- **Las operaciones nuevas se enchufan:** cancelar y reprogramar (CU15) se agregan como operaciones de la misma saga, declarando sus estados intermedios; el proceso programado, el conteo de intentos y la revisión manual las cubren sin cambios.
 - **La coordinación vive dentro de Académico**; no hay un servicio aparte ni tabla propia de estado de saga. El
   estado de cada operación es el de la reserva.
 - **El sistema no actúa en nombre de ningún estudiante conectado:** se identifica ante Pagos como Académico con una
@@ -172,6 +176,8 @@ siguiente pasada, sin límite de intentos por esa causa.
   contar un intento fallido y debe registrar un error en el log.
 - **CA13:** Dada una petición a las operaciones internas de horas de Pagos sin la credencial del sistema, Pagos debe
   rechazarla con `401 ERR_PAG_19`; y dada la misma petición a través del gateway, esta no debe llegar a Pagos.
+- **CA14:** Dado que el estudiante reserva una clase, el resultado (confirmada, sin horas o Pagos no disponible) debe ser el mismo que obtiene el proceso programado ante la misma situación.
+- **CA15:** Dada una operación nueva de clase con sus propios estados intermedios (como cancelar), cuando se agrega, el proceso programado debe retomarla, contar sus intentos y marcarla para revisión sin cambios en el proceso.
 
 ## Pendiente de definir (no bloquea el flujo S1)
 

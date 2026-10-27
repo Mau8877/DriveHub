@@ -685,6 +685,8 @@ Las franjas se generan desde el horario para 28 días contando hoy, y una tarea 
 | `historialEstados` | array | `[{ estado, en, motivo }]` |
 | `expiraPagoEn` | instant | Si no se paga a tiempo, la saga cancela y libera la franja |
 | `horasCobradas` | int | Horas de la billetera que costó la clase (CU14: 1). CU15 devuelve exactamente esto al cancelar |
+| `intentosRetomar` | int | Veces que el orquestador (CU44) intentó retomar la reserva a medias y falló por una causa propia. Empieza en 0; una reserva sin el campo se lee como 0. No se expone al cliente |
+| `requiereRevision` | boolean | `true` cuando el orquestador (CU44) se rindió tras varios intentos: deja de retomarse sola y una persona la revisa. Empieza en `false`; una reserva sin el campo se lee como `false`. No se expone al cliente |
 
 **Con la billetera de horas (CU14)** reservar es descontar horas, no cobrar por reserva: `pagoCodigo`, `sagaCodigo`, `expiraPagoEn` y `solicitudId` quedan **sin uso** (siempre vacíos). `PENDIENTE_PAGO` se reutiliza como estado transitorio «franja apartada, hora todavía no descontada»; el código de la reserva es el `claseCodigo` del consumo en Pagos. Una reserva `CANCELADA` que nunca estuvo `CONFIRMADA` (sin horas, Pagos caído) no es una clase del estudiante: no aparece en su historial.
 

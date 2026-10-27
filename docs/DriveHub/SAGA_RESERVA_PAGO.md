@@ -67,8 +67,21 @@ El job corre sin ningún estudiante conectado, así que **no tiene JWT que reenv
 
 ## Pendiente (UT)
 
-- **Pagos**: endpoints internos de descontar y devolver horas con el filtro del secreto compartido. Es un commit
-  `[BACK]` de `pagos`, distinto de los de Académico.
-- **Académico**: el job y la operación de deshacer una reserva (UT 06 a 11 del CU44, se coordinan con Leonel), y los estados de cancelar y reprogramar, que dependen de CU15, todavía sin documento ni UT.
+**Hecho** (UT 01 a 11, 14 y 15 del CU44):
+
+- **Pagos**: endpoints internos de descontar y devolver horas con el filtro del secreto compartido (`ERR_PAG_19`).
+- **Gateway**: prueba de que las rutas internas no se reenvían.
+- **Académico**: `ClienteDePagos` con dos implementaciones (`PagosConBearer`, `PagosServicioClient`), los campos
+  `intentosRetomar` y `requiereRevision`, las consultas atómicas del repositorio, `OrquestadorClases` con
+  manejadores enchufables (`ManejadorDeOperacion`, `ManejadorDeReserva`), `deshacerReserva` reutilizable, el conteo
+  de intentos y la revisión manual, y `OrquestadorClasesJob`.
+
+**Falta:**
+
+- **UT 16** (opcional): que `ReservaService` (reservar y retomar al consultar) delegue en el orquestador. Hoy el flujo
+  en vivo de CU14 sigue con su propia copia de la lógica; funciona igual. Cambia el constructor de `ReservaService`,
+  así que sus tests actuales se tocarían: se hace con calma y con Docker para correr todo.
+- **UT 12**: la prueba de punta a punta con el stack real (Docker) y `PAGOS_CREDENCIAL_ACADEMICO` en el `.env`.
+- **UT 17 y 18**: los manejadores de cancelar y reprogramar, que dependen de CU15, todavía sin documento ni UT.
 - **Eventos de RabbitMQ**: no se usan. Si se eligieran para CU15, habría que implementar la publicación del outbox
   de Pagos, que hoy solo guarda los eventos.

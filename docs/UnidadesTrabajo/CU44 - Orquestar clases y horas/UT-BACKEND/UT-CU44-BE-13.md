@@ -26,9 +26,11 @@ Los documentos de contrato, el mapa de servicios y el caso de uso reflejan el or
 - `.claude/rules/CASOS_DE_USO.md`: la «excepción vigente» del CU44 ya está escrita (se agregó junto con la definición del CU); comprobar que siga coincidiendo con el CU.
 - `.claude/rules/MICROSERVICIOS.md`: una fila en la tabla de llamadas REST entre servicios (Académico → Pagos por el job, con credencial de servicio, CU44). Es un cambio de scope `REPO`, en su propio commit.
 - `docs/errors/README.md` y `ERRORES_PAGOS.md`: comprobar que `ERR_PAG_19` esté (lo agrega la UT 01); no se duplica.
+- `docs/DriveHub/FLUJO_PAGOS_HORAS_Y_RESERVAS.md` y `docs/DriveHub/SAGA_RESERVA_PAGO.md`: comprobar que describan el orquestador con manejadores, el cliente `ClienteDePagos` y el contrato para CU15 tal como quedó construido (y la UT 16, si se hizo).
 - `docs/DriveHub/SAGA_RESERVA_PAGO.md`: en «Pendiente (UT)» marcar lo que ya se hizo y dejar solo lo que queda (S2 y S3, a la espera de CU15).
 - `docs/CasosDeUso/CU44 - Orquestar clases y horas.md`: pasar el **Estado** a `En progreso` (el flujo S1 está hecho; S2 y S3 esperan a CU15). Pasar a `Hecho` solo cuando CU15 esté terminado y sus UT del orquestador también.
-- Anotar en `docs/UnidadesTrabajo/.../README.md` los follow-ups que sigan vigentes.
+- Anotar en `docs/UnidadesTrabajo/.../README.md` los follow-ups que sigan vigentes y, en la «Guía para Leonel», los nombres reales de las clases y el test plantilla (`OrquestadorExtensionTest`) tal como quedaron en el código.
+- Dejar escrito si la UT 16 (migrar el flujo en vivo del CU14) se hizo o queda como follow-up.
 
 Archivos esperados (crear/tocar):
 

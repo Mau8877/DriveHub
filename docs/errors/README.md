@@ -104,6 +104,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_PAG_16`](pagos/ERRORES_PAGOS.md#err_pag_16) — No hay horas gastadas en esa clase para devolver (404)
 - [`ERR_PAG_17`](pagos/ERRORES_PAGOS.md#err_pag_17) — La compra con esa clave todavía se está procesando (409)
 - [`ERR_PAG_18`](pagos/ERRORES_PAGOS.md#err_pag_18) — La clave de compra ya se usó para otra compra (409)
+- [`ERR_PAG_19`](pagos/ERRORES_PAGOS.md#err_pag_19) — La credencial de servicio de una ruta interna falta o es inválida (401)
 
 ### Académico (`ACA`)
 

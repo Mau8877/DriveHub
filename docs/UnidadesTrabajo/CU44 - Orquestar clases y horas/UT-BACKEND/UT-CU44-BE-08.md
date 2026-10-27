@@ -10,7 +10,7 @@
 
 ## Antes de implementar
 
-Las decisiones 7, 8 y 9 del [README](./README.md#decisiones-de-diseño). [PERSISTENCIA_BD_BACKEND.md](../../../../.claude/rules/backend/PERSISTENCIA_BD_BACKEND.md) (Spring Data Mongo **no** filtra el soft delete: cada query filtra `deletedAt: null`), [TESTING_BACKEND.md](../../../../.claude/rules/backend/TESTING_BACKEND.md) (patrón `assumeTrue`). Leer `ReservaRepositoryCustom` y `ReservaRepositoryImpl`: `pendientesDeEstudiante` y `cambiarEstado` son el modelo a seguir.
+Las decisiones 7, 8, 9 y 15 del [README](./README.md#decisiones-de-diseño). [PERSISTENCIA_BD_BACKEND.md](../../../../.claude/rules/backend/PERSISTENCIA_BD_BACKEND.md) (Spring Data Mongo **no** filtra el soft delete: cada query filtra `deletedAt: null`), [TESTING_BACKEND.md](../../../../.claude/rules/backend/TESTING_BACKEND.md) (patrón `assumeTrue`). Leer `ReservaRepositoryCustom` y `ReservaRepositoryImpl`: `pendientesDeEstudiante` y `cambiarEstado` son el modelo a seguir.
 
 ## Solicitud de negocio
 
@@ -23,10 +23,10 @@ El job tiene que encontrar las reservas a medias de **todos** los estudiantes, y
 ## Alcance
 
 - En `ReservaRepositoryCustom` y su implementación:
-  - `List<Reserva> pendientesAntiguas(Instant anteriorA, int limite)`: reservas `PENDIENTE_PAGO`, no borradas (`deletedAt` nulo), con `requiereRevision` distinto de `true`, creadas antes de `anteriorA` (**el mismo criterio de antigüedad** que `pendientesDeEstudiante`), de la más antigua a la más reciente, con tope `limite`.
-  - `Optional<Reserva> registrarIntentoFallido(UUID codigoReserva)`: `findAndModify` atómico con `$inc` de `intentosRetomar`, solo si sigue `PENDIENTE_PAGO`; devuelve la reserva ya actualizada (con el contador nuevo) o vacío si ya no está pendiente.
-  - `Optional<Reserva> marcarParaRevision(UUID codigoReserva, String motivo, Instant ahora)`: `$set requiereRevision = true` y una entrada al `historialEstados` con el motivo, **sin cambiar el estado**; solo si sigue `PENDIENTE_PAGO`.
-- Tests de integración con MongoDB real (patrón `assumeTrue`): `pendientesAntiguas` devuelve las de cualquier estudiante, solo las antiguas, **no** las `CONFIRMADA` ni `CANCELADA` ni `NO_ASISTIO`, **no** las ya marcadas para revisión, respeta el `limite` y el orden; `registrarIntentoFallido` suma uno cada vez y no hace nada si la reserva ya no está pendiente; `marcarParaRevision` deja el estado igual, agrega la entrada al historial y es inocua si se repite.
+  - `List<Reserva> pendientesAntiguas(Set<EstadoReserva> estados, Instant anteriorA, int limite)`: reservas **en cualquiera de los `estados` recibidos** (los estados transitorios que declaran los manejadores, UT 09; hoy solo `PENDIENTE_PAGO`), no borradas (`deletedAt` nulo), con `requiereRevision` distinto de `true`, creadas antes de `anteriorA` (**el mismo criterio de antigüedad** que `pendientesDeEstudiante`), de la más antigua a la más reciente, con tope `limite`.
+  - `Optional<Reserva> registrarIntentoFallido(UUID codigoReserva, Set<EstadoReserva> estados)`: `findAndModify` atómico con `$inc` de `intentosRetomar`, solo si la reserva sigue en alguno de los `estados`; devuelve la reserva ya actualizada (con el contador nuevo) o vacío si ya no está pendiente.
+  - `Optional<Reserva> marcarParaRevision(UUID codigoReserva, String motivo, Instant ahora, Set<EstadoReserva> estados)`: `$set requiereRevision = true` y una entrada al `historialEstados` con el motivo, **sin cambiar el estado**; solo si sigue en alguno de los `estados`.
+- Tests de integración con MongoDB real (patrón `assumeTrue`): `pendientesAntiguas` devuelve las de cualquier estudiante, solo las antiguas y **solo de los estados pedidos** (con `{PENDIENTE_PAGO}` no trae las de otro estado transitorio, y con ambos trae las dos), **no** las `CONFIRMADA` ni `CANCELADA` ni `NO_ASISTIO`, **no** las ya marcadas para revisión, respeta el `limite` y el orden; `registrarIntentoFallido` suma uno cada vez y no hace nada si la reserva ya no está pendiente; `marcarParaRevision` deja el estado igual, agrega la entrada al historial y es inocua si se repite.
 
 Archivos esperados (crear/tocar):
 
