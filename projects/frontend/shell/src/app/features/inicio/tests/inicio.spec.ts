@@ -53,6 +53,7 @@ describe('Inicio', () => {
         descripcion: 'Gestionar exámenes',
         destino: '/examenes/conduccion',
       },
+      { titulo: 'Resultados', descripcion: 'Gestionar exámenes', destino: '/examenes/resultados' },
       { titulo: 'Manuales', descripcion: 'Gestionar contenido', destino: '/contenido' },
     ])
   })

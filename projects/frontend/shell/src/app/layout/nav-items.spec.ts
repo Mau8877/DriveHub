@@ -44,6 +44,7 @@ describe('navItemsDeRoles', () => {
       ['Banco de preguntas', '/examenes'],
       ['Simulacros', '/examenes/simulacros'],
       ['Examen de conducción', '/examenes/conduccion'],
+      ['Resultados', '/examenes/resultados'],
     ])
     expect(opciones('Gestionar contenido')).toEqual([['Manuales', '/contenido']])
   })
@@ -172,6 +173,11 @@ describe('migasDeRuta', () => {
       { etiqueta: 'Inicio', ruta: '/' },
       { etiqueta: 'Gestionar exámenes' },
       { etiqueta: 'Simulacros' },
+    ])
+    expect(migasDeRuta('/examenes/resultados', items)).toEqual([
+      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar exámenes' },
+      { etiqueta: 'Resultados' },
     ])
     expect(migasDeRuta('/pagos/planes', items)).toEqual([
       { etiqueta: 'Inicio', ruta: '/' },

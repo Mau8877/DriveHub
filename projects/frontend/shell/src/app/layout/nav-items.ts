@@ -101,6 +101,12 @@ export const NAV_ITEMS: NavItem[] = [
         icono: 'car',
         roles: [ROLES.ADMIN_ESCUELA],
       },
+      {
+        ruta: '/examenes/resultados',
+        etiqueta: 'Resultados',
+        icono: 'check-circle',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
     ],
   },
   {
