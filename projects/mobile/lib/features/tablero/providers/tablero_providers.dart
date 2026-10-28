@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/analisis_tablero.dart';
+import '../models/ayuda_tablero.dart';
 import '../models/luz_tablero.dart';
 import '../services/analizador_tablero.dart';
 import '../services/ayudas_tablero_service.dart';
@@ -127,6 +128,7 @@ class TableroNotifier extends AsyncNotifier<ResultadoTablero?> {
     state = AsyncData(resultado.conGuardado(GuardadoAyuda.guardando));
     try {
       await ref.read(ayudasTableroServiceProvider).crear(resultado.analisis);
+      ref.invalidate(historialAyudasProvider);
       state = AsyncData(resultado.conGuardado(GuardadoAyuda.guardado));
     } catch (_) {
       state = AsyncData(resultado.conGuardado(GuardadoAyuda.noGuardado));
@@ -138,3 +140,27 @@ final tableroProvider =
     AsyncNotifierProvider<TableroNotifier, ResultadoTablero?>(
       TableroNotifier.new,
     );
+
+// -- El historial de ayudas (CU42) --------------------------------------------------------------------------------
+
+/// El historial de ayudas de la persona, de la más reciente a la más antigua (página 1 de 50). `autoDispose`: cada
+/// vez que se abre la pantalla se vuelve a pedir, así una ayuda recién guardada aparece sin recargar nada.
+final historialAyudasProvider = FutureProvider.autoDispose<List<AyudaTablero>>((
+  ref,
+) async {
+  final pagina = await ref.watch(ayudasTableroServiceProvider).historial();
+  return pagina.items;
+});
+
+/// Marca si una ayuda le sirvió a la persona y deja el historial al día. Un error se deja subir: la pantalla lo avisa.
+Future<AyudaTablero> marcarAyudaUtil(
+  WidgetRef ref,
+  String codigo, {
+  required bool util,
+}) async {
+  final ayuda = await ref
+      .read(ayudasTableroServiceProvider)
+      .marcarUtil(codigo, util: util);
+  ref.invalidate(historialAyudasProvider);
+  return ayuda;
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../shared/widgets/aviso_cockpit.dart';
@@ -76,6 +77,12 @@ class _TableroScreenState extends ConsumerState<TableroScreen> {
           onPressed: ocupado ? null : () => _analizar(ImageSource.gallery),
           icon: const Icon(Icons.photo_library_outlined),
           label: const Text('Elegir de la galería'),
+        ),
+        TextButton.icon(
+          key: const Key('botonVerHistorial'),
+          onPressed: () => context.push('/study/tablero/historial'),
+          icon: const Icon(Icons.history),
+          label: const Text('Ver mi historial de ayudas'),
         ),
         SwitchListTile(
           key: const Key('interruptorGuardarFoto'),

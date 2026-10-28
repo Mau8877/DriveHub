@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/pagina.dart';
 import '../models/analisis_tablero.dart';
 import '../models/ayuda_tablero.dart';
 
@@ -49,6 +50,39 @@ class AyudasTableroService {
       final response = await _dio.post<Map<String, dynamic>>(
         '/ayudas-tablero',
         data: cuerpo,
+      );
+      return AyudaTablero.fromJson(response.data!);
+    } on DioException catch (e) {
+      final error = e.error;
+      if (error is ApiException) throw error;
+      rethrow;
+    }
+  }
+
+  /// El historial de la persona, de la ayuda más reciente a la más antigua (CU42).
+  Future<Pagina<AyudaTablero>> historial({
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/ayudas-tablero',
+        queryParameters: {'page': page, 'pageSize': pageSize},
+      );
+      return Pagina.fromJson(response.data!, AyudaTablero.fromJson);
+    } on DioException catch (e) {
+      final error = e.error;
+      if (error is ApiException) throw error;
+      rethrow;
+    }
+  }
+
+  /// Registra si la ayuda le sirvió a la persona (CU42).
+  Future<AyudaTablero> marcarUtil(String codigo, {required bool util}) async {
+    try {
+      final response = await _dio.patch<Map<String, dynamic>>(
+        '/ayudas-tablero/$codigo',
+        data: {'util': util},
       );
       return AyudaTablero.fromJson(response.data!);
     } on DioException catch (e) {

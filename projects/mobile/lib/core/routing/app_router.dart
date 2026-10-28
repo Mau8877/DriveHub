@@ -16,6 +16,7 @@ import '../../features/pagos/screens/resumen_compra_screen.dart';
 import '../../features/perfil/screens/cambiar_contrasena_screen.dart';
 import '../../features/resultados/screens/notas_alumnos_screen.dart';
 import '../../features/simulacros/screens/rendir_simulacro_screen.dart';
+import '../../features/tablero/screens/historial_ayudas_screen.dart';
 import '../../features/tutoriales/models/tutorial.dart';
 import '../../features/tutoriales/screens/reproductor_video_screen.dart';
 import '../../features/tutoriales/screens/tutorial_form_screen.dart';
@@ -182,6 +183,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/study/simulacros/rendir',
         builder: (context, state) => const RendirSimulacroScreen(),
+      ),
+      GoRoute(
+        path: '/study/tablero/historial',
+        builder: (context, state) => const HistorialAyudasScreen(),
       ),
       GoRoute(
         path: '/study/attempts/:codigo',
