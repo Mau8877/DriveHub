@@ -212,6 +212,53 @@ class ManualesApiTest extends TestCase
             ->assertStatus(400)->assertJson(['message' => 'Elige el PDF del manual']);
     }
 
+    public function test_consulta_del_estudiante_lista_solo_publicados_con_la_escuela_del_token(): void
+    {
+        $this->mock(ManualService::class)->shouldReceive('listarPublicados')
+            ->once()->with(self::ESCUELA, 'señ', 'B', 2, 10)
+            ->andReturn(new LengthAwarePaginator([$this->manual(EstadoPublicacion::PUBLICADO)], 11, 10, 2));
+
+        $this->getJson('/api/v1/manuales/publicados?page=2&pageSize=10&search=señ&filter[categoria]=B', $this->sesion('ESTUDIANTE'))
+            ->assertOk()
+            ->assertJsonPath('data.0.codigo', self::CODIGO)
+            ->assertJsonPath('data.0.estado', 'PUBLICADO')
+            ->assertJsonPath('meta', ['page' => 2, 'pageSize' => 10, 'totalItems' => 11, 'totalPages' => 2])
+            ->assertJsonMissingPath('data.0.id');
+    }
+
+    public function test_consulta_del_estudiante_obtiene_un_manual_y_un_no_publicado_es_404(): void
+    {
+        $servicio = $this->mock(ManualService::class);
+        $servicio->shouldReceive('obtenerPublicado')->once()->with(self::ESCUELA, self::CODIGO)
+            ->andReturn($this->manual(EstadoPublicacion::PUBLICADO));
+        $servicio->shouldReceive('obtenerPublicado')->once()->with(self::ESCUELA, 'otro')
+            ->andThrow(new NotFoundException(ErrorCodes::MANUAL_NO_ENCONTRADO, 'El manual no existe'));
+
+        $this->getJson('/api/v1/manuales/publicados/'.self::CODIGO, $this->sesion('ESTUDIANTE'))
+            ->assertOk()->assertJsonPath('data.codigo', self::CODIGO)->assertJsonPath('data.archivo.url', 'http://x/a.pdf');
+        $this->getJson('/api/v1/manuales/publicados/otro', $this->sesion('ESTUDIANTE'))
+            ->assertStatus(404)->assertJson(['error' => ErrorCodes::MANUAL_NO_ENCONTRADO]);
+    }
+
+    public function test_consulta_del_estudiante_rechaza_otros_roles_y_el_estudiante_no_gestiona(): void
+    {
+        foreach (['ADMIN_ESCUELA', 'INSTRUCTOR', 'SUPER_ADMIN'] as $rol) {
+            $this->getJson('/api/v1/manuales/publicados', $this->sesion($rol))->assertStatus(403)->assertJson(['error' => 'ERR_SYS_05']);
+        }
+        $this->getJson('/api/v1/manuales/publicados')->assertStatus(401);
+        // * El Estudiante solo lee lo publicado: la gestión sigue siendo del Administrador
+        $this->getJson('/api/v1/manuales', $this->sesion('ESTUDIANTE'))->assertStatus(403);
+    }
+
+    public function test_consulta_del_estudiante_con_token_sin_escuela_responde_403_err_con_04(): void
+    {
+        $this->mock(ManualService::class)->shouldNotReceive('listarPublicados');
+        $sinEscuela = $this->token(['ESTUDIANTE'], null);
+
+        $this->getJson('/api/v1/manuales/publicados', ['Authorization' => "Bearer {$sinEscuela}"])
+            ->assertStatus(403)->assertJson(['error' => ErrorCodes::TOKEN_SIN_ESCUELA]);
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();
