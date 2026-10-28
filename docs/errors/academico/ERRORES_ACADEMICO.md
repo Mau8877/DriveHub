@@ -232,3 +232,33 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 - **Significado:** Al programar, el estudiante no existe en la escuela de quien programa: Identidad no lo devuelve
   (CU22).
 - **Dónde se lanza:** `ExamenConduccionService.programar()`
+
+## `ERR_ACA_28`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Al iniciar un intento, el banco de preguntas activas de la escuela no tiene suficientes
+  preguntas de algún tema del simulacro (por su categoría y `GENERAL`) (CU21). No se crea el intento.
+- **Dónde se lanza:** `IntentoSimulacroService.armarPreguntas()`
+
+## `ERR_ACA_29`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** El estudiante ya tiene un intento en curso de ese simulacro cuyo tiempo no se acabó, o se pidió
+  la corrección de un intento que sigue en curso (CU21).
+- **Dónde se lanza:** `IntentoSimulacroService.iniciar()` e `IntentoSimulacroService.obtener()`
+
+## `ERR_ACA_30`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El intento pedido no existe o es de otro estudiante (CU21).
+- **Dónde se lanza:** `IntentoSimulacroService.buscar()`
+
+## `ERR_ACA_31`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se intentó finalizar un intento que ya estaba finalizado o expirado (CU21).
+- **Dónde se lanza:** `IntentoSimulacroService.finalizar()`

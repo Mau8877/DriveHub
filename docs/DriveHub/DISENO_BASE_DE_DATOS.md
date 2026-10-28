@@ -776,10 +776,12 @@ Las preguntas se **copian** dentro del intento: editar el banco no altera intent
 | --- | --- | --- |
 | `codigoIntentoSimulacro` | UUID | Único |
 | `simulacroId` | long | → `simulacros_config._id` |
-| `estudianteCodigo` | UUID | Índice compuesto `idx_intento_estudiante_iniciado (estudianteCodigo, iniciadoEn DESC)` |
-| `estado` | enum | `EN_CURSO`, `FINALIZADO`, `EXPIRADO` |
-| `iniciadoEn`, `finalizadoEn` | instant | `finalizadoEn` opcional |
-| `preguntas` | array | `[{ preguntaId, enunciado, opciones, elegidas, correcta }]` |
+| `simulacroCodigo`, `escuelaCodigo` | UUID | El simulacro (público) y la escuela del estudiante, sin FK |
+| `simulacroNombre`, `duracionMin`, `puntajeAprobacion` | string, int, double | Copia de la configuración al iniciar: editar el simulacro no altera el intento (CU21) |
+| `estudianteCodigo` | UUID | Índice compuesto `idx_intento_estudiante_iniciado (estudianteCodigo, iniciadoEn DESC)`. Todo intento se consulta con el estudiante del token |
+| `estado` | enum | `EN_CURSO`, `FINALIZADO`, `EXPIRADO` (se acabó el tiempo: 0 puntos y sin nota) |
+| `iniciadoEn`, `finalizadoEn` | instant | `finalizadoEn` opcional. El intento vence `duracionMin` después de `iniciadoEn` (30 s de gracia al finalizar) |
+| `preguntas` | array | `[{ preguntaId, preguntaCodigo, enunciado, tipo, opciones, explicacion, elegidas, correcta }]`: copia de cada pregunta; `elegidas` son los ids marcados y `correcta` se calcula al finalizar |
 | `aciertos` | int | |
 | `puntaje` | double | |
 | `aprobado` | boolean | |

@@ -135,6 +135,10 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_25`](academico/ERRORES_ACADEMICO.md#err_aca_25) — El examen de conducción ya no está programado (409)
 - [`ERR_ACA_26`](academico/ERRORES_ACADEMICO.md#err_aca_26) — El estudiante ya tiene un examen programado en esa categoría (409)
 - [`ERR_ACA_27`](academico/ERRORES_ACADEMICO.md#err_aca_27) — El estudiante no existe en la escuela (404)
+- [`ERR_ACA_28`](academico/ERRORES_ACADEMICO.md#err_aca_28) — El banco no tiene preguntas suficientes para el simulacro (409)
+- [`ERR_ACA_29`](academico/ERRORES_ACADEMICO.md#err_aca_29) — El estudiante ya tiene un intento de simulacro en curso (409)
+- [`ERR_ACA_30`](academico/ERRORES_ACADEMICO.md#err_aca_30) — El intento de simulacro no existe (404)
+- [`ERR_ACA_31`](academico/ERRORES_ACADEMICO.md#err_aca_31) — El intento de simulacro ya terminó (409)
 
 ### Contenido (`CON`)
 
