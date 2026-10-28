@@ -14,6 +14,8 @@ import '../../features/pagos/screens/pago_detalle_screen.dart';
 import '../../features/pagos/screens/pago_resultado_screen.dart';
 import '../../features/pagos/screens/resumen_compra_screen.dart';
 import '../../features/perfil/screens/cambiar_contrasena_screen.dart';
+import '../../features/simulacros/screens/rendir_simulacro_screen.dart';
+import '../../features/simulacros/screens/resultado_simulacro_screen.dart';
 import '../../features/perfil/screens/cambiar_correo_screen.dart';
 import '../../layouts/inicio_por_rol.dart';
 
@@ -56,7 +58,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             return '/inicio';
           }
           // * Comprar horas es del Estudiante (CU26): otro rol vuelve al inicio
-          if (ubicacion.startsWith('/payments') && !roles.contains('ESTUDIANTE')) {
+          if (ubicacion.startsWith('/study') && !roles.contains('ESTUDIANTE')) {
+            return '/inicio';
+          }
+          if (ubicacion.startsWith('/payments') &&
+              !roles.contains('ESTUDIANTE')) {
             return '/inicio';
           }
           return null;
@@ -117,6 +123,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             PagoDetalleScreen(codigo: state.pathParameters['codigo']!),
       ),
       // * El detalle de un alumno del instructor (CU29)
+      GoRoute(
+        path: '/study/simulacros/rendir',
+        builder: (context, state) => const RendirSimulacroScreen(),
+      ),
+      GoRoute(
+        path: '/study/attempts/:codigo',
+        builder: (context, state) =>
+            ResultadoSimulacroScreen(codigo: state.pathParameters['codigo']!),
+      ),
       GoRoute(
         path: '/students/:codigo',
         builder: (context, state) =>
