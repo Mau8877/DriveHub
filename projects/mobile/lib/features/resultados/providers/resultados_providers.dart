@@ -8,7 +8,7 @@ final resultadosServiceProvider = Provider<ResultadosService>(
   (ref) => ResultadosService(),
 );
 
-/// El filtro por tipo de evaluación de «Mis notas» (CU23); `null` = todas.
+/// El filtro por tipo de evaluación de «Mis notas» y de las notas de los alumnos (CU23); `null` = todas.
 class ResultadosFiltroUiNotifier extends Notifier<OrigenResultado?> {
   @override
   OrigenResultado? build() => null;
@@ -32,3 +32,13 @@ final resultadosListProvider = FutureProvider.autoDispose<List<Resultado>>((
       .mios(origen: origen);
   return pagina.items;
 });
+
+/// Las notas de los alumnos del instructor según el filtro (página 1 de 50), con el nombre de cada alumno.
+final resultadosAlumnosListProvider =
+    FutureProvider.autoDispose<List<Resultado>>((ref) async {
+      final origen = ref.watch(resultadosFiltroUiProvider);
+      final pagina = await ref
+          .watch(resultadosServiceProvider)
+          .deMisAlumnos(origen: origen);
+      return pagina.items;
+    });

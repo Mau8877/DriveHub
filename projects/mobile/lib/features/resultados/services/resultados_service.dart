@@ -18,10 +18,24 @@ class ResultadosService {
     OrigenResultado? origen,
     int page = 1,
     int pageSize = 50,
-  }) async {
+  }) => _lista('/resultados/mios', origen, page, pageSize);
+
+  /// Las notas de los alumnos asignados al instructor, con el nombre de cada uno (CU23).
+  Future<Pagina<Resultado>> deMisAlumnos({
+    OrigenResultado? origen,
+    int page = 1,
+    int pageSize = 50,
+  }) => _lista('/resultados/de-mis-alumnos', origen, page, pageSize);
+
+  Future<Pagina<Resultado>> _lista(
+    String ruta,
+    OrigenResultado? origen,
+    int page,
+    int pageSize,
+  ) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/resultados/mios',
+        ruta,
         queryParameters: {
           'page': page,
           'pageSize': pageSize,

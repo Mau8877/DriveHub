@@ -100,11 +100,22 @@ class InicioScreen extends ConsumerWidget {
         if (esInstructor) ...[
           const SizedBox(height: 22),
           Card(
-            child: FilaAccion(
-              icono: Icons.video_library_outlined,
-              titulo: 'Tutoriales',
-              detalle: 'Crea los tuyos y mira los de otros instructores',
-              onTap: () => context.push('/tutorials'),
+            child: Column(
+              children: [
+                FilaAccion(
+                  icono: Icons.grading_outlined,
+                  titulo: 'Notas de mis alumnos',
+                  detalle: 'Simulacros y exámenes de tus alumnos',
+                  onTap: () => context.push('/grades'),
+                ),
+                const Divider(height: 1),
+                FilaAccion(
+                  icono: Icons.video_library_outlined,
+                  titulo: 'Tutoriales',
+                  detalle: 'Crea los tuyos y mira los de otros instructores',
+                  onTap: () => context.push('/tutorials'),
+                ),
+              ],
             ),
           ),
         ],

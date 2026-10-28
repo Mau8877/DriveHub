@@ -20,6 +20,9 @@ class Resultado {
   final OrigenResultado origen;
   final String titulo;
 
+  /// El nombre del estudiante: solo lo trae la vista del instructor.
+  final String? estudianteNombre;
+
   /// De 0 a 100.
   final double puntaje;
   final bool aprobado;
@@ -31,6 +34,7 @@ class Resultado {
     required this.codigo,
     required this.origen,
     required this.titulo,
+    this.estudianteNombre,
     required this.puntaje,
     required this.aprobado,
     required this.dia,
@@ -41,6 +45,7 @@ class Resultado {
       codigo: json['codigo'] as String,
       origen: OrigenResultado.fromJson(json['origen'] as String),
       titulo: json['titulo'] as String,
+      estudianteNombre: json['estudianteNombre'] as String?,
       puntaje: (json['puntaje'] as num).toDouble(),
       aprobado: json['aprobado'] as bool,
       dia: fechaDesdeApi(json['dia'] as String),

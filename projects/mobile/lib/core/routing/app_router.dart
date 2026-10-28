@@ -14,6 +14,7 @@ import '../../features/pagos/screens/pago_detalle_screen.dart';
 import '../../features/pagos/screens/pago_resultado_screen.dart';
 import '../../features/pagos/screens/resumen_compra_screen.dart';
 import '../../features/perfil/screens/cambiar_contrasena_screen.dart';
+import '../../features/resultados/screens/notas_alumnos_screen.dart';
 import '../../features/simulacros/screens/rendir_simulacro_screen.dart';
 import '../../features/tutoriales/models/tutorial.dart';
 import '../../features/tutoriales/screens/reproductor_video_screen.dart';
@@ -60,6 +61,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           // * Los alumnos son del Instructor (CU29): otro rol vuelve al inicio
           if (ubicacion.startsWith('/students') &&
               !roles.contains('INSTRUCTOR')) {
+            return '/inicio';
+          }
+          // * Las notas de los alumnos son del Instructor (CU23): otro rol vuelve al inicio
+          if (ubicacion.startsWith('/grades') && !roles.contains('INSTRUCTOR')) {
             return '/inicio';
           }
           // * Los tutoriales propios son del Instructor (CU33): otro rol vuelve al inicio
@@ -131,6 +136,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/payments/:codigo',
         builder: (context, state) =>
             PagoDetalleScreen(codigo: state.pathParameters['codigo']!),
+      ),
+      GoRoute(
+        path: '/grades',
+        builder: (context, state) => const NotasAlumnosScreen(),
       ),
       // * Los tutoriales del instructor (CU33 y CU35): sus pantallas y el formulario de crear o editar. Editar recibe el
       // * tutorial por `extra`; sin él (la app se reabrió en esa ruta) vuelve a la lista.

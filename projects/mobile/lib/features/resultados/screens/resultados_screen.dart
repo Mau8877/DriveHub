@@ -13,8 +13,12 @@ import '../providers/resultados_providers.dart';
 ///
 /// * La app solo muestra lo que informa el backend: no calcula puntajes ni si aprobó.
 /// * Deslizar hacia abajo lo vuelve a pedir.
+/// * Con [deAlumnos] es la vista del instructor: las notas de sus alumnos asignados, con el nombre de cada uno.
 class ResultadosScreen extends ConsumerWidget {
-  const ResultadosScreen({super.key});
+  /// ¿Son las notas de los alumnos del instructor (y no las propias)?
+  final bool deAlumnos;
+
+  const ResultadosScreen({super.key, this.deAlumnos = false});
 
   /// Los chips del filtro: el texto y el tipo que piden (`null` = todas).
   static const _filtros = <(String, OrigenResultado?)>[
@@ -26,13 +30,14 @@ class ResultadosScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notas = ref.watch(resultadosListProvider);
+    final lista = deAlumnos ? resultadosAlumnosListProvider : resultadosListProvider;
+    final notas = ref.watch(lista);
     final filtro = ref.watch(resultadosFiltroUiProvider);
 
     return RefreshIndicator(
       onRefresh: () async {
-        ref.invalidate(resultadosListProvider);
-        await ref.read(resultadosListProvider.future);
+        ref.invalidate(lista);
+        await ref.read(lista.future);
       },
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -61,31 +66,36 @@ class ResultadosScreen extends ConsumerWidget {
               ),
             ],
             error: (_, _) => [
-              const AvisoCockpit(
-                texto:
-                    'No pudimos cargar tus notas. Revisa tu conexión e inténtalo de nuevo.',
+              AvisoCockpit(
+                texto: deAlumnos
+                    ? 'No pudimos cargar las notas de tus alumnos. Revisa tu conexión e inténtalo de nuevo.'
+                    : 'No pudimos cargar tus notas. Revisa tu conexión e inténtalo de nuevo.',
                 tono: TonoAviso.error,
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 key: const Key('botonReintentarNotas'),
-                onPressed: () => ref.invalidate(resultadosListProvider),
+                onPressed: () => ref.invalidate(lista),
                 child: const Text('Reintentar'),
               ),
             ],
-            data: (lista) => lista.isEmpty
+            data: (datos) => datos.isEmpty
                 ? [
                     EstadoVacio(
                       icono: Icons.grading_outlined,
                       titulo: filtro == null
-                          ? 'Todavía no tienes notas'
+                          ? (deAlumnos
+                                ? 'Tus alumnos todavía no tienen notas'
+                                : 'Todavía no tienes notas')
                           : 'No hay notas de este tipo',
                       texto: filtro == null
-                          ? 'Cuando termines un simulacro o un examen, tu nota aparecerá aquí.'
+                          ? (deAlumnos
+                                ? 'Cuando tus alumnos terminen un simulacro o un examen, sus notas aparecerán aquí.'
+                                : 'Cuando termines un simulacro o un examen, tu nota aparecerá aquí.')
                           : 'Prueba con otro filtro.',
                     ),
                   ]
-                : [for (final nota in lista) _TarjetaNota(nota: nota)],
+                : [for (final nota in datos) _TarjetaNota(nota: nota)],
           ),
         ],
       ),
@@ -109,7 +119,12 @@ class _TarjetaNota extends StatelessWidget {
       child: ListTile(
         title: Text(nota.titulo),
         subtitle: Text(
-          '${nota.origen.etiqueta} · ${formatearFechaCorta(nota.dia)} · $puntaje%',
+          [
+            ?nota.estudianteNombre,
+            nota.origen.etiqueta,
+            formatearFechaCorta(nota.dia),
+            '$puntaje%',
+          ].join(' · '),
         ),
         trailing: Insignia(
           nota.aprobado ? 'Aprobado' : 'No aprobado',

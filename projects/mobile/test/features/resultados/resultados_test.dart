@@ -23,10 +23,11 @@ Map<String, dynamic> _notaJson({
   String origen = 'SIMULACRO',
   bool aprobado = true,
   num puntaje = 80,
+  String? nombre,
 }) => {
   'codigo': codigo,
   'estudianteCodigo': 'e1',
-  'estudianteNombre': null,
+  'estudianteNombre': nombre,
   'origen': origen,
   'titulo': 'Simulacro: Básico',
   'puntaje': puntaje,
@@ -54,6 +55,29 @@ class ResultadosServiceFalso extends ResultadosService {
   List<Resultado> notas = [];
   Object? error;
   final List<OrigenResultado?> pedidos = [];
+  List<Resultado> deAlumnos = [];
+  final List<OrigenResultado?> pedidosAlumnos = [];
+
+  @override
+  Future<Pagina<Resultado>> deMisAlumnos({
+    OrigenResultado? origen,
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    pedidosAlumnos.add(origen);
+    final e = error;
+    if (e != null) throw e;
+    final filtradas = origen == null
+        ? deAlumnos
+        : deAlumnos.where((n) => n.origen == origen).toList();
+    return Pagina(
+      items: filtradas,
+      page: 1,
+      pageSize: pageSize,
+      totalItems: filtradas.length,
+      totalPages: 1,
+    );
+  }
 
   @override
   Future<Pagina<Resultado>> mios({
@@ -82,10 +106,12 @@ Resultado _nota({
   OrigenResultado origen = OrigenResultado.simulacro,
   bool aprobado = true,
   String titulo = 'Simulacro: Básico',
+  String? nombre,
 }) => Resultado(
   codigo: codigo,
   origen: origen,
   titulo: titulo,
+  estudianteNombre: nombre,
   puntaje: 80,
   aprobado: aprobado,
   dia: DateTime(2026, 11, 2),
@@ -150,6 +176,28 @@ void main() {
       ]);
       expect(pagina.items.first.aprobado, isFalse);
     });
+
+    test(
+      'deMisAlumnos pide la ruta del instructor y lee el nombre del alumno',
+      () async {
+        final adaptador = responder(
+          200,
+          _sobreLista([_notaJson(nombre: 'Ana Pérez')]),
+        );
+
+        final pagina = await servicio.deMisAlumnos(
+          origen: OrigenResultado.simulacro,
+        );
+
+        expect(adaptador.peticiones.single.path, '/resultados/de-mis-alumnos');
+        expect(adaptador.peticiones.single.queryParameters, {
+          'page': 1,
+          'pageSize': 50,
+          'filter[origen]': 'SIMULACRO',
+        });
+        expect(pagina.items.single.estudianteNombre, 'Ana Pérez');
+      },
+    );
 
     test('un error de negocio llega como ApiException', () async {
       responder(403, {
@@ -254,6 +302,51 @@ void main() {
       await tester.tap(find.byKey(const Key('botonReintentarNotas')));
       await tester.pumpAndSettle();
 
+      expect(find.byKey(const Key('nota-r1')), findsOneWidget);
+    });
+
+    testWidgets('la vista del instructor muestra el nombre de cada alumno', (
+      tester,
+    ) async {
+      servicio.deAlumnos = [
+        _nota(nombre: 'Ana Pérez'),
+        _nota(codigo: 'r2', nombre: 'Luis Gómez', aprobado: false),
+      ];
+
+      await montar(tester, pantalla: const ResultadosScreen(deAlumnos: true));
+
+      expect(
+        find.textContaining('Ana Pérez · Simulacro · 02 nov 2026 · 80%'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Luis Gómez'), findsOneWidget);
+      expect(find.text('No aprobado'), findsOneWidget);
+      expect(servicio.pedidos, isEmpty);
+      expect(servicio.pedidosAlumnos, [null]);
+    });
+
+    testWidgets('la vista del instructor sin notas, con filtro y con error', (
+      tester,
+    ) async {
+      await montar(tester, pantalla: const ResultadosScreen(deAlumnos: true));
+      expect(find.text('Tus alumnos todavía no tienen notas'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('filtro-EXAMEN_CONDUCCION')));
+      await tester.pumpAndSettle();
+      expect(servicio.pedidosAlumnos, [null, OrigenResultado.examenConduccion]);
+      expect(find.text('No hay notas de este tipo'), findsOneWidget);
+
+      servicio.error = Exception('sin red');
+      await tester.tap(find.byKey(const Key('filtro-TODAS')));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('No pudimos cargar las notas de tus alumnos'),
+        findsOneWidget,
+      );
+      servicio.error = null;
+      servicio.deAlumnos = [_nota(nombre: 'Ana Pérez')];
+      await tester.tap(find.byKey(const Key('botonReintentarNotas')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('nota-r1')), findsOneWidget);
     });
 
