@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.drivehub.academico.common.exception.AcademicoErrorCodes;
 import com.drivehub.academico.common.exception.GlobalExceptionHandler;
+import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.config.BearerActual;
 import com.drivehub.academico.config.SecurityConfig;
 import com.drivehub.academico.config.WebMvcConfig;
@@ -111,6 +112,37 @@ class ResultadoControllerTest {
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.error").value(AcademicoErrorCodes.TOKEN_SIN_ESCUELA));
         verify(service, never()).listarDeEscuela(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void deMisAlumnos_usaElBearerDelTokenYPasaLosFiltros() throws Exception {
+        when(bearerActual.cabecera()).thenReturn(BEARER);
+        when(service.listarDeAlumnos(any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(List.of(nota()), PageRequest.of(0, 20), 1));
+
+        mockMvc.perform(get(RUTA + "/de-mis-alumnos").with(como("INSTRUCTOR")).param("filter[origen]", "SIMULACRO")
+                .param("filter[estudianteCodigo]", estudiante.toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].estudianteNombre").value("Ana Pérez"))
+            .andExpect(jsonPath("$.data[0].id").doesNotExist());
+
+        verify(service).listarDeAlumnos(BEARER, new FiltroResultados(OrigenResultado.SIMULACRO, estudiante), null, null);
+    }
+
+    @Test
+    void deMisAlumnos_cuandoEscuelaNoRespondeEsUn503() throws Exception {
+        when(bearerActual.cabecera()).thenReturn(BEARER);
+        when(service.listarDeAlumnos(any(), any(), any(), any())).thenThrow(new ServicioNoDisponibleException(
+            AcademicoErrorCodes.SERVICIO_NO_DISPONIBLE, "No pudimos consultar tus alumnos."));
+
+        mockMvc.perform(get(RUTA + "/de-mis-alumnos").with(como("INSTRUCTOR")))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_17"));
+    }
+
+    @Test
+    void deMisAlumnos_sinToken_responde401() throws Exception {
+        mockMvc.perform(get(RUTA + "/de-mis-alumnos")).andExpect(status().isUnauthorized());
     }
 
     @Test

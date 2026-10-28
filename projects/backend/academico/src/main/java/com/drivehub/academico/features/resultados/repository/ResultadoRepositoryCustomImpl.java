@@ -1,6 +1,7 @@
 package com.drivehub.academico.features.resultados.repository;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,6 +35,12 @@ public class ResultadoRepositoryCustomImpl implements ResultadoRepositoryCustom 
     @Override
     public Page<Resultado> listarDeEstudiante(UUID estudianteCodigo, FiltroResultados filtro, Pageable pageable) {
         return listar(Criteria.where("estudianteCodigo").is(estudianteCodigo), filtro, pageable);
+    }
+
+    @Override
+    public Page<Resultado> listarDeEstudiantes(Collection<UUID> estudiantes, FiltroResultados filtro,
+            Pageable pageable) {
+        return listar(Criteria.where("estudianteCodigo").in(estudiantes), filtro, pageable);
     }
 
     private Page<Resultado> listar(Criteria alcance, FiltroResultados filtro, Pageable pageable) {

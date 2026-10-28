@@ -27,8 +27,8 @@ import lombok.RequiredArgsConstructor;
 /**
  * Consulta de resultados y notas (CU23). La decisión por rol vive en el service (@PreAuthorize).
  *
- * * `/mios` es del estudiante (sus notas); `/` es del Administrador de escuela (las de su escuela). La persona y la
- * * escuela salen del token, nunca de la URL.
+ * * `/mios` es del estudiante (sus notas); `/` es del Administrador de escuela (las de su escuela); `/de-mis-alumnos`
+ * * es del instructor (las de sus alumnos asignados). La persona y la escuela salen del token, nunca de la URL.
  */
 @RestController
 @RequestMapping("/api/v1/resultados")
@@ -58,6 +58,16 @@ public class ResultadoController {
             throw new ForbiddenException(AcademicoErrorCodes.TOKEN_SIN_ESCUELA, "Tu cuenta no pertenece a ninguna escuela");
         }
         return respuesta(resultadoService.listarDeEscuela(escuelaCodigo, bearer.cabecera(),
+            new FiltroResultados(origen, estudianteCodigo), page, pageSize));
+    }
+
+    @GetMapping("/de-mis-alumnos")
+    public ResponseEntity<ApiResponse<List<ResultadoResponse>>> deMisAlumnos(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize,
+            @RequestParam(name = "filter[origen]", required = false) OrigenResultado origen,
+            @RequestParam(name = "filter[estudianteCodigo]", required = false) UUID estudianteCodigo) {
+        return respuesta(resultadoService.listarDeAlumnos(bearer.cabecera(),
             new FiltroResultados(origen, estudianteCodigo), page, pageSize));
     }
 
