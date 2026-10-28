@@ -73,6 +73,9 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
 - **Detalle de solo lectura** (`detalle` en el esquema): un botón "Ver detalles" por fila abre el mismo
   drawer sin formulario ni "Guardar", con secciones de campos (`texto`, `fecha`, `insignia`; un valor
   vacío se muestra "—") y un solo botón "Cerrar". Sirve para mostrar un registro sin ofrecer editarlo.
+- **Acción con formulario** (`formulario` en una acción): en vez de ejecutarse directo, abre el mismo drawer con sus
+  `secciones` de campos y, al enviar, llama a la ruta de la acción (con su método) con ese cuerpo. Sirve para acciones que
+  piden datos y no son crear ni editar (ej. registrar el puntaje de un examen).
 - **Confirmar** una acción (`confirmar` en el esquema) abre un **diálogo**, no una fila inline.
 - **Avisos** de éxito o error como toast abajo a la derecha, que se va solo.
 

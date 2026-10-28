@@ -100,6 +100,7 @@ existen son:
 | Pagos → Identidad | Consultar el nombre de un conjunto de estudiantes, para mostrar a los alumnos del instructor sin guardar sus datos (reenvía el Bearer del instructor) | CU29 |
 | Académico → Pagos | Consultar el saldo de la billetera, descontar una hora al reservar una clase y devolverla si la reserva no se completa (reenvía el Bearer del estudiante) | CU14 |
 | Académico → Pagos | Retomar o deshacer las reservas a medias desde el proceso programado (orquestador), sin sesión de ningún estudiante: descontar y devolver horas por las rutas internas `/internal/v1/billeteras-horas/*` con la credencial de servicio (header `X-Service-Key`, variable `PAGOS_CREDENCIAL_ACADEMICO`); esas rutas no pasan por el gateway | CU44 |
+| Académico → Identidad | Consultar el nombre de un conjunto de estudiantes de la escuela, para validar al estudiante de un examen de conducción y mostrarlo en el listado (reenvía el Bearer del Administrador) | CU22 |
 | Académico → Identidad | Consultar el nombre de un conjunto de instructores de la escuela, para mostrarlos en las franjas y en las clases del estudiante (reenvía el Bearer del estudiante) | CU14 |
 
 Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
