@@ -1,7 +1,7 @@
 """Microservicio Asistente IA de DriveHub (FastAPI, capas, DynamoDB).
 
 Cada feature (sesiones, ayudas_tablero, agentes) registra acá su router
-cuando tenga su primer caso de uso (hoy: ayudas_tablero; las demás solo tienen sus Models).
+cuando tenga su primer caso de uso (hoy: ayudas_tablero y sesiones; agentes solo tiene su Model).
 """
 
 from collections.abc import AsyncIterator
@@ -17,6 +17,7 @@ from app.core.config import get_settings
 from app.features.ayudas_tablero.routers.ayuda_tablero_router import (
     router as ayudas_tablero_router,
 )
+from app.features.sesiones.routers.sesion_router import router as sesiones_router
 from app.health.router import router as health_router
 
 configurar_logging()
@@ -33,3 +34,4 @@ app = FastAPI(title="DriveHub - Asistente IA", version="0.0.1", lifespan=lifespa
 registrar_exception_handlers(app)
 app.include_router(health_router)
 app.include_router(ayudas_tablero_router)
+app.include_router(sesiones_router)
