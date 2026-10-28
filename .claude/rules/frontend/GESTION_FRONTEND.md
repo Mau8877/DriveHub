@@ -52,6 +52,9 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
   formulario es un **arreglo** (por defecto `[]`), `requerido` significa al menos uno y al enviar viaja el
   arreglo. `opcionesDe.excluir` (`['SIN']`) quita valores del catálogo; `valorDe` (`'sigla'`) dice qué propiedad
   guardar cuando el registro trae objetos (`categorias: [{ sigla, descripcion }]`) al editar.
+- **Reglas** (`tipo: 'reglas'`): filas repetibles de tema y cantidad (`min` y `max` son la cantidad de filas, 1 y 10 por
+  defecto; `maxTexto` el largo del tema, 80). El valor viaja como arreglo de `{ tema, cantidad }` con la cantidad como
+  número; la validación pide temas con nombre y sin repetir, y cantidades enteras de 1 a 100.
 - **Etiquetas** (`tipo: 'etiquetas'` en una columna o un dato del detalle): el valor es un arreglo, de textos o
   de objetos (`etiqueta: 'sigla'` dice qué propiedad mostrar), dibujado como insignias pequeñas. En la tabla
   caben tres y el resto se resume en "+N"; en el detalle se ven todas; vacío se muestra "—".
