@@ -15,6 +15,11 @@ import '../../features/pagos/screens/pago_resultado_screen.dart';
 import '../../features/pagos/screens/resumen_compra_screen.dart';
 import '../../features/perfil/screens/cambiar_contrasena_screen.dart';
 import '../../features/simulacros/screens/rendir_simulacro_screen.dart';
+import '../../features/tutoriales/models/tutorial.dart';
+import '../../features/tutoriales/screens/reproductor_video_screen.dart';
+import '../../features/tutoriales/screens/tutorial_form_screen.dart';
+import '../../features/tutoriales/screens/tutoriales_instructor_screen.dart';
+import '../../shared/widgets/visor_pdf_screen.dart';
 import '../../features/simulacros/screens/resultado_simulacro_screen.dart';
 import '../../features/perfil/screens/cambiar_correo_screen.dart';
 import '../../layouts/inicio_por_rol.dart';
@@ -54,6 +59,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
           // * Los alumnos son del Instructor (CU29): otro rol vuelve al inicio
           if (ubicacion.startsWith('/students') &&
+              !roles.contains('INSTRUCTOR')) {
+            return '/inicio';
+          }
+          // * Los tutoriales propios son del Instructor (CU33): otro rol vuelve al inicio
+          if (ubicacion.startsWith('/tutorials') &&
               !roles.contains('INSTRUCTOR')) {
             return '/inicio';
           }
@@ -121,6 +131,43 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/payments/:codigo',
         builder: (context, state) =>
             PagoDetalleScreen(codigo: state.pathParameters['codigo']!),
+      ),
+      // * Los tutoriales del instructor (CU33 y CU35): sus pantallas y el formulario de crear o editar. Editar recibe el
+      // * tutorial por `extra`; sin él (la app se reabrió en esa ruta) vuelve a la lista.
+      GoRoute(
+        path: '/tutorials',
+        builder: (context, state) => const TutorialesInstructorScreen(),
+      ),
+      GoRoute(
+        path: '/tutorials/new',
+        builder: (context, state) => const TutorialFormScreen(),
+      ),
+      GoRoute(
+        path: '/tutorials/edit',
+        redirect: (context, state) =>
+            state.extra is Tutorial ? null : '/tutorials',
+        builder: (context, state) =>
+            TutorialFormScreen(tutorial: state.extra as Tutorial),
+      ),
+      // * El visor de PDF y el reproductor de video de la app (manuales, CU34; tutoriales, CU33 y CU35). Reciben lo
+      // * que abren por `extra`; sin él vuelven al inicio.
+      GoRoute(
+        path: '/pdf',
+        redirect: (context, state) =>
+            state.extra is VisorPdfArgs ? null : '/inicio',
+        builder: (context, state) {
+          final args = state.extra as VisorPdfArgs;
+          return VisorPdfScreen(url: args.url, titulo: args.titulo);
+        },
+      ),
+      GoRoute(
+        path: '/video',
+        redirect: (context, state) =>
+            state.extra is ReproductorVideoArgs ? null : '/inicio',
+        builder: (context, state) {
+          final args = state.extra as ReproductorVideoArgs;
+          return ReproductorVideoScreen(url: args.url, titulo: args.titulo);
+        },
       ),
       // * El detalle de un alumno del instructor (CU29)
       GoRoute(

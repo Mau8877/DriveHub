@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/archivos/abridor_de_pdf.dart';
 import '../models/manual.dart';
 import '../services/manuales_service.dart';
 
@@ -46,44 +43,3 @@ final manualesListProvider = FutureProvider.autoDispose<List<Manual>>((
       .publicados(busqueda: filtro.busqueda, categoria: filtro.categoria);
   return pagina.items;
 });
-
-/// Descargar y abrir el PDF de un manual (CU34), por su (código, dirección).
-///
-/// * `descargarYAbrir` no lanza: devuelve `true` si el PDF se abrió; si no, deja el error en el estado
-///   ([SinVisorDePdf] o uno de red) para que la tarjeta lo muestre.
-/// * Atiende una descarga a la vez: un segundo toque mientras hay una en curso no hace nada.
-/// * Reutiliza el abridor de PDF de los comprobantes (`core/archivos/abridor_de_pdf.dart`).
-class ManualDescargaNotifier
-    extends AutoDisposeFamilyAsyncNotifier<void, (String, String)> {
-  bool _enCurso = false;
-
-  @override
-  FutureOr<void> build((String, String) arg) {}
-
-  Future<bool> descargarYAbrir() async {
-    if (_enCurso) return false;
-    _enCurso = true;
-    state = const AsyncLoading<void>();
-    try {
-      final (codigo, url) = arg;
-      final bytes = await ref.read(manualesServiceProvider).descargarPdf(url);
-      final abierto = await ref.read(abridorDePdfProvider)(
-        bytes,
-        'manual-$codigo.pdf',
-      );
-      if (!abierto) throw const SinVisorDePdf();
-      state = const AsyncData(null);
-      return true;
-    } catch (error, pila) {
-      state = AsyncError(error, pila);
-      return false;
-    } finally {
-      _enCurso = false;
-    }
-  }
-}
-
-final manualDescargaProvider = AsyncNotifierProvider.autoDispose
-    .family<ManualDescargaNotifier, void, (String, String)>(
-      ManualDescargaNotifier.new,
-    );

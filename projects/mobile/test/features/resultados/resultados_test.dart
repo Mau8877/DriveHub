@@ -257,18 +257,19 @@ void main() {
       expect(find.byKey(const Key('nota-r1')), findsOneWidget);
     });
 
-    testWidgets('«Estudio» tiene las pestañas Simulacros, Manuales y Mis notas', (
-      tester,
-    ) async {
-      servicio.notas = [_nota()];
+    testWidgets(
+      '«Estudio» tiene las pestañas Simulacros, Manuales y Mis notas',
+      (tester) async {
+        servicio.notas = [_nota()];
 
-      await montar(tester, pantalla: const EstudioScreen());
+        await montar(tester, pantalla: const EstudioScreen());
 
-      expect(find.text('Simulacros'), findsWidgets);
-      await tester.tap(find.text('Mis notas'));
-      await tester.pumpAndSettle();
+        expect(find.text('Simulacros'), findsWidgets);
+        await tester.tap(find.text('Mis notas'));
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('nota-r1')), findsOneWidget);
-    });
+        expect(find.byKey(const Key('nota-r1')), findsOneWidget);
+      },
+    );
   });
 }

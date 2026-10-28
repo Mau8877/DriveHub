@@ -47,6 +47,9 @@ dependencies:
   path_provider: ^2.1.6
   open_filex: ^5.0.0
   web: ^1.1.1
+  file_picker: ^13.3.0
+  pdfrx: ^2.10.1
+  youtube_player_iframe: ^6.0.2
 
 dev_dependencies:
   flutter_test:

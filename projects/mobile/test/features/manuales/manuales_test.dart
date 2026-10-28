@@ -1,12 +1,10 @@
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
-import 'package:mobile/core/archivos/abridor_de_pdf.dart';
 import 'package:mobile/core/network/api_client.dart';
 import 'package:mobile/core/network/pagina.dart';
 import 'package:mobile/core/theme/app_theme.dart';
@@ -14,6 +12,7 @@ import 'package:mobile/features/manuales/models/manual.dart';
 import 'package:mobile/features/manuales/providers/manuales_providers.dart';
 import 'package:mobile/features/manuales/screens/manuales_screen.dart';
 import 'package:mobile/features/manuales/services/manuales_service.dart';
+import 'package:mobile/shared/widgets/visor_pdf_screen.dart';
 
 import '../../helpers/adaptador_en_cola.dart';
 
@@ -50,32 +49,12 @@ Map<String, dynamic> _sobreLista(List<Map<String, dynamic>> data) => {
   },
 };
 
-/// Sirve bytes fijos, como el almacén de archivos.
-class _AdaptadorDeBytes implements HttpClientAdapter {
-  final List<RequestOptions> peticiones = [];
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    peticiones.add(options);
-    return ResponseBody.fromBytes([37, 80, 68, 70], 200);
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
-
 class ManualesServiceFalso extends ManualesService {
-  ManualesServiceFalso() : super(dio: Dio(), descargas: Dio());
+  ManualesServiceFalso() : super(dio: Dio());
 
   List<Manual> manuales = [];
   Object? error;
-  Object? errorDeDescarga;
   final List<(String?, String?)> pedidos = [];
-  final List<String> descargas = [];
 
   @override
   Future<Pagina<Manual>> publicados({
@@ -95,14 +74,6 @@ class ManualesServiceFalso extends ManualesService {
       totalPages: 1,
     );
   }
-
-  @override
-  Future<List<int>> descargarPdf(String url) async {
-    descargas.add(url);
-    final e = errorDeDescarga;
-    if (e != null) throw e;
-    return [37, 80, 68, 70];
-  }
 }
 
 Manual _manual({String codigo = 'm1', String titulo = 'Señales de tránsito'}) =>
@@ -116,36 +87,37 @@ void main() {
       ),
     );
 
-    test('publicados pide la página con búsqueda y categoría y lee los manuales', () async {
-      final adaptador = AdaptadorEnCola([
-        RespuestaFalsa(200, _sobreLista([_manualJson()])),
-      ]);
-      ApiClient.instance.httpClientAdapter = adaptador;
+    test(
+      'publicados pide la página con búsqueda y categoría y lee los manuales',
+      () async {
+        final adaptador = AdaptadorEnCola([
+          RespuestaFalsa(200, _sobreLista([_manualJson()])),
+        ]);
+        ApiClient.instance.httpClientAdapter = adaptador;
 
-      final pagina = await ManualesService().publicados(
-        busqueda: '  señales ',
-        categoria: 'B',
-      );
+        final pagina = await ManualesService().publicados(
+          busqueda: '  señales ',
+          categoria: 'B',
+        );
 
-      final pedido = adaptador.peticiones.single;
-      expect(pedido.path, '/manuales/publicados');
-      expect(pedido.queryParameters, {
-        'page': 1,
-        'pageSize': 50,
-        'search': 'señales',
-        'filter[categoria]': 'B',
-      });
-      final manual = pagina.items.single;
-      expect(manual.titulo, 'Señales de tránsito');
-      expect(manual.etiquetas, ['vial', 'señales']);
-      expect(manual.tamanoBytes, 2097152);
-      expect(manual.archivoUrl, contains('m1.pdf'));
-    });
+        final pedido = adaptador.peticiones.single;
+        expect(pedido.path, '/manuales/publicados');
+        expect(pedido.queryParameters, {
+          'page': 1,
+          'pageSize': 50,
+          'search': 'señales',
+          'filter[categoria]': 'B',
+        });
+        final manual = pagina.items.single;
+        expect(manual.titulo, 'Señales de tránsito');
+        expect(manual.etiquetas, ['vial', 'señales']);
+        expect(manual.tamanoBytes, 2097152);
+        expect(manual.archivoUrl, contains('m1.pdf'));
+      },
+    );
 
     test('sin búsqueda ni categoría no manda filtros', () async {
-      final adaptador = AdaptadorEnCola([
-        RespuestaFalsa(200, _sobreLista([])),
-      ]);
+      final adaptador = AdaptadorEnCola([RespuestaFalsa(200, _sobreLista([]))]);
       ApiClient.instance.httpClientAdapter = adaptador;
 
       await ManualesService().publicados(busqueda: '  ');
@@ -174,72 +146,63 @@ void main() {
         ),
       );
     });
-
-    test('descargarPdf baja los bytes con un cliente aparte, sin el token', () async {
-      final descargas = Dio();
-      final adaptador = _AdaptadorDeBytes();
-      descargas.httpClientAdapter = adaptador;
-
-      final bytes = await ManualesService(
-        descargas: descargas,
-      ).descargarPdf('http://localhost:9000/drivehub-contenido/m1.pdf');
-
-      expect(bytes, [37, 80, 68, 70]);
-      expect(
-        adaptador.peticiones.single.uri.toString(),
-        'http://localhost:9000/drivehub-contenido/m1.pdf',
-      );
-      expect(adaptador.peticiones.single.headers['Authorization'], isNull);
-    });
   });
 
   group('ManualesScreen', () {
     late ManualesServiceFalso servicio;
-    late List<String> abiertos;
-    late bool hayVisor;
+    VisorPdfArgs? abierto;
 
     setUp(() {
       servicio = ManualesServiceFalso();
-      abiertos = [];
-      hayVisor = true;
+      abierto = null;
     });
 
     Future<void> montar(WidgetTester tester) async {
       final container = ProviderContainer(
-        overrides: [
-          manualesServiceProvider.overrideWithValue(servicio),
-          abridorDePdfProvider.overrideWithValue((bytes, nombre) async {
-            abiertos.add(nombre);
-            return hayVisor;
-          }),
-        ],
+        overrides: [manualesServiceProvider.overrideWithValue(servicio)],
       );
       addTearDown(container.dispose);
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => const Scaffold(body: ManualesScreen()),
+          ),
+          GoRoute(
+            path: '/pdf',
+            builder: (context, state) {
+              abierto = state.extra as VisorPdfArgs;
+              return const Text('visor');
+            },
+          ),
+        ],
+      );
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
+          child: MaterialApp.router(
             theme: AppTheme.light,
-            home: const Scaffold(body: ManualesScreen()),
+            routerConfig: router,
           ),
         ),
       );
       await tester.pumpAndSettle();
     }
 
-    testWidgets('lista los manuales con su categoría, tema, tamaño y etiquetas', (
-      tester,
-    ) async {
-      servicio.manuales = [_manual()];
+    testWidgets(
+      'lista los manuales con su categoría, tema, tamaño y etiquetas',
+      (tester) async {
+        servicio.manuales = [_manual()];
 
-      await montar(tester);
+        await montar(tester);
 
-      expect(find.byKey(const Key('manual-m1')), findsOneWidget);
-      expect(find.text('Señales de tránsito'), findsOneWidget);
-      expect(find.text('Todas las señales'), findsOneWidget);
-      expect(find.text('Señalización · 2.0 MB · versión 2'), findsOneWidget);
-      expect(find.text('vial'), findsOneWidget);
-    });
+        expect(find.byKey(const Key('manual-m1')), findsOneWidget);
+        expect(find.text('Señales de tránsito'), findsOneWidget);
+        expect(find.text('Todas las señales'), findsOneWidget);
+        expect(find.text('Señalización · 2.0 MB · versión 2'), findsOneWidget);
+        expect(find.text('vial'), findsOneWidget);
+      },
+    );
 
     testWidgets('sin manuales muestra el estado vacío', (tester) async {
       await montar(tester);
@@ -262,11 +225,7 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.search);
       await tester.pumpAndSettle();
 
-      expect(servicio.pedidos, [
-        ('', null),
-        ('', 'B'),
-        ('señales', 'B'),
-      ]);
+      expect(servicio.pedidos, [('', null), ('', 'B'), ('señales', 'B')]);
     });
 
     testWidgets('con un filtro sin resultados lo dice', (tester) async {
@@ -295,7 +254,7 @@ void main() {
       expect(find.byKey(const Key('manual-m1')), findsOneWidget);
     });
 
-    testWidgets('Abrir PDF baja el archivo y lo abre en el visor', (
+    testWidgets('Abrir PDF lo abre en el visor de la app con su título', (
       tester,
     ) async {
       servicio.manuales = [_manual()];
@@ -304,39 +263,9 @@ void main() {
       await tester.tap(find.byKey(const Key('botonAbrirManual-m1')));
       await tester.pumpAndSettle();
 
-      expect(servicio.descargas, [
-        'http://localhost:9000/drivehub-contenido/m1.pdf',
-      ]);
-      expect(abiertos, ['manual-m1.pdf']);
-    });
-
-    testWidgets('sin app para abrir PDF avisa', (tester) async {
-      servicio.manuales = [_manual()];
-      hayVisor = false;
-      await montar(tester);
-
-      await tester.tap(find.byKey(const Key('botonAbrirManual-m1')));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('No hay ninguna app para abrir PDF en tu teléfono.'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('sin conexión al bajar el PDF avisa', (tester) async {
-      servicio.manuales = [_manual()];
-      servicio.errorDeDescarga = DioException(
-        requestOptions: RequestOptions(path: '/x'),
-        type: DioExceptionType.connectionError,
-      );
-      await montar(tester);
-
-      await tester.tap(find.byKey(const Key('botonAbrirManual-m1')));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('No hay conexión'), findsOneWidget);
-      expect(abiertos, isEmpty);
+      expect(find.text('visor'), findsOneWidget);
+      expect(abierto?.url, 'http://localhost:9000/drivehub-contenido/m1.pdf');
+      expect(abierto?.titulo, 'Señales de tránsito');
     });
   });
 }

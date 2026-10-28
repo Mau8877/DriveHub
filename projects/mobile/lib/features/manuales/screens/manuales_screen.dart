@@ -1,33 +1,16 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../core/archivos/abridor_de_pdf.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
-import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/estado_vacio.dart';
-import '../../../shared/widgets/indicador_boton.dart';
 import '../../../shared/widgets/insignia.dart';
+import '../../../shared/widgets/visor_pdf_screen.dart';
 import '../models/manual.dart';
 import '../providers/manuales_providers.dart';
 
-/// El texto de aviso de un error al bajar o abrir un manual (CU34), en español y sin términos técnicos.
-String mensajeDeErrorDeManual(Object error) {
-  if (error is SinVisorDePdf) {
-    return 'No hay ninguna app para abrir PDF en tu teléfono.';
-  }
-  if (error is DioException &&
-      (error.type == DioExceptionType.connectionError ||
-          error.type == DioExceptionType.connectionTimeout ||
-          error.type == DioExceptionType.sendTimeout ||
-          error.type == DioExceptionType.receiveTimeout)) {
-    return 'No hay conexión. Revisa tu internet e inténtalo de nuevo.';
-  }
-  return 'No pudimos abrir el manual. Inténtalo de nuevo más tarde.';
-}
-
 /// «Manuales» (CU34, dentro de la sección «Estudio»): los manuales publicados por la escuela, con búsqueda y un
-/// filtro por categoría. Tocar «Abrir PDF» baja el archivo y lo abre en el visor del teléfono.
+/// filtro por categoría. Tocar «Abrir PDF» lo lee en el visor de PDF de la app.
 ///
 /// * La búsqueda se envía al pulsar «buscar» en el teclado, no en cada letra.
 /// * Deslizar hacia abajo lo vuelve a pedir.
@@ -142,15 +125,13 @@ String _tamano(int bytes) => bytes >= 1024 * 1024
     ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
     : '${(bytes / 1024).ceil()} KB';
 
-class _TarjetaManual extends ConsumerWidget {
+class _TarjetaManual extends StatelessWidget {
   final Manual manual;
 
   const _TarjetaManual({required this.manual});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final llave = (manual.codigo, manual.archivoUrl);
-    final descargando = ref.watch(manualDescargaProvider(llave)).isLoading;
+  Widget build(BuildContext context) {
     final detalle = [
       ?manual.tema,
       if (manual.tamanoBytes != null) _tamano(manual.tamanoBytes!),
@@ -201,23 +182,14 @@ class _TarjetaManual extends ConsumerWidget {
               key: Key('botonAbrirManual-${manual.codigo}'),
               // * El tema estira los botones a todo el ancho; este va debajo del texto, sin necesidad de más
               style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
-              onPressed: descargando
-                  ? null
-                  : () async {
-                      final abierto = await ref
-                          .read(manualDescargaProvider(llave).notifier)
-                          .descargarYAbrir();
-                      if (abierto || !context.mounted) return;
-                      final error = ref
-                          .read(manualDescargaProvider(llave))
-                          .error;
-                      if (error != null) {
-                        avisar(context, mensajeDeErrorDeManual(error));
-                      }
-                    },
-              icon: descargando
-                  ? const IndicadorBoton()
-                  : const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: () => context.push(
+                '/pdf',
+                extra: VisorPdfArgs(
+                  url: manual.archivoUrl,
+                  titulo: manual.titulo,
+                ),
+              ),
+              icon: const Icon(Icons.picture_as_pdf_outlined),
               label: const Text('Abrir PDF'),
             ),
           ],

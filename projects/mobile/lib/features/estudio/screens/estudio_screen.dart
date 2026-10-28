@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../manuales/screens/manuales_screen.dart';
 import '../../resultados/screens/resultados_screen.dart';
 import '../../simulacros/screens/simulacros_screen.dart';
+import '../../tutoriales/screens/biblioteca_tutoriales_view.dart';
 
 /// La sección «Estudio» del estudiante (pestaña del `EstudianteShell`): sus pestañas agrupan lo que sirve para
 /// prepararse y ver cómo le va.
@@ -15,13 +16,16 @@ class EstudioScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const DefaultTabController(
-      length: 3,
+      length: 4,
       child: Column(
         children: [
           TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
               Tab(text: 'Simulacros'),
               Tab(text: 'Manuales'),
+              Tab(text: 'Tutoriales'),
               Tab(text: 'Mis notas'),
             ],
           ),
@@ -30,6 +34,7 @@ class EstudioScreen extends StatelessWidget {
               children: [
                 SimulacrosScreen(),
                 ManualesScreen(),
+                BibliotecaTutorialesView(),
                 ResultadosScreen(),
               ],
             ),
