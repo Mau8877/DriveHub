@@ -65,6 +65,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IDE_21`](identidad/ERRORES_IDENTIDAD.md#err_ide_21) — La categoría de licencia no existe (400)
 - [`ERR_IDE_22`](identidad/ERRORES_IDENTIDAD.md#err_ide_22) — El instructor no existe en la escuela (404)
 - [`ERR_IDE_23`](identidad/ERRORES_IDENTIDAD.md#err_ide_23) — La cuenta del instructor ya se usó y no se revierte (409)
+- [`ERR_IDE_24`](identidad/ERRORES_IDENTIDAD.md#err_ide_24) — Escuela no responde: no se pudo confirmar la escuela o la categoría (503)
 
 ### Escuela (`ESC`)
 
