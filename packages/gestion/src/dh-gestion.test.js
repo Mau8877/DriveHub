@@ -2545,3 +2545,108 @@ describe('<dh-gestion> campo reglas (tema + cantidad)', () => {
     expect(cantidad.value).toBe('5')
   })
 })
+
+describe('<dh-gestion> acción con formulario', () => {
+  let el
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+  const FILA = { codigo: 'x1', nombre: 'Examen' }
+  const ESQUEMA_ACCION = {
+    recurso: 'examenes-conduccion',
+    titulo: 'Exámenes',
+    columnas: [{ campo: 'nombre', titulo: 'Nombre' }],
+    acciones: [
+      {
+        id: 'registrar',
+        etiqueta: 'Registrar resultado',
+        metodo: 'POST',
+        ruta: '{id}/registrar-resultado',
+        mensajeExito: 'Resultado registrado.',
+        formulario: {
+          titulo: 'Registrar resultado',
+          etiquetaEnviar: 'Guardar resultado',
+          secciones: [
+            {
+              campos: [
+                { campo: 'puntaje', titulo: 'Puntaje', tipo: 'decimal', requerido: true, decimales: 1, min: 0, max: 100 },
+                { campo: 'observaciones', titulo: 'Observaciones', tipo: 'textarea', max: 500 },
+              ],
+            },
+          ],
+        },
+      },
+    ],
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  async function montar() {
+    fetch.mockResolvedValueOnce(lista([FILA]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_ACCION
+    await asentar(el)
+  }
+
+  async function escribirEn(selector, valor) {
+    const campo = el.shadowRoot.querySelector(selector)
+    campo.value = valor
+    campo.dispatchEvent(new Event('input', { bubbles: true }))
+    await asentar(el)
+  }
+
+  it('abre el formulario en el drawer en vez de ejecutar la acción', async () => {
+    await montar()
+
+    boton('Registrar resultado').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.querySelector('.drawer')).not.toBeNull()
+    expect(el.shadowRoot.querySelector('#drawer-titulo').textContent).toBe('Registrar resultado')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('envía el cuerpo a la ruta de la acción con su método y vuelve a la lista con el aviso', async () => {
+    await montar()
+    boton('Registrar resultado').click()
+    await asentar(el)
+    await escribirEn('#campo-puntaje', '85,5')
+    await escribirEn('#campo-observaciones', ' Buen manejo ')
+    fetch.mockResolvedValueOnce(sobre({ codigo: 'x1' })).mockResolvedValueOnce(lista([FILA]))
+
+    boton('Guardar resultado').click()
+    await asentar(el)
+
+    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/examenes-conduccion/x1/registrar-resultado')
+    expect(fetch.mock.calls[1][1].method).toBe('POST')
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ puntaje: 85.5, observaciones: 'Buen manejo' })
+    expect(el.shadowRoot.querySelector('.drawer')).toBeNull()
+    expect(el.shadowRoot.textContent).toContain('Resultado registrado.')
+  })
+
+  it('un puntaje inválido no se envía y muestra el error bajo el campo', async () => {
+    await montar()
+    boton('Registrar resultado').click()
+    await asentar(el)
+    await escribirEn('#campo-puntaje', '150')
+
+    boton('Guardar resultado').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.textContent).toContain('No puede superar 100')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+})

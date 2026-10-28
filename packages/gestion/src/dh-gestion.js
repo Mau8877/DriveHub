@@ -368,7 +368,8 @@ export class DhGestion extends LitElement {
   }
 
   _alPulsarAccion(accion, fila) {
-    if (accion.confirmar) this._confirmando = { accion, fila }
+    if (accion.formulario) this._abrirAccion(accion, fila)
+    else if (accion.confirmar) this._confirmando = { accion, fila }
     else this._ejecutarAccion(accion, fila)
   }
 
@@ -386,6 +387,21 @@ export class DhGestion extends LitElement {
     this._iniciales = {}
     this._vista = 'crear'
     this._cargarOpciones(camposDe(this.esquema.crear.secciones))
+  }
+
+  /** Abre el drawer con el formulario de una acción (`accion.formulario`): al enviar, llama a la ruta de la acción. */
+  _abrirAccion(accion, fila) {
+    this._prepararFormulario('accion')
+    const valores = {}
+    camposDe(accion.formulario.secciones).forEach((campo) => {
+      if (campo.tipo === 'seleccion' && campo.multiple) valores[campo.campo] = []
+      else if (campo.porDefecto !== undefined) valores[campo.campo] = campo.porDefecto
+    })
+    this._valores = valores
+    this._iniciales = {}
+    this._accionForm = { accion, id: fila[this._id] }
+    this._vista = 'accion'
+    this._cargarOpciones(camposDe(accion.formulario.secciones))
   }
 
   /** Trae de la API las opciones de los campos `seleccion` que las piden con `opcionesDe`. */
@@ -509,8 +525,14 @@ export class DhGestion extends LitElement {
     this._cargar()
   }
 
+  /** El formulario abierto: el de crear, el de editar o el de la acción elegida. */
+  _definicion() {
+    if (this._vista === 'accion') return this._accionForm.accion.formulario
+    return this._vista === 'crear' ? this.esquema.crear : this.esquema.editar
+  }
+
   _secciones() {
-    return (this._vista === 'crear' ? this.esquema.crear : this.esquema.editar).secciones
+    return this._definicion().secciones
   }
 
   _alEscribir(campo, texto) {
@@ -611,15 +633,24 @@ export class DhGestion extends LitElement {
     })
 
     const creando = this._vista === 'crear'
-    const definicion = creando ? this.esquema.crear : this.esquema.editar
-    const ruta = creando
+    const enAccion = this._vista === 'accion'
+    const definicion = this._definicion()
+    let metodo = creando ? 'POST' : (definicion.metodo ?? 'PATCH')
+    let ruta = creando
       ? this.esquema.recurso
       : `${this.esquema.recurso}/${(definicion.ruta ?? '{id}').replace('{id}', encodeURIComponent(this._idEditando))}`
+    let exito = definicion.mensajeExito
+    if (enAccion) {
+      const { accion, id } = this._accionForm
+      metodo = accion.metodo
+      ruta = `${this.esquema.recurso}/${accion.ruta.replace('{id}', encodeURIComponent(id))}`
+      exito = accion.mensajeExito
+    }
     this._enviando = true
     try {
-      await solicitar(creando ? 'POST' : (definicion.metodo ?? 'PATCH'), ruta, { cuerpo })
+      await solicitar(metodo, ruta, { cuerpo })
       this._enviando = false
-      this._volverALista({ tipo: 'ok', texto: definicion.mensajeExito })
+      this._volverALista({ tipo: 'ok', texto: exito })
     } catch (error) {
       this._enviando = false
       this._mostrarErrorDelServidor(error)
@@ -901,9 +932,15 @@ export class DhGestion extends LitElement {
 
   _renderDrawer() {
     const creando = this._vista === 'crear'
-    const definicion = creando ? this.esquema.crear : this.esquema.editar
+    const enAccion = this._vista === 'accion'
+    const definicion = this._definicion()
     const titulo =
-      definicion.titulo ?? (creando ? this.esquema.crear.etiqueta : `Editar ${this.esquema.nombreSingular ?? 'registro'}`)
+      definicion.titulo ??
+      (enAccion
+        ? this._accionForm.accion.etiqueta
+        : creando
+          ? this.esquema.crear.etiqueta
+          : `Editar ${this.esquema.nombreSingular ?? 'registro'}`)
     const numerar = definicion.secciones.length > 1
     return html`
       <div class="fondo" @mousedown=${(e) => e.target === e.currentTarget && this._cerrarDrawer()}>
@@ -936,7 +973,7 @@ export class DhGestion extends LitElement {
                   <div class="drawer-pie">
                     <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cancelar</button>
                     <button type="submit" class="boton" ?disabled=${this._enviando}>
-                      ${this._enviando ? 'Guardando…' : (definicion.etiquetaEnviar ?? (creando ? 'Crear' : 'Guardar'))}
+                      ${this._enviando ? 'Guardando…' : (definicion.etiquetaEnviar ?? (creando ? 'Crear' : enAccion ? 'Enviar' : 'Guardar'))}
                     </button>
                   </div>
                 </form>`}

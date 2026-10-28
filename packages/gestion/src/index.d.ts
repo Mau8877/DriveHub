@@ -186,6 +186,11 @@ export interface Accion {
   mensajeExito: string
   visibleSi?: Condicion
   tono?: 'peligro'
+  /**
+   * Si existe, la acción abre un formulario en el drawer (mismos campos que crear y editar) y al enviarlo llama a
+   * `ruta` con ese cuerpo, en vez de ejecutarse directo. Con `formulario`, `confirmar` no se usa.
+   */
+  formulario?: { titulo?: string; descripcion?: string; etiquetaEnviar?: string; secciones: Seccion[] }
 }
 
 export interface Crear {
