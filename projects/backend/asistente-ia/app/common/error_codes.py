@@ -4,6 +4,10 @@ Cada código nuevo se documenta en docs/errors/asistente-ia/ERRORES_ASISTENTE_IA
 mismo cambio (ver GUIA_ERRORES_BACKEND.md).
 """
 
+# Ayudas del tablero (CU40, CU42).
+MINIATURA_INVALIDA = "ERR_IA_01"
+ALMACEN_NO_DISPONIBLE = "ERR_IA_02"
+
 # Transversales del sistema (ERR_SYS), iguales en todos los servicios.
 VALIDACION = "ERR_SYS_01"
 NO_AUTENTICADO = "ERR_SYS_04"
