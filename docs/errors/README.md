@@ -128,6 +128,9 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_18`](academico/ERRORES_ACADEMICO.md#err_aca_18) — La franja ya no está disponible para reservar (409)
 - [`ERR_ACA_19`](academico/ERRORES_ACADEMICO.md#err_aca_19) — El estudiante no tiene horas suficientes para reservar la franja (409)
 - [`ERR_ACA_20`](academico/ERRORES_ACADEMICO.md#err_aca_20) — El estudiante ya tiene una clase reservada a esa hora (409)
+- [`ERR_ACA_21`](academico/ERRORES_ACADEMICO.md#err_aca_21) — El simulacro no existe en la escuela (404)
+- [`ERR_ACA_22`](academico/ERRORES_ACADEMICO.md#err_aca_22) — El simulacro ya estaba en ese estado (409)
+- [`ERR_ACA_23`](academico/ERRORES_ACADEMICO.md#err_aca_23) — Ya existe un simulacro con ese nombre en la escuela (409)
 
 ### Contenido (`CON`)
 

@@ -758,11 +758,13 @@ Evaluación práctica durante la clase.
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoSimulacro` | UUID | Único |
-| `nombre`, `categoria` | string | |
-| `duracionMin`, `nroPreguntas` | int | |
-| `puntajeAprobacion` | double | |
-| `reglas` | array | `[{ tema, cantidad }]`: cuántas preguntas de cada tema por intento |
-| `activo` | boolean | |
+| `escuelaCodigo` | UUID | Escuela dueña (claim `escuela` del JWT, sin FK). Índice compuesto `idx_simulacro_escuela_categoria_activo (escuelaCodigo, categoria, activo)`: CU20 filtra siempre por escuela y CU21 busca el activo de una categoría |
+| `nombre`, `categoria` | string | `nombre` de 3 a 80, único por escuela sin distinguir mayúsculas; `categoria` `GENERAL` o sigla de hasta 3 letras |
+| `duracionMin`, `nroPreguntas` | int | 5 a 180 minutos; 1 a 100 preguntas |
+| `puntajeAprobacion` | double | Porcentaje de aciertos, 1 a 100 |
+| `reglas` | array | `[{ tema, cantidad }]`: cuántas preguntas de cada tema por intento. De 1 a 10 temas distintos; las cantidades suman exactamente `nroPreguntas` |
+| `activo` | boolean | Un simulacro no se borra: se desactiva y deja de ofrecerse (CU20) |
+| `creadoPorCodigo` | UUID | Persona de Identidad |
 
 ### `intentos_simulacro` (CU21)
 
@@ -1023,7 +1025,7 @@ Todas por **código público**, sin FK física.
 
 ### Pendiente de diseñar
 
-- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Pagos ya lo lleva en `plan_pago` (CU25), `pago` y `billetera_horas` (CU26 a CU31). Falta en las demás tablas de Escuela (`instructor`…), el resto de Académico (`simulacros_config` en CU20, `intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
+- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Pagos ya lo lleva en `plan_pago` (CU25), `pago` y `billetera_horas` (CU26 a CU31). `simulacros_config` (CU20) también lo lleva. Falta en las demás tablas de Escuela (`instructor`…), el resto de Académico (`intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
 - **Estado de la saga reserva-pago:** dueño por decidir ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 - **Valores de `severidad`** de los indicadores del tablero (se fijan con CU40).
 - **Job de limpieza** de `refresh_token` vencidos.

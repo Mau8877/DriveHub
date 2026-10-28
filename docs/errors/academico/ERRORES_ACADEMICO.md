@@ -177,3 +177,27 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 - **Significado:** Al reservar, el estudiante ya tiene otra clase reservada a la misma fecha y hora de inicio,
   aunque sea con otro instructor (CU14). Viaja como motivo de esa franja dentro de `rechazadas`.
 - **Dónde se lanza:** `ReservaService.procesar()`
+
+## `ERR_ACA_21`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El simulacro pedido no existe o es de otra escuela; no se distingue entre los dos casos para no
+  revelar qué hay en otras escuelas (CU20).
+- **Dónde se lanza:** `SimulacroService.buscar()`
+
+## `ERR_ACA_22`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se pidió activar un simulacro que ya estaba activo o desactivar uno que ya estaba desactivado
+  (CU20). También ocurre si dos peticiones llegan a la vez y la segunda no cambia nada.
+- **Dónde se lanza:** `SimulacroService.cambiarActivo()`
+
+## `ERR_ACA_23`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Ya existe otro simulacro de la misma escuela con ese nombre, sin distinguir mayúsculas, al crear
+  o al renombrar (CU20).
+- **Dónde se lanza:** `SimulacroService.verificarNombreLibre()`
