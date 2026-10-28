@@ -1,6 +1,6 @@
 # Unidades de trabajo — CU23-MOB
 
-**Caso de uso:** Consultar resultados y notas: «Mis notas» del estudiante, dentro de la sección «Estudio».
+**Caso de uso:** Consultar resultados y notas: «Mis notas» del estudiante, dentro de la sección «Estudio», y «Notas de mis alumnos» del instructor.
 **Microservicio(s) / micro-frontend(s):** `mobile` (Flutter) — consume el gateway ([UT-BACKEND](../UT-BACKEND/README.md))
 **Fuente CU:** [`CU23 - Consultar resultados y notas.md`](../../../CasosDeUso/CU23%20-%20Consultar%20resultados%20y%20notas.md)
 **Recurso HTTP / contrato:** `/resultados/mios`
@@ -20,6 +20,7 @@ Leer [ARQUITECTURA_MOBILE.md](../../../../.claude/rules/ARQUITECTURA_MOBILE.md),
 | Código | Nombre | Depende de |
 |--------|--------|------------|
 | [UT-CU23-MOB-01](./UT-CU23-MOB-01.md) | Mis notas y pestañas de «Estudio» | BE-02 |
+| [UT-CU23-MOB-02](./UT-CU23-MOB-02.md) | Notas de mis alumnos (instructor) | MOB-01, BE-03 |
 
 ## Cobertura del caso de uso
 
@@ -27,6 +28,7 @@ Leer [ARQUITECTURA_MOBILE.md](../../../../.claude/rules/ARQUITECTURA_MOBILE.md),
 |---------------------|-------------|-----|
 | Flujo principal | Notas del estudiante con filtro por tipo | 01 |
 | A5, CA06 | Estado vacío y reintento sin conexión | 01 |
+| F2, CA08 a CA10 | Notas de los alumnos del instructor | 02 |
 
 ## Follow-ups (no se implementan en estas UT)
 
@@ -34,4 +36,4 @@ Leer [ARQUITECTURA_MOBILE.md](../../../../.claude/rules/ARQUITECTURA_MOBILE.md),
 
 ## Qué NO incluyen estas UT
 
-- La vista del instructor.
+- La vista web del Administrador ([UT-FRONTEND](../UT-FRONTEND/README.md)).

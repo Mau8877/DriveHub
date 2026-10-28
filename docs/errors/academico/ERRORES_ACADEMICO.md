@@ -145,10 +145,10 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 - **HTTP:** 503
 - **Excepción:** `ServicioNoDisponibleException`
 - **Significado:** Un servicio del que depende la operación no responde o responde algo inesperado: Pagos
-  (saldo, descontar o devolver una hora) o Identidad (nombre de los instructores). Se puede reintentar más tarde
-  (CU14). Al confirmar varias reservas viaja como motivo de la franja afectada, no como respuesta de toda la
+  (saldo, descontar o devolver una hora), Identidad (nombre de instructores y estudiantes) o Escuela (alumnos de un
+  instructor, CU23). Se puede reintentar más tarde (CU14). Al confirmar varias reservas viaja como motivo de la franja afectada, no como respuesta de toda la
   petición, y esa franja queda libre.
-- **Dónde se lanza:** `PagosClient` (`saldo()`, `descontar()`, `devolver()`) e `IdentidadClient`
+- **Dónde se lanza:** `PagosClient` (`saldo()`, `descontar()`, `devolver()`), `EscuelaClient` (`alumnosDelInstructor()`) e `IdentidadClient`
   (`nombresDeInstructores()`)
 
 ## `ERR_ACA_18`
