@@ -35,6 +35,11 @@ public final class AcademicoErrorCodes {
     public static final String HORAS_INSUFICIENTES = "ERR_ACA_19";
     public static final String CLASE_SOLAPADA = "ERR_ACA_20";
 
+    // * CU20: simulacros escritos
+    public static final String SIMULACRO_NO_ENCONTRADO = "ERR_ACA_21";
+    public static final String SIMULACRO_YA_EN_ESE_ESTADO = "ERR_ACA_22";
+    public static final String SIMULACRO_NOMBRE_DUPLICADO = "ERR_ACA_23";
+
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public static final String VALIDACION = "ERR_SYS_01";
     public static final String SESION_INVALIDA = "ERR_SYS_04";
