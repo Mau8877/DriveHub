@@ -46,6 +46,8 @@ class GatewayRoutingTest {
         registry.add("IDENTIDAD_URL", () -> "http://localhost:" + IDENTIDAD_FALSA.getAddress().getPort());
         registry.add("ESCUELA_URL", () -> "http://localhost:" + ESCUELA_FALSA.getAddress().getPort());
         registry.add("PAGOS_URL", () -> "http://localhost:" + PAGOS_FALSO.getAddress().getPort());
+        // * Puerto 1: nadie escucha, simula un servicio caído
+        registry.add("CONTENIDO_URL", () -> "http://localhost:1");
     }
 
     @AfterAll
@@ -69,6 +71,15 @@ class GatewayRoutingTest {
 
         assertThat(respuesta.statusCode()).isEqualTo(200);
         assertThat(respuesta.body()).isEqualTo("escuela:/api/v1/escuelas/escuelaexample");
+    }
+
+    @Test
+    void servicioCaido_respondeElSobre503SinFiltrarElHost() throws Exception {
+        HttpResponse<String> respuesta = get("/api/v1/manuales", TokensDePrueba.valido());
+
+        assertThat(respuesta.statusCode()).isEqualTo(503);
+        assertThat(respuesta.body()).contains("\"error\":\"ERR_SYS_06\"", "\"status\":\"failed\"");
+        assertThat(respuesta.body()).doesNotContain("localhost:1", "I/O error");
     }
 
     // * CU08: el estudiante es una cuenta con su perfil, así que el recurso lo atiende Identidad, no Escuela

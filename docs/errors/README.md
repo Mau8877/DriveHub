@@ -39,6 +39,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_SYS_03`](system/ERRORES_SISTEMA.md#err_sys_03) — Ruta inexistente en el servicio (404)
 - [`ERR_SYS_04`](system/ERRORES_SISTEMA.md#err_sys_04) — No autenticado: token ausente, inválido o vencido (401)
 - [`ERR_SYS_05`](system/ERRORES_SISTEMA.md#err_sys_05) — Sin permiso para la acción (403)
+- [`ERR_SYS_06`](system/ERRORES_SISTEMA.md#err_sys_06) — Servicio no disponible (503, gateway)
 
 ### Identidad (`IDE`)
 
