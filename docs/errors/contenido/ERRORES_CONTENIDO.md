@@ -11,7 +11,7 @@ Las constantes viven en `ErrorCodes` (`app/Common/Exceptions/`).
 - **Significado:** El manual pedido no existe en la escuela de quien lo pide. Un manual de otra
   escuela, o un código que no es un UUID, se responde igual, para no revelar qué manuales existen
   (CU32).
-- **Dónde se lanza:** `ManualService::obtener()`, y a través de él `editar()`, `publicar()` y `archivar()`
+- **Dónde se lanza:** `ManualService::obtener()`, y a través de él `editar()`, `publicar()` y `archivar()`. En la consulta del Estudiante (CU34), también `obtenerPublicado()`, que responde así a un manual en borrador o archivado
 
 ## `ERR_CON_02`
 
