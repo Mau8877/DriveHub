@@ -815,7 +815,7 @@ Vista consolidada de notas: se escribe al cerrar cada evaluación y publica `exa
 
 ## 6. Contenido — MongoDB
 
-Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de MinIO. Los campos van en `snake_case` (Eloquent). Migraciones: `2026_10_18_120000_crear_colecciones_contenido.php` y `2026_10_24_120000_manuales_por_escuela.php` (CU32). `_id` Long con la colección `contadores`.
+Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de MinIO. Los campos van en `snake_case` (Eloquent). Migraciones: `2026_10_18_120000_crear_colecciones_contenido.php`, `2026_10_24_120000_manuales_por_escuela.php` (CU32) y `2026_10_28_120000_tutoriales_por_escuela.php` (CU33). `_id` Long con la colección `contadores`.
 
 ### `manuales` (CU32, CU34)
 
@@ -840,17 +840,18 @@ Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de 
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigo_tutorial` | UUID | Índice único `uq_tutoriales_codigo` |
+| `escuela_codigo` | UUID | Escuela (tenant) del tutorial: el claim `escuela` del token del instructor (CU33) |
 | `titulo` | string | |
 | `descripcion` | string | Opcional |
 | `autor_codigo` | UUID | Instructor (Identidad) |
 | `categoria` | string | Sigla de categoría |
-| `tipo` | enum | `VIDEO`, `PDF`, `ENLACE` |
-| `recurso` | subdocumento | `{ url, duracion_seg }` |
+| `tipo` | enum | `PDF` o `ENLACE`; `VIDEO` queda reservado (los videos se enlazan, no se suben) |
+| `recurso` | subdocumento | PDF: `{ url, mime, tamano_bytes, sha256, nombre }` (la `url` es la dirección pública en `escuelas/{escuela}/tutoriales/`); ENLACE: `{ url }` de un video de YouTube |
 | `audiencia` | array de enum | `ESTUDIANTE` y/o `INSTRUCTOR` |
 | `estado` | enum | `BORRADOR`, `PUBLICADO`, `ARCHIVADO` |
 | `etiquetas` | array de string | |
 
-Índices: `idx_tutoriales_autor_estado (autor_codigo, estado)` y de texto `idx_tutoriales_texto`.
+Índices: `idx_tutoriales_autor_estado (autor_codigo, estado)`, `idx_tutoriales_escuela_autor_estado (escuela_codigo, autor_codigo, estado)` y `idx_tutoriales_escuela_estado_audiencia (escuela_codigo, estado, audiencia)` (migración `2026_10_28_120000_tutoriales_por_escuela.php`, CU33) y de texto `idx_tutoriales_texto`. Los listados usan expresión regular sin distinguir mayúsculas sobre título, descripción y etiquetas, no el índice de texto.
 
 ---
 
@@ -1030,7 +1031,7 @@ Todas por **código público**, sin FK física.
 
 ### Pendiente de diseñar
 
-- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Pagos ya lo lleva en `plan_pago` (CU25), `pago` y `billetera_horas` (CU26 a CU31). `simulacros_config` (CU20) también lo lleva. Falta en las demás tablas de Escuela (`instructor`…), el resto de Académico (`intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
+- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32), `tutoriales` (CU33) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Pagos ya lo lleva en `plan_pago` (CU25), `pago` y `billetera_horas` (CU26 a CU31). `simulacros_config` (CU20) también lo lleva. Falta en las demás tablas de Escuela (`instructor`…), el resto de Académico (`intentos_simulacro`…), Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
 - **Estado de la saga reserva-pago:** dueño por decidir ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 - **Valores de `severidad`** de los indicadores del tablero (se fijan con CU40).
 - **Job de limpieza** de `refresh_token` vencidos.

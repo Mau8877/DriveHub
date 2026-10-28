@@ -22,12 +22,11 @@ La pestaña «Manuales» lista los manuales publicados con búsqueda y categorí
 
 ## Alcance
 
-- `core/archivos/abridor_de_pdf.dart`: `abridorDePdfProvider` y `SinVisorDePdf` (movidos desde `comprobante_provider.dart`, que los reexporta).
-- `features/manuales/`: `Manual`; `ManualesService.publicados` y `descargarPdf`; `manualesServiceProvider`, `manualesFiltroUiProvider`, `manualesListProvider` y `manualDescargaProvider`; `ManualesScreen` (búsqueda, chips de categoría, tarjetas, estado vacío, reintento y aviso de errores).
+- `features/manuales/`: `Manual`; `ManualesService.publicados`; `manualesServiceProvider`, `manualesFiltroUiProvider` y `manualesListProvider`; `ManualesScreen` (búsqueda, chips de categoría, tarjetas, estado vacío y reintento; «Abrir PDF» abre el visor de la app por la ruta `/pdf`).
 - `features/estudio/screens/estudio_screen.dart`: la tercera pestaña.
-- Tests: `test/features/manuales/manuales_test.dart` (servicio y pantalla); `resultados_test.dart` ajustado a las tres pestañas.
+- Tests: `test/features/manuales/manuales_test.dart` (servicio y pantalla); `resultados_test.dart` ajustado a las pestañas.
 
-Archivos esperados (crear/tocar): los de `lib/features/{manuales,estudio}`, `core/archivos/abridor_de_pdf.dart`, `comprobante_provider.dart` y los tests.
+Archivos esperados (crear/tocar): los de `lib/features/{manuales,estudio}` y los tests.
 
 ## Fuera de alcance (no tocar)
 
@@ -39,5 +38,5 @@ El estudiante abre «Estudio > Manuales», filtra y toca «Abrir PDF» para leer
 
 ## Validación
 
-1. `flutter test` (el de manuales: 12 casos) y `flutter analyze` en `projects/mobile`.
-2. En un emulador contra el stack: un manual publicado desde la web aparece en la pestaña y su PDF se abre.
+1. `flutter test` (el de manuales: 9 casos) y `flutter analyze` en `projects/mobile`.
+2. En un emulador contra el stack: un manual publicado desde la web aparece en la pestaña y su PDF se abre en el visor de la app.

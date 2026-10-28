@@ -146,6 +146,9 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_CON_02`](contenido/ERRORES_CONTENIDO.md#err_con_02) — Cambio no permitido desde el estado actual del manual (409)
 - [`ERR_CON_03`](contenido/ERRORES_CONTENIDO.md#err_con_03) — El archivo del manual no es válido (400)
 - [`ERR_CON_04`](contenido/ERRORES_CONTENIDO.md#err_con_04) — El token no trae la escuela de la cuenta (403)
+- [`ERR_CON_05`](contenido/ERRORES_CONTENIDO.md#err_con_05) — El tutorial no existe para quien lo pide (404)
+- [`ERR_CON_06`](contenido/ERRORES_CONTENIDO.md#err_con_06) — Cambio no permitido desde el estado actual del tutorial (409)
+- [`ERR_CON_07`](contenido/ERRORES_CONTENIDO.md#err_con_07) — El recurso del tutorial no es válido: PDF ajeno o enlace que no es de YouTube (400)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su
