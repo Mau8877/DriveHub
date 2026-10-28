@@ -23,6 +23,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @Document(collection = "resultados")
 @CompoundIndex(name = "idx_resultado_estudiante_fecha", def = "{'estudianteCodigo': 1, 'fecha': -1}")
+// * El Administrador consulta las notas de toda la escuela (CU23)
+@CompoundIndex(name = "idx_resultado_escuela_fecha", def = "{'escuelaCodigo': 1, 'fecha': -1}")
 public class Resultado extends BaseDocument {
 
     // * Identificador público (UUID v7). El _id Long es interno, ver BaseDocument.
