@@ -7,6 +7,7 @@ mismo cambio (ver GUIA_ERRORES_BACKEND.md).
 # Ayudas del tablero (CU40, CU42).
 MINIATURA_INVALIDA = "ERR_IA_01"
 ALMACEN_NO_DISPONIBLE = "ERR_IA_02"
+AYUDA_NO_ENCONTRADA = "ERR_IA_03"
 
 # Transversales del sistema (ERR_SYS), iguales en todos los servicios.
 VALIDACION = "ERR_SYS_01"

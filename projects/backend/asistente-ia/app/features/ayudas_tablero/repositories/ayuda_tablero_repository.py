@@ -25,22 +25,81 @@ class AyudaTableroRepository:
             Item={k: _serializador.serialize(_a_decimal(v)) for k, v in item.items()},
         )
 
-    def listar(
-        self, usuario_codigo: str, limite: int, desde: dict[str, Any] | None = None
-    ) -> tuple[list[AyudaTablero], dict[str, Any] | None]:
-        """Las ayudas de la persona, de la más reciente a la más antigua, y la clave para seguir."""
+    def listar_pagina(self, usuario_codigo: str, pagina: int, tamano: int) -> list[AyudaTablero]:
+        """Una página de las ayudas de la persona, de la más reciente a la más antigua.
+
+        * DynamoDB no salta registros: se piden los de las páginas anteriores y se descartan.
+        * Alcanza para un historial personal; si creciera mucho, se pasaría a un cursor.
+        """
+        necesarias = pagina * tamano
+        items: list[dict[str, Any]] = []
+        desde: dict[str, Any] | None = None
+        while len(items) < necesarias:
+            parametros = self._consulta(usuario_codigo, Limit=necesarias - len(items))
+            if desde:
+                parametros["ExclusiveStartKey"] = desde
+            respuesta = self._cliente.query(**parametros)
+            items.extend(respuesta.get("Items", []))
+            desde = respuesta.get("LastEvaluatedKey")
+            if not desde:
+                break
+        return [_a_modelo(item) for item in items[(pagina - 1) * tamano : necesarias]]
+
+    def contar(self, usuario_codigo: str) -> int:
+        """Cuántas ayudas tiene la persona."""
+        total = 0
+        desde: dict[str, Any] | None = None
+        while True:
+            parametros = self._consulta(usuario_codigo, Select="COUNT")
+            if desde:
+                parametros["ExclusiveStartKey"] = desde
+            respuesta = self._cliente.query(**parametros)
+            total += respuesta.get("Count", 0)
+            desde = respuesta.get("LastEvaluatedKey")
+            if not desde:
+                return total
+
+    def buscar(self, usuario_codigo: str, codigo: str) -> AyudaTablero | None:
+        """Una ayuda de la persona por su código público, o None si no es suya o no existe."""
+        desde: dict[str, Any] | None = None
+        while True:
+            parametros = self._consulta(
+                usuario_codigo,
+                FilterExpression="codigoAyudaTablero = :c",
+                ExpressionAttributeValues={
+                    ":u": {"S": usuario_codigo},
+                    ":c": {"S": codigo},
+                },
+            )
+            if desde:
+                parametros["ExclusiveStartKey"] = desde
+            respuesta = self._cliente.query(**parametros)
+            if respuesta.get("Items"):
+                return _a_modelo(respuesta["Items"][0])
+            desde = respuesta.get("LastEvaluatedKey")
+            if not desde:
+                return None
+
+    def actualizar_util(self, ayuda: AyudaTablero, util: bool) -> None:
+        self._cliente.update_item(
+            TableName=TABLA_AYUDAS_TABLERO,
+            Key={"usuarioCodigo": {"S": ayuda.usuario_codigo}, "sk": {"S": ayuda.sk}},
+            UpdateExpression="SET util = :v",
+            ConditionExpression="attribute_exists(usuarioCodigo)",
+            ExpressionAttributeValues={":v": {"BOOL": util}},
+        )
+
+    @staticmethod
+    def _consulta(usuario_codigo: str, **extra: Any) -> dict[str, Any]:
+        """La consulta base: las ayudas de la persona, de la más reciente a la más antigua."""
         parametros: dict[str, Any] = {
             "TableName": TABLA_AYUDAS_TABLERO,
             "KeyConditionExpression": "usuarioCodigo = :u",
             "ExpressionAttributeValues": {":u": {"S": usuario_codigo}},
             "ScanIndexForward": False,
-            "Limit": limite,
         }
-        if desde:
-            parametros["ExclusiveStartKey"] = desde
-        respuesta = self._cliente.query(**parametros)
-        ayudas = [_a_modelo(item) for item in respuesta.get("Items", [])]
-        return ayudas, respuesta.get("LastEvaluatedKey")
+        parametros.update(extra)
+        return parametros
 
 
 def _a_decimal(valor: Any) -> Any:

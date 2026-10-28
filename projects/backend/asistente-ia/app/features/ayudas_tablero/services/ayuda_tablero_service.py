@@ -12,7 +12,11 @@ from datetime import UTC, datetime
 from app.common import error_codes
 from app.common.almacen.almacen_imagenes import AlmacenImagenes
 from app.common.dynamodb.modelo_base import sk_por_fecha
-from app.common.exceptions import ServicioNoDisponibleException, ValidationException
+from app.common.exceptions import (
+    NotFoundException,
+    ServicioNoDisponibleException,
+    ValidationException,
+)
 from app.features.ayudas_tablero.models.ayuda_tablero import AyudaTablero, IndicadorTablero
 from app.features.ayudas_tablero.repositories.ayuda_tablero_repository import (
     AyudaTableroRepository,
@@ -86,6 +90,41 @@ class AyudaTableroService:
             },
         )
         return self.a_respuesta(ayuda)
+
+    def listar(
+        self, usuario_codigo: str, pagina: int, tamano: int
+    ) -> tuple[list[AyudaTableroResponse], int]:
+        """Una página del historial de la persona y cuántas ayudas tiene en total."""
+        ayudas = self._repositorio.listar_pagina(usuario_codigo, pagina, tamano)
+        return [self.a_respuesta(a) for a in ayudas], self._repositorio.contar(usuario_codigo)
+
+    def obtener(self, usuario_codigo: str, codigo: str) -> AyudaTableroResponse:
+        return self.a_respuesta(self._buscar(usuario_codigo, codigo))
+
+    def marcar_util(self, usuario_codigo: str, codigo: str, util: bool) -> AyudaTableroResponse:
+        ayuda = self._buscar(usuario_codigo, codigo)
+        self._repositorio.actualizar_util(ayuda, util)
+        ayuda.util = util
+        logger.info(
+            "Opinión de la ayuda registrada",
+            extra={"modulo": "ayudas_tablero", "ayudaCodigo": codigo, "util": util},
+        )
+        return self.a_respuesta(ayuda)
+
+    def _buscar(self, usuario_codigo: str, codigo: str) -> AyudaTablero:
+        # Una ayuda de otra persona es, para quien la pide, una ayuda que no existe.
+        ayuda = self._repositorio.buscar(usuario_codigo, codigo)
+        if ayuda is None:
+            logger.warning(
+                "Ayuda del tablero no encontrada",
+                extra={
+                    "modulo": "ayudas_tablero",
+                    "errorCode": error_codes.AYUDA_NO_ENCONTRADA,
+                    "ayudaCodigo": codigo,
+                },
+            )
+            raise NotFoundException(error_codes.AYUDA_NO_ENCONTRADA, "La ayuda no existe")
+        return ayuda
 
     def a_respuesta(self, ayuda: AyudaTablero) -> AyudaTableroResponse:
         imagen_url = (

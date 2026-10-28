@@ -8,7 +8,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.common.exception_handlers import registrar_exception_handlers
-from app.common.exceptions import ServicioNoDisponibleException, ValidationException
+from app.common.exceptions import (
+    NotFoundException,
+    ServicioNoDisponibleException,
+    ValidationException,
+)
 from app.common.security.dependencias import usuario_actual
 from app.common.security.usuario import UsuarioAutenticado
 from app.features.ayudas_tablero.models.ayuda_tablero import AyudaTablero
@@ -282,3 +286,207 @@ def test_post_con_otro_rol_responde_403_err_sys_05() -> None:
         assert respuesta.status_code == 403
         assert respuesta.json()["error"] == "ERR_SYS_05"
         assert repositorio.guardadas == []
+
+
+# -- historial (CU42) -----------------------------------------------------------------------------
+
+
+class DynamoEnMemoria:
+    """Un DynamoDB mínimo en memoria: lo que usa AyudaTableroRepository (put, query, update)."""
+
+    def __init__(self, tamano_pagina_interna: int = 1000) -> None:
+        self.items: list[dict[str, Any]] = []
+        self.consultas = 0
+        self._pagina_interna = tamano_pagina_interna
+
+    def put_item(self, **parametros: Any) -> None:
+        self.items.append(parametros["Item"])
+
+    def query(self, **p: Any) -> dict[str, Any]:
+        self.consultas += 1
+        usuario = p["ExpressionAttributeValues"][":u"]["S"]
+        propios = sorted(
+            (i for i in self.items if i["usuarioCodigo"]["S"] == usuario),
+            key=lambda i: i["sk"]["S"],
+            reverse=not p.get("ScanIndexForward", True),
+        )
+        inicio = 0
+        if p.get("ExclusiveStartKey"):
+            clave = p["ExclusiveStartKey"]["sk"]["S"]
+            inicio = next(i for i, it in enumerate(propios) if it["sk"]["S"] == clave) + 1
+        limite = min(p.get("Limit", self._pagina_interna), self._pagina_interna)
+        trozo = propios[inicio : inicio + limite]
+        hay_mas = inicio + limite < len(propios)
+        if "FilterExpression" in p:
+            codigo = p["ExpressionAttributeValues"][":c"]["S"]
+            trozo = [i for i in trozo if i["codigoAyudaTablero"]["S"] == codigo]
+        resultado: dict[str, Any] = {"Count": len(trozo)}
+        if p.get("Select") != "COUNT":
+            resultado["Items"] = trozo
+        if hay_mas and trozo is not None:
+            ultimo = propios[inicio + limite - 1]
+            resultado["LastEvaluatedKey"] = {
+                "usuarioCodigo": ultimo["usuarioCodigo"],
+                "sk": ultimo["sk"],
+            }
+        return resultado
+
+    def update_item(self, **p: Any) -> None:
+        for item in self.items:
+            if item["sk"] == p["Key"]["sk"] and item["usuarioCodigo"] == p["Key"]["usuarioCodigo"]:
+                item["util"] = p["ExpressionAttributeValues"][":v"]
+                return
+        raise AssertionError("update_item sobre un ítem que no existe")
+
+
+def _guardar_varias(dynamo: DynamoEnMemoria, usuario: str, cantidad: int) -> list[str]:
+    servicio = AyudaTableroService(AyudaTableroRepository(dynamo), None)
+    codigos = []
+    for _ in range(cantidad):
+        codigos.append(servicio.crear(usuario, _solicitud(), None).codigo)
+    return codigos
+
+
+def test_el_repositorio_lista_por_paginas_de_la_mas_reciente_a_la_mas_antigua() -> None:
+    dynamo = DynamoEnMemoria(tamano_pagina_interna=2)
+    codigos = _guardar_varias(dynamo, "usuario-1", 5)
+    _guardar_varias(dynamo, "otro", 3)
+    repositorio = AyudaTableroRepository(dynamo)
+
+    primera = repositorio.listar_pagina("usuario-1", 1, 2)
+    segunda = repositorio.listar_pagina("usuario-1", 2, 2)
+    tercera = repositorio.listar_pagina("usuario-1", 3, 2)
+    cuarta = repositorio.listar_pagina("usuario-1", 4, 2)
+
+    orden = [a.codigo_ayuda_tablero for a in primera + segunda + tercera]
+    assert orden == list(reversed(codigos))
+    assert [len(primera), len(segunda), len(tercera), len(cuarta)] == [2, 2, 1, 0]
+    assert repositorio.contar("usuario-1") == 5
+    assert repositorio.contar("nadie") == 0
+
+
+def test_el_repositorio_busca_solo_entre_las_ayudas_de_la_persona() -> None:
+    dynamo = DynamoEnMemoria(tamano_pagina_interna=2)
+    codigos = _guardar_varias(dynamo, "usuario-1", 4)
+    ajena = _guardar_varias(dynamo, "otro", 1)[0]
+    repositorio = AyudaTableroRepository(dynamo)
+
+    assert repositorio.buscar("usuario-1", codigos[0]).codigo_ayuda_tablero == codigos[0]
+    assert repositorio.buscar("usuario-1", codigos[3]).codigo_ayuda_tablero == codigos[3]
+    assert repositorio.buscar("usuario-1", ajena) is None
+    assert repositorio.buscar("usuario-1", "no-existe") is None
+
+
+def test_marcar_util_guarda_la_opinion_y_responde_la_ayuda() -> None:
+    dynamo = DynamoEnMemoria()
+    codigo = _guardar_varias(dynamo, "usuario-1", 1)[0]
+    servicio = AyudaTableroService(AyudaTableroRepository(dynamo), None)
+
+    ayuda = servicio.marcar_util("usuario-1", codigo, True)
+    assert ayuda.util is True
+    assert dynamo.items[0]["util"] == {"BOOL": True}
+
+    assert servicio.marcar_util("usuario-1", codigo, False).util is False
+    leida = servicio.obtener("usuario-1", codigo)
+    assert leida.util is False
+
+
+def test_obtener_o_marcar_una_ayuda_ajena_lanza_err_ia_03() -> None:
+    dynamo = DynamoEnMemoria()
+    codigo = _guardar_varias(dynamo, "otro", 1)[0]
+    servicio = AyudaTableroService(AyudaTableroRepository(dynamo), None)
+
+    for accion in (
+        lambda: servicio.obtener("usuario-1", codigo),
+        lambda: servicio.marcar_util("usuario-1", codigo, True),
+    ):
+        with pytest.raises(NotFoundException) as error:
+            accion()
+        assert error.value.error_code == "ERR_IA_03"
+    assert "util" not in dynamo.items[0]
+
+
+def _cliente_con(dynamo: DynamoEnMemoria, almacen: AlmacenFalso | None = None):
+    app = FastAPI()
+    registrar_exception_handlers(app)
+    app.include_router(ayuda_tablero_router.router)
+    app.dependency_overrides[usuario_actual] = lambda: UsuarioAutenticado(
+        "usuario-1", ("ESTUDIANTE",), None
+    )
+    app.dependency_overrides[ayuda_tablero_router.get_service] = lambda: AyudaTableroService(
+        AyudaTableroRepository(dynamo), almacen
+    )
+    return TestClient(app)
+
+
+def test_get_lista_la_pagina_pedida_con_meta_y_sin_claves_internas() -> None:
+    dynamo = DynamoEnMemoria()
+    codigos = _guardar_varias(dynamo, "usuario-1", 5)
+    cliente = _cliente_con(dynamo)
+
+    respuesta = cliente.get("/api/v1/ayudas-tablero?page=2&pageSize=2")
+
+    assert respuesta.status_code == 200
+    cuerpo = respuesta.json()
+    assert [a["codigo"] for a in cuerpo["data"]] == [codigos[2], codigos[1]]
+    assert cuerpo["meta"] == {"page": 2, "pageSize": 2, "totalItems": 5, "totalPages": 3}
+    assert "sk" not in cuerpo["data"][0] and "usuarioCodigo" not in cuerpo["data"][0]
+
+
+def test_get_lista_vacia_responde_una_pagina_con_total_cero() -> None:
+    respuesta = _cliente_con(DynamoEnMemoria()).get("/api/v1/ayudas-tablero")
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["data"] == []
+    assert respuesta.json()["meta"] == {"page": 1, "pageSize": 20, "totalItems": 0, "totalPages": 1}
+
+
+@pytest.mark.parametrize("consulta", ["page=0", "pageSize=0", "pageSize=101", "page=x"])
+def test_get_con_paginacion_invalida_responde_400(consulta: str) -> None:
+    respuesta = _cliente_con(DynamoEnMemoria()).get(f"/api/v1/ayudas-tablero?{consulta}")
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["error"] == "ERR_SYS_01"
+
+
+def test_get_una_ayuda_con_su_miniatura_y_patch_de_util() -> None:
+    dynamo = DynamoEnMemoria()
+    almacen = AlmacenFalso()
+    servicio = AyudaTableroService(AyudaTableroRepository(dynamo), almacen)
+    codigo = servicio.crear("usuario-1", _solicitud(), JPEG).codigo
+    cliente = _cliente_con(dynamo, almacen)
+
+    detalle = cliente.get(f"/api/v1/ayudas-tablero/{codigo}")
+    assert detalle.status_code == 200
+    assert detalle.json()["data"]["imagenUrl"].endswith(f"{codigo}.jpg")
+    assert detalle.json()["data"]["util"] is None
+
+    opinion = cliente.patch(f"/api/v1/ayudas-tablero/{codigo}", json={"util": True})
+    assert opinion.status_code == 200
+    assert opinion.json()["data"]["util"] is True
+
+    invalido = cliente.patch(f"/api/v1/ayudas-tablero/{codigo}", json={"util": "quizas"})
+    assert invalido.status_code == 400
+
+
+def test_get_y_patch_de_una_ayuda_inexistente_responden_404_err_ia_03() -> None:
+    cliente = _cliente_con(DynamoEnMemoria())
+
+    for respuesta in (
+        cliente.get("/api/v1/ayudas-tablero/nada"),
+        cliente.patch("/api/v1/ayudas-tablero/nada", json={"util": True}),
+    ):
+        assert respuesta.status_code == 404
+        assert respuesta.json()["error"] == "ERR_IA_03"
+
+
+def test_el_historial_es_solo_del_estudiante() -> None:
+    for roles in (("INSTRUCTOR",), ("ADMIN_ESCUELA",), ()):
+        cliente, _ = _cliente(roles)
+        for respuesta in (
+            cliente.get("/api/v1/ayudas-tablero"),
+            cliente.get("/api/v1/ayudas-tablero/x"),
+            cliente.patch("/api/v1/ayudas-tablero/x", json={"util": True}),
+        ):
+            assert respuesta.status_code == 403
+            assert respuesta.json()["error"] == "ERR_SYS_05"
