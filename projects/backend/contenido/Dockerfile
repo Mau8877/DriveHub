@@ -17,7 +17,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # ==========================================
 FROM base AS dev
 ENV CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=sync LOG_CHANNEL=json
-CMD ["sh", "-c", "composer install && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8085"]
+# --no-reload: sin esto `artisan serve` borra las variables del contenedor y solo lee el .env del host
+# (hecho para correrlo fuera de Docker), y el servicio buscaba Mongo e Identidad en localhost.
+CMD ["sh", "-c", "composer install && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8085 --no-reload"]
 
 # ==========================================
 # PROD: dependencias sin dev, sin root.
