@@ -103,6 +103,8 @@ existen son:
 | Académico → Identidad | Consultar el nombre de un conjunto de estudiantes de la escuela, para validar al estudiante de un examen de conducción y mostrarlo en el listado (reenvía el Bearer del Administrador) | CU22 |
 | Académico → Identidad | Consultar el nombre de un conjunto de instructores de la escuela, para mostrarlos en las franjas y en las clases del estudiante (reenvía el Bearer del estudiante) | CU14 |
 | Académico → Escuela | Consultar los alumnos asignados al instructor, para listar las notas de esos alumnos (reenvía el Bearer del instructor) | CU23 |
+| Asistente IA → Contenido | Servidor MCP (`/mcp/`): consultar manuales y tutoriales publicados en nombre de la persona conectada, solo lectura (reenvía su Bearer) | CU46 |
+| Asistente IA → Académico | Servidor MCP: consultar las notas de la persona o las de los alumnos del instructor, solo lectura (reenvía su Bearer) | CU46 |
 
 Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
 Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque
