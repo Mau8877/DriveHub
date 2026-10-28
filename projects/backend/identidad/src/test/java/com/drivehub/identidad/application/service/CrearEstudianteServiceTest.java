@@ -175,7 +175,7 @@ class CrearEstudianteServiceTest {
     @Test
     void crear_cuandoEscuelaNoResponde_dejaSubirLaExcepcionYNoGuardaNada() {
         elAdministradorEsDeLaEscuela();
-        when(categoriaConsulta.existe("B")).thenThrow(new EscuelaNoDisponibleException("caída"));
+        when(categoriaConsulta.existe("B")).thenThrow(new EscuelaNoDisponibleException());
 
         assertThatThrownBy(() -> servicio.crear(comando(LocalDate.of(2000, 1, 1), "B")))
             .isInstanceOf(EscuelaNoDisponibleException.class);

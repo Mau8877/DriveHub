@@ -63,7 +63,7 @@ public class CategoriaLicenciaRestAdapter implements CategoriaLicenciaConsultaPo
             return false;
         } catch (RestClientException e) {
             LOG.warn("Escuela no pudo confirmar la categoría", kv("module", MODULO));
-            throw new EscuelaNoDisponibleException("No se pudo consultar la categoría en Escuela", e);
+            throw new EscuelaNoDisponibleException(e);
         }
     }
 
@@ -72,6 +72,7 @@ public class CategoriaLicenciaRestAdapter implements CategoriaLicenciaConsultaPo
         if (autenticacion instanceof JwtAuthenticationToken jwt) {
             return jwt.getToken().getTokenValue();
         }
-        throw new EscuelaNoDisponibleException("No hay una sesión de la que reenviar el token a Escuela");
+        LOG.warn("No hay una sesión de la que reenviar el token a Escuela", kv("module", MODULO));
+        throw new EscuelaNoDisponibleException();
     }
 }
