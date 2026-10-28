@@ -20,5 +20,8 @@ public interface SimulacroConfigRepository
     // * El nombre ya viaja recortado; la comparación no distingue mayúsculas
     boolean existsByEscuelaCodigoAndNombreIgnoreCaseAndDeletedAtIsNull(UUID escuelaCodigo, String nombre);
 
+    /** Los simulacros que la escuela ofrece a sus estudiantes (CU21). */
+    java.util.List<SimulacroConfig> findByEscuelaCodigoAndActivoTrueAndDeletedAtIsNullOrderByNombreAsc(UUID escuelaCodigo);
+
     boolean existsByEscuelaCodigoAndNombre(UUID escuelaCodigo, String nombre);
 }

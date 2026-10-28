@@ -46,6 +46,12 @@ public final class AcademicoErrorCodes {
     public static final String EXAMEN_YA_PROGRAMADO = "ERR_ACA_26";
     public static final String ESTUDIANTE_NO_ENCONTRADO = "ERR_ACA_27";
 
+    // * CU21: rendir simulacro escrito
+    public static final String SIMULACRO_SIN_PREGUNTAS = "ERR_ACA_28";
+    public static final String INTENTO_EN_CURSO = "ERR_ACA_29";
+    public static final String INTENTO_NO_ENCONTRADO = "ERR_ACA_30";
+    public static final String INTENTO_YA_FINALIZADO = "ERR_ACA_31";
+
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public static final String VALIDACION = "ERR_SYS_01";
     public static final String SESION_INVALIDA = "ERR_SYS_04";
