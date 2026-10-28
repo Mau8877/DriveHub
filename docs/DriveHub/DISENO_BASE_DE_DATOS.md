@@ -727,12 +727,14 @@ Evaluación práctica durante la clase.
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoExamenConduccion` | UUID | Único |
+| `escuelaCodigo` | UUID | Escuela dueña (claim `escuela` del JWT, sin FK). Índice compuesto `idx_examen_escuela_estudiante_categoria (escuelaCodigo, estudianteCodigo, categoria)`: CU22 filtra siempre por escuela y calcula el intento y los programados con él |
 | `estudianteCodigo` | UUID | Índice |
 | `categoria` | string | Sigla |
-| `fechaProgramada` | instant | |
-| `evaluadorCodigo`, `vehiculoCodigo` | UUID | |
-| `intento` | int | 1, 2, 3… |
-| `estado` | enum | `PROGRAMADO`, `REALIZADO`, `CANCELADO`, `NO_ASISTIO` |
+| `fechaProgramada` | instant | Se pide como fecha y hora en la zona de la escuela |
+| `evaluadorCodigo`, `vehiculoCodigo` | UUID | Referencias a Escuela, sin validar todavía (CU22) |
+| `intento` | int | 1, 2, 3…: exámenes del estudiante en la categoría que no están cancelados, más uno |
+| `estado` | enum | `PROGRAMADO`, `REALIZADO`, `CANCELADO`, `NO_ASISTIO`. Solo un programado cambia, y de una sola forma |
+| `creadoPorCodigo` | UUID | Persona de Identidad que lo programó |
 | `puntaje` | double | Opcional |
 | `resultado` | enum | `APROBADO`, `REPROBADO`. Opcional |
 | `observaciones` | string | Opcional |
@@ -758,11 +760,13 @@ Evaluación práctica durante la clase.
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoSimulacro` | UUID | Único |
-| `nombre`, `categoria` | string | |
-| `duracionMin`, `nroPreguntas` | int | |
-| `puntajeAprobacion` | double | |
-| `reglas` | array | `[{ tema, cantidad }]`: cuántas preguntas de cada tema por intento |
-| `activo` | boolean | |
+| `escuelaCodigo` | UUID | Escuela dueña (claim `escuela` del JWT, sin FK). Índice compuesto `idx_simulacro_escuela_categoria_activo (escuelaCodigo, categoria, activo)`: CU20 filtra siempre por escuela y CU21 busca el activo de una categoría |
+| `nombre`, `categoria` | string | `nombre` de 3 a 80, único por escuela sin distinguir mayúsculas; `categoria` `GENERAL` o sigla de hasta 3 letras |
+| `duracionMin`, `nroPreguntas` | int | 5 a 180 minutos; 1 a 100 preguntas |
+| `puntajeAprobacion` | double | Porcentaje de aciertos, 1 a 100 |
+| `reglas` | array | `[{ tema, cantidad }]`: cuántas preguntas de cada tema por intento. De 1 a 10 temas distintos; las cantidades suman exactamente `nroPreguntas` |
+| `activo` | boolean | Un simulacro no se borra: se desactiva y deja de ofrecerse (CU20) |
+| `creadoPorCodigo` | UUID | Persona de Identidad |
 
 ### `intentos_simulacro` (CU21)
 
@@ -772,10 +776,12 @@ Las preguntas se **copian** dentro del intento: editar el banco no altera intent
 | --- | --- | --- |
 | `codigoIntentoSimulacro` | UUID | Único |
 | `simulacroId` | long | → `simulacros_config._id` |
-| `estudianteCodigo` | UUID | Índice compuesto `idx_intento_estudiante_iniciado (estudianteCodigo, iniciadoEn DESC)` |
-| `estado` | enum | `EN_CURSO`, `FINALIZADO`, `EXPIRADO` |
-| `iniciadoEn`, `finalizadoEn` | instant | `finalizadoEn` opcional |
-| `preguntas` | array | `[{ preguntaId, enunciado, opciones, elegidas, correcta }]` |
+| `simulacroCodigo`, `escuelaCodigo` | UUID | El simulacro (público) y la escuela del estudiante, sin FK |
+| `simulacroNombre`, `duracionMin`, `puntajeAprobacion` | string, int, double | Copia de la configuración al iniciar: editar el simulacro no altera el intento (CU21) |
+| `estudianteCodigo` | UUID | Índice compuesto `idx_intento_estudiante_iniciado (estudianteCodigo, iniciadoEn DESC)`. Todo intento se consulta con el estudiante del token |
+| `estado` | enum | `EN_CURSO`, `FINALIZADO`, `EXPIRADO` (se acabó el tiempo: 0 puntos y sin nota) |
+| `iniciadoEn`, `finalizadoEn` | instant | `finalizadoEn` opcional. El intento vence `duracionMin` después de `iniciadoEn` (30 s de gracia al finalizar) |
+| `preguntas` | array | `[{ preguntaId, preguntaCodigo, enunciado, tipo, opciones, explicacion, elegidas, correcta }]`: copia de cada pregunta; `elegidas` son los ids marcados y `correcta` se calcula al finalizar |
 | `aciertos` | int | |
 | `puntaje` | double | |
 | `aprobado` | boolean | |
@@ -787,7 +793,8 @@ Vista consolidada de notas: se escribe al cerrar cada evaluación y publica `exa
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoResultado` | UUID | Único |
-| `estudianteCodigo` | UUID | Índice compuesto `idx_resultado_estudiante_fecha (estudianteCodigo, fecha DESC)` |
+| `escuelaCodigo` | UUID | Escuela del estudiante (sin FK): permite que el Administrador y el instructor consulten por escuela (CU22 lo escribe, CU23 lo lee) |
+| `estudianteCodigo` | UUID | Índice compuesto `idx_resultado_estudiante_fecha (estudianteCodigo, fecha DESC)`: «Mis notas» del estudiante. Para el Administrador, `idx_resultado_escuela_fecha (escuelaCodigo, fecha DESC)` (CU23) |
 | `origen` | enum | `SIMULACRO`, `PRUEBA_CLASE`, `EXAMEN_CONDUCCION` |
 | `origenId` | long | `_id` del documento de origen |
 | `titulo` | string | |
@@ -808,7 +815,7 @@ Vista consolidada de notas: se escribe al cerrar cada evaluación y publica `exa
 
 ## 6. Contenido — MongoDB
 
-Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de MinIO. Los campos van en `snake_case` (Eloquent). Migraciones: `2026_10_18_120000_crear_colecciones_contenido.php` y `2026_10_24_120000_manuales_por_escuela.php` (CU32). `_id` Long con la colección `contadores`.
+Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de MinIO. Los campos van en `snake_case` (Eloquent). Migraciones: `2026_10_18_120000_crear_colecciones_contenido.php`, `2026_10_24_120000_manuales_por_escuela.php` (CU32) y `2026_10_28_120000_tutoriales_por_escuela.php` (CU33). `_id` Long con la colección `contadores`.
 
 ### `manuales` (CU32, CU34)
 
@@ -833,17 +840,18 @@ Solo **metadatos**: los PDF y videos viven en el bucket `drivehub-contenido` de 
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigo_tutorial` | UUID | Índice único `uq_tutoriales_codigo` |
+| `escuela_codigo` | UUID | Escuela (tenant) del tutorial: el claim `escuela` del token del instructor (CU33) |
 | `titulo` | string | |
 | `descripcion` | string | Opcional |
 | `autor_codigo` | UUID | Instructor (Identidad) |
 | `categoria` | string | Sigla de categoría |
-| `tipo` | enum | `VIDEO`, `PDF`, `ENLACE` |
-| `recurso` | subdocumento | `{ url, duracion_seg }` |
+| `tipo` | enum | `PDF` o `ENLACE`; `VIDEO` queda reservado (los videos se enlazan, no se suben) |
+| `recurso` | subdocumento | PDF: `{ url, mime, tamano_bytes, sha256, nombre }` (la `url` es la dirección pública en `escuelas/{escuela}/tutoriales/`); ENLACE: `{ url }` de un video de YouTube |
 | `audiencia` | array de enum | `ESTUDIANTE` y/o `INSTRUCTOR` |
 | `estado` | enum | `BORRADOR`, `PUBLICADO`, `ARCHIVADO` |
 | `etiquetas` | array de string | |
 
-Índices: `idx_tutoriales_autor_estado (autor_codigo, estado)` y de texto `idx_tutoriales_texto`.
+Índices: `idx_tutoriales_autor_estado (autor_codigo, estado)`, `idx_tutoriales_escuela_autor_estado (escuela_codigo, autor_codigo, estado)` y `idx_tutoriales_escuela_estado_audiencia (escuela_codigo, estado, audiencia)` (migración `2026_10_28_120000_tutoriales_por_escuela.php`, CU33) y de texto `idx_tutoriales_texto`. Los listados usan expresión regular sin distinguir mayúsculas sobre título, descripción y etiquetas, no el índice de texto.
 
 ---
 
@@ -925,7 +933,7 @@ Las imágenes y audios no se guardan en las tablas: va la **clave del archivo** 
 
 ### `SesionesIA` (CU39)
 
-Pruebas de conducción asistidas y chats.
+Pruebas de conducción asistidas y chats. **La prueba de conducción (CU39) se evalúa en el teléfono** (cámara frontal y detección de rostros de ML Kit, IA local en el móvil): el servidor no hace inferencia y guarda la prueba ya terminada como una sesión `PRUEBA_CONDUCCION` en estado `FINALIZADA`, en una sola transacción con sus mensajes. No se guarda ninguna imagen ni video.
 
 | Atributo | Tipo | Notas |
 | --- | --- | --- |
@@ -936,7 +944,7 @@ Pruebas de conducción asistidas y chats.
 | `estado` | S (enum) | `EN_CURSO`, `FINALIZADA` |
 | `puntaje` | N | Opcional |
 | `retroalimentacion` | S | Opcional |
-| `modelo` | S | Modelo de IA usado |
+| `modelo` | S | Modelo de IA usado (en CU39, el del teléfono: `mlkit-rostro-v1`) |
 | `duracionSeg` | N | Opcional |
 | `creadaEn` | S | |
 
@@ -947,22 +955,22 @@ Pruebas de conducción asistidas y chats.
 | `sesionCodigo`, `seq` | S, N | Clave. `sesionCodigo` = `codigoSesionIa` |
 | `codigoMensajeIa` | S | UUID v7 |
 | `rol` | S (enum) | `USER`, `ASSISTANT` |
-| `contenido` | S | |
+| `contenido` | S | En CU39, un mensaje `ASSISTANT` por paso de la prueba: `Paso 2: Mira el espejo izquierdo (logrado, 2.1 s)`; `seq` es el orden del paso |
 | `mediaKey` | S | Clave de un archivo en el bucket. Opcional |
 | `ts` | S | |
 
 ### `AyudasTablero` (CU40, CU42)
 
-Ayuda por foto del tablero.
+Ayuda por foto del tablero. **El análisis lo hace el modelo del teléfono** (IA local en el móvil): el servidor no hace inferencia, solo guarda el resultado ya calculado.
 
 | Atributo | Tipo | Notas |
 | --- | --- | --- |
 | `usuarioCodigo`, `sk` | S | Clave |
 | `codigoAyudaTablero` | S | UUID v7 |
-| `imagenKey` | S | Clave del archivo en el bucket |
-| `indicadores` | L de M | `[{ codigo (clave legible), nombre, confianza, severidad }]`. Los valores de `severidad` se fijan con CU40 |
-| `respuesta` | S | Explicación para el estudiante |
-| `modelo` | S | |
+| `imagenKey` | S | Clave de la miniatura JPEG/PNG (≤ 500 KB) en el bucket, `ayudas-tablero/{usuarioCodigo}/{codigoAyudaTablero}.{jpg\|png}`. Opcional: la app puede no mandarla |
+| `indicadores` | L de M | `[{ codigo (clave legible), nombre, confianza, severidad }]`. `severidad`: `INFORMATIVA`, `ADVERTENCIA` o `CRITICA`. Hasta 3 luces, la más probable primero |
+| `respuesta` | S | Explicación para el estudiante (qué significa la luz y qué hacer), armada en el teléfono desde su catálogo |
+| `modelo` | S | Modelo del teléfono que hizo el análisis (nombre y versión) |
 | `latenciaMs` | N | |
 | `util` | BOOL | Opinión del estudiante. Opcional |
 | `creadaEn` | S | |
@@ -1023,7 +1031,7 @@ Todas por **código público**, sin FK física.
 
 ### Pendiente de diseñar
 
-- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Pagos ya lo lleva en `plan_pago` (CU25), `pago` y `billetera_horas` (CU26 a CU31). Falta en las demás tablas de Escuela (`instructor`…), el resto de Académico (`simulacros_config` en CU20, `intentos_simulacro`…), `tutoriales` de Contenido, Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
+- **Filtro por tenant.** `vehiculo` (CU07), `manuales` (CU32), `tutoriales` (CU33) y `banco_preguntas` (CU19) ya tienen el código de la escuela, con el filtro explícito en su repositorio a partir del claim `escuela`; los estudiantes quedan aislados porque la cuenta lleva `escuela_codigo` (CU08a). Pagos ya lo lleva en `plan_pago` (CU25), `pago` y `billetera_horas` (CU26 a CU31). `simulacros_config` (CU20) también lo lleva. Falta en las demás tablas de Escuela (`instructor`…), el resto de Académico (`intentos_simulacro`…), Notificaciones y Asistente IA, y el mecanismo de filtrado automático por el claim `escuela` del JWT. El claim ya viaja en el token (CU02).
 - **Estado de la saga reserva-pago:** dueño por decidir ([SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md)).
 - **Valores de `severidad`** de los indicadores del tablero (se fijan con CU40).
 - **Job de limpieza** de `refresh_token` vencidos.

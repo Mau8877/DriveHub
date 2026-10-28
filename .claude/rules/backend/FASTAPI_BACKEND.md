@@ -50,7 +50,8 @@ cada feature se registra en `main.py` con su primer caso de uso.
 - **Errores**: solo `BusinessException` (y subclases) con código
   `ERR_IA_NN`. Nunca `HTTPException` de FastAPI desde código de negocio.
 - **Logging**: `logging.getLogger(__name__)` + contexto en `extra={...}`
-  (`{"module": "sesiones"}`), nunca concatenado al mensaje.
+  (`{"modulo": "sesiones"}`: `module` es un atributo reservado de `LogRecord` y el formatter
+  JSON lo escribe como `module`), nunca concatenado al mensaje.
 - **Configuración**: solo por `get_settings()` (`core/config.py`), nunca
   `os.environ` suelto.
 - **UUID v7** para los codigos públicos: `uuid.uuid7()` (nativo de

@@ -52,6 +52,9 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
   formulario es un **arreglo** (por defecto `[]`), `requerido` significa al menos uno y al enviar viaja el
   arreglo. `opcionesDe.excluir` (`['SIN']`) quita valores del catálogo; `valorDe` (`'sigla'`) dice qué propiedad
   guardar cuando el registro trae objetos (`categorias: [{ sigla, descripcion }]`) al editar.
+- **Reglas** (`tipo: 'reglas'`): filas repetibles de tema y cantidad (`min` y `max` son la cantidad de filas, 1 y 10 por
+  defecto; `maxTexto` el largo del tema, 80). El valor viaja como arreglo de `{ tema, cantidad }` con la cantidad como
+  número; la validación pide temas con nombre y sin repetir, y cantidades enteras de 1 a 100.
 - **Etiquetas** (`tipo: 'etiquetas'` en una columna o un dato del detalle): el valor es un arreglo, de textos o
   de objetos (`etiqueta: 'sigla'` dice qué propiedad mostrar), dibujado como insignias pequeñas. En la tabla
   caben tres y el resto se resume en "+N"; en el detalle se ven todas; vacío se muestra "—".
@@ -70,6 +73,9 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
 - **Detalle de solo lectura** (`detalle` en el esquema): un botón "Ver detalles" por fila abre el mismo
   drawer sin formulario ni "Guardar", con secciones de campos (`texto`, `fecha`, `insignia`; un valor
   vacío se muestra "—") y un solo botón "Cerrar". Sirve para mostrar un registro sin ofrecer editarlo.
+- **Acción con formulario** (`formulario` en una acción): en vez de ejecutarse directo, abre el mismo drawer con sus
+  `secciones` de campos y, al enviar, llama a la ruta de la acción (con su método) con ese cuerpo. Sirve para acciones que
+  piden datos y no son crear ni editar (ej. registrar el puntaje de un examen).
 - **Confirmar** una acción (`confirmar` en el esquema) abre un **diálogo**, no una fila inline.
 - **Avisos** de éxito o error como toast abajo a la derecha, que se va solo.
 

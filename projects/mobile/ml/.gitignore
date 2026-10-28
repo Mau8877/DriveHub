@@ -1,0 +1,5 @@
+# Fotos de entrenamiento y artefactos locales del entrenamiento (ver README.md)
+datos/
+__pycache__/
+*.keras
+descargas/

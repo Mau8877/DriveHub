@@ -38,6 +38,8 @@ export default defineConfig({
     }),
   ],
   resolve: {
+    // * Una sola copia de React: dos copias (p. ej. la del remoto y la de una librería) dan "Invalid hook call"
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@': resolve(__dirname, './src'),
     },

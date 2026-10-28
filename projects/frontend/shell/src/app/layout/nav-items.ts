@@ -89,6 +89,24 @@ export const NAV_ITEMS: NavItem[] = [
         icono: 'help-circle',
         roles: [ROLES.ADMIN_ESCUELA],
       },
+      {
+        ruta: '/examenes/simulacros',
+        etiqueta: 'Simulacros',
+        icono: 'clock',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
+      {
+        ruta: '/examenes/conduccion',
+        etiqueta: 'Examen de conducción',
+        icono: 'car',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
+      {
+        ruta: '/examenes/resultados',
+        etiqueta: 'Resultados',
+        icono: 'check-circle',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
     ],
   },
   {
@@ -139,7 +157,10 @@ export function migasDeRuta(
   const inicio = { etiqueta: 'Inicio', ruta: '/' }
   for (const item of items) {
     if (coincide(actual, item.ruta)) return [inicio, { etiqueta: item.etiqueta }]
-    const hijo = item.hijos?.find((h) => coincide(actual, h.ruta))
+    // * Con dos opciones que coinciden (`/examenes` y `/examenes/simulacros`) gana la de la ruta más específica
+    const hijo = item.hijos
+      ?.filter((h) => coincide(actual, h.ruta))
+      .sort((a, b) => (b.ruta?.length ?? 0) - (a.ruta?.length ?? 0))[0]
     if (hijo) return [inicio, { etiqueta: item.etiqueta }, { etiqueta: hijo.etiqueta }]
   }
   return []

@@ -40,3 +40,7 @@ class ConflictException(BusinessException):
 
 class LockedException(BusinessException):
     http_status = HTTPStatus.LOCKED
+
+
+class ServicioNoDisponibleException(BusinessException):
+    http_status = HTTPStatus.SERVICE_UNAVAILABLE

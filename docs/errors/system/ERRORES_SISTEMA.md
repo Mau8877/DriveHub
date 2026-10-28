@@ -69,3 +69,10 @@ gateway), no ligados a ningún servicio de negocio puntual (ver
 - **Dónde se lanza:** el gateway, el `AccessDeniedHandler` de cada servicio Spring
   y `GlobalExceptionHandler.handleAccesoDenegado()` para `@PreAuthorize`.
 
+## `ERR_SYS_06`
+
+- **HTTP:** 503
+- **Excepción:** ninguna de negocio — el gateway atrapa el `ResourceAccessException`
+- **Significado:** El servicio dueño del recurso no responde (caído, reiniciándose o
+  sin red). El cliente puede reintentar más tarde; no es un error de su petición.
+- **Dónde se lanza:** el gateway, `ServicioNoDisponibleHandler.handle()`.

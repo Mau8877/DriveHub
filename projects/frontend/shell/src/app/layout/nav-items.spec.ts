@@ -40,7 +40,12 @@ describe('navItemsDeRoles', () => {
     ])
     expect(opciones('Gestionar escuela')).toEqual([['Autos', '/escuela/autos']])
     expect(opciones('Gestionar pagos')).toEqual([['Planes de horas', '/pagos/planes']])
-    expect(opciones('Gestionar exámenes')).toEqual([['Banco de preguntas', '/examenes']])
+    expect(opciones('Gestionar exámenes')).toEqual([
+      ['Banco de preguntas', '/examenes'],
+      ['Simulacros', '/examenes/simulacros'],
+      ['Examen de conducción', '/examenes/conduccion'],
+      ['Resultados', '/examenes/resultados'],
+    ])
     expect(opciones('Gestionar contenido')).toEqual([['Manuales', '/contenido']])
   })
 
@@ -158,6 +163,21 @@ describe('migasDeRuta', () => {
       { etiqueta: 'Inicio', ruta: '/' },
       { etiqueta: 'Gestionar exámenes' },
       { etiqueta: 'Banco de preguntas' },
+    ])
+    expect(migasDeRuta('/examenes/conduccion', items)).toEqual([
+      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar exámenes' },
+      { etiqueta: 'Examen de conducción' },
+    ])
+    expect(migasDeRuta('/examenes/simulacros', items)).toEqual([
+      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar exámenes' },
+      { etiqueta: 'Simulacros' },
+    ])
+    expect(migasDeRuta('/examenes/resultados', items)).toEqual([
+      { etiqueta: 'Inicio', ruta: '/' },
+      { etiqueta: 'Gestionar exámenes' },
+      { etiqueta: 'Resultados' },
     ])
     expect(migasDeRuta('/pagos/planes', items)).toEqual([
       { etiqueta: 'Inicio', ruta: '/' },

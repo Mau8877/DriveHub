@@ -54,6 +54,35 @@ class ManualService
     }
 
     /**
+     * Lo que ve el estudiante (CU34): solo los publicados de su escuela.
+     */
+    public function listarPublicados(
+        string $escuelaCodigo,
+        ?string $busqueda,
+        ?string $categoria,
+        int $pagina,
+        int $tamano,
+    ): LengthAwarePaginator {
+        return $this->manuales->listar($escuelaCodigo, $busqueda, EstadoPublicacion::PUBLICADO, $categoria, $pagina, $tamano);
+    }
+
+    // * Un manual en borrador o archivado es, para el estudiante, un manual que no existe
+    public function obtenerPublicado(string $escuelaCodigo, string $codigo): Manual
+    {
+        $manual = $this->obtener($escuelaCodigo, $codigo);
+        if ($manual->estado !== EstadoPublicacion::PUBLICADO) {
+            Log::warning('Manual no publicado pedido por un estudiante', [
+                'module' => self::MODULO,
+                'errorCode' => ErrorCodes::MANUAL_NO_ENCONTRADO,
+                'manualCodigo' => $codigo,
+            ]);
+            throw new NotFoundException(ErrorCodes::MANUAL_NO_ENCONTRADO, 'El manual no existe');
+        }
+
+        return $manual;
+    }
+
+    /**
      * Crea el manual en BORRADOR: se publica aparte, cuando está listo.
      *
      * @param  array<string,mixed>  $datos

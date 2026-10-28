@@ -39,6 +39,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_SYS_03`](system/ERRORES_SISTEMA.md#err_sys_03) — Ruta inexistente en el servicio (404)
 - [`ERR_SYS_04`](system/ERRORES_SISTEMA.md#err_sys_04) — No autenticado: token ausente, inválido o vencido (401)
 - [`ERR_SYS_05`](system/ERRORES_SISTEMA.md#err_sys_05) — Sin permiso para la acción (403)
+- [`ERR_SYS_06`](system/ERRORES_SISTEMA.md#err_sys_06) — Servicio no disponible (503, gateway)
 
 ### Identidad (`IDE`)
 
@@ -65,6 +66,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IDE_21`](identidad/ERRORES_IDENTIDAD.md#err_ide_21) — La categoría de licencia no existe (400)
 - [`ERR_IDE_22`](identidad/ERRORES_IDENTIDAD.md#err_ide_22) — El instructor no existe en la escuela (404)
 - [`ERR_IDE_23`](identidad/ERRORES_IDENTIDAD.md#err_ide_23) — La cuenta del instructor ya se usó y no se revierte (409)
+- [`ERR_IDE_24`](identidad/ERRORES_IDENTIDAD.md#err_ide_24) — Escuela no responde: no se pudo confirmar la escuela o la categoría (503)
 
 ### Escuela (`ESC`)
 
@@ -128,6 +130,17 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_18`](academico/ERRORES_ACADEMICO.md#err_aca_18) — La franja ya no está disponible para reservar (409)
 - [`ERR_ACA_19`](academico/ERRORES_ACADEMICO.md#err_aca_19) — El estudiante no tiene horas suficientes para reservar la franja (409)
 - [`ERR_ACA_20`](academico/ERRORES_ACADEMICO.md#err_aca_20) — El estudiante ya tiene una clase reservada a esa hora (409)
+- [`ERR_ACA_21`](academico/ERRORES_ACADEMICO.md#err_aca_21) — El simulacro no existe en la escuela (404)
+- [`ERR_ACA_22`](academico/ERRORES_ACADEMICO.md#err_aca_22) — El simulacro ya estaba en ese estado (409)
+- [`ERR_ACA_23`](academico/ERRORES_ACADEMICO.md#err_aca_23) — Ya existe un simulacro con ese nombre en la escuela (409)
+- [`ERR_ACA_24`](academico/ERRORES_ACADEMICO.md#err_aca_24) — El examen de conducción no existe en la escuela (404)
+- [`ERR_ACA_25`](academico/ERRORES_ACADEMICO.md#err_aca_25) — El examen de conducción ya no está programado (409)
+- [`ERR_ACA_26`](academico/ERRORES_ACADEMICO.md#err_aca_26) — El estudiante ya tiene un examen programado en esa categoría (409)
+- [`ERR_ACA_27`](academico/ERRORES_ACADEMICO.md#err_aca_27) — El estudiante no existe en la escuela (404)
+- [`ERR_ACA_28`](academico/ERRORES_ACADEMICO.md#err_aca_28) — El banco no tiene preguntas suficientes para el simulacro (409)
+- [`ERR_ACA_29`](academico/ERRORES_ACADEMICO.md#err_aca_29) — El estudiante ya tiene un intento de simulacro en curso (409)
+- [`ERR_ACA_30`](academico/ERRORES_ACADEMICO.md#err_aca_30) — El intento de simulacro no existe (404)
+- [`ERR_ACA_31`](academico/ERRORES_ACADEMICO.md#err_aca_31) — El intento de simulacro ya terminó (409)
 
 ### Contenido (`CON`)
 
@@ -135,6 +148,15 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_CON_02`](contenido/ERRORES_CONTENIDO.md#err_con_02) — Cambio no permitido desde el estado actual del manual (409)
 - [`ERR_CON_03`](contenido/ERRORES_CONTENIDO.md#err_con_03) — El archivo del manual no es válido (400)
 - [`ERR_CON_04`](contenido/ERRORES_CONTENIDO.md#err_con_04) — El token no trae la escuela de la cuenta (403)
+- [`ERR_CON_05`](contenido/ERRORES_CONTENIDO.md#err_con_05) — El tutorial no existe para quien lo pide (404)
+- [`ERR_CON_06`](contenido/ERRORES_CONTENIDO.md#err_con_06) — Cambio no permitido desde el estado actual del tutorial (409)
+- [`ERR_CON_07`](contenido/ERRORES_CONTENIDO.md#err_con_07) — El recurso del tutorial no es válido: PDF ajeno o enlace que no es de YouTube (400)
+
+### Asistente IA (`IA`)
+
+- [`ERR_IA_01`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_01) — La miniatura de la ayuda del tablero no es válida (400)
+- [`ERR_IA_02`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_02) — No se pudo guardar la miniatura: el almacén de archivos no responde (503)
+- [`ERR_IA_03`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_03) — La ayuda del tablero no existe para quien la pide (404)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su

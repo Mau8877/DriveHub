@@ -31,6 +31,7 @@ public final class IdentidadErrorCodes {
     public static final String CATEGORIA_NO_EXISTE = "ERR_IDE_21";
     public static final String INSTRUCTOR_NO_ENCONTRADO = "ERR_IDE_22";
     public static final String CUENTA_YA_USADA = "ERR_IDE_23";
+    public static final String ESCUELA_NO_RESPONDE = "ERR_IDE_24";
 
     private IdentidadErrorCodes() {
     }

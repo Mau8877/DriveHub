@@ -1,0 +1,6 @@
+# Solo para ENTRENAR el modelo del tablero (CU40). No es parte de la app.
+# Python 3.10 a 3.12 (TensorFlow aún no publica ruedas para versiones más nuevas).
+tensorflow==2.19.0
+numpy>=1.26,<2.2
+pillow>=10,<13
+pyyaml>=6,<7
