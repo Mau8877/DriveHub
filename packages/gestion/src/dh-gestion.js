@@ -18,6 +18,13 @@ function filasDe(campo, valor) {
   return Array.from({ length: campo.min ?? FILAS_POR_DEFECTO }, () => ({ texto: '', correcta: false }))
 }
 
+/** Filas del campo `reglas` (tema + cantidad): la cantidad se edita como texto. Con `min` filas vacías si no hay. */
+function filasReglasDe(campo, valor) {
+  const filas = Array.isArray(valor) ? valor : []
+  if (filas.length > 0) return filas.map((f) => ({ tema: f.tema ?? '', cantidad: String(f.cantidad ?? '') }))
+  return Array.from({ length: campo.min ?? 1 }, () => ({ tema: '', cantidad: '' }))
+}
+
 /** Valor de un campo tal como se muestra en el formulario: una lista se ve como "a, b, c". */
 function paraFormulario(campo, valor) {
   // * Un decimal se ve con todos sus decimales (450 -> "450.00"), como lo escribiría quien lo carga
@@ -26,6 +33,7 @@ function paraFormulario(campo, valor) {
   }
   if (campo.tipo === 'lista') return Array.isArray(valor) ? valor.join(', ') : (valor ?? '')
   if (campo.tipo === 'opciones') return filasDe(campo, valor)
+  if (campo.tipo === 'reglas') return filasReglasDe(campo, valor)
   // * Una lista desplegable maneja texto: un número (ej. la dificultad) se muestra como texto
   if (campo.tipo === 'seleccion') return valor == null ? '' : String(valor)
   return valor ?? ''
@@ -581,6 +589,11 @@ export class DhGestion extends LitElement {
         escribir(cuerpo, campo.campo, filas.map((f) => ({ texto: f.texto.trim(), correcta: f.correcta })))
         return
       }
+      if (campo.tipo === 'reglas') {
+        const filas = filasReglasDe(campo, this._valores[campo.campo])
+        escribir(cuerpo, campo.campo, filas.map((f) => ({ tema: f.tema.trim(), cantidad: Number(f.cantidad) })))
+        return
+      }
       const texto = String(this._valores[campo.campo] ?? '').trim()
       if (campo.tipo === 'lista') {
         if (texto !== '' || campo.requerido) escribir(cuerpo, campo.campo, aLista(texto))
@@ -1067,6 +1080,7 @@ export class DhGestion extends LitElement {
     if (campo.tipo === 'imagen') return this._renderImagen(campo)
     if (campo.tipo === 'archivo') return this._renderArchivo(campo)
     if (campo.tipo === 'opciones') return this._renderOpciones(campo)
+    if (campo.tipo === 'reglas') return this._renderReglas(campo)
     const id = `campo-${campo.campo.replace('.', '-')}`
     const error = this._errorDe(campo)
     const esPassword = campo.tipo === 'password'
@@ -1303,6 +1317,68 @@ export class DhGestion extends LitElement {
         @click=${() => this._cambiarFilas(campo, (f) => [...f, { texto: '', correcta: false }])}
       >
         Agregar opción
+      </button>
+      ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
+      ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}
+    </div>`
+  }
+
+  /**
+   * Lista repetible de reglas: cada fila lleva un tema (texto) y una cantidad (entero). `min` y `max` son la
+   * cantidad de filas (1 y 10 por defecto) y `maxTexto` el largo del tema.
+   */
+  _renderReglas(campo) {
+    const id = `campo-${campo.campo.replace('.', '-')}`
+    const error = this._errorDe(campo)
+    const filas = filasReglasDe(campo, this._valores[campo.campo])
+    const minimo = campo.min ?? 1
+    const maximo = campo.max ?? 10
+    const cambiar = (cambio) => this._alEscribir(campo, cambio(filasReglasDe(campo, this._valores[campo.campo])))
+    return html`<div class="campo ${error ? 'con-error' : ''}" id=${id}>
+      <span class="etiqueta-campo">${campo.titulo}</span>
+      <ol class="filas-opcion">
+        ${filas.map(
+          (fila, i) => html`<li class="fila-opcion">
+            <input
+              type="text"
+              aria-label=${`Tema ${i + 1}`}
+              placeholder="Tema"
+              maxlength=${campo.maxTexto ?? 80}
+              autocomplete="off"
+              .value=${fila.tema}
+              @input=${(e) => cambiar((f) => f.map((x, j) => (j === i ? { ...x, tema: e.target.value } : x)))}
+              @blur=${() => this._tocar(campo)}
+            />
+            <input
+              type="text"
+              inputmode="numeric"
+              aria-label=${`Cantidad ${i + 1}`}
+              placeholder="Cantidad"
+              maxlength="3"
+              autocomplete="off"
+              .value=${fila.cantidad}
+              @input=${(e) => cambiar((f) => f.map((x, j) => (j === i ? { ...x, cantidad: e.target.value } : x)))}
+              @blur=${() => this._tocar(campo)}
+            />
+            <button
+              type="button"
+              class="enlace peligro"
+              aria-label=${`Quitar regla ${i + 1}`}
+              ?disabled=${filas.length <= minimo}
+              @click=${() => cambiar((f) => f.filter((_, j) => j !== i))}
+            >
+              Quitar
+            </button>
+          </li>`
+        )}
+      </ol>
+      <button
+        type="button"
+        class="boton secundario agregar-fila"
+        ?disabled=${filas.length >= maximo}
+        @click=${() => cambiar((f) => [...f, { tema: '', cantidad: '' }])}
+      >
+        Agregar tema
       </button>
       ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
       ${error ? html`<span class="error-campo" role="alert">${error}</span>` : nothing}

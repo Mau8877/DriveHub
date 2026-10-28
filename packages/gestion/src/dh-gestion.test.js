@@ -2425,3 +2425,123 @@ describe('<dh-gestion> campo decimal y columna moneda', () => {
     expect(cuerpoEnviado(2)).toEqual({ costoBs: 500.25 })
   })
 })
+
+describe('<dh-gestion> campo reglas (tema + cantidad)', () => {
+  let el
+  const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+  const filas = () => Array.from(el.shadowRoot.querySelectorAll('.fila-opcion'))
+  const SIMULACRO = { codigo: 's1', nombre: 'Básico', reglas: [{ tema: 'Señales', cantidad: 5 }] }
+  const CAMPOS = [
+    { campo: 'nombre', titulo: 'Nombre', requerido: true },
+    { campo: 'reglas', titulo: 'Preguntas por tema', tipo: 'reglas', requerido: true, max: 3 },
+  ]
+  const ESQUEMA_SIMULACROS = {
+    recurso: 'simulacros',
+    titulo: 'Simulacros',
+    columnas: [{ campo: 'nombre', titulo: 'Nombre' }],
+    crear: { etiqueta: 'Nuevo simulacro', mensajeExito: 'Listo', etiquetaEnviar: 'Crear', secciones: [{ campos: CAMPOS }] },
+    editar: { etiquetaEnviar: 'Guardar', mensajeExito: 'Listo', secciones: [{ campos: CAMPOS }] },
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  async function montar(datos) {
+    fetch.mockResolvedValueOnce(lista(datos))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = ESQUEMA_SIMULACROS
+    await asentar(el)
+  }
+
+  async function llenar(i, tema, cantidad) {
+    const [entradaTema, entradaCantidad] = filas()[i].querySelectorAll('input')
+    for (const [entrada, valor] of [[entradaTema, tema], [entradaCantidad, cantidad]]) {
+      entrada.value = valor
+      entrada.dispatchEvent(new Event('input', { bubbles: true }))
+      await asentar(el)
+    }
+  }
+
+  it('arranca con una fila, agrega hasta el máximo y no quita la última', async () => {
+    await montar([])
+    boton('Nuevo simulacro').click()
+    await asentar(el)
+
+    expect(filas()).toHaveLength(1)
+    expect(filas()[0].querySelector('button').disabled).toBe(true)
+    boton('Agregar tema').click()
+    boton('Agregar tema').click()
+    await asentar(el)
+    expect(filas()).toHaveLength(3)
+    expect(boton('Agregar tema').disabled).toBe(true)
+  })
+
+  it('envía las reglas como arreglo de { tema, cantidad } con la cantidad numérica', async () => {
+    await montar([])
+    boton('Nuevo simulacro').click()
+    await asentar(el)
+    const nombre = el.shadowRoot.querySelector('#campo-nombre')
+    nombre.value = 'Básico'
+    nombre.dispatchEvent(new Event('input', { bubbles: true }))
+    await asentar(el)
+    await llenar(0, ' Señales ', '5')
+    fetch.mockResolvedValueOnce(sobre({ codigo: 's9' })).mockResolvedValueOnce(lista([]))
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      nombre: 'Básico',
+      reglas: [{ tema: 'Señales', cantidad: 5 }],
+    })
+  })
+
+  it('una cantidad inválida no se envía y muestra el error bajo el campo', async () => {
+    await montar([])
+    boton('Nuevo simulacro').click()
+    await asentar(el)
+    const nombre = el.shadowRoot.querySelector('#campo-nombre')
+    nombre.value = 'Básico'
+    nombre.dispatchEvent(new Event('input', { bubbles: true }))
+    await asentar(el)
+    await llenar(0, 'Señales', '0')
+
+    boton('Crear').click()
+    await asentar(el)
+
+    expect(el.shadowRoot.textContent).toContain('Cada cantidad es un número entero de 1 a 100')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('al editar carga las reglas del registro como filas', async () => {
+    fetch.mockResolvedValueOnce(lista([SIMULACRO]))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = {
+      ...ESQUEMA_SIMULACROS,
+      acciones: [],
+    }
+    await asentar(el)
+    fetch.mockResolvedValueOnce(sobre(SIMULACRO))
+    boton('Editar').click()
+    await asentar(el)
+
+    const [tema, cantidad] = filas()[0].querySelectorAll('input')
+    expect(tema.value).toBe('Señales')
+    expect(cantidad.value).toBe('5')
+  })
+})

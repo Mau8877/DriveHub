@@ -338,3 +338,27 @@ describe('normalizarDecimal', () => {
     expect(normalizarDecimal(undefined)).toBe('')
   })
 })
+
+describe('validar reglas por tema', () => {
+  const campo = { campo: 'reglas', titulo: 'Preguntas por tema', tipo: 'reglas', requerido: true }
+  const fila = (tema, cantidad) => ({ tema, cantidad })
+
+  it('pide al menos un tema, con nombre, sin repetir y con una cantidad entera de 1 a 100', () => {
+    expect(validar(campo, [fila('Señales', '5'), fila('Prioridad', '3')])).toBeNull()
+    expect(validar(campo, [])).toBe('Agrega al menos 1 tema')
+    expect(validar(campo, undefined)).toBe('Agrega al menos 1 tema')
+    expect(validar(campo, [fila('  ', '5')])).toBe('Todos los temas necesitan nombre')
+    expect(validar(campo, [fila('Señales', '5'), fila('señales', '2')])).toBe('Un tema no puede repetirse')
+    expect(validar(campo, [fila('Señales', '')])).toBe('Cada cantidad es un número entero de 1 a 100')
+    expect(validar(campo, [fila('Señales', '0')])).toBe('Cada cantidad es un número entero de 1 a 100')
+    expect(validar(campo, [fila('Señales', '2.5')])).toBe('Cada cantidad es un número entero de 1 a 100')
+    expect(validar(campo, [fila('Señales', '101')])).toBe('Cada cantidad es un número entero de 1 a 100')
+    expect(validar(campo, [fila('x'.repeat(81), '1')])).toBe('Cada tema puede tener hasta 80 caracteres')
+  })
+
+  it('max de filas y mensajes salen del esquema', () => {
+    const personalizado = { ...campo, max: 1, mensajes: { max: 'Demasiados' } }
+
+    expect(validar(personalizado, [fila('a', '1'), fila('b', '1')])).toBe('Demasiados')
+  })
+})
