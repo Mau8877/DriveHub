@@ -794,7 +794,7 @@ Vista consolidada de notas: se escribe al cerrar cada evaluación y publica `exa
 | --- | --- | --- |
 | `codigoResultado` | UUID | Único |
 | `escuelaCodigo` | UUID | Escuela del estudiante (sin FK): permite que el Administrador y el instructor consulten por escuela (CU22 lo escribe, CU23 lo lee) |
-| `estudianteCodigo` | UUID | Índice compuesto `idx_resultado_estudiante_fecha (estudianteCodigo, fecha DESC)` |
+| `estudianteCodigo` | UUID | Índice compuesto `idx_resultado_estudiante_fecha (estudianteCodigo, fecha DESC)`: «Mis notas» del estudiante. Para el Administrador, `idx_resultado_escuela_fecha (escuelaCodigo, fecha DESC)` (CU23) |
 | `origen` | enum | `SIMULACRO`, `PRUEBA_CLASE`, `EXAMEN_CONDUCCION` |
 | `origenId` | long | `_id` del documento de origen |
 | `titulo` | string | |
