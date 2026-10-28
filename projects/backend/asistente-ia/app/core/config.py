@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     rabbitmq_url: str = "amqp://drivehub:drivehub_local_pass_123@localhost:5672"
     minio_url: str = "http://localhost:9000"
     minio_bucket: str = "drivehub-asistente-ia"
+    # Los servicios dueños de lo que expone el servidor MCP (CU46), por la red interna.
+    contenido_url: str = "http://localhost:8085"
+    academico_url: str = "http://localhost:8084"
+
     # Credenciales de MinIO (miniaturas del historial). Sin valor, no se guardan imágenes.
     minio_access_key: str | None = None
     minio_secret_key: str | None = None
