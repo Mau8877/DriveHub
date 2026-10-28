@@ -351,8 +351,13 @@ void main() {
     });
 
     testWidgets(
-      '«Estudio» tiene las pestañas Simulacros, Manuales y Mis notas',
+      '«Estudio» tiene la pestaña Mis notas junto a las demás',
       (tester) async {
+        // * Con seis pestañas, las últimas quedan fuera de una pantalla angosta: se usa una ancha
+        tester.view.physicalSize = const Size(1600, 1200);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
         servicio.notas = [_nota()];
 
         await montar(tester, pantalla: const EstudioScreen());
