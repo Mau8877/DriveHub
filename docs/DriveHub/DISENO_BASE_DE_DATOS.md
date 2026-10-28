@@ -933,7 +933,7 @@ Las imágenes y audios no se guardan en las tablas: va la **clave del archivo** 
 
 ### `SesionesIA` (CU39)
 
-Pruebas de conducción asistidas y chats.
+Pruebas de conducción asistidas y chats. **La prueba de conducción (CU39) se evalúa en el teléfono** (cámara frontal y detección de rostros de ML Kit, IA local en el móvil): el servidor no hace inferencia y guarda la prueba ya terminada como una sesión `PRUEBA_CONDUCCION` en estado `FINALIZADA`, en una sola transacción con sus mensajes. No se guarda ninguna imagen ni video.
 
 | Atributo | Tipo | Notas |
 | --- | --- | --- |
@@ -944,7 +944,7 @@ Pruebas de conducción asistidas y chats.
 | `estado` | S (enum) | `EN_CURSO`, `FINALIZADA` |
 | `puntaje` | N | Opcional |
 | `retroalimentacion` | S | Opcional |
-| `modelo` | S | Modelo de IA usado |
+| `modelo` | S | Modelo de IA usado (en CU39, el del teléfono: `mlkit-rostro-v1`) |
 | `duracionSeg` | N | Opcional |
 | `creadaEn` | S | |
 
@@ -955,7 +955,7 @@ Pruebas de conducción asistidas y chats.
 | `sesionCodigo`, `seq` | S, N | Clave. `sesionCodigo` = `codigoSesionIa` |
 | `codigoMensajeIa` | S | UUID v7 |
 | `rol` | S (enum) | `USER`, `ASSISTANT` |
-| `contenido` | S | |
+| `contenido` | S | En CU39, un mensaje `ASSISTANT` por paso de la prueba: `Paso 2: Mira el espejo izquierdo (logrado, 2.1 s)`; `seq` es el orden del paso |
 | `mediaKey` | S | Clave de un archivo en el bucket. Opcional |
 | `ts` | S | |
 
