@@ -154,6 +154,7 @@ prefijo del código dice qué servicio lo produjo:
 
 - [`ERR_IA_01`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_01) — La miniatura de la ayuda del tablero no es válida (400)
 - [`ERR_IA_02`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_02) — No se pudo guardar la miniatura: el almacén de archivos no responde (503)
+- [`ERR_IA_03`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_03) — La ayuda del tablero no existe para quien la pide (404)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su

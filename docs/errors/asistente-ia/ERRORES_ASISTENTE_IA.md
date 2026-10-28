@@ -19,3 +19,11 @@ Las constantes viven en `app/common/error_codes.py`.
 - **Significado:** No se pudo guardar la miniatura en MinIO (el almacén de archivos no responde). Se puede reintentar
   más tarde; la ayuda no se guarda para no perder en silencio una foto que la persona mandó (CU40).
 - **Dónde se lanza:** `AyudaTableroService.crear()`
+
+## `ERR_IA_03`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** La ayuda del tablero pedida no existe para quien la pide (CU42). Una ayuda de otra persona o un
+  código que no existe se responde igual, para no revelar qué ayudas existen.
+- **Dónde se lanza:** `AyudaTableroService._buscar()`, y a través de él `obtener()` y `marcar_util()`
