@@ -37,6 +37,40 @@ ml/datos/
 | --- | --- | --- |
 | _(completar al descargarlos)_ | | |
 
+### Preparar las fotos con `preparar_datos.py`
+
+Los datasets de Roboflow vienen con cajas (detección de objetos), no en carpetas por luz. Este
+script recorta cada luz y la deja en `datos/<codigo>/`:
+
+1. En Roboflow Universe abre el dataset, **Download Dataset** y elige el formato **YOLOv8**
+   (necesitas una cuenta gratis). Descomprime en `ml/descargas/<nombre>/` (queda `data.yaml` y las
+   carpetas `train`, `valid` y `test`). Un dataset de Kaggle con carpetas por clase también sirve.
+2. Mira qué clases trae:
+
+   ```bash
+   python preparar_datos.py --origen descargas/<nombre> --listar
+   ```
+
+3. Escribe `mapa.json` (en UTF-8) con «nombre de la clase en el dataset» → «código del catálogo».
+   Lo que no aparezca en el mapa se ignora:
+
+   ```json
+   { "oil": "aceite", "battery": "bateria", "check engine": "check_engine", "abs": "abs" }
+   ```
+
+4. Prepara (puedes repetir `--origen` con varios datasets; correrlo de nuevo no duplica fotos):
+
+   ```bash
+   python preparar_datos.py --origen descargas/<nombre> --mapa mapa.json
+   ```
+
+   Al final muestra cuántas fotos hay por luz y marca las que tienen menos de 60.
+
+Los códigos válidos son los de `assets/ml/luces_tablero.json`. Mezcla datasets distintos para que
+el modelo vea tableros de varios autos, y revisa a ojo unas cuantas carpetas de `datos/` antes de
+entrenar: una caja mal etiquetada en el dataset original acaba como una foto en la carpeta
+equivocada.
+
 ## 2. Entrenar
 
 Con Python 3.10 a 3.12 (por ejemplo en Google Colab, que ya lo trae):
