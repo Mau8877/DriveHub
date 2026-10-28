@@ -150,6 +150,11 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_CON_06`](contenido/ERRORES_CONTENIDO.md#err_con_06) — Cambio no permitido desde el estado actual del tutorial (409)
 - [`ERR_CON_07`](contenido/ERRORES_CONTENIDO.md#err_con_07) — El recurso del tutorial no es válido: PDF ajeno o enlace que no es de YouTube (400)
 
+### Asistente IA (`IA`)
+
+- [`ERR_IA_01`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_01) — La miniatura de la ayuda del tablero no es válida (400)
+- [`ERR_IA_02`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_02) — No se pudo guardar la miniatura: el almacén de archivos no responde (503)
+
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su
   sección "### Nombre (PREFIJO)" con la lista de sus códigos, igual que la

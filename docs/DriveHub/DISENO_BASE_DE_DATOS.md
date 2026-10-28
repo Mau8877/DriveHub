@@ -961,16 +961,16 @@ Pruebas de conducción asistidas y chats.
 
 ### `AyudasTablero` (CU40, CU42)
 
-Ayuda por foto del tablero.
+Ayuda por foto del tablero. **El análisis lo hace el modelo del teléfono** (IA local en el móvil): el servidor no hace inferencia, solo guarda el resultado ya calculado.
 
 | Atributo | Tipo | Notas |
 | --- | --- | --- |
 | `usuarioCodigo`, `sk` | S | Clave |
 | `codigoAyudaTablero` | S | UUID v7 |
-| `imagenKey` | S | Clave del archivo en el bucket |
-| `indicadores` | L de M | `[{ codigo (clave legible), nombre, confianza, severidad }]`. Los valores de `severidad` se fijan con CU40 |
-| `respuesta` | S | Explicación para el estudiante |
-| `modelo` | S | |
+| `imagenKey` | S | Clave de la miniatura JPEG/PNG (≤ 500 KB) en el bucket, `ayudas-tablero/{usuarioCodigo}/{codigoAyudaTablero}.{jpg\|png}`. Opcional: la app puede no mandarla |
+| `indicadores` | L de M | `[{ codigo (clave legible), nombre, confianza, severidad }]`. `severidad`: `INFORMATIVA`, `ADVERTENCIA` o `CRITICA`. Hasta 3 luces, la más probable primero |
+| `respuesta` | S | Explicación para el estudiante (qué significa la luz y qué hacer), armada en el teléfono desde su catálogo |
+| `modelo` | S | Modelo del teléfono que hizo el análisis (nombre y versión) |
 | `latenciaMs` | N | |
 | `util` | BOOL | Opinión del estudiante. Opcional |
 | `creadaEn` | S | |
