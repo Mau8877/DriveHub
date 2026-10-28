@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Vista consolidada de notas (CU23).
@@ -28,19 +29,30 @@ public class Resultado extends BaseDocument {
     @Indexed(unique = true)
     private UUID codigoResultado;
 
+    // * Escuela (tenant) dueña del resultado: la del estudiante, sin relación física
+    @Setter
+    private UUID escuelaCodigo;
+
+    @Setter
     private UUID estudianteCodigo;
 
+    @Setter
     private OrigenResultado origen;
 
     // * _id del documento de origen
+    @Setter
     private Long origenId;
 
+    @Setter
     private String titulo;
 
+    @Setter
     private double puntaje;
 
+    @Setter
     private boolean aprobado;
 
+    @Setter
     private Instant fecha;
 
     @Override
