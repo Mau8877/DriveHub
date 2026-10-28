@@ -355,6 +355,9 @@ services:
       - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:-http://localhost:9000}
       # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
       - IDENTIDAD_URL=http://drivehub-identidad:8081
+      # Servicios que consulta el servidor MCP (CU46), por la red interna.
+      - CONTENIDO_URL=http://drivehub-contenido:8085
+      - ACADEMICO_URL=http://drivehub-academico:8084
     depends_on:
       dynamodb:
         condition: service_started
