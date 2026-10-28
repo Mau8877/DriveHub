@@ -727,12 +727,14 @@ Evaluación práctica durante la clase.
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoExamenConduccion` | UUID | Único |
+| `escuelaCodigo` | UUID | Escuela dueña (claim `escuela` del JWT, sin FK). Índice compuesto `idx_examen_escuela_estudiante_categoria (escuelaCodigo, estudianteCodigo, categoria)`: CU22 filtra siempre por escuela y calcula el intento y los programados con él |
 | `estudianteCodigo` | UUID | Índice |
 | `categoria` | string | Sigla |
-| `fechaProgramada` | instant | |
-| `evaluadorCodigo`, `vehiculoCodigo` | UUID | |
-| `intento` | int | 1, 2, 3… |
-| `estado` | enum | `PROGRAMADO`, `REALIZADO`, `CANCELADO`, `NO_ASISTIO` |
+| `fechaProgramada` | instant | Se pide como fecha y hora en la zona de la escuela |
+| `evaluadorCodigo`, `vehiculoCodigo` | UUID | Referencias a Escuela, sin validar todavía (CU22) |
+| `intento` | int | 1, 2, 3…: exámenes del estudiante en la categoría que no están cancelados, más uno |
+| `estado` | enum | `PROGRAMADO`, `REALIZADO`, `CANCELADO`, `NO_ASISTIO`. Solo un programado cambia, y de una sola forma |
+| `creadoPorCodigo` | UUID | Persona de Identidad que lo programó |
 | `puntaje` | double | Opcional |
 | `resultado` | enum | `APROBADO`, `REPROBADO`. Opcional |
 | `observaciones` | string | Opcional |
@@ -789,6 +791,7 @@ Vista consolidada de notas: se escribe al cerrar cada evaluación y publica `exa
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `codigoResultado` | UUID | Único |
+| `escuelaCodigo` | UUID | Escuela del estudiante (sin FK): permite que el Administrador y el instructor consulten por escuela (CU22 lo escribe, CU23 lo lee) |
 | `estudianteCodigo` | UUID | Índice compuesto `idx_resultado_estudiante_fecha (estudianteCodigo, fecha DESC)` |
 | `origen` | enum | `SIMULACRO`, `PRUEBA_CLASE`, `EXAMEN_CONDUCCION` |
 | `origenId` | long | `_id` del documento de origen |

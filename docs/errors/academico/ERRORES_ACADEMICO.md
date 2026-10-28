@@ -201,3 +201,34 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 - **Significado:** Ya existe otro simulacro de la misma escuela con ese nombre, sin distinguir mayúsculas, al crear
   o al renombrar (CU20).
 - **Dónde se lanza:** `SimulacroService.verificarNombreLibre()`
+
+## `ERR_ACA_24`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El examen de conducción pedido no existe o es de otra escuela; no se distingue entre los dos
+  casos para no revelar qué hay en otras escuelas (CU22).
+- **Dónde se lanza:** `ExamenConduccionService.buscar()`
+
+## `ERR_ACA_25`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se pidió reprogramar, cancelar, marcar inasistencia o registrar el resultado de un examen que ya
+  no está programado (realizado, cancelado o sin asistencia) (CU22).
+- **Dónde se lanza:** `ExamenConduccionService.buscarProgramado()`
+
+## `ERR_ACA_26`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Al programar, el estudiante ya tiene otro examen programado en esa categoría (CU22).
+- **Dónde se lanza:** `ExamenConduccionService.programar()`
+
+## `ERR_ACA_27`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** Al programar, el estudiante no existe en la escuela de quien programa: Identidad no lo devuelve
+  (CU22).
+- **Dónde se lanza:** `ExamenConduccionService.programar()`
