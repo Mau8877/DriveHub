@@ -79,6 +79,56 @@ class FranjaRepositoryTest extends MongoIntegrationTestBase {
             otroInstructor)).isEmpty();
     }
 
+    // ---------------------------------------------------------------- delDia (CU11)
+
+    private Franja deOtraEscuela(UUID propietario, LocalDate fecha, String hora) {
+        Franja franja = new Franja(UUID.randomUUID(), 1L, propietario, fecha, hora, "23:59");
+        return repository.save(franja);
+    }
+
+    @Test
+    void delDia_traeLasDeEsaEscuelaYEsaFecha_deTodosLosEstados() {
+        libre(instructor, HOY, "08:00");
+        guardar(instructor, 1L, HOY, "09:00", EstadoFranja.RESERVADA);
+        guardar(otroInstructor, 1L, HOY, "08:00", EstadoFranja.BLOQUEADA);
+        libre(instructor, HOY.plusDays(1), "08:00");
+        deOtraEscuela(UUID.randomUUID(), HOY, "08:00");
+
+        var franjas = repository.delDia(escuela, HOY, null, null);
+
+        assertThat(franjas).hasSize(3);
+        assertThat(franjas).extracting(Franja::getEstado).containsExactlyInAnyOrder(EstadoFranja.LIBRE,
+            EstadoFranja.RESERVADA, EstadoFranja.BLOQUEADA);
+    }
+
+    @Test
+    void delDia_conVentanaDeHoras_incluyeElInicioYExcluyeElFin() {
+        libre(instructor, HOY, "11:59");
+        libre(instructor, HOY, "12:00");
+        libre(instructor, HOY, "17:59");
+        libre(instructor, HOY, "18:00");
+
+        assertThat(repository.delDia(escuela, HOY, "12:00", "18:00")).extracting(Franja::getHoraInicio)
+            .containsExactlyInAnyOrder("12:00", "17:59");
+        assertThat(repository.delDia(escuela, HOY, null, "12:00")).extracting(Franja::getHoraInicio)
+            .containsExactly("11:59");
+        assertThat(repository.delDia(escuela, HOY, "18:00", null)).extracting(Franja::getHoraInicio)
+            .containsExactly("18:00");
+    }
+
+    @Test
+    void delDia_noTraeLasBorradas() {
+        Franja borrada = libre(instructor, HOY, "08:00");
+        libre(instructor, HOY, "09:00");
+        mongoTemplate.updateFirst(
+            Query.query(org.springframework.data.mongodb.core.query.Criteria.where("codigoFranja")
+                .is(borrada.getCodigoFranja())),
+            new org.springframework.data.mongodb.core.query.Update().set("deletedAt", Instant.now()), Franja.class);
+
+        assertThat(repository.delDia(escuela, HOY, null, null)).extracting(Franja::getHoraInicio)
+            .containsExactly("09:00");
+    }
+
     // ---------------------------------------------------------------- listar
 
     @Test

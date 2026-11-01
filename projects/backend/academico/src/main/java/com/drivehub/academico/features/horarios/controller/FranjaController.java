@@ -23,8 +23,10 @@ import com.drivehub.academico.features.horarios.dto.DiaBloqueadoResponse;
 import com.drivehub.academico.features.horarios.dto.FranjaDisponibleResponse;
 import com.drivehub.academico.features.horarios.dto.FranjaResponse;
 import com.drivehub.academico.features.horarios.dto.InstructorDisponibleResponse;
+import com.drivehub.academico.features.horarios.dto.ResumenFranjasInstructorResponse;
 import com.drivehub.academico.features.horarios.enums.EstadoFranja;
 import com.drivehub.academico.features.horarios.service.FranjaDisponibleService;
+import com.drivehub.academico.features.horarios.service.FranjaResumenService;
 import com.drivehub.academico.features.horarios.service.FranjaService;
 
 import lombok.RequiredArgsConstructor;
@@ -32,7 +34,8 @@ import lombok.RequiredArgsConstructor;
 /**
  * Franjas del instructor (CU12): verlas, bloquearlas y desbloquearlas, una por una o un día completo. Es la
  * vista del instructor sobre sus propias franjas. Además, la vista del estudiante (CU14): las franjas libres de
- * su escuela (`/disponibles`) y los instructores que tienen alguna (`/instructores`).
+ * su escuela (`/disponibles`) y los instructores que tienen alguna (`/instructores`). Y la del Administrador
+ * (CU11): cuántas franjas tiene cada instructor de su escuela en un día (`/resumen`).
  */
 @RestController
 @RequestMapping("/api/v1/franjas")
@@ -41,6 +44,7 @@ public class FranjaController {
 
     private final FranjaService service;
     private final FranjaDisponibleService disponibleService;
+    private final FranjaResumenService resumenService;
     private final BearerActual bearer;
 
     /**
@@ -117,6 +121,24 @@ public class FranjaController {
             instructores.isEmpty() ? 0 : 1);
         return ResponseEntity.ok(ApiResponse.successList(instructores,
             "Instructores disponibles obtenidos correctamente", meta));
+    }
+
+    /**
+     * Cuántas franjas tiene cada instructor de la escuela en un día (CU11), para el Administrador. `filter[fecha]`
+     * es hoy si no llega; `filter[horaDesde]` es inclusiva y `filter[horaHasta]` exclusiva. Son pocos instructores,
+     * así que va sin paginar: `meta` describe una sola página con todos.
+     */
+    @GetMapping("/resumen")
+    public ResponseEntity<ApiResponse<List<ResumenFranjasInstructorResponse>>> resumen(
+            @CurrentEscuelaId UUID escuelaCodigo,
+            @RequestParam(name = "filter[fecha]", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            @RequestParam(name = "filter[horaDesde]", required = false) String horaDesde,
+            @RequestParam(name = "filter[horaHasta]", required = false) String horaHasta) {
+        List<ResumenFranjasInstructorResponse> resumen = resumenService.resumirDelDia(escuelaCodigo, fecha,
+            horaDesde, horaHasta);
+        PageMeta meta = new PageMeta(1, Math.max(resumen.size(), 1), resumen.size(), resumen.isEmpty() ? 0 : 1);
+        return ResponseEntity.ok(ApiResponse.successList(resumen, "Resumen de franjas obtenido correctamente", meta));
     }
 
     @PostMapping("/{codigo}/bloquear")

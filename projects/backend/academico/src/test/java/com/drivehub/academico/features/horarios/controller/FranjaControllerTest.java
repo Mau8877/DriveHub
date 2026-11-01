@@ -37,6 +37,7 @@ import com.drivehub.academico.features.horarios.dto.DiaBloqueadoResponse;
 import com.drivehub.academico.features.horarios.dto.FranjaResponse;
 import com.drivehub.academico.features.horarios.enums.EstadoFranja;
 import com.drivehub.academico.features.horarios.service.FranjaDisponibleService;
+import com.drivehub.academico.features.horarios.service.FranjaResumenService;
 import com.drivehub.academico.features.horarios.service.FranjaService;
 
 @WebMvcTest(FranjaController.class)
@@ -55,6 +56,8 @@ class FranjaControllerTest {
     // * Las usa la vista del estudiante (CU14), que tiene su propio test: FranjaDisponibleControllerTest
     @MockitoBean
     private FranjaDisponibleService disponibleService;
+    @MockitoBean
+    private FranjaResumenService resumenService;
     @MockitoBean
     private BearerActual bearerActual;
 
