@@ -185,7 +185,7 @@ RESERVANDO ──▶ HORAS_DESCONTADAS ──▶ CONFIRMADA
 | Consultar saldo, descontar y devolver horas, con idempotencia | **Hecho** | Pagos (`/api/v1/billeteras-horas/...`) |
 | Rechazo si no hay horas (`ERR_PAG_09`) | **Hecho** | Pagos |
 | Reservar descontando una hora, con la saga simple (CU14) | **Hecho / en curso** (rama de Leonel) | Académico |
-| Devolver la hora al cancelar la clase (CU15) | Pendiente | Académico |
+| Devolver la hora al cancelar la clase (CU15, plazo de 12 horas) | **Hecho** (backend y app; falta la prueba con sesión de estudiante, UT-CU15-BE-10) | Académico |
 | Campo `sagaCodigo` en `pago` y `reversion_pago` | Existe, **nadie lo usa** | Pagos |
 | Orquestador aparte y tabla `SagaEstado` (diseño original del CU44) | **No se hizo** | — |
 | Publicar eventos a RabbitMQ (hoy se guardan en `outbox_evento` y nadie los publica) | Falta, solo si se eligen eventos | Pagos |
@@ -222,15 +222,18 @@ estudiante consulta sus clases.
    internos, no con JWT. Según su edad, **completa** una reserva reciente o la **deshace** si ya es vieja (devuelve la hora, libera la franja y cancela). Si Pagos no responde, reintenta sin límite: solo las causas propias llevan a la revisión manual. Detalle en [SAGA_RESERVA_PAGO.md](SAGA_RESERVA_PAGO.md).
 2. **El estudiante que no asiste pierde la hora** (decidido).
 3. **CU15 (cancelar y reprogramar):** devuelve la hora por REST síncrono, igual que ahora, no por eventos, y reutiliza la
-   operación «deshacer una reserva» que construye el CU44 en Académico. Falta documentar el CU15, con sus reglas
-   (plazo para cancelar con devolución, cancelación tardía, quién puede cancelar y cuántas veces reprogramar).
+   operación «deshacer una reserva» del CU44 en Académico (generalizada para partir de cualquier estado). Reglas
+   decididas ([CU15](../CasosDeUso/CU15%20-%20Cancelar%20o%20reprogramar%20clase.md)): plazo de 12 horas para cancelar con
+   devolución; una cancelación tardía del estudiante se permite pero pierde la hora (Académico no llama a Pagos);
+   solo cancela el estudiante (el instructor llega con CU16); se reprograma sin límite de veces, dentro del mismo plazo
+   y sin tocar las horas.
 4. Los eventos de RabbitMQ no se usan, así que no hace falta publicar el outbox de Pagos por ahora.
 
 ## 8. Qué hay que hacer ahora
 
 - Implementar las UT del CU44 (13, de Pagos, gateway, infra y Académico): primero las de Pagos, después las de Académico.
-  Los flujos de cancelar y reprogramar interrumpidos (S2 y S3) esperan a CU15.
-- Documentar el CU15.
+  Los flujos de cancelar y reprogramar interrumpidos (S2 y S3) los cubren los manejadores de CU15.
+- Cerrar la UT-CU15-BE-10 (prueba de punta a punta de cancelar y reprogramar con sesión de estudiante).
 
 ---
 

@@ -262,3 +262,27 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 - **Excepción:** `ConflictException`
 - **Significado:** Se intentó finalizar un intento que ya estaba finalizado o expirado (CU21).
 - **Dónde se lanza:** `IntentoSimulacroService.finalizar()`
+
+## `ERR_ACA_32`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** La reserva que se quiso cancelar o reprogramar no existe, está borrada o es de otro estudiante
+  (CU15). Nunca se revela si existe a nombre de otra persona.
+- **Dónde se lanza:** `ReservaService.cancelar()` y `ReservaService.reprogramar()`
+
+## `ERR_ACA_33`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La reserva no se puede cancelar ni reprogramar porque no está `CONFIRMADA` (ya está cancelada,
+  cerrada o a medias) o la clase ya empezó (CU15). También cuando otra petición cambió la reserva un instante antes.
+- **Dónde se lanza:** `ReservaService.cancelar()` y `ReservaService.reprogramar()`
+
+## `ERR_ACA_34`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se quiso reprogramar una clase con menos de 12 horas de anticipación (CU15). Cancelarla sí se
+  permite, pero la hora no se devuelve. El plazo es la propiedad `app.reservas.horas-para-cancelar`.
+- **Dónde se lanza:** `ReservaService.reprogramar()`

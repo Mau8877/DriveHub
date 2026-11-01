@@ -93,7 +93,7 @@ Solo en Pagos. Todas las rutas exigen el header `X-Service-Key` con la credencia
 | CA01, CA09, CA10, CA13 | Resolver sin sesión, no tocar `NO_ASISTIO`, credencial y gateway | 01 a 04, 09 a 12 |
 | **Una sola saga para el CU14** | El flujo en vivo de reservar usa el mismo orquestador | 14, 16 |
 | **CU15 enchufable** | Cancelar y reprogramar se agregan como manejadores sin editar el núcleo | 08, 09, 14, 15 |
-| S2, S3, A4, CA03, CA04, CA05 | Cancelación y reprogramación interrumpidas | **Follow-up** (UT 17 y 18, dependen de CU15) |
+| S2, S3, A4, CA03, CA04, CA05 | Cancelación y reprogramación interrumpidas | Hechas por [CU15](../../CU15%20-%20Cancelar%20o%20reprogramar%20clase/UT-BACKEND/README.md) (UT-CU15-BE-05 y 06) |
 
 ## Contrato para CU15: cómo se enchufa (guía para Leonel)
 
@@ -135,7 +135,7 @@ El CU44 **no construye** cancelar ni reprogramar, pero deja el orquestador listo
   - Pendiente: el escenario 9b (necesita correr el test de la UT 15 contra el compose; Testcontainers queda `SKIPPED` con el Docker de esta máquina).
 - **El `404` del gateway devuelve el campo `trace` (stacktrace) en el perfil `dev`.** Hay que confirmar que en producción no se incluye (`server.error.include-stacktrace=never`).
 - **Dónde está la lógica de deshacer:** en `CompensadorDeReserva` (bean aparte, para que `ManejadorDeReserva` y `OrquestadorClases` la compartan sin depender uno del otro). `OrquestadorClases.deshacerReserva` solo delega: es la puerta pública que usa CU15.
-- Cuando CU15 esté documentado, se agregan las **UT 17 y 18** del CU44 (ver abajo): solo escriben el manejador y su prueba.
+- **UT 17 y 18: hechas por el CU15** (2026-11-01): `ManejadorDeCancelacion` y `ManejadorDeReprogramacion` son las UT-CU15-BE-05 y 06, con sus estados (`CANCELACION_PENDIENTE`, `REPROGRAMACION_PENDIENTE`) y su prueba. Para enchufarlos hubo que **generalizar `CompensadorDeReserva`** (UT-CU15-BE-04: estado de origen y «sin devolución») y medir la antigüedad de una reserva a medias por **`updatedAt`** en lugar de `createdAt` (UT-CU15-BE-01), porque `findAndModify` no actualiza `updatedAt` solo y una clase confirmada hace días no es «vieja» al cancelarse. El núcleo (`OrquestadorClases` y el job) no cambió.
 
 ## Reglas de negocio de CU15 pendientes de definir
 
@@ -160,7 +160,7 @@ Afectan cómo se usa `deshacerReserva` y los estados de cancelar y reprogramar; 
 
 ## Follow-ups (no se implementan en estas UT)
 
-- **UT 17 y 18** (cuando exista CU15): `ManejadorDeCancelacion` y `ManejadorDeReprogramacion`, cada uno con sus estados y su prueba. No editan el núcleo del orquestador.
+- ~~**UT 17 y 18**~~: hechas por el CU15 (UT-CU15-BE-05 y 06).
 - **Ver las reservas en revisión** (listado o aviso al Administrador): hoy solo en el log y en el campo `requiereRevision`.
 - **Bloqueo distribuido del job** si Académico pasa a más de una réplica.
 

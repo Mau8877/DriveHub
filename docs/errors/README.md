@@ -146,6 +146,9 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_29`](academico/ERRORES_ACADEMICO.md#err_aca_29) — El estudiante ya tiene un intento de simulacro en curso (409)
 - [`ERR_ACA_30`](academico/ERRORES_ACADEMICO.md#err_aca_30) — El intento de simulacro no existe (404)
 - [`ERR_ACA_31`](academico/ERRORES_ACADEMICO.md#err_aca_31) — El intento de simulacro ya terminó (409)
+- [`ERR_ACA_32`](academico/ERRORES_ACADEMICO.md#err_aca_32) — La reserva no existe o es de otro estudiante (404)
+- [`ERR_ACA_33`](academico/ERRORES_ACADEMICO.md#err_aca_33) — La reserva no se puede cancelar ni reprogramar (409)
+- [`ERR_ACA_34`](academico/ERRORES_ACADEMICO.md#err_aca_34) — Reprogramar fuera de plazo (409)
 
 ### Contenido (`CON`)
 

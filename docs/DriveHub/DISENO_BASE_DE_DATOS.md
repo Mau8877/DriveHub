@@ -678,7 +678,9 @@ Las franjas se generan desde el horario para 28 días contando hoy, y una tarea 
 | `franjaId` | long | → `franjas._id` |
 | `solicitudId` | long | Opcional → `solicitudes_clase._id` |
 | `fecha`, `horaInicio`, `horaFin` | date, string, string | **Copia** de la franja, para consultar sin join |
-| `estado` | enum | `PENDIENTE_PAGO`, `CONFIRMADA`, `CANCELADA`, `COMPLETADA`, `NO_ASISTIO` |
+| `estado` | enum | `PENDIENTE_PAGO`, `CONFIRMADA`, `CANCELADA`, `COMPLETADA`, `NO_ASISTIO`, y los transitorios de CU15 `CANCELACION_PENDIENTE` (se pidió cancelar; falta devolver la hora si corresponde, liberar la franja y dejarla `CANCELADA`; no se muestra al estudiante) y `REPROGRAMACION_PENDIENTE` (se eligió otra franja y el cambio no terminó; sigue en «Mis clases» con la franja anterior) |
+| `franjaDestinoId` | long | Solo en `REPROGRAMACION_PENDIENTE` (CU15): `franjas._id` a la que se está moviendo la clase. Se borra al terminar o deshacer. No se expone al cliente |
+| `sinDevolucion` | boolean | Solo en `CANCELACION_PENDIENTE` (CU15): `true` si la cancelación es tardía y la hora no se devuelve. Empieza en `false`; una reserva sin el campo se lee como `false`. No se expone al cliente |
 | `pagoCodigo` | UUID | Opcional → Pagos `pago.codigo_pago` |
 | `sagaCodigo` | UUID | Saga reserva-pago (CU44) |
 | `reprogramadaDeId` | long | Opcional → `reservas._id` de la original |
