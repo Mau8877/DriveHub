@@ -125,6 +125,15 @@ El CU44 **no construye** cancelar ni reprogramar, pero deja el orquestador listo
 - **Un `404 ERR_PAG_16` al devolver no es un error:** significa que esa clase no tenía horas por devolver.
 - **Si Pagos no responde, no se cancela por adivinanza:** el manejador devuelve `PAGOS_NO_RESPONDE` y la reserva queda en su estado intermedio; el orquestador la retoma sin contar intento.
 - **Cómo se verifica que quedó enchufado:** el test plantilla es `OrquestadorClasesTest.unManejadorNuevo_recibeLasReservasDeSuEstado_conElClienteQueSePasa` (y `dosManejadoresConElMismoEstado_hacenFallarElArranque`). CU15 agrega uno igual con su manejador real.
+- **Prueba de punta a punta (UT 12, 2026-11-01):** stack real con Docker Compose, datos temporales en `db.reservas`/`db.franjas` y en las tablas de la billetera de Pagos, ya borrados. Cron cada minuto y `minutos-para-retomar=2` (los valores por defecto sirven).
+  - Escenarios 1 (`CONFIRMADA`, saldo 5 → 4), 2 (otra pasada no vuelve a descontar), 3 (sin horas: `CANCELADA`, franja `LIBRE`), 3b (reserva de 90 min con la hora ya descontada: `CANCELADA`, franja `LIBRE`, saldo recuperado), 4 (franja liberada por fuera: `CANCELADA` y hora devuelta) y 9 (`NO_ASISTIO` y `CONFIRMADA` intactas): como se esperaba.
+  - Escenario 5: con Pagos detenido unas 7 pasadas (más que `maximo-intentos`=5), la reserva siguió `PENDIENTE_PAGO` con `intentosRetomar=0` y sin `requiereRevision`; al levantar Pagos se confirmó sola y el saldo bajó una hora.
+  - Escenario 6: con la credencial equivocada en Académico la reserva quedó pendiente sin sumar intentos y hubo un `ERROR` por pasada ("Pagos rechazó la credencial de servicio…"); al restaurarla se confirmó sola.
+  - Escenario 7: ninguna pasada usó un token de estudiante.
+  - Escenario 8: directo a Pagos, sin clave, con clave mala o con un JWT sin clave: `401 ERR_PAG_19`. Por el gateway: **`401` sin sesión** (la seguridad corre antes del enrutado) y **`404` con un JWT válido**; en ningún caso llega a Pagos.
+  - `./mvnw test`: `academico` 468, `pagos` 558 y `gateway` 34 tests, sin fallos ni omitidos.
+  - Pendiente: el escenario 9b (necesita correr el test de la UT 15 contra el compose; Testcontainers queda `SKIPPED` con el Docker de esta máquina).
+- **El `404` del gateway devuelve el campo `trace` (stacktrace) en el perfil `dev`.** Hay que confirmar que en producción no se incluye (`server.error.include-stacktrace=never`).
 - **Dónde está la lógica de deshacer:** en `CompensadorDeReserva` (bean aparte, para que `ManejadorDeReserva` y `OrquestadorClases` la compartan sin depender uno del otro). `OrquestadorClases.deshacerReserva` solo delega: es la puerta pública que usa CU15.
 - Cuando CU15 esté documentado, se agregan las **UT 17 y 18** del CU44 (ver abajo): solo escriben el manejador y su prueba.
 
@@ -144,7 +153,7 @@ Afectan cómo se usa `deshacerReserva` y los estados de cancelar y reprogramar; 
 | 01 a 03 (Pagos), 04 y 05 (gateway e infra) | Hechas |
 | 06 y 14 (clientes de Pagos), 07 y 08 (campos y repositorio) | Hechas. Los tests de repositorio con MongoDB real quedan `SKIPPED` sin Docker: correrlos con Docker encendido |
 | 09, 10, 11 y 15 (orquestador, manejadores, intentos, job y plantilla de extensión) | Hechas, con pruebas unitarias. La prueba de integración con MongoDB real de la UT 09 queda para la UT 12 |
-| 12 (punta a punta) | Pendiente: necesita Docker y `PAGOS_CREDENCIAL_ACADEMICO` en el `.env` |
+| 12 (punta a punta) | Hecha el 2026-11-01 en el stack real (escenarios 1 a 9, ver las notas de implementación). Pendiente el 9b (la plantilla de extensión de CU15 contra el Mongo y el Pagos del compose) y repetir el escenario 1 por el flujo en vivo de la UT 16 |
 | 13 (documentación) | Hecha |
 | 16 (flujo en vivo de CU14 usa el orquestador) | Hecha. `ReservaService` delega en `OrquestadorClases` (`completarReserva` al reservar, `resolver` al consultar las clases) con el Bearer del estudiante; ya no llama a `PagosClient.descontar/devolver`. Las claves `reserva-`/`devolucion-` viven en `OrquestadorClases`. Cambio visible: al consultar, una reserva a medias de 60 min o más se **deshace** (antes se confirmaba), igual que el proceso programado. Falta repetir el escenario 1 de la UT 12 por el flujo en vivo con el stack real |
 | 17 y 18 | Esperan a CU15 |

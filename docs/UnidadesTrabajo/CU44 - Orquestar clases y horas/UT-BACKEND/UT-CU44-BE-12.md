@@ -32,7 +32,7 @@ Levantar `docker compose up -d` (perfil `backend`) con `PAGOS_CREDENCIAL_ACADEMI
 5. **Pagos detenido** (`docker compose stop pagos`) durante **más pasadas que `maximo-intentos`** → la reserva sigue `PENDIENTE_PAGO`, `intentosRetomar` queda en 0 y **no** se marca para revisión; al levantar Pagos de nuevo, la reserva se resuelve sola.
 6. **Credencial equivocada** en Académico → Pagos responde `401 ERR_PAG_19`, la reserva queda pendiente sin sumar intentos (nunca se confirma) y hay un `ERROR` en el log de cada pasada; al corregir la credencial, se resuelve sola.
 7. **Sin ningún estudiante conectado**: ninguna de las pasadas necesita un token.
-8. **Rutas internas desde afuera**: `POST http://localhost:8080/internal/v1/billeteras-horas/consumos` (por el gateway) → `404`; directo a Pagos sin `X-Service-Key` → `401 ERR_PAG_19`; con un JWT válido pero sin credencial → `401`.
+8. **Rutas internas desde afuera**: `POST http://localhost:8080/internal/v1/billeteras-horas/consumos` (por el gateway) → `401` sin sesión (la seguridad del gateway corre antes del enrutado) y `404` con un JWT válido; directo a Pagos sin `X-Service-Key` → `401 ERR_PAG_19`; con un JWT válido pero sin credencial → `401`.
 9. **Una reserva `NO_ASISTIO` o `CONFIRMADA`** presente en la base → el job no la toca.
   9b. **El punto de extensión de CU15 en el stack real**: correr el test de la UT 15 contra el Mongo y el Pagos del compose y comprobar que un manejador de prueba queda cubierto por el job real.
 10. Anotar el resultado de cada escenario en las **Notas de implementación** del README (qué quedó distinto o más preciso), y borrar los datos temporales.
