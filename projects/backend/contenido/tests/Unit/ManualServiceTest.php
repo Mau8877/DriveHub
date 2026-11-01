@@ -10,6 +10,7 @@ use App\Features\Manuales\Models\Manual;
 use App\Features\Manuales\Repositories\ManualRepository;
 use App\Features\Manuales\Services\ArchivoManualService;
 use App\Features\Manuales\Services\ManualService;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Mockery;
 use Mockery\MockInterface;
 use Tests\TestCase;
@@ -113,6 +114,35 @@ class ManualServiceTest extends TestCase
         $this->repositorio->shouldReceive('buscar')->with(self::ESCUELA, self::CODIGO)->andReturn(null);
 
         $this->esperaCodigo(fn () => $this->servicio->obtener(self::ESCUELA, self::CODIGO), ErrorCodes::MANUAL_NO_ENCONTRADO);
+    }
+
+    public function test_listar_publicados_pide_solo_el_estado_publicado_de_la_escuela(): void
+    {
+        $pagina = new LengthAwarePaginator([], 0, 20, 1);
+        $this->repositorio->shouldReceive('listar')->once()
+            ->with(self::ESCUELA, 'señ', EstadoPublicacion::PUBLICADO, 'B', 1, 20)->andReturn($pagina);
+
+        $this->assertSame($pagina, $this->servicio->listarPublicados(self::ESCUELA, 'señ', 'B', 1, 20));
+    }
+
+    public function test_obtener_publicado_devuelve_el_manual_publicado(): void
+    {
+        $this->repositorio->shouldReceive('buscar')->with(self::ESCUELA, self::CODIGO)->andReturn($this->manual(EstadoPublicacion::PUBLICADO));
+
+        $this->assertSame(self::CODIGO, $this->servicio->obtenerPublicado(self::ESCUELA, self::CODIGO)->codigo_manual);
+    }
+
+    public function test_obtener_publicado_con_borrador_o_archivado_lanza_err_con_01(): void
+    {
+        foreach ([EstadoPublicacion::BORRADOR, EstadoPublicacion::ARCHIVADO] as $estado) {
+            $repositorio = Mockery::mock(ManualRepository::class);
+            $repositorio->shouldReceive('buscar')->andReturn($this->manual($estado));
+
+            $this->esperaCodigo(
+                fn () => (new ManualService($repositorio, $this->archivos))->obtenerPublicado(self::ESCUELA, self::CODIGO),
+                ErrorCodes::MANUAL_NO_ENCONTRADO,
+            );
+        }
     }
 
     public function test_editar_cambia_solo_lo_enviado_y_con_archivo_nuevo_sube_la_version(): void

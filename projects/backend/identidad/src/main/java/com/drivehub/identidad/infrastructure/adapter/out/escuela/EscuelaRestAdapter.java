@@ -1,17 +1,23 @@
 package com.drivehub.identidad.infrastructure.adapter.out.escuela;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import com.drivehub.identidad.domain.port.out.EscuelaConsultaPort;
+import com.drivehub.identidad.domain.port.out.EscuelaNoDisponibleException;
 import com.drivehub.identidad.domain.port.out.EscuelaRef;
 
 /**
@@ -19,11 +25,13 @@ import com.drivehub.identidad.domain.port.out.EscuelaRef;
  * por el gateway: `GET {app.escuela.url}/api/v1/escuelas/{slug}`.
  *
  * * 404 = la escuela no existe o está inactiva -> vacío. Cualquier otro fallo
- * * (Escuela caída, timeout, 5xx) se propaga y cae en el 500 genérico: no se
- * * puede registrar a nadie sin poder confirmar la escuela.
+ * * (Escuela caída, timeout, 5xx) lanza {@link EscuelaNoDisponibleException} (503 `ERR_IDE_24`): sin poder
+ * * confirmar la escuela no se registra a nadie ni se inicia sesión.
  */
 @Component
 public class EscuelaRestAdapter implements EscuelaConsultaPort {
+
+    private static final Logger LOG = LoggerFactory.getLogger(EscuelaRestAdapter.class);
 
     private final RestClient restClient;
 
@@ -47,6 +55,8 @@ public class EscuelaRestAdapter implements EscuelaConsultaPort {
             return Optional.of(new EscuelaRef(sobre.data().codigo(), sobre.data().slug(), sobre.data().nombre()));
         } catch (HttpClientErrorException.NotFound e) {
             return Optional.empty();
+        } catch (RestClientException e) {
+            throw noDisponible(e);
         }
     }
 
@@ -64,7 +74,15 @@ public class EscuelaRestAdapter implements EscuelaConsultaPort {
             return Optional.of(new EscuelaRef(d.codigo(), d.slug(), d.nombre(), d.activa()));
         } catch (HttpClientErrorException.NotFound e) {
             return Optional.empty();
+        } catch (RestClientException e) {
+            throw noDisponible(e);
         }
+    }
+
+    private static EscuelaNoDisponibleException noDisponible(RestClientException e) {
+        LOG.warn("No se pudo consultar la escuela en Escuela (tipo {})", e.getClass().getSimpleName(),
+            kv("module", "escuelas"));
+        return new EscuelaNoDisponibleException(e);
     }
 
     // * Sobre estándar de Escuela ({status, data, ...}); solo se leen estos campos

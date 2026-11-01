@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -44,6 +45,24 @@ public interface ReservaRepositoryCustom {
      * Las reservas `PENDIENTE_PAGO` del estudiante creadas antes de `anteriorA`: las que quedaron a medias.
      */
     List<Reserva> pendientesDeEstudiante(UUID estudianteCodigo, Instant anteriorA);
+
+    /**
+     * Las reservas a medias de TODOS los estudiantes (CU44): en cualquiera de los `estados` transitorios, no borradas,
+     * sin marca de revisión y creadas antes de `anteriorA`, de la más antigua a la más reciente, hasta `limite`.
+     */
+    List<Reserva> pendientesAntiguas(Set<EstadoReserva> estados, Instant anteriorA, int limite);
+
+    /**
+     * Suma un intento fallido con un `findAndModify` atómico, solo si la reserva sigue en alguno de los `estados`.
+     * Devuelve la reserva con el contador ya actualizado, o vacío si ya no está pendiente.
+     */
+    Optional<Reserva> registrarIntentoFallido(UUID codigoReserva, Set<EstadoReserva> estados);
+
+    /**
+     * Marca la reserva para revisión humana, sin cambiar su estado, y deja el motivo en el historial. Solo si sigue en
+     * alguno de los `estados` y todavía no estaba marcada (repetirlo es inocuo). Vacío si no se aplicó.
+     */
+    Optional<Reserva> marcarParaRevision(UUID codigoReserva, String motivo, Instant ahora, Set<EstadoReserva> estados);
 
     /**
      * Cambia el estado con un solo `findAndModify` atómico, solo si todavía es el esperado, y agrega la entrada

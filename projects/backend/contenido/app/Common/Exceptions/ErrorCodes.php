@@ -18,6 +18,12 @@ final class ErrorCodes
 
     public const TOKEN_SIN_ESCUELA = 'ERR_CON_04';
 
+    public const TUTORIAL_NO_ENCONTRADO = 'ERR_CON_05';
+
+    public const TRANSICION_TUTORIAL_INVALIDA = 'ERR_CON_06';
+
+    public const RECURSO_TUTORIAL_INVALIDO = 'ERR_CON_07';
+
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public const VALIDACION = 'ERR_SYS_01';
 

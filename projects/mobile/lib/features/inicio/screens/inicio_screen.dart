@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/aviso_snack.dart';
+import '../../../shared/widgets/fila_accion.dart';
 import '../../auth/providers/sesion_provider.dart';
 import '../../clases/models/reserva.dart';
 import '../../clases/models/vista_reservas.dart';
@@ -34,7 +36,10 @@ class InicioScreen extends ConsumerWidget {
         ? null
         : ref.watch(reservasListProvider(VistaReservas.proximas));
     final clases =
-        proximas?.asData?.value.where((r) => !r.terminada).take(_maxClasesInicio).toList() ??
+        proximas?.asData?.value
+            .where((r) => !r.terminada)
+            .take(_maxClasesInicio)
+            .toList() ??
         const <Reserva>[];
 
     return ListView(
@@ -85,9 +90,34 @@ class InicioScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           for (final reserva in clases.skip(1)) ...[
-            ReservaCard(key: Key('inicio-reserva-${reserva.codigo}'), reserva: reserva),
+            ReservaCard(
+              key: Key('inicio-reserva-${reserva.codigo}'),
+              reserva: reserva,
+            ),
             const SizedBox(height: 10),
           ],
+        ],
+        if (esInstructor) ...[
+          const SizedBox(height: 22),
+          Card(
+            child: Column(
+              children: [
+                FilaAccion(
+                  icono: Icons.grading_outlined,
+                  titulo: 'Notas de mis alumnos',
+                  detalle: 'Simulacros y exámenes de tus alumnos',
+                  onTap: () => context.push('/grades'),
+                ),
+                const Divider(height: 1),
+                FilaAccion(
+                  icono: Icons.video_library_outlined,
+                  titulo: 'Tutoriales',
+                  detalle: 'Crea los tuyos y mira los de otros instructores',
+                  onTap: () => context.push('/tutorials'),
+                ),
+              ],
+            ),
+          ),
         ],
         if (!esInstructor) ...[
           const SizedBox(height: 22),
@@ -310,8 +340,16 @@ class _RutaPainter extends CustomPainter {
       ..strokeWidth = 3;
     final x = size.width / 2;
 
-    canvas.drawLine(Offset(x, 0), Offset(size.width * 0.15, size.height), borde);
-    canvas.drawLine(Offset(x, 0), Offset(size.width * 0.85, size.height), borde);
+    canvas.drawLine(
+      Offset(x, 0),
+      Offset(size.width * 0.15, size.height),
+      borde,
+    );
+    canvas.drawLine(
+      Offset(x, 0),
+      Offset(size.width * 0.85, size.height),
+      borde,
+    );
     for (final tramo in [(0.05, 0.2), (0.34, 0.52), (0.68, 0.92)]) {
       canvas.drawLine(
         Offset(x, size.height * tramo.$1),

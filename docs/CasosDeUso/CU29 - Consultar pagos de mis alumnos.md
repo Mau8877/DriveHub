@@ -2,7 +2,7 @@
 
 | Id   | Nombre                          | Paquete   | Prioridad | Estado    |
 | ---- | ------------------------------- | --------- | --------- | --------- |
-| CU29 | Consultar pagos de mis alumnos  | P5. Pagos | Media     | Pendiente |
+| CU29 | Consultar pagos de mis alumnos  | P5. Pagos | Media     | Hecho     |
 
 **Actor principal:** Instructor
 **Actores secundarios:** —

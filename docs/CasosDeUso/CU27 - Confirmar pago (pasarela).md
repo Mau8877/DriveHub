@@ -2,7 +2,7 @@
 
 | Id   | Nombre                    | Paquete   | Prioridad | Estado    |
 | ---- | ------------------------- | --------- | --------- | --------- |
-| CU27 | Confirmar pago (pasarela) | P5. Pagos | Alta      | Pendiente |
+| CU27 | Confirmar pago (pasarela) | P5. Pagos | Alta      | Hecho     |
 
 **Actor principal:** Sistema
 **Actores secundarios:** Pasarela de pago (Stripe)

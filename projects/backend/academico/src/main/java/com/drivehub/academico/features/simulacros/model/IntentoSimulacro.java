@@ -30,13 +30,33 @@ public class IntentoSimulacro extends BaseDocument {
     private UUID codigoIntentoSimulacro;
 
     // * _id de simulacros_config
+    @Setter
     private Long simulacroId;
 
+    // * Escuela (tenant) del estudiante: el claim `escuela` del JWT, sin relación física
+    @Setter
+    private UUID escuelaCodigo;
+
+    @Setter
+    private UUID simulacroCodigo;
+
+    // * Copias de la configuración al iniciar: editar o desactivar el simulacro no altera el intento
+    @Setter
+    private String simulacroNombre;
+
+    @Setter
+    private int duracionMin;
+
+    @Setter
+    private double puntajeAprobacion;
+
+    @Setter
     private UUID estudianteCodigo;
 
     @Setter
     private EstadoIntento estado;
 
+    @Setter
     private Instant iniciadoEn;
 
     // * Opcional

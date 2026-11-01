@@ -2,7 +2,7 @@
 
 | Id   | Nombre         | Paquete                | Prioridad | Estado    |
 | ---- | -------------- | ---------------------- | --------- | --------- |
-| CU02 | Iniciar sesión | P1. Identidad y acceso | Alta      | Pendiente |
+| CU02 | Iniciar sesión | P1. Identidad y acceso | Alta      | Hecho     |
 
 **Actor principal:** Estudiante, Instructor, Administrador de escuela o Super admin (cualquier persona con cuenta)
 **Actores secundarios:** —

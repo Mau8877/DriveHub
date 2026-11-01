@@ -8,7 +8,8 @@ target-version = "py314"
 select = ["E", "F", "I", "N", "UP", "B"]
 # N818 pide sufijo "Error" en excepciones; acá se llaman igual que en los
 # servicios Spring (BusinessException, NotFoundException...) a propósito.
-ignore = ["N818"]
+# B008 marca `Depends(...)` en los argumentos: es la forma de declarar dependencias en FastAPI.
+ignore = ["N818", "B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

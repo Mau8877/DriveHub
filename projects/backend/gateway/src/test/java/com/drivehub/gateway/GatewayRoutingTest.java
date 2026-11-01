@@ -29,6 +29,9 @@ import com.sun.net.httpserver.HttpServer;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GatewayRoutingTest {
 
+    // * Las rutas que recibió cada servicio falso: sirve para probar que algo NO llegó
+    private static final java.util.Map<String, java.util.List<String>> RECIBIDAS =
+        new java.util.concurrent.ConcurrentHashMap<>();
     private static final HttpServer IDENTIDAD_FALSA = levantarServicioFalso("identidad");
     private static final HttpServer ESCUELA_FALSA = levantarServicioFalso("escuela");
     private static final HttpServer PAGOS_FALSO = levantarServicioFalso("pagos");
@@ -43,6 +46,8 @@ class GatewayRoutingTest {
         registry.add("IDENTIDAD_URL", () -> "http://localhost:" + IDENTIDAD_FALSA.getAddress().getPort());
         registry.add("ESCUELA_URL", () -> "http://localhost:" + ESCUELA_FALSA.getAddress().getPort());
         registry.add("PAGOS_URL", () -> "http://localhost:" + PAGOS_FALSO.getAddress().getPort());
+        // * Puerto 1: nadie escucha, simula un servicio caído
+        registry.add("CONTENIDO_URL", () -> "http://localhost:1");
     }
 
     @AfterAll
@@ -66,6 +71,15 @@ class GatewayRoutingTest {
 
         assertThat(respuesta.statusCode()).isEqualTo(200);
         assertThat(respuesta.body()).isEqualTo("escuela:/api/v1/escuelas/escuelaexample");
+    }
+
+    @Test
+    void servicioCaido_respondeElSobre503SinFiltrarElHost() throws Exception {
+        HttpResponse<String> respuesta = get("/api/v1/manuales", TokensDePrueba.valido());
+
+        assertThat(respuesta.statusCode()).isEqualTo(503);
+        assertThat(respuesta.body()).contains("\"error\":\"ERR_SYS_06\"", "\"status\":\"failed\"");
+        assertThat(respuesta.body()).doesNotContain("localhost:1", "I/O error");
     }
 
     // * CU08: el estudiante es una cuenta con su perfil, así que el recurso lo atiende Identidad, no Escuela
@@ -169,6 +183,35 @@ class GatewayRoutingTest {
         assertThat(respuesta.body()).doesNotContain("identidad:");
     }
 
+    // * CU44: las rutas internas de Pagos (descontar y devolver horas con la credencial de servicio) NUNCA se enrutan.
+    // * Si alguien registra `/internal/**` en un predicado `Path=`, estos tests se ponen en rojo.
+    @Test
+    void rutasInternasDePagos_noSeReenvianANingunServicio_conSesion() throws Exception {
+        RECIBIDAS.values().forEach(java.util.List::clear);
+
+        HttpResponse<String> consumos = post("/internal/v1/billeteras-horas/consumos", TokensDePrueba.valido());
+        HttpResponse<String> devoluciones = post("/internal/v1/billeteras-horas/devoluciones", TokensDePrueba.valido());
+
+        assertThat(consumos.statusCode()).isEqualTo(404);
+        assertThat(devoluciones.statusCode()).isEqualTo(404);
+        assertThat(RECIBIDAS.values()).allSatisfy(rutas -> assertThat(rutas).noneMatch(r -> r.contains("internal")));
+    }
+
+    @Test
+    void rutasInternasDePagos_sinSesionOConOtrosPrefijos_tampocoLlegan() throws Exception {
+        RECIBIDAS.values().forEach(java.util.List::clear);
+
+        HttpResponse<String> sinSesion = post("/internal/v1/billeteras-horas/consumos", null);
+        HttpResponse<String> prefijoApi = post("/api/v1/internal/v1/billeteras-horas/consumos",
+            TokensDePrueba.valido());
+        HttpResponse<String> conCredencial = postConCredencial("/internal/v1/billeteras-horas/consumos");
+
+        assertThat(sinSesion.statusCode()).isIn(401, 404);
+        assertThat(prefijoApi.statusCode()).isEqualTo(404);
+        assertThat(conCredencial.statusCode()).isIn(401, 404);
+        assertThat(RECIBIDAS.values()).allSatisfy(rutas -> assertThat(rutas).noneMatch(r -> r.contains("internal")));
+    }
+
     @Test
     void preflightDesdeElShell_loRespondeElGatewayConCabecerasCors() throws Exception {
         HttpRequest preflight = HttpRequest.newBuilder(URI.create("http://localhost:" + puerto + "/api/v1/usuarios"))
@@ -198,7 +241,15 @@ class GatewayRoutingTest {
 
     private HttpResponse<String> post(String ruta, String token) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + puerto + ruta))
-            .header("Authorization", "Bearer " + token).header("Content-Type", "application/json")
+            .headers(token == null ? new String[] {"Content-Type", "application/json"}
+                : new String[] {"Authorization", "Bearer " + token, "Content-Type", "application/json"})
+            .POST(HttpRequest.BodyPublishers.ofString("{}")).build();
+        return CLIENTE.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> postConCredencial(String ruta) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + puerto + ruta))
+            .header("X-Service-Key", "una-credencial").header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString("{}")).build();
         return CLIENTE.send(request, HttpResponse.BodyHandlers.ofString());
     }
@@ -208,6 +259,7 @@ class GatewayRoutingTest {
             HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
             server.createContext("/", intercambio -> {
                 String ruta = intercambio.getRequestURI().getPath();
+                RECIBIDAS.computeIfAbsent(nombre, k -> new java.util.concurrent.CopyOnWriteArrayList<>()).add(ruta);
                 // * Identidad también publica las claves con las que el gateway verifica los tokens
                 String texto = ruta.equals("/.well-known/jwks.json") ? TokensDePrueba.jwks() : nombre + ":" + ruta;
                 byte[] cuerpo = texto.getBytes(StandardCharsets.UTF_8);

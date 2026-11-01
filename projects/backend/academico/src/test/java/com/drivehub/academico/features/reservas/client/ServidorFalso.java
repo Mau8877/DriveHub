@@ -20,7 +20,8 @@ import com.sun.net.httpserver.HttpServer;
 public final class ServidorFalso implements AutoCloseable {
 
     /** Lo que llegó: método, ruta, cabeceras que interesan y cuerpo. */
-    public record Peticion(String metodo, String ruta, String authorization, String claveIdempotente, String cuerpo) {
+    public record Peticion(String metodo, String ruta, String authorization, String claveIdempotente, String cuerpo,
+            String credencialServicio) {
     }
 
     /** Lo que se responde. */
@@ -58,7 +59,8 @@ public final class ServidorFalso implements AutoCloseable {
         String cuerpo = new String(intercambio.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         Peticion peticion = new Peticion(intercambio.getRequestMethod(), intercambio.getRequestURI().getPath(),
             intercambio.getRequestHeaders().getFirst("Authorization"),
-            intercambio.getRequestHeaders().getFirst("Idempotency-Key"), cuerpo);
+            intercambio.getRequestHeaders().getFirst("Idempotency-Key"), cuerpo,
+            intercambio.getRequestHeaders().getFirst("X-Service-Key"));
         synchronized (this) {
             peticiones.add(peticion);
         }

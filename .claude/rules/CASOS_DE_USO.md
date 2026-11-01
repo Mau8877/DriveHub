@@ -50,6 +50,14 @@ aprobaba antes de reservar. Con la compra de horas (CU26) y la billetera (CU27) 
 directamente y la paga con sus horas, así que ese flujo es **CU14 (Reservar horario)**. El CU13 queda como un
 archivo corto que remite al CU14 y no tiene UT propias; su número no se reasigna.
 
+**Excepción vigente: CU44.** El PDF lo llama "Orquestar saga de reserva y pago (rollback)": una saga con un pago
+por QR en cada reserva y un orquestador como servicio aparte. Con la billetera de horas, reservar es descontar una
+hora, y esa saga simple ya la coordina Académico dentro de CU14. El CU44 del proyecto es **Orquestar clases y horas
+(saga)**: el proceso programado de Académico que retoma las reservas que quedaron a medias (y, cuando exista CU15,
+las cancelaciones y reprogramaciones), completándolas o deshaciéndolas sin esperar al estudiante y sin su sesión.
+Su paquete es P3 (Clases y horarios). No hay servicio orquestador ni tabla `SagaEstado`. El archivo, las UT y los
+comentarios usan solo el significado nuevo.
+
 ## Granularidad: un CU, un flujo
 
 Si una funcionalidad agrupa más de un flujo de usuario independiente, se

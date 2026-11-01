@@ -2,7 +2,7 @@
 
 | Id   | Nombre           | Paquete                | Prioridad | Estado    |
 | ---- | ---------------- | ---------------------- | --------- | --------- |
-| CU06 | Gestionar perfil | P1. Identidad y acceso | Media     | Pendiente |
+| CU06 | Gestionar perfil | P1. Identidad y acceso | Media     | Hecho     |
 
 **Actor principal:** Estudiante, Instructor, Administrador de escuela o Super admin (cualquier persona con sesión, sobre su propia cuenta)
 **Actores secundarios:** —

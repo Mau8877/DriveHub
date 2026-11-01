@@ -136,7 +136,7 @@ describe('<dh-gestion>', () => {
     registrarContextoShell({
       apiBaseUrl: 'http://api.test/v1',
       obtenerToken: () => 't',
-      navegar: () => {},
+      navegar: () => { },
       renovarSesion: async () => null,
     })
     vi.stubGlobal('fetch', vi.fn())
@@ -614,7 +614,7 @@ describe('<dh-gestion>', () => {
 
   it('mientras las opciones cargan, la lista está deshabilitada con "Cargando…"', async () => {
     await montarPerfil()
-    fetch.mockReturnValueOnce(new Promise(() => {}))
+    fetch.mockReturnValueOnce(new Promise(() => { }))
     boton('Nuevo estudiante').click()
     await asentar(el)
 
@@ -1303,7 +1303,7 @@ describe('<dh-gestion> selección múltiple, etiquetas y fechas', () => {
     registrarContextoShell({
       apiBaseUrl: 'http://api.test/v1',
       obtenerToken: () => 't',
-      navegar: () => {},
+      navegar: () => { },
       renovarSesion: async () => null,
     })
     vi.stubGlobal('fetch', vi.fn())
@@ -1507,7 +1507,7 @@ describe('<dh-gestion> filas sin acciones', () => {
     registrarContextoShell({
       apiBaseUrl: 'http://api.test/v1',
       obtenerToken: () => 't',
-      navegar: () => {},
+      navegar: () => { },
       renovarSesion: async () => null,
     })
     vi.stubGlobal('fetch', vi.fn())
@@ -1537,7 +1537,7 @@ describe('<dh-gestion> campos numero y seleccion', () => {
     registrarContextoShell({
       apiBaseUrl: 'http://api.test/v1',
       obtenerToken: () => 't',
-      navegar: () => {},
+      navegar: () => { },
       renovarSesion: async () => null,
     })
     vi.stubGlobal('fetch', vi.fn())
@@ -1641,7 +1641,7 @@ describe('<dh-gestion> campo y columna imagen', () => {
     registrarContextoShell({
       apiBaseUrl: 'http://api.test/v1',
       obtenerToken: () => 't',
-      navegar: () => {},
+      navegar: () => { },
       renovarSesion: async () => null,
     })
     vi.stubGlobal('fetch', vi.fn())
@@ -1812,7 +1812,7 @@ describe('<dh-gestion> campos archivo y lista, columna enlace', () => {
     registrarContextoShell({
       apiBaseUrl: 'http://api.test/v1',
       obtenerToken: () => 't',
-      navegar: () => {},
+      navegar: () => { },
       renovarSesion: async () => null,
     })
     vi.stubGlobal('fetch', vi.fn())
@@ -2042,7 +2042,7 @@ describe('<dh-gestion> campos textarea, opciones y seleccion numerica, y datos b
     registrarContextoShell({
       apiBaseUrl: 'http://api.test/v1',
       obtenerToken: () => 't',
-      navegar: () => {},
+      navegar: () => { },
       renovarSesion: async () => null,
     })
     vi.stubGlobal('fetch', vi.fn())
@@ -2269,7 +2269,7 @@ describe('<dh-gestion> campo decimal y columna moneda', () => {
     registrarContextoShell({
       apiBaseUrl: 'http://api.test/v1',
       obtenerToken: () => 't',
-      navegar: () => {},
+      navegar: () => { },
       renovarSesion: async () => null,
     })
     vi.stubGlobal('fetch', vi.fn())
@@ -2524,141 +2524,345 @@ describe('<dh-gestion> acciones con formulario y detalle en lista', () => {
   const enviar = async () => {
     el.shadowRoot.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }))
     await asentar(el)
-  }
+    describe('<dh-gestion> campo reglas (tema + cantidad)', () => {
+      let el
+      const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+      const filas = () => Array.from(el.shadowRoot.querySelectorAll('.fila-opcion'))
+      const SIMULACRO = { codigo: 's1', nombre: 'Básico', reglas: [{ tema: 'Señales', cantidad: 5 }] }
+      const CAMPOS = [
+        { campo: 'nombre', titulo: 'Nombre', requerido: true },
+        { campo: 'reglas', titulo: 'Preguntas por tema', tipo: 'reglas', requerido: true, max: 3 },
+      ]
+      const ESQUEMA_SIMULACROS = {
+        recurso: 'simulacros',
+        titulo: 'Simulacros',
+        columnas: [{ campo: 'nombre', titulo: 'Nombre' }],
+        crear: { etiqueta: 'Nuevo simulacro', mensajeExito: 'Listo', etiquetaEnviar: 'Crear', secciones: [{ campos: CAMPOS }] },
+        editar: { etiquetaEnviar: 'Guardar', mensajeExito: 'Listo', secciones: [{ campos: CAMPOS }] },
+      }
 
-  beforeEach(() => {
-    registrarContextoShell({
-      apiBaseUrl: 'http://api.test/v1',
-      obtenerToken: () => 't',
-      navegar: () => {},
-      renovarSesion: async () => null,
-    })
-    vi.stubGlobal('fetch', vi.fn())
-  })
+      beforeEach(() => {
+        registrarContextoShell({
+          apiBaseUrl: 'http://api.test/v1',
+          obtenerToken: () => 't',
+          navegar: () => { },
+          renovarSesion: async () => null,
+        })
+        vi.stubGlobal('fetch', vi.fn())
+      })
 
-  afterEach(() => {
-    el?.remove()
-    vi.unstubAllGlobals()
-    globalThis.__drivehubShell__ = undefined
-  })
+      afterEach(() => {
+        el?.remove()
+        vi.unstubAllGlobals()
+        globalThis.__drivehubShell__ = undefined
+      })
 
-  it('una condición con null se cumple también cuando el campo no viene en la respuesta', async () => {
-    await montar([{ vehiculoCodigo: 'v9', placa: 'SIN-CAMPO' }, AUTO_ASIGNADO])
-    const filas = el.shadowRoot.querySelectorAll('tbody tr')
+      it('una condición con null se cumple también cuando el campo no viene en la respuesta', async () => {
+        await montar([{ vehiculoCodigo: 'v9', placa: 'SIN-CAMPO' }, AUTO_ASIGNADO])
+        const filas = el.shadowRoot.querySelectorAll('tbody tr')
 
-    expect(filas[0].textContent).toContain('Asignar')
-    expect(filas[1].textContent).not.toContain('Asignar')
-  })
+        expect(filas[0].textContent).toContain('Asignar')
+        expect(filas[1].textContent).not.toContain('Asignar')
+      })
 
-  it('una columna con vacioTexto lo muestra cuando el valor está vacío', async () => {
-    await montar()
-    const filas = el.shadowRoot.querySelectorAll('tbody tr')
+      it('una columna con vacioTexto lo muestra cuando el valor está vacío', async () => {
+        await montar()
+        const filas = el.shadowRoot.querySelectorAll('tbody tr')
 
-    expect(filas[0].textContent).toContain('Sin asignar')
-    expect(filas[1].textContent).toContain('Ana Pérez')
-    expect(filas[1].textContent).not.toContain('Sin asignar')
-  })
+        expect(filas[0].textContent).toContain('Sin asignar')
+        expect(filas[1].textContent).toContain('Ana Pérez')
+        expect(filas[1].textContent).not.toContain('Sin asignar')
+      })
 
-  it('una acción con formulario abre el panel, trae las opciones y precarga la fecha de hoy', async () => {
-    await montar()
-    fetch.mockResolvedValueOnce(lista([{ codigo: 'i1', nombreCompleto: 'Ana Pérez' }]))
+      it('una acción con formulario abre el panel, trae las opciones y precarga la fecha de hoy', async () => {
+        await montar()
+        fetch.mockResolvedValueOnce(lista([{ codigo: 'i1', nombreCompleto: 'Ana Pérez' }]))
 
-    boton('Asignar').click()
-    await asentar(el)
+        boton('Asignar').click()
+        await asentar(el)
 
-    expect(el.shadowRoot.querySelector('aside.drawer')).not.toBeNull()
-    expect(texto()).toContain('Asignar auto')
-    expect(fetch.mock.calls[1][0]).toContain('instructores?page=1&pageSize=100&filter%5Bestado%5D=ACTIVO')
-    expect(el.shadowRoot.querySelector('dh-fecha').valor).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-  })
+        expect(el.shadowRoot.querySelector('aside.drawer')).not.toBeNull()
+        expect(texto()).toContain('Asignar auto')
+        expect(fetch.mock.calls[1][0]).toContain('instructores?page=1&pageSize=100&filter%5Bestado%5D=ACTIVO')
+        expect(el.shadowRoot.querySelector('dh-fecha').valor).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      })
 
-  it('no envía hasta que el formulario sea válido y marca el campo obligatorio', async () => {
-    await montar()
-    fetch.mockResolvedValueOnce(lista([{ codigo: 'i1', nombreCompleto: 'Ana Pérez' }]))
-    boton('Asignar').click()
-    await asentar(el)
+      it('no envía hasta que el formulario sea válido y marca el campo obligatorio', async () => {
+        await montar()
+        fetch.mockResolvedValueOnce(lista([{ codigo: 'i1', nombreCompleto: 'Ana Pérez' }]))
+        boton('Asignar').click()
+        await asentar(el)
 
-    await enviar()
+        await enviar()
 
-    expect(texto()).toContain('Elige un instructor')
-    expect(fetch).toHaveBeenCalledTimes(2)
-  })
+        expect(texto()).toContain('Elige un instructor')
+        expect(fetch).toHaveBeenCalledTimes(2)
+      })
 
-  it('al enviar llama a la ruta de la acción con el cuerpo, avisa y recarga el listado', async () => {
-    await abrirYElegirInstructor()
-    fetch.mockResolvedValueOnce(sobre({ vehiculoCodigo: 'v1' })).mockResolvedValueOnce(lista([AUTO_ASIGNADO]))
+      it('al enviar llama a la ruta de la acción con el cuerpo, avisa y recarga el listado', async () => {
+        await abrirYElegirInstructor()
+        fetch.mockResolvedValueOnce(sobre({ vehiculoCodigo: 'v1' })).mockResolvedValueOnce(lista([AUTO_ASIGNADO]))
 
-    await enviar()
+        await enviar()
 
-    const [url, opciones] = fetch.mock.calls[2]
-    expect(url).toBe('http://api.test/v1/asignaciones-vehiculo/v1/asignar')
-    expect(opciones.method).toBe('POST')
-    const cuerpo = JSON.parse(opciones.body)
-    expect(cuerpo.instructorCodigo).toBe('i1')
-    expect(cuerpo.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
-    expect(texto()).toContain('Auto asignado.')
-    expect(fetch).toHaveBeenCalledTimes(4)
-  })
+        const [url, opciones] = fetch.mock.calls[2]
+        expect(url).toBe('http://api.test/v1/asignaciones-vehiculo/v1/asignar')
+        expect(opciones.method).toBe('POST')
+        const cuerpo = JSON.parse(opciones.body)
+        expect(cuerpo.instructorCodigo).toBe('i1')
+        expect(cuerpo.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+        expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+        expect(texto()).toContain('Auto asignado.')
+        expect(fetch).toHaveBeenCalledTimes(4)
+      })
 
-  it('un error del backend con campo en erroresDeCampo se muestra bajo ese campo y deja el panel abierto', async () => {
-    await abrirYElegirInstructor()
-    fetch.mockResolvedValueOnce(falla(409, 'ERR_ESC_16', 'ya asignado'))
+      it('un error del backend con campo en erroresDeCampo se muestra bajo ese campo y deja el panel abierto', async () => {
+        await abrirYElegirInstructor()
+        fetch.mockResolvedValueOnce(falla(409, 'ERR_ESC_16', 'ya asignado'))
 
-    await enviar()
+        await enviar()
 
-    expect(texto()).toContain('El auto ya tiene instructor')
-    expect(el.shadowRoot.querySelector('aside.drawer')).not.toBeNull()
-  })
+        expect(texto()).toContain('El auto ya tiene instructor')
+        expect(el.shadowRoot.querySelector('aside.drawer')).not.toBeNull()
+      })
 
-  it('un error de negocio sin campo muestra el mensaje del backend en el panel', async () => {
-    await abrirYElegirInstructor()
-    fetch.mockResolvedValueOnce(falla(409, 'ERR_ESC_17', 'Solo se asigna un auto disponible'))
+      it('un error de negocio sin campo muestra el mensaje del backend en el panel', async () => {
+        await abrirYElegirInstructor()
+        fetch.mockResolvedValueOnce(falla(409, 'ERR_ESC_17', 'Solo se asigna un auto disponible'))
 
-    await enviar()
+        await enviar()
 
-    expect(el.shadowRoot.querySelector('[role="alert"]').textContent).toContain('Solo se asigna un auto disponible')
-  })
+        expect(el.shadowRoot.querySelector('[role="alert"]').textContent).toContain('Solo se asigna un auto disponible')
+      })
 
-  it('una acción sin formulario sigue pidiendo confirmación, como antes', async () => {
-    await montar()
+      it('una acción sin formulario sigue pidiendo confirmación, como antes', async () => {
+        await montar()
 
-    boton('Liberar').click()
-    await asentar(el)
+        boton('Liberar').click()
+        await asentar(el)
 
-    expect(el.shadowRoot.querySelector('[role="alertdialog"]')).not.toBeNull()
-    expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
-  })
+        expect(el.shadowRoot.querySelector('[role="alertdialog"]')).not.toBeNull()
+        expect(el.shadowRoot.querySelector('aside.drawer')).toBeNull()
+      })
 
-  it('el detalle en lista dibuja una tarjeta por fila, con "Vigente" para la fecha de fin vacía', async () => {
-    await montar()
-    fetch.mockResolvedValueOnce(
-      sobre([
-        { instructor: { nombreCompleto: 'Luis Soto' }, fechaInicio: '2026-10-15', fechaFin: null },
-        { instructor: { nombreCompleto: 'Ana Pérez' }, fechaInicio: '2026-10-01', fechaFin: '2026-10-15' },
-      ])
-    )
+      it('el detalle en lista dibuja una tarjeta por fila, con "Vigente" para la fecha de fin vacía', async () => {
+        await montar()
+        fetch.mockResolvedValueOnce(
+          sobre([
+            { instructor: { nombreCompleto: 'Luis Soto' }, fechaInicio: '2026-10-15', fechaFin: null },
+            { instructor: { nombreCompleto: 'Ana Pérez' }, fechaInicio: '2026-10-01', fechaFin: '2026-10-15' },
+          ])
+        )
 
-    el.shadowRoot.querySelectorAll('tbody tr')[1].querySelector('button.enlace').click()
-    await asentar(el)
+        el.shadowRoot.querySelectorAll('tbody tr')[1].querySelector('button.enlace').click()
+        await asentar(el)
 
-    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/asignaciones-vehiculo/v2/historial?pageSize=100')
-    const tarjetas = el.shadowRoot.querySelectorAll('.lista-fila')
-    expect(tarjetas).toHaveLength(2)
-    expect(tarjetas[0].textContent).toContain('Luis Soto')
-    expect(tarjetas[0].textContent).toContain('Vigente')
-    expect(tarjetas[1].textContent).toContain('15 oct 2026')
-    expect(tarjetas[1].textContent).not.toContain('Vigente')
-  })
+        expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/asignaciones-vehiculo/v2/historial?pageSize=100')
+        const tarjetas = el.shadowRoot.querySelectorAll('.lista-fila')
+        expect(tarjetas).toHaveLength(2)
+        expect(tarjetas[0].textContent).toContain('Luis Soto')
+        expect(tarjetas[0].textContent).toContain('Vigente')
+        expect(tarjetas[1].textContent).toContain('15 oct 2026')
+        expect(tarjetas[1].textContent).not.toContain('Vigente')
+      })
 
-  it('el detalle en lista sin filas muestra el mensaje de vacío', async () => {
-    await montar()
-    fetch.mockResolvedValueOnce(sobre([]))
+      it('el detalle en lista sin filas muestra el mensaje de vacío', async () => {
+        await montar()
+        fetch.mockResolvedValueOnce(sobre([]))
 
-    el.shadowRoot.querySelectorAll('tbody tr')[0].querySelector('button.enlace').click()
-    await asentar(el)
+        el.shadowRoot.querySelectorAll('tbody tr')[0].querySelector('button.enlace').click()
+        await asentar(el)
 
-    expect(el.shadowRoot.querySelectorAll('.lista-fila')).toHaveLength(0)
-    expect(texto()).toContain('Este auto todavía no tuvo instructor.')
-  })
-})
+        expect(el.shadowRoot.querySelectorAll('.lista-fila')).toHaveLength(0)
+        expect(texto()).toContain('Este auto todavía no tuvo instructor.')
+        async function montar(datos) {
+          fetch.mockResolvedValueOnce(lista(datos))
+          el = document.createElement('dh-gestion')
+          document.body.append(el)
+          el.esquema = ESQUEMA_SIMULACROS
+          await asentar(el)
+        }
+
+        async function llenar(i, tema, cantidad) {
+          const [entradaTema, entradaCantidad] = filas()[i].querySelectorAll('input')
+          for (const [entrada, valor] of [[entradaTema, tema], [entradaCantidad, cantidad]]) {
+            entrada.value = valor
+            entrada.dispatchEvent(new Event('input', { bubbles: true }))
+            await asentar(el)
+          }
+        }
+
+        it('arranca con una fila, agrega hasta el máximo y no quita la última', async () => {
+          await montar([])
+          boton('Nuevo simulacro').click()
+          await asentar(el)
+
+          expect(filas()).toHaveLength(1)
+          expect(filas()[0].querySelector('button').disabled).toBe(true)
+          boton('Agregar tema').click()
+          boton('Agregar tema').click()
+          await asentar(el)
+          expect(filas()).toHaveLength(3)
+          expect(boton('Agregar tema').disabled).toBe(true)
+        })
+
+        it('envía las reglas como arreglo de { tema, cantidad } con la cantidad numérica', async () => {
+          await montar([])
+          boton('Nuevo simulacro').click()
+          await asentar(el)
+          const nombre = el.shadowRoot.querySelector('#campo-nombre')
+          nombre.value = 'Básico'
+          nombre.dispatchEvent(new Event('input', { bubbles: true }))
+          await asentar(el)
+          await llenar(0, ' Señales ', '5')
+          fetch.mockResolvedValueOnce(sobre({ codigo: 's9' })).mockResolvedValueOnce(lista([]))
+
+          boton('Crear').click()
+          await asentar(el)
+
+          expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+            nombre: 'Básico',
+            reglas: [{ tema: 'Señales', cantidad: 5 }],
+          })
+        })
+
+        it('una cantidad inválida no se envía y muestra el error bajo el campo', async () => {
+          await montar([])
+          boton('Nuevo simulacro').click()
+          await asentar(el)
+          const nombre = el.shadowRoot.querySelector('#campo-nombre')
+          nombre.value = 'Básico'
+          nombre.dispatchEvent(new Event('input', { bubbles: true }))
+          await asentar(el)
+          await llenar(0, 'Señales', '0')
+
+          boton('Crear').click()
+          await asentar(el)
+
+          expect(el.shadowRoot.textContent).toContain('Cada cantidad es un número entero de 1 a 100')
+          expect(fetch).toHaveBeenCalledTimes(1)
+        })
+
+        it('al editar carga las reglas del registro como filas', async () => {
+          fetch.mockResolvedValueOnce(lista([SIMULACRO]))
+          el = document.createElement('dh-gestion')
+          document.body.append(el)
+          el.esquema = {
+            ...ESQUEMA_SIMULACROS,
+            acciones: [],
+          }
+          await asentar(el)
+          fetch.mockResolvedValueOnce(sobre(SIMULACRO))
+          boton('Editar').click()
+          await asentar(el)
+
+          const [tema, cantidad] = filas()[0].querySelectorAll('input')
+          expect(tema.value).toBe('Señales')
+          expect(cantidad.value).toBe('5')
+        })
+      })
+
+      describe('<dh-gestion> acción con formulario', () => {
+        let el
+        const boton = (t) => Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === t)
+        const FILA = { codigo: 'x1', nombre: 'Examen' }
+        const ESQUEMA_ACCION = {
+          recurso: 'examenes-conduccion',
+          titulo: 'Exámenes',
+          columnas: [{ campo: 'nombre', titulo: 'Nombre' }],
+          acciones: [
+            {
+              id: 'registrar',
+              etiqueta: 'Registrar resultado',
+              metodo: 'POST',
+              ruta: '{id}/registrar-resultado',
+              mensajeExito: 'Resultado registrado.',
+              formulario: {
+                titulo: 'Registrar resultado',
+                etiquetaEnviar: 'Guardar resultado',
+                secciones: [
+                  {
+                    campos: [
+                      { campo: 'puntaje', titulo: 'Puntaje', tipo: 'decimal', requerido: true, decimales: 1, min: 0, max: 100 },
+                      { campo: 'observaciones', titulo: 'Observaciones', tipo: 'textarea', max: 500 },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        }
+
+        beforeEach(() => {
+          registrarContextoShell({
+            apiBaseUrl: 'http://api.test/v1',
+            obtenerToken: () => 't',
+            navegar: () => { },
+            renovarSesion: async () => null,
+          })
+          vi.stubGlobal('fetch', vi.fn())
+        })
+
+        afterEach(() => {
+          el?.remove()
+          vi.unstubAllGlobals()
+          globalThis.__drivehubShell__ = undefined
+        })
+
+        async function montar() {
+          fetch.mockResolvedValueOnce(lista([FILA]))
+          el = document.createElement('dh-gestion')
+          document.body.append(el)
+          el.esquema = ESQUEMA_ACCION
+          await asentar(el)
+        }
+
+        async function escribirEn(selector, valor) {
+          const campo = el.shadowRoot.querySelector(selector)
+          campo.value = valor
+          campo.dispatchEvent(new Event('input', { bubbles: true }))
+          await asentar(el)
+        }
+
+        it('abre el formulario en el drawer en vez de ejecutar la acción', async () => {
+          await montar()
+
+          boton('Registrar resultado').click()
+          await asentar(el)
+
+          expect(el.shadowRoot.querySelector('.drawer')).not.toBeNull()
+          expect(el.shadowRoot.querySelector('#drawer-titulo').textContent).toBe('Registrar resultado')
+          expect(fetch).toHaveBeenCalledTimes(1)
+        })
+
+        it('envía el cuerpo a la ruta de la acción con su método y vuelve a la lista con el aviso', async () => {
+          await montar()
+          boton('Registrar resultado').click()
+          await asentar(el)
+          await escribirEn('#campo-puntaje', '85,5')
+          await escribirEn('#campo-observaciones', ' Buen manejo ')
+          fetch.mockResolvedValueOnce(sobre({ codigo: 'x1' })).mockResolvedValueOnce(lista([FILA]))
+
+          boton('Guardar resultado').click()
+          await asentar(el)
+
+          expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/examenes-conduccion/x1/registrar-resultado')
+          expect(fetch.mock.calls[1][1].method).toBe('POST')
+          expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ puntaje: 85.5, observaciones: 'Buen manejo' })
+          expect(el.shadowRoot.querySelector('.drawer')).toBeNull()
+          expect(el.shadowRoot.textContent).toContain('Resultado registrado.')
+        })
+
+        it('un puntaje inválido no se envía y muestra el error bajo el campo', async () => {
+          await montar()
+          boton('Registrar resultado').click()
+          await asentar(el)
+          await escribirEn('#campo-puntaje', '150')
+
+          boton('Guardar resultado').click()
+          await asentar(el)
+
+          expect(el.shadowRoot.textContent).toContain('No puede superar 100')
+          expect(fetch).toHaveBeenCalledTimes(1)
+        })
+      })

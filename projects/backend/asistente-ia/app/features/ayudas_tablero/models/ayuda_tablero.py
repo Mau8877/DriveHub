@@ -1,11 +1,15 @@
 """Ítem de la tabla AyudasTablero: ayuda por foto del tablero (CU40, CU42).
 
 Clave: usuarioCodigo (partición) + sk = '<fecha ISO>#<codigoAyudaTablero>' (orden).
-La imagen no se guarda en la tabla: imagenKey es la clave del archivo en el
-bucket drivehub-asistente-ia.
+La imagen no se guarda en la tabla: imagenKey es la clave de la miniatura en el
+bucket drivehub-asistente-ia (opcional: la app puede no mandarla).
+
+El análisis (qué luz es y con qué confianza) lo hace el modelo del teléfono (CU40): el
+backend solo guarda el resultado.
 """
 
 from app.common.dynamodb.modelo_base import ItemDynamo
+from app.features.ayudas_tablero.enums.severidad_tablero import SeveridadTablero
 
 
 class IndicadorTablero(ItemDynamo):
@@ -15,8 +19,7 @@ class IndicadorTablero(ItemDynamo):
     codigo: str
     nombre: str
     confianza: float
-    # ? Valores posibles sin definir en el diseño: se fijan (y pasan a enum) con CU40.
-    severidad: str
+    severidad: SeveridadTablero
 
 
 class AyudaTablero(ItemDynamo):
@@ -25,10 +28,11 @@ class AyudaTablero(ItemDynamo):
     sk: str
     # Identificador público (UUID v7)
     codigo_ayuda_tablero: str
-    imagen_key: str
+    imagen_key: str | None = None
     indicadores: list[IndicadorTablero]
-    # Explicación para el estudiante
+    # Explicación para el estudiante (significado y qué hacer), armada en el teléfono
     respuesta: str
+    # Modelo del teléfono que hizo el análisis (nombre y versión)
     modelo: str
     latencia_ms: int
     # Opinión opcional del estudiante sobre si la ayuda le sirvió

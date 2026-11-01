@@ -2,8 +2,12 @@
 
 Mismo formato que logstash-logback-encoder en los servicios Spring (ver
 .claude/rules/backend/LOGGING_BACKEND.md). Los campos contextuales se pasan
-con `extra={...}` (ej. `logger.info("Sesión creada", extra={"module": "sesiones"})`),
+con `extra={...}` (ej. `logger.info("Sesión creada", extra={"modulo": "sesiones"})`),
 nunca concatenados al mensaje.
+
+* El campo del JSON se llama `module` (igual que en los demás servicios), pero `module` es un
+* atributo reservado de `LogRecord` y `extra` no puede pisarlo: se pasa como `modulo` y el
+* formatter lo escribe como `module`.
 """
 
 import json
@@ -23,6 +27,8 @@ class JsonFormatter(logging.Formatter):
             "message": record.getMessage(),
         }
         entrada.update({k: v for k, v in record.__dict__.items() if k not in _CAMPOS_ESTANDAR})
+        if "modulo" in entrada:
+            entrada["module"] = entrada.pop("modulo")
         if record.exc_info:
             entrada["stack_trace"] = self.formatException(record.exc_info)
         return json.dumps(entrada, ensure_ascii=False, default=str)

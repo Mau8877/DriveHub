@@ -84,6 +84,7 @@ export function validar(campo, valor, hoy = new Date(), contexto = {}) {
   if (campo.tipo === 'seleccion' && campo.multiple) return validarMultiple(campo, valor)
   // * Una lista de filas (opciones de respuesta) se valida por filas, no como texto
   if (campo.tipo === 'opciones') return validarOpciones(campo, valor)
+  if (campo.tipo === 'reglas') return validarReglas(campo, valor)
 
   const texto = String(valor ?? '').trim()
 
@@ -161,6 +162,29 @@ function validarOpciones(campo, valor) {
     return mensajes.max ?? `Cada opción puede tener hasta ${campo.maxTexto ?? 200} caracteres`
   }
   if (!filas.some((f) => f.correcta)) return mensajes.requerido ?? 'Marca al menos una opción correcta'
+  return null
+}
+
+/** Filas tema + cantidad: al menos `min` (1), cada tema con texto y sin repetirse, cada cantidad un entero de 1 a 100. */
+function validarReglas(campo, valor) {
+  const mensajes = campo.mensajes ?? {}
+  const filas = Array.isArray(valor) ? valor : []
+  const minimo = campo.min ?? 1
+  const maximo = campo.max ?? 10
+  if (filas.length < minimo) return mensajes.min ?? `Agrega al menos ${minimo} tema`
+  if (filas.length > maximo) return mensajes.max ?? `Puedes agregar hasta ${maximo} temas`
+  const temas = filas.map((f) => String(f.tema ?? '').trim())
+  if (temas.some((t) => t === '')) return mensajes.requerido ?? 'Todos los temas necesitan nombre'
+  if (temas.some((t) => t.length > (campo.maxTexto ?? 80))) {
+    return mensajes.patron ?? `Cada tema puede tener hasta ${campo.maxTexto ?? 80} caracteres`
+  }
+  if (new Set(temas.map((t) => t.toLowerCase())).size !== temas.length) {
+    return mensajes.patron ?? 'Un tema no puede repetirse'
+  }
+  const cantidades = filas.map((f) => Number(String(f.cantidad ?? '').trim() || NaN))
+  if (cantidades.some((n) => !Number.isInteger(n) || n < 1 || n > 100)) {
+    return mensajes.opcion ?? 'Cada cantidad es un número entero de 1 a 100'
+  }
   return null
 }
 

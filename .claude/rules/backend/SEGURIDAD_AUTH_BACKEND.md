@@ -18,9 +18,15 @@ globs: projects/backend/**/*
 Ningún caso de uso de autenticación está implementado. Cada servicio
 Spring tiene un `SecurityConfig` que deja públicos solo `/health`,
 `/prometheus` y Swagger, y **cierra todo lo demás** (usuario en memoria
-autogenerado por Spring Boot, solo placeholder). NestJS, FastAPI y Laravel
-todavía no validan nada. Lo de abajo es el diseño a implementar con CU02;
-no es opcional.
+autogenerado por Spring Boot, solo placeholder). Lo de abajo es el diseño
+a implementar con CU02; no es opcional.
+
+Servicios no Spring que ya validan el JWT (RS256 contra el JWKS de
+Identidad, emisor `drivehub-identidad`, sin confiar en el gateway):
+**Contenido** (Laravel, middlewares `jwt` y `rol:` en `app/Common/Security/`)
+y **Asistente IA** (FastAPI, dependencias `usuario_actual` y
+`exigir_rol("ESTUDIANTE")` en `app/common/security/`). Notificaciones
+(NestJS) todavía no valida nada.
 
 ## Flujo: JWT + refresh token
 

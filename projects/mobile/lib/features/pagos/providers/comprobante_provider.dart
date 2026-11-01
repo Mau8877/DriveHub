@@ -2,24 +2,16 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/archivos/abrir_pdf.dart';
+import '../../../core/archivos/abridor_de_pdf.dart';
 import '../services/comprobantes_service.dart';
+
+// * Los usan los botones y los tests de comprobantes; el abridor de PDF vive en core/ porque lo comparten varias features
+export '../../../core/archivos/abridor_de_pdf.dart';
 
 /// El servicio que baja los PDF de los comprobantes; es un provider para sustituirlo en los tests.
 final comprobantesServiceProvider = Provider<ComprobantesService>(
   (ref) => ComprobantesService(),
 );
-
-/// Abre un PDF con el visor de la plataforma (el teléfono o el navegador); devuelve `false` si no hay ninguna app
-/// que lo abra. Es un provider para sustituirlo en los tests: ninguno abre un visor de verdad.
-final abridorDePdfProvider = Provider<Future<bool> Function(List<int> bytes, String nombre)>(
-  (ref) => abrirPdf,
-);
-
-/// No hay ninguna app en el teléfono que abra PDF.
-class SinVisorDePdf implements Exception {
-  const SinVisorDePdf();
-}
 
 /// Descargar y abrir el PDF de un comprobante (CU30), por su código.
 ///

@@ -2,7 +2,7 @@
 
 | Id   | Nombre                     | Paquete   | Prioridad | Estado    |
 | ---- | -------------------------- | --------- | --------- | --------- |
-| CU28 | Consultar historial de pagos | P5. Pagos | Alta      | Pendiente |
+| CU28 | Consultar historial de pagos | P5. Pagos | Alta      | Hecho     |
 
 **Actor principal:** Estudiante
 **Actores secundarios:** —

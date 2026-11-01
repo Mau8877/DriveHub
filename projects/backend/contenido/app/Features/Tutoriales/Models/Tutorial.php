@@ -13,12 +13,13 @@ use App\Features\Tutoriales\Enums\TipoRecurso;
  * * bucket drivehub-contenido (o es un enlace externo si tipo = ENLACE).
  *
  * @property string $codigo_tutorial Identificador público (UUID v7)
+ * @property string $escuela_codigo Escuela (tenant) del tutorial: el claim `escuela` del JWT del instructor
  * @property string $titulo
  * @property string|null $descripcion
  * @property string $autor_codigo Instructor: persona de Identidad (usuario.codigo_usuario)
  * @property string $categoria Sigla de categoría (Escuela categoria_licencia)
  * @property TipoRecurso $tipo
- * @property array{url:string,duracion_seg:int|null} $recurso
+ * @property array{url:string,mime?:string,tamano_bytes?:int,sha256?:string,nombre?:string} $recurso PDF subido (con descriptor) o enlace de YouTube (solo `url`)
  * @property array<int,string> $audiencia Valores de Audiencia (ESTUDIANTE y/o INSTRUCTOR)
  * @property EstadoPublicacion $estado
  * @property array<int,string> $etiquetas
@@ -28,6 +29,7 @@ class Tutorial extends BaseModel
     protected $table = 'tutoriales';
 
     protected $fillable = [
+        'escuela_codigo',
         'titulo',
         'descripcion',
         'autor_codigo',

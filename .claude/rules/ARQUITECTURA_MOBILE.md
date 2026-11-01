@@ -85,6 +85,25 @@ convención de nombres), [CONSUMO_API_MOBILE.md](mobile/CONSUMO_API_MOBILE.md)
 > feature (`features/{feature}/models/`), con las reglas de
 > [CONSUMO_API_MOBILE.md](mobile/CONSUMO_API_MOBILE.md#modelos-de-datos-dtos).
 
+## IA en el dispositivo (`ml/` y `assets/ml/`)
+
+**Requisito del proyecto: la IA de la app móvil corre en el teléfono**, no en un servidor (ni local ni
+alojado). Por eso el análisis de la foto del tablero (CU40) y la validación de la prueba de conducción (CU39)
+se hacen dentro de la app, sin internet; el backend (`asistente-ia`) solo guarda los resultados.
+
+- `projects/mobile/ml/`: **fuera de `lib/`**, el entrenamiento del modelo (Python/Keras, `entrenar_*.py`), su
+  `requirements-ml.txt` y un `README.md` con las fotos, licencias y pasos. Las fotos de entrenamiento
+  (`ml/datos/`) no se versionan.
+- `projects/mobile/assets/ml/`: lo que se empaqueta en la app: el `.tflite`, sus etiquetas y los catálogos JSON
+  (`luces_tablero.json`). El conocimiento de dominio (textos, gravedad) va en el catálogo, no en el modelo ni en
+  el código.
+- En la feature, el modelo va detrás de una **interfaz** (`ClasificadorTablero`) con la implementación real
+  (`tflite_flutter`) y una falsa para los tests: `flutter test` nunca carga un modelo ni abre la cámara.
+  La cámara/galería también va detrás de un provider (`selectorDeFotoProvider`).
+- El preprocesado pesado (decodificar fotos de varios MB) corre en otro hilo (`Isolate.run`).
+- Solo Android por ahora. `tflite_flutter` necesita `kotlin.jvm.target.validation.mode=warning` en
+  `android/gradle.properties` (su Java está en 11 y Kotlin toma el JDK).
+
 ## Regla de dependencia
 
 `features/{feature}/` puede depender de `core/` y `shared/` — nunca al

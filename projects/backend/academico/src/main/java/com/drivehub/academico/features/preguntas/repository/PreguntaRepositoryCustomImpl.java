@@ -28,6 +28,17 @@ public class PreguntaRepositoryCustomImpl implements PreguntaRepositoryCustom {
     private final MongoTemplate mongoTemplate;
 
     @Override
+    public List<Pregunta> activasDelTema(UUID escuelaCodigo, java.util.Collection<String> categorias, String tema) {
+        Query consulta = new Query(new Criteria().andOperator(
+            Criteria.where("escuelaCodigo").is(escuelaCodigo),
+            Criteria.where("deletedAt").is(null),
+            Criteria.where("activa").is(true),
+            Criteria.where("categoria").in(categorias),
+            Criteria.where("tema").regex("^" + Pattern.quote(tema.trim()) + "$", "i")));
+        return mongoTemplate.find(consulta, Pregunta.class);
+    }
+
+    @Override
     public Page<Pregunta> listar(UUID escuelaCodigo, FiltroPreguntas filtro, Pageable pageable) {
         List<Criteria> condiciones = new ArrayList<>();
         condiciones.add(Criteria.where("escuelaCodigo").is(escuelaCodigo));

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -236,5 +237,137 @@ class ReservaRepositoryTest extends MongoIntegrationTestBase {
             EstadoReserva.CONFIRMADA, null, AHORA)).isEmpty();
         assertThat(repository.findById(reserva.getId()).orElseThrow().getEstado())
             .isEqualTo(EstadoReserva.PENDIENTE_PAGO);
+    }
+
+    // ---------------------------------------------------------------- orquestador (CU44)
+
+    private static final Set<EstadoReserva> PENDIENTES = Set.of(EstadoReserva.PENDIENTE_PAGO);
+
+    private static Instant enElFuturo() {
+        return Instant.now().plusSeconds(3600);
+    }
+
+    @Test
+    void reservaNueva_naceSinIntentosNiRevision() {
+        Reserva reserva = repository.save(new Reserva(estudiante, instructor, 7L, HOY, "08:00", "09:00", 1, AHORA));
+
+        Reserva leida = repository.findById(reserva.getId()).orElseThrow();
+
+        assertThat(leida.getIntentosRetomar()).isZero();
+        assertThat(leida.isRequiereRevision()).isFalse();
+    }
+
+    @Test
+    void reservaAntiguaSinLosCampos_seLeeConLosValoresPorDefecto() {
+        Reserva reserva = guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        // * Simula un documento anterior al CU44: se quitan los campos de la colección
+        mongoTemplate.updateFirst(Query.query(org.springframework.data.mongodb.core.query.Criteria.where("_id")
+            .is(reserva.getId())), new org.springframework.data.mongodb.core.query.Update()
+            .unset("intentosRetomar").unset("requiereRevision"), Reserva.class);
+
+        Reserva leida = repository.findById(reserva.getId()).orElseThrow();
+
+        assertThat(leida.getIntentosRetomar()).isZero();
+        assertThat(leida.isRequiereRevision()).isFalse();
+    }
+
+    @Test
+    void pendientesAntiguas_traeLasDeTodosLosEstudiantes_soloAntiguas_yOrdenadas() {
+        Reserva deUno = guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        Reserva deOtro = guardar(otroEstudiante, HOY, "09:00", "10:00", EstadoReserva.PENDIENTE_PAGO);
+
+        assertThat(repository.pendientesAntiguas(PENDIENTES, enElFuturo(), 10))
+            .extracting(Reserva::getCodigoReserva)
+            .containsExactly(deUno.getCodigoReserva(), deOtro.getCodigoReserva());
+        // * ninguna es anterior a hace una hora: son recientes
+        assertThat(repository.pendientesAntiguas(PENDIENTES, Instant.now().minusSeconds(3600), 10)).isEmpty();
+    }
+
+    @Test
+    void pendientesAntiguas_noTraeLasQueNoEstanEnLosEstadosPedidos() {
+        guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+        guardar(estudiante, HOY, "09:00", "10:00", EstadoReserva.CANCELADA);
+        guardar(estudiante, HOY, "10:00", "11:00", EstadoReserva.NO_ASISTIO);
+        Reserva pendiente = guardar(estudiante, HOY, "11:00", "12:00", EstadoReserva.PENDIENTE_PAGO);
+
+        assertThat(repository.pendientesAntiguas(PENDIENTES, enElFuturo(), 10))
+            .extracting(Reserva::getCodigoReserva).containsExactly(pendiente.getCodigoReserva());
+        // * con otro estado transitorio declarado por un manejador, también entra
+        assertThat(repository.pendientesAntiguas(Set.of(EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CONFIRMADA),
+            enElFuturo(), 10)).hasSize(2);
+    }
+
+    @Test
+    void pendientesAntiguas_noTraeLasBorradasNiLasMarcadasParaRevision_yRespetaElLimite() {
+        Reserva borrada = guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        borrada.setDeletedAt(AHORA);
+        repository.save(borrada);
+        Reserva enRevision = guardar(estudiante, HOY, "09:00", "10:00", EstadoReserva.PENDIENTE_PAGO);
+        repository.marcarParaRevision(enRevision.getCodigoReserva(), "revisar", AHORA, PENDIENTES);
+        guardar(estudiante, HOY, "10:00", "11:00", EstadoReserva.PENDIENTE_PAGO);
+        guardar(estudiante, HOY, "11:00", "12:00", EstadoReserva.PENDIENTE_PAGO);
+
+        assertThat(repository.pendientesAntiguas(PENDIENTES, enElFuturo(), 10)).hasSize(2);
+        assertThat(repository.pendientesAntiguas(PENDIENTES, enElFuturo(), 1)).hasSize(1);
+    }
+
+    @Test
+    void registrarIntentoFallido_sumaUnoCadaVez_yDevuelveLaReservaActualizada() {
+        Reserva reserva = guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+
+        assertThat(repository.registrarIntentoFallido(reserva.getCodigoReserva(), PENDIENTES).orElseThrow()
+            .getIntentosRetomar()).isEqualTo(1);
+        assertThat(repository.registrarIntentoFallido(reserva.getCodigoReserva(), PENDIENTES).orElseThrow()
+            .getIntentosRetomar()).isEqualTo(2);
+    }
+
+    @Test
+    void registrarIntentoFallido_sinReservaPendiente_noHaceNada() {
+        Reserva confirmada = confirmada(estudiante, HOY, "08:00", "09:00");
+
+        assertThat(repository.registrarIntentoFallido(confirmada.getCodigoReserva(), PENDIENTES)).isEmpty();
+        assertThat(repository.registrarIntentoFallido(UUID.randomUUID(), PENDIENTES)).isEmpty();
+        assertThat(repository.findById(confirmada.getId()).orElseThrow().getIntentosRetomar()).isZero();
+    }
+
+    @Test
+    void registrarIntentoFallido_dosAlMismoTiempo_dejanElContadorEnDos() throws Exception {
+        Reserva reserva = guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var a = pool.submit(() -> repository.registrarIntentoFallido(reserva.getCodigoReserva(), PENDIENTES));
+            var b = pool.submit(() -> repository.registrarIntentoFallido(reserva.getCodigoReserva(), PENDIENTES));
+            a.get();
+            b.get();
+        } finally {
+            pool.shutdown();
+        }
+
+        assertThat(repository.findById(reserva.getId()).orElseThrow().getIntentosRetomar()).isEqualTo(2);
+    }
+
+    @Test
+    void marcarParaRevision_dejaElEstadoIgual_agregaAlHistorial_yRepetirloEsInocuo() {
+        Reserva reserva = guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+
+        var marcada = repository.marcarParaRevision(reserva.getCodigoReserva(), "Se agotaron los intentos", AHORA,
+            PENDIENTES);
+
+        assertThat(marcada).isPresent();
+        assertThat(marcada.get().isRequiereRevision()).isTrue();
+        assertThat(marcada.get().getEstado()).isEqualTo(EstadoReserva.PENDIENTE_PAGO);
+        assertThat(marcada.get().getHistorialEstados()).hasSize(2);
+        assertThat(marcada.get().getHistorialEstados().get(1).motivo()).isEqualTo("Se agotaron los intentos");
+
+        assertThat(repository.marcarParaRevision(reserva.getCodigoReserva(), "otra vez", AHORA, PENDIENTES)).isEmpty();
+        assertThat(repository.findById(reserva.getId()).orElseThrow().getHistorialEstados()).hasSize(2);
+    }
+
+    @Test
+    void marcarParaRevision_siYaNoEstaPendiente_noHaceNada() {
+        Reserva confirmada = confirmada(estudiante, HOY, "08:00", "09:00");
+
+        assertThat(repository.marcarParaRevision(confirmada.getCodigoReserva(), "x", AHORA, PENDIENTES)).isEmpty();
+        assertThat(repository.findById(confirmada.getId()).orElseThrow().isRequiereRevision()).isFalse();
     }
 }

@@ -222,3 +222,14 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
 - **Significado:** La cuenta del instructor ya se usó (inició sesión) y no se puede revertir
   (CU09): Escuela intentó deshacer un alta a medias, pero la persona ya entró. La cuenta se conserva.
 - **Dónde se lanza:** `RevertirCuentaInstructorService.revertir()`
+
+## `ERR_IDE_24`
+
+- **HTTP:** 503
+- **Excepción:** `EscuelaNoDisponibleException` (extiende `BusinessException`)
+- **Significado:** Escuela, el servicio dueño de las escuelas y las categorías, no respondió: está caído, tardó
+  demasiado o contestó algo inesperado. Se puede reintentar más tarde. Afecta a los casos de uso que necesitan
+  confirmar la escuela o una categoría: iniciar sesión de una cuenta con escuela (CU02), registrarse (CU01) y
+  gestionar estudiantes (CU08). El Super admin no tiene escuela y no se ve afectado.
+- **Dónde se lanza:** `EscuelaRestAdapter` (`buscarActivaPorSlug()` y `buscarPorCodigo()`) y
+  `CategoriaLicenciaRestAdapter.existe()`

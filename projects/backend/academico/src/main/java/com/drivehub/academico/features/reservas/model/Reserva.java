@@ -79,6 +79,14 @@ public class Reserva extends BaseDocument {
     @Setter
     private int horasCobradas;
 
+    // * Veces que el orquestador (CU44) intentó retomar la reserva y falló por una causa propia. Sin setter: se suma con
+    // * `registrarIntentoFallido` del repository (atómico), nunca con `save()`. Una reserva vieja sin el campo lee 0
+    private int intentosRetomar;
+
+    // * true cuando el orquestador se rindió y una persona tiene que mirarla; deja de retomarse sola. Sin setter: la
+    // * marca `marcarParaRevision` del repository. Una reserva vieja sin el campo lee false
+    private boolean requiereRevision;
+
     /**
      * Reserva nueva, `PENDIENTE_PAGO` (CU14): la franja ya se apartó pero la hora todavía no se descontó.
      *

@@ -38,6 +38,7 @@ public class IdentidadClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(IdentidadClient.class);
     private static final String RUTA = "/api/v1/usuarios/instructores/nombres";
+    private static final String RUTA_ESTUDIANTES = "/api/v1/estudiantes/consulta";
     private static final String MENSAJE_NO_DISPONIBLE =
         "No pudimos obtener los datos de los instructores. Inténtalo de nuevo más tarde.";
 
@@ -86,6 +87,42 @@ public class IdentidadClient {
         return nombres;
     }
 
+    /**
+     * El nombre completo de esos estudiantes de la escuela de quien pregunta (un Administrador o un instructor,
+     * CU22), en lotes de {@value #LOTE_NOMBRES}. Los que Identidad no devuelve (de otra escuela, que no existen) no
+     * están en el mapa.
+     */
+    public Map<UUID, String> nombresDeEstudiantes(List<UUID> codigos, String bearer) {
+        Map<UUID, String> nombres = new HashMap<>();
+        List<UUID> sinRepetidos = codigos.stream().distinct().toList();
+        for (int desde = 0; desde < sinRepetidos.size(); desde += LOTE_NOMBRES) {
+            List<UUID> lote = sinRepetidos.subList(desde, Math.min(desde + LOTE_NOMBRES, sinRepetidos.size()));
+            SobreEstudiantes sobre;
+            try {
+                sobre = restClient.post().uri(RUTA_ESTUDIANTES)
+                    .header(HttpHeaders.AUTHORIZATION, bearer).contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("codigos", lote)).retrieve().body(SobreEstudiantes.class);
+            } catch (RestClientException e) {
+                LOG.warn("No se pudieron consultar los estudiantes en Identidad (tipo {})",
+                    e.getClass().getSimpleName(), kv("module", "examenes"));
+                throw new ServicioNoDisponibleException(AcademicoErrorCodes.SERVICIO_NO_DISPONIBLE,
+                    "No pudimos obtener los datos de los estudiantes. Inténtalo de nuevo más tarde.");
+            }
+            if (sobre == null || sobre.data() == null) {
+                LOG.warn("Identidad respondió los estudiantes sin los datos esperados", kv("module", "examenes"));
+                throw new ServicioNoDisponibleException(AcademicoErrorCodes.SERVICIO_NO_DISPONIBLE,
+                    "No pudimos obtener los datos de los estudiantes. Inténtalo de nuevo más tarde.");
+            }
+            for (DatosEstudiante e : sobre.data()) {
+                if (e.codigo() != null) {
+                    nombres.put(e.codigo(), ((e.nombres() == null ? "" : e.nombres()) + " "
+                        + (e.apellidos() == null ? "" : e.apellidos())).trim());
+                }
+            }
+        }
+        return nombres;
+    }
+
     private static ServicioNoDisponibleException noDisponible() {
         return new ServicioNoDisponibleException(AcademicoErrorCodes.SERVICIO_NO_DISPONIBLE, MENSAJE_NO_DISPONIBLE);
     }
@@ -95,5 +132,11 @@ public class IdentidadClient {
     }
 
     private record DatosNombre(UUID codigo, String nombreCompleto) {
+    }
+
+    private record SobreEstudiantes(List<DatosEstudiante> data) {
+    }
+
+    private record DatosEstudiante(UUID codigo, String nombres, String apellidos) {
     }
 }

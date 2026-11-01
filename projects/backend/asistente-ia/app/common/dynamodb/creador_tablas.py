@@ -29,4 +29,4 @@ def crear_tablas_faltantes(cliente) -> None:
                 TableName=nombre,
                 TimeToLiveSpecification={"AttributeName": definicion.atributo_ttl, "Enabled": True},
             )
-        logger.info("Tabla creada", extra={"module": "asistente-ia", "tabla": nombre})
+        logger.info("Tabla creada", extra={"modulo": "asistente-ia", "tabla": nombre})

@@ -79,20 +79,21 @@ export interface Campo {
   campo: string
   titulo: string
   tipo?:
-    | 'texto'
-    | 'email'
-    | 'password'
-    | 'fecha'
-    | 'telefono'
-    | 'numero'
-    | 'decimal'
-    | 'seleccion'
-    | 'ubicacion'
-    | 'imagen'
-    | 'archivo'
-    | 'lista'
-    | 'textarea'
-    | 'opciones'
+  | 'texto'
+  | 'email'
+  | 'password'
+  | 'fecha'
+  | 'telefono'
+  | 'numero'
+  | 'decimal'
+  | 'seleccion'
+  | 'ubicacion'
+  | 'imagen'
+  | 'archivo'
+  | 'lista'
+  | 'textarea'
+  | 'opciones'
+  | 'reglas'
   requerido?: boolean
   /**
    * `decimal`: cuántos decimales admite como máximo (2 por defecto; 0 = solo enteros). Se escribe con punto o
@@ -144,6 +145,7 @@ export interface Campo {
   porDefecto?: string
   /** `seleccion`: el valor elegido viaja como número (ej. una dificultad de 1 a 3). */
   numerico?: boolean
+  /** `reglas`: filas `{ tema, cantidad }` (de `min` a `max`, 1 y 10 por defecto); `maxTexto` es el largo del tema (80). Viaja como arreglo de `{ tema, cantidad }`. */
   /** `opciones`: largo máximo del texto de cada fila (200). El valor viaja como arreglo de `{ texto, correcta }`. */
   maxTexto?: number
   /**

@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "umbralConfianza": 0.6,
+  "luces": [
+    {
+      "codigo": "check_engine",
+      "nombre": "Revisión del motor (check engine)",
+      "severidad": "ADVERTENCIA",
+      "significado": "El computador del auto detectó una falla en el motor, el escape o el sistema de combustible.",
+      "queHacer": "Si está fija, puedes seguir con cuidado hasta un taller. Si parpadea, reduce la velocidad y detente cuanto antes: puede dañar el motor."
+    },
+    {
+      "codigo": "aceite",
+      "nombre": "Presión de aceite",
+      "severidad": "CRITICA",
+      "significado": "La presión del aceite del motor es baja o el nivel es insuficiente.",
+      "queHacer": "Detén el auto en un lugar seguro y apaga el motor. Revisa el nivel de aceite. No lo uses hasta resolverlo."
+    },
+    {
+      "codigo": "bateria",
+      "nombre": "Batería / carga",
+      "severidad": "ADVERTENCIA",
+      "significado": "El sistema de carga no está funcionando bien: el alternador o la batería tienen un problema.",
+      "queHacer": "Apaga lo que no necesites (aire, radio) y ve a un taller. El auto puede apagarse al agotarse la batería."
+    },
+    {
+      "codigo": "temperatura",
+      "nombre": "Temperatura del motor",
+      "severidad": "CRITICA",
+      "significado": "El motor se está sobrecalentando.",
+      "queHacer": "Detente de inmediato y apaga el motor. Espera a que se enfríe antes de abrir el radiador y revisa el refrigerante."
+    },
+    {
+      "codigo": "frenos",
+      "nombre": "Sistema de frenos",
+      "severidad": "CRITICA",
+      "significado": "Puede estar puesto el freno de mano, o el nivel de líquido de frenos es bajo o hay una falla en el sistema.",
+      "queHacer": "Suelta el freno de mano. Si sigue encendida, detente y no sigas conduciendo: revisa el líquido de frenos."
+    },
+    {
+      "codigo": "abs",
+      "nombre": "Frenos ABS",
+      "severidad": "ADVERTENCIA",
+      "significado": "El sistema antibloqueo de frenos (ABS) tiene una falla. El freno normal sigue funcionando.",
+      "queHacer": "Conduce con más cuidado y aumenta la distancia de frenado. Llévalo a revisar pronto."
+    },
+    {
+      "codigo": "airbag",
+      "nombre": "Airbag",
+      "severidad": "ADVERTENCIA",
+      "significado": "El sistema de bolsas de aire tiene una falla y podría no activarse en un choque.",
+      "queHacer": "Llévalo a un taller para revisarlo. Mientras tanto, usa siempre el cinturón de seguridad."
+    },
+    {
+      "codigo": "cinturon",
+      "nombre": "Cinturón de seguridad",
+      "severidad": "INFORMATIVA",
+      "significado": "Alguien en el auto no tiene puesto el cinturón de seguridad.",
+      "queHacer": "Abróchate el cinturón y pide a tus pasajeros que hagan lo mismo."
+    },
+    {
+      "codigo": "presion_neumaticos",
+      "nombre": "Presión de los neumáticos",
+      "severidad": "ADVERTENCIA",
+      "significado": "Uno o más neumáticos tienen baja presión.",
+      "queHacer": "Revisa y infla los neumáticos a la presión indicada por el fabricante en la próxima parada."
+    },
+    {
+      "codigo": "luces_altas",
+      "nombre": "Luces altas",
+      "severidad": "INFORMATIVA",
+      "significado": "Las luces altas están encendidas.",
+      "queHacer": "Apágalas cuando venga otro vehículo de frente o vayas detrás de otro para no encandilar."
+    },
+    {
+      "codigo": "direccion_asistida",
+      "nombre": "Dirección asistida",
+      "severidad": "ADVERTENCIA",
+      "significado": "Falla en la dirección asistida: el volante puede sentirse más duro.",
+      "queHacer": "Reduce la velocidad, conduce con cuidado y llévalo a revisar."
+    },
+    {
+      "codigo": "nivel_combustible",
+      "nombre": "Nivel bajo de combustible",
+      "severidad": "INFORMATIVA",
+      "significado": "Queda poco combustible en el tanque.",
+      "queHacer": "Carga combustible pronto para evitar quedarte sin él."
+    },
+    {
+      "codigo": "puerta_abierta",
+      "nombre": "Puerta o maletero abierto",
+      "severidad": "INFORMATIVA",
+      "significado": "Una puerta, el capó o el maletero no están bien cerrados.",
+      "queHacer": "Detente y ciérralos bien antes de seguir."
+    },
+    {
+      "codigo": "control_traccion",
+      "nombre": "Control de tracción / estabilidad",
+      "severidad": "INFORMATIVA",
+      "significado": "Si parpadea, el sistema está actuando por falta de agarre. Si está fija, el sistema está desactivado o falló.",
+      "queHacer": "Si parpadea, reduce la velocidad: el camino está resbaladizo. Si está fija, revisa que no la hayas desactivado."
+    },
+    {
+      "codigo": "liquido_limpiaparabrisas",
+      "nombre": "Líquido limpiaparabrisas",
+      "severidad": "INFORMATIVA",
+      "significado": "El nivel del líquido limpiaparabrisas es bajo.",
+      "queHacer": "Rellena el depósito cuando puedas."
+    },
+    {
+      "codigo": "precalentamiento",
+      "nombre": "Precalentamiento (diésel)",
+      "severidad": "INFORMATIVA",
+      "significado": "Las bujías de precalentamiento están calentando el motor diésel.",
+      "queHacer": "Espera a que se apague antes de arrancar el motor."
+    },
+    {
+      "codigo": "filtro_particulas",
+      "nombre": "Filtro de partículas (diésel)",
+      "severidad": "ADVERTENCIA",
+      "significado": "El filtro de partículas del escape está saturado.",
+      "queHacer": "Conduce unos minutos a velocidad constante y alta para regenerarlo. Si no se apaga, ve a un taller."
+    }
+  ]
+}

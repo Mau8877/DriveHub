@@ -35,6 +35,7 @@ import com.drivehub.identidad.domain.port.in.SesionEmitida;
 import com.drivehub.identidad.domain.port.out.AlmacenFotosPort;
 import com.drivehub.identidad.domain.port.out.EmisorTokenAccesoPort;
 import com.drivehub.identidad.domain.port.out.EscuelaConsultaPort;
+import com.drivehub.identidad.domain.port.out.EscuelaNoDisponibleException;
 import com.drivehub.identidad.domain.port.out.EscuelaRef;
 import com.drivehub.identidad.domain.port.out.GeneradorTokenOpacoPort;
 import com.drivehub.identidad.domain.port.out.PasswordHasherPort;
@@ -192,6 +193,18 @@ class IniciarSesionServiceTest {
 
         assertThat(servicio.iniciar(login(Dispositivo.WEB)).accessToken()).isEqualTo("jwt");
         verify(escuelaConsulta, never()).buscarPorCodigo(any());
+    }
+
+    @Test
+    void iniciar_siEscuelaNoResponde_lanzaErrIde24SinSumarIntentosNiAbrirSesion() {
+        cuentaExiste(cuenta(RolNombres.ADMIN_ESCUELA, ESCUELA, EstadoUsuario.ACTIVO, 0, null));
+        passwordCorrecta();
+        when(escuelaConsulta.buscarPorCodigo(ESCUELA)).thenThrow(new EscuelaNoDisponibleException());
+
+        esperaCodigo(login(Dispositivo.WEB), "ERR_IDE_24");
+
+        verify(usuarioRepository, never()).actualizar(any(Usuario.class));
+        verify(refreshTokenRepository, never()).guardar(any());
     }
 
     @Test

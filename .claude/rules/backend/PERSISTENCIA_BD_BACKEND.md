@@ -108,6 +108,11 @@ No se "corrige" a formato secuencial.
 - Hibernate corre con `ddl-auto=validate`: si el Model y la migración no
   coinciden, el servicio no arranca. Es intencional.
 - Una migración ya aplicada no se edita: el cambio va en una migración nueva.
+- **`spring.flyway.out-of-order=true`** en los tres servicios Postgres. Como la versión es la fecha, una
+  rama puede traer una migración con fecha anterior a otra que una base ya aplicó (pasa al mergear
+  ramas paralelas). Sin esta opción Flyway falla con «Detected resolved migration not applied to
+  database» y el servicio no arranca; con ella aplica la que falta. La contrapartida: una migración
+  nueva no puede depender del orden relativo con otra de fecha intermedia ya aplicada en otro entorno.
 
 ## MongoDB (Académico, Contenido)
 

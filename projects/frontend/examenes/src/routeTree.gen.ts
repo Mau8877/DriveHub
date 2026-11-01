@@ -10,33 +10,63 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConduccionRouteImport } from './routes/conduccion'
+import { Route as ResultadosRouteImport } from './routes/resultados'
+import { Route as SimulacrosRouteImport } from './routes/simulacros'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConduccionRoute = ConduccionRouteImport.update({
+  id: '/conduccion',
+  path: '/conduccion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultadosRoute = ResultadosRouteImport.update({
+  id: '/resultados',
+  path: '/resultados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SimulacrosRoute = SimulacrosRouteImport.update({
+  id: '/simulacros',
+  path: '/simulacros',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/conduccion': typeof ConduccionRoute
+  '/resultados': typeof ResultadosRoute
+  '/simulacros': typeof SimulacrosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/conduccion': typeof ConduccionRoute
+  '/resultados': typeof ResultadosRoute
+  '/simulacros': typeof SimulacrosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/conduccion': typeof ConduccionRoute
+  '/resultados': typeof ResultadosRoute
+  '/simulacros': typeof SimulacrosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/conduccion' | '/resultados' | '/simulacros'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/conduccion' | '/resultados' | '/simulacros'
+  id: '__root__' | '/' | '/conduccion' | '/resultados' | '/simulacros'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConduccionRoute: typeof ConduccionRoute
+  ResultadosRoute: typeof ResultadosRoute
+  SimulacrosRoute: typeof SimulacrosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +78,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conduccion': {
+      id: '/conduccion'
+      path: '/conduccion'
+      fullPath: '/conduccion'
+      preLoaderRoute: typeof ConduccionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resultados': {
+      id: '/resultados'
+      path: '/resultados'
+      fullPath: '/resultados'
+      preLoaderRoute: typeof ResultadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/simulacros': {
+      id: '/simulacros'
+      path: '/simulacros'
+      fullPath: '/simulacros'
+      preLoaderRoute: typeof SimulacrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConduccionRoute: ConduccionRoute,
+  ResultadosRoute: ResultadosRoute,
+  SimulacrosRoute: SimulacrosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
