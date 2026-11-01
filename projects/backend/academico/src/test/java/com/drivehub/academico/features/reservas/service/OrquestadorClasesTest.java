@@ -286,6 +286,39 @@ class OrquestadorClasesTest {
     }
 
     @Test
+    void losManejadoresDeCU15ConviveConElDeReservas_sinConflictoDeEstados() {
+        OrquestadorProperties propiedades = new OrquestadorProperties(60, 5, true, "0 * * * * *", 50);
+        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
+        ManejadorDeReserva deReservas = new ManejadorDeReserva(reservaRepository, franjaRepository, compensador,
+            propiedades, reloj);
+        ManejadorDeCancelacion deCancelacion = new ManejadorDeCancelacion(compensador);
+        ManejadorDeReprogramacion deReprogramacion = new ManejadorDeReprogramacion(reservaRepository,
+            franjaRepository, reloj);
+
+        OrquestadorClases con = new OrquestadorClases(List.of(deReservas, deCancelacion, deReprogramacion),
+            compensador, reservaRepository, servicio, propiedades, reloj);
+
+        assertThat(con.estadosTransitorios()).containsExactlyInAnyOrder(EstadoReserva.PENDIENTE_PAGO,
+            EstadoReserva.CANCELACION_PENDIENTE, EstadoReserva.REPROGRAMACION_PENDIENTE);
+    }
+
+    @Test
+    void unaReservaEnCancelacionPendiente_llegaAlManejadorDeCancelacionConElClienteQueSePasa() {
+        OrquestadorProperties propiedades = new OrquestadorProperties(60, 5, true, "0 * * * * *", 50);
+        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
+        OrquestadorClases con = new OrquestadorClases(List.of(new ManejadorDeCancelacion(compensador)), compensador,
+            reservaRepository, servicio, propiedades, reloj);
+        Reserva reserva = reserva(10, EstadoReserva.CANCELACION_PENDIENTE);
+        conLaFranja();
+
+        assertThat(con.resolver(reserva, delEstudiante)).isEqualTo(ResultadoOrquestacion.CANCELADA);
+
+        // * devolvió con el cliente del estudiante y no con el de servicio
+        verify(delEstudiante).devolver(eq(escuela), eq(estudiante), eq(reserva.getCodigoReserva()), anyString());
+        verifyNoInteractions(servicio);
+    }
+
+    @Test
     void dosManejadoresConElMismoEstado_hacenFallarElArranque() {
         ManejadorDeOperacion a = mock(ManejadorDeOperacion.class);
         ManejadorDeOperacion b = mock(ManejadorDeOperacion.class);

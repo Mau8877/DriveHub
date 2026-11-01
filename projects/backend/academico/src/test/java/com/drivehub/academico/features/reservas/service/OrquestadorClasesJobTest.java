@@ -53,7 +53,7 @@ class OrquestadorClasesJobTest {
     private OrquestadorClasesJob job(int lote, int minutosParaRetomar) {
         return new OrquestadorClasesJob(reservaRepository, orquestador,
             new OrquestadorProperties(60, 5, true, "0 * * * * *", lote),
-            new ReservasProperties(1, 10, minutosParaRetomar), reloj);
+            new ReservasProperties(1, 10, minutosParaRetomar, 12), reloj);
     }
 
     private static Reserva reserva() {
@@ -159,7 +159,7 @@ class OrquestadorClasesJobTest {
         .withBean(ReservaRepository.class, () -> org.mockito.Mockito.mock(ReservaRepository.class))
         .withBean(OrquestadorClases.class, () -> org.mockito.Mockito.mock(OrquestadorClases.class))
         .withBean(OrquestadorProperties.class, () -> new OrquestadorProperties(60, 5, true, "0 * * * * *", 50))
-        .withBean(ReservasProperties.class, () -> new ReservasProperties(1, 10, 2))
+        .withBean(ReservasProperties.class, () -> new ReservasProperties(1, 10, 2, 12))
         .withBean(Clock.class, Clock::systemUTC)
         .withUserConfiguration(OrquestadorClasesJob.class);
 

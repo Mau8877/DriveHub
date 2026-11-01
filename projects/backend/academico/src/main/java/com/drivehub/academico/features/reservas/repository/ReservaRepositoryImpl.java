@@ -33,20 +33,25 @@ public class ReservaRepositoryImpl implements ReservaRepositoryCustom {
     private final MongoTemplate mongoTemplate;
 
     @Override
-    public boolean existeSolape(UUID estudianteCodigo, LocalDate fecha, String horaInicio) {
-        Query consulta = Query.query(Criteria.where("estudianteCodigo").is(estudianteCodigo)
+    public boolean existeSolape(UUID estudianteCodigo, LocalDate fecha, String horaInicio,
+            UUID excluyendoReserva) {
+        Criteria criterio = Criteria.where("estudianteCodigo").is(estudianteCodigo)
             .and("fecha").is(fecha)
             .and("horaInicio").is(horaInicio)
-            .and("estado").in(EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CONFIRMADA)
-            .and("deletedAt").is(null));
-        return mongoTemplate.exists(consulta, Reserva.class);
+            .and("estado").in(EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CONFIRMADA,
+                EstadoReserva.REPROGRAMACION_PENDIENTE)
+            .and("deletedAt").is(null);
+        if (excluyendoReserva != null) {
+            criterio = criterio.and("codigoReserva").ne(excluyendoReserva);
+        }
+        return mongoTemplate.exists(Query.query(criterio), Reserva.class);
     }
 
     @Override
     public Page<Reserva> proximas(UUID estudianteCodigo, LocalDate hoy, String ahora, Pageable pageable) {
         Criteria criterio = new Criteria().andOperator(
             delEstudiante(estudianteCodigo),
-            Criteria.where("estado").is(EstadoReserva.CONFIRMADA),
+            Criteria.where("estado").in(EstadoReserva.CONFIRMADA, EstadoReserva.REPROGRAMACION_PENDIENTE),
             noTermino(hoy, ahora));
         return pagina(criterio, pageable, Sort.Direction.ASC);
     }
@@ -81,8 +86,8 @@ public class ReservaRepositoryImpl implements ReservaRepositoryCustom {
         Query consulta = Query.query(Criteria.where("estado").in(estados)
             .and("deletedAt").is(null)
             .and("requiereRevision").ne(true)
-            .and("createdAt").lt(anteriorA))
-            .with(Sort.by(Sort.Direction.ASC, "createdAt"))
+            .and("updatedAt").lt(anteriorA))
+            .with(Sort.by(Sort.Direction.ASC, "updatedAt"))
             .limit(limite);
         return mongoTemplate.find(consulta, Reserva.class);
     }
@@ -123,8 +128,69 @@ public class ReservaRepositoryImpl implements ReservaRepositoryCustom {
             .and("estudianteCodigo").is(estudianteCodigo)
             .and("estado").is(esperado)
             .and("deletedAt").is(null));
-        Update cambio = new Update().set("estado", nuevo).push("historialEstados",
+        Update cambio = new Update().set("estado", nuevo).set("updatedAt", ahora).push("historialEstados",
             new HistorialEstado(nuevo, ahora, motivo));
+        Reserva actualizada = mongoTemplate.findAndModify(consulta, cambio,
+            FindAndModifyOptions.options().returnNew(true), Reserva.class);
+        return Optional.ofNullable(actualizada);
+    }
+
+    @Override
+    public Optional<Reserva> iniciarReprogramacion(UUID codigoReserva, UUID estudianteCodigo, Long franjaDestinoId,
+            String motivo, Instant ahora) {
+        Query consulta = Query.query(Criteria.where("codigoReserva").is(codigoReserva)
+            .and("estudianteCodigo").is(estudianteCodigo)
+            .and("estado").is(EstadoReserva.CONFIRMADA)
+            .and("deletedAt").is(null));
+        Update cambio = new Update().set("estado", EstadoReserva.REPROGRAMACION_PENDIENTE)
+            .set("franjaDestinoId", franjaDestinoId).set("updatedAt", ahora)
+            .push("historialEstados", new HistorialEstado(EstadoReserva.REPROGRAMACION_PENDIENTE, ahora, motivo));
+        Reserva actualizada = mongoTemplate.findAndModify(consulta, cambio,
+            FindAndModifyOptions.options().returnNew(true), Reserva.class);
+        return Optional.ofNullable(actualizada);
+    }
+
+    @Override
+    public Optional<Reserva> completarReprogramacion(UUID codigoReserva, UUID estudianteCodigo, Long franjaId,
+            LocalDate fecha, String horaInicio, String horaFin, UUID instructorCodigo, Instant ahora) {
+        Query consulta = Query.query(Criteria.where("codigoReserva").is(codigoReserva)
+            .and("estudianteCodigo").is(estudianteCodigo)
+            .and("estado").is(EstadoReserva.REPROGRAMACION_PENDIENTE)
+            .and("deletedAt").is(null));
+        Update cambio = new Update().set("estado", EstadoReserva.CONFIRMADA)
+            .set("franjaId", franjaId).set("fecha", fecha).set("horaInicio", horaInicio).set("horaFin", horaFin)
+            .set("instructorCodigo", instructorCodigo).set("updatedAt", ahora).unset("franjaDestinoId")
+            .push("historialEstados", new HistorialEstado(EstadoReserva.CONFIRMADA, ahora, "Reprogramada"));
+        Reserva actualizada = mongoTemplate.findAndModify(consulta, cambio,
+            FindAndModifyOptions.options().returnNew(true), Reserva.class);
+        return Optional.ofNullable(actualizada);
+    }
+
+    @Override
+    public Optional<Reserva> revertirReprogramacion(UUID codigoReserva, UUID estudianteCodigo, String motivo,
+            Instant ahora) {
+        Query consulta = Query.query(Criteria.where("codigoReserva").is(codigoReserva)
+            .and("estudianteCodigo").is(estudianteCodigo)
+            .and("estado").is(EstadoReserva.REPROGRAMACION_PENDIENTE)
+            .and("deletedAt").is(null));
+        Update cambio = new Update().set("estado", EstadoReserva.CONFIRMADA).set("updatedAt", ahora)
+            .unset("franjaDestinoId")
+            .push("historialEstados", new HistorialEstado(EstadoReserva.CONFIRMADA, ahora, motivo));
+        Reserva actualizada = mongoTemplate.findAndModify(consulta, cambio,
+            FindAndModifyOptions.options().returnNew(true), Reserva.class);
+        return Optional.ofNullable(actualizada);
+    }
+
+    @Override
+    public Optional<Reserva> iniciarCancelacion(UUID codigoReserva, UUID estudianteCodigo, boolean sinDevolucion,
+            String motivo, Instant ahora) {
+        Query consulta = Query.query(Criteria.where("codigoReserva").is(codigoReserva)
+            .and("estudianteCodigo").is(estudianteCodigo)
+            .and("estado").is(EstadoReserva.CONFIRMADA)
+            .and("deletedAt").is(null));
+        Update cambio = new Update().set("estado", EstadoReserva.CANCELACION_PENDIENTE)
+            .set("sinDevolucion", sinDevolucion).set("updatedAt", ahora)
+            .push("historialEstados", new HistorialEstado(EstadoReserva.CANCELACION_PENDIENTE, ahora, motivo));
         Reserva actualizada = mongoTemplate.findAndModify(consulta, cambio,
             FindAndModifyOptions.options().returnNew(true), Reserva.class);
         return Optional.ofNullable(actualizada);

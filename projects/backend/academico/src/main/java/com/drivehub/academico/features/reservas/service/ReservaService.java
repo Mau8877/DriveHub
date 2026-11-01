@@ -28,6 +28,7 @@ import com.drivehub.academico.common.exception.AcademicoErrorCodes;
 import com.drivehub.academico.common.exception.BusinessException;
 import com.drivehub.academico.common.exception.ConflictException;
 import com.drivehub.academico.common.exception.ForbiddenException;
+import com.drivehub.academico.common.exception.NotFoundException;
 import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.common.exception.ValidationException;
 import com.drivehub.academico.config.ReservasProperties;
@@ -37,7 +38,9 @@ import com.drivehub.academico.features.reservas.client.ClienteDePagos;
 import com.drivehub.academico.features.reservas.client.ClientesDePagos;
 import com.drivehub.academico.features.reservas.client.IdentidadClient;
 import com.drivehub.academico.features.reservas.client.PagosClient;
+import com.drivehub.academico.features.reservas.dto.CancelacionResponse;
 import com.drivehub.academico.features.reservas.dto.FranjaRechazadaResponse;
+import com.drivehub.academico.features.reservas.dto.HoraDeCancelacion;
 import com.drivehub.academico.features.reservas.dto.ReservaResponse;
 import com.drivehub.academico.features.reservas.dto.ReservasResultadoResponse;
 import com.drivehub.academico.features.reservas.enums.EstadoReserva;
@@ -80,6 +83,8 @@ public class ReservaService {
     private final ClientesDePagos clientesDePagos;
     private final OrquestadorClases orquestador;
     private final IdentidadClient identidadClient;
+    private final PlazoDeClase plazo;
+    private final ManejadorDeReprogramacion reprogramaciones;
     private final ReservasProperties propiedades;
     private final Clock clock;
 
@@ -131,6 +136,135 @@ public class ReservaService {
         Map<UUID, String> nombres = instructores.isEmpty() ? Map.of()
             : identidadClient.nombresDeInstructores(instructores, bearer);
         return reservas.map(r -> aRespuesta(r, nombres, ahora));
+    }
+
+    // ------------------------------------------------------------------ cancelar y reprogramar (CU15)
+
+    /**
+     * Cancela una clase del estudiante. A tiempo (faltan las horas del plazo o más) la hora se devuelve; tarde, la
+     * cancelación se permite pero la hora se pierde. La franja siempre se libera.
+     *
+     * * La regla de plazo se decide ACÁ, antes de marcar la reserva `CANCELACION_PENDIENTE`: Pagos no sabe de plazos.
+     * * Después la termina el {@link ManejadorDeCancelacion} (el mismo que usa el proceso programado). Si Pagos no
+     * * responde la cancelación SE ACEPTA y la hora se devuelve sola cuando vuelva: la respuesta dice `EN_PROCESO`.
+     *
+     * @throws NotFoundException `ERR_ACA_32` si la reserva no existe o es de otro estudiante
+     * @throws ConflictException `ERR_ACA_33` si no está `CONFIRMADA`, ya empezó o otra petición la cambió antes
+     */
+    @PreAuthorize("hasRole('ESTUDIANTE')")
+    public CancelacionResponse cancelar(UUID estudianteCodigo, String bearer, UUID codigoReserva) {
+        Reserva reserva = buscarDelEstudiante(estudianteCodigo, codigoReserva);
+        if (reserva.getEstado() != EstadoReserva.CONFIRMADA || plazo.haEmpezado(reserva)) {
+            throw reservaNoModificable();
+        }
+        boolean sinDevolucion = !plazo.aTiempo(reserva);
+        Reserva marcada = reservaRepository.iniciarCancelacion(codigoReserva, estudianteCodigo, sinDevolucion,
+            ManejadorDeCancelacion.MOTIVO, clock.instant()).orElseThrow(ReservaService::reservaNoModificable);
+        if (sinDevolucion) {
+            LOG.warn("Cancelación tardía: la hora no se devuelve", kv("module", MODULO),
+                kv("estudianteCodigo", estudianteCodigo), kv("reservaCodigo", codigoReserva));
+        } else {
+            LOG.info("Cancelación pedida", kv("module", MODULO), kv("estudianteCodigo", estudianteCodigo),
+                kv("reservaCodigo", codigoReserva));
+        }
+
+        ResultadoOrquestacion resultado = terminarCancelacion(marcada, clientesDePagos.conBearer(bearer));
+        HoraDeCancelacion hora = resultado != ResultadoOrquestacion.CANCELADA ? HoraDeCancelacion.EN_PROCESO
+            : sinDevolucion ? HoraDeCancelacion.PERDIDA : HoraDeCancelacion.DEVUELTA;
+        Reserva actual = reservaRepository
+            .findByCodigoReservaAndEstudianteCodigoAndDeletedAtIsNull(codigoReserva, estudianteCodigo).orElse(marcada);
+        Integer saldo = hora == HoraDeCancelacion.EN_PROCESO ? null : saldoDe(bearer);
+        return new CancelacionResponse(respuestaConNombre(actual, bearer), hora, saldo);
+    }
+
+    /**
+     * Mueve una clase a otra franja libre de la escuela, sin tocar las horas. Sin límite de veces, pero solo a tiempo
+     * (el mismo plazo que cancelar con devolución).
+     *
+     * * Orden (decisión 8 de las UT): marcar `REPROGRAMACION_PENDIENTE` con el destino, apartar la franja nueva y
+     * * dejar que el {@link ManejadorDeReprogramacion} libere la anterior y mueva la reserva. Si la franja nueva ya
+     * * no está libre se vuelve atrás y la clase queda en la original.
+     *
+     * @throws NotFoundException `ERR_ACA_32`, ConflictException `ERR_ACA_33` o `ERR_ACA_34` (fuera de plazo)
+     * @throws ConflictException `ERR_ACA_18`, `ERR_ACA_10` o `ERR_ACA_20` por la franja elegida
+     * @throws ValidationException `ERR_SYS_01` si la franja elegida es en la que ya está la clase
+     */
+    @PreAuthorize("hasRole('ESTUDIANTE')")
+    public ReservaResponse reprogramar(UUID estudianteCodigo, UUID escuelaCodigo, String bearer, UUID codigoReserva,
+            UUID franjaCodigo) {
+        if (escuelaCodigo == null) {
+            throw new ForbiddenException(AcademicoErrorCodes.TOKEN_SIN_ESCUELA,
+                "Tu cuenta no pertenece a ninguna escuela");
+        }
+        Reserva reserva = buscarDelEstudiante(estudianteCodigo, codigoReserva);
+        if (reserva.getEstado() != EstadoReserva.CONFIRMADA || plazo.haEmpezado(reserva)) {
+            throw reservaNoModificable();
+        }
+        if (!plazo.aTiempo(reserva)) {
+            throw new ConflictException(AcademicoErrorCodes.RESERVA_FUERA_DE_PLAZO,
+                "Solo puedes reprogramar con al menos " + propiedades.horasParaCancelar() + " horas de anticipación");
+        }
+
+        Franja destino = franjaRepository
+            .findByCodigoFranjaAndEscuelaCodigoAndDeletedAtIsNull(franjaCodigo, escuelaCodigo)
+            .orElseThrow(ReservaService::franjaNoDisponible);
+        if (Objects.equals(destino.getId(), reserva.getFranjaId())) {
+            throw new ValidationException(AcademicoErrorCodes.VALIDACION, "Elige una franja distinta a la actual");
+        }
+        LocalDateTime ahora = LocalDateTime.now(clock);
+        validarQueNoEmpezo(destino, ahora);
+        if (reservaRepository.existeSolape(estudianteCodigo, destino.getFecha(), destino.getHoraInicio(),
+                codigoReserva)) {
+            throw new ConflictException(AcademicoErrorCodes.CLASE_SOLAPADA, "Ya tienes una clase reservada a esa hora");
+        }
+
+        Reserva iniciada = reservaRepository.iniciarReprogramacion(codigoReserva, estudianteCodigo, destino.getId(),
+            "Reprogramación pedida", clock.instant()).orElseThrow(ReservaService::reservaNoModificable);
+        if (franjaRepository.apartar(franjaCodigo, escuelaCodigo, iniciada.getId(), ahora.toLocalDate(),
+                ahora.toLocalTime().format(HORA)).isEmpty()) {
+            reservaRepository.revertirReprogramacion(codigoReserva, estudianteCodigo,
+                ManejadorDeReprogramacion.MOTIVO_REVERTIDA, clock.instant());
+            throw franjaNoDisponible();
+        }
+
+        reprogramaciones.terminar(iniciada);
+        LOG.info("Clase reprogramada", kv("module", MODULO), kv("estudianteCodigo", estudianteCodigo),
+            kv("reservaCodigo", codigoReserva), kv("franjaCodigo", franjaCodigo));
+        Reserva actual = reservaRepository
+            .findByCodigoReservaAndEstudianteCodigoAndDeletedAtIsNull(codigoReserva, estudianteCodigo)
+            .orElse(iniciada);
+        return respuestaConNombre(actual, bearer);
+    }
+
+    private Reserva buscarDelEstudiante(UUID estudianteCodigo, UUID codigoReserva) {
+        return reservaRepository.findByCodigoReservaAndEstudianteCodigoAndDeletedAtIsNull(codigoReserva,
+            estudianteCodigo).orElseThrow(() -> new NotFoundException(AcademicoErrorCodes.RESERVA_NO_ENCONTRADA,
+                "No encontramos esa clase"));
+    }
+
+    /**
+     * Termina la cancelación con el manejador. La cancelación ya está registrada: un fallo inesperado acá no la
+     * deshace, queda `CANCELACION_PENDIENTE` y el proceso programado la termina.
+     */
+    private ResultadoOrquestacion terminarCancelacion(Reserva marcada, ClienteDePagos cliente) {
+        try {
+            return orquestador.resolver(marcada, cliente);
+        } catch (RuntimeException e) {
+            LOG.warn("No se pudo terminar la cancelación: la retomará el sistema", kv("module", MODULO),
+                kv("reservaCodigo", marcada.getCodigoReserva()), kv("tipoError", e.getClass().getSimpleName()));
+            return ResultadoOrquestacion.PENDIENTE;
+        }
+    }
+
+    /** La reserva ya está hecha: si Identidad no responde el nombre del instructor se muestra como «Instructor». */
+    private ReservaResponse respuestaConNombre(Reserva reserva, String bearer) {
+        Map<UUID, String> nombres;
+        try {
+            nombres = identidadClient.nombresDeInstructores(List.of(reserva.getInstructorCodigo()), bearer);
+        } catch (ServicioNoDisponibleException e) {
+            nombres = Map.of();
+        }
+        return aRespuesta(reserva, nombres, LocalDateTime.now(clock));
     }
 
     // ------------------------------------------------------------------ reservas a medias
@@ -191,10 +325,7 @@ public class ReservaService {
         LocalDateTime ahora = LocalDateTime.now(clock);
         LocalDate hoy = ahora.toLocalDate();
         String horaActual = ahora.toLocalTime().format(HORA);
-        if (franja.getFecha().isBefore(hoy)
-                || (franja.getFecha().equals(hoy) && franja.getHoraInicio().compareTo(horaActual) <= 0)) {
-            throw new ConflictException(AcademicoErrorCodes.FRANJA_YA_EMPEZO, "La clase ya empezó");
-        }
+        validarQueNoEmpezo(franja, ahora);
 
         // * Repetir la confirmación de una franja que ya es del estudiante no hace nada y cuenta como reservada
         Optional<Reserva> yaSuya = reservaRepository.findByFranjaIdAndEstudianteCodigoAndEstadoAndDeletedAtIsNull(
@@ -256,8 +387,20 @@ public class ReservaService {
     }
 
     private ReservaResponse aRespuesta(Reserva reserva, Map<UUID, String> nombres, LocalDateTime ahora) {
+        boolean terminada = terminada(reserva, ahora);
+        boolean aTiempo = reserva.getEstado() == EstadoReserva.CONFIRMADA && !terminada && plazo.aTiempo(reserva);
         return ReservaResponse.de(reserva, nombres.getOrDefault(reserva.getInstructorCodigo(), NOMBRE_SIN_DATOS),
-            terminada(reserva, ahora));
+            terminada, aTiempo);
+    }
+
+    /** Una franja que ya empezó no se puede reservar ni elegir como destino de una reprogramación. */
+    private static void validarQueNoEmpezo(Franja franja, LocalDateTime ahora) {
+        LocalDate hoy = ahora.toLocalDate();
+        String horaActual = ahora.toLocalTime().format(HORA);
+        if (franja.getFecha().isBefore(hoy)
+                || (franja.getFecha().equals(hoy) && franja.getHoraInicio().compareTo(horaActual) <= 0)) {
+            throw new ConflictException(AcademicoErrorCodes.FRANJA_YA_EMPEZO, "La clase ya empezó");
+        }
     }
 
     /** La clase ya terminó: es de un día anterior a hoy, o de hoy con hora de fin que no es posterior a ahora. */
@@ -273,6 +416,11 @@ public class ReservaService {
         } catch (ServicioNoDisponibleException e) {
             return null;
         }
+    }
+
+    private static ConflictException reservaNoModificable() {
+        return new ConflictException(AcademicoErrorCodes.RESERVA_NO_MODIFICABLE,
+            "Esa clase ya no se puede cancelar ni reprogramar");
     }
 
     private static ConflictException franjaNoDisponible() {

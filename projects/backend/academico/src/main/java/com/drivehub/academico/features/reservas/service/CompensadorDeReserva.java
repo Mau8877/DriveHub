@@ -40,9 +40,26 @@ public class CompensadorDeReserva {
     private final FranjaRepository franjaRepository;
     private final Clock clock;
 
+    /** Deshace una reserva `PENDIENTE_PAGO` (CU14, CU44): devuelve la hora, libera la franja y la cancela. */
     public ResultadoOrquestacion deshacer(Reserva reserva, String motivo, ClienteDePagos cliente) {
+        return deshacer(reserva, EstadoReserva.PENDIENTE_PAGO, true, motivo, cliente);
+    }
+
+    /**
+     * Lo mismo para una reserva en cualquier estado de origen (CU15: una `CANCELACION_PENDIENTE`).
+     *
+     * * `devolverHora` falso es la cancelación tardía: la hora se pierde y NO se llama a Pagos; sin devolución
+     * * tampoco hace falta la franja para conocer la escuela, así que si no existe igual se cancela.
+     */
+    public ResultadoOrquestacion deshacer(Reserva reserva, EstadoReserva desde, boolean devolverHora, String motivo,
+            ClienteDePagos cliente) {
         Franja franja = franjaRepository.findById(reserva.getFranjaId()).orElse(null);
         if (franja == null) {
+            if (!devolverHora) {
+                reservaRepository.cambiarEstado(reserva.getCodigoReserva(), reserva.getEstudianteCodigo(), desde,
+                    EstadoReserva.CANCELADA, motivo, clock.instant());
+                return ResultadoOrquestacion.CANCELADA;
+            }
             // * Sin franja no se sabe la escuela de la billetera: queda para que la cuente como intento fallido
             LOG.warn("No se puede deshacer la reserva: su franja no existe", kv("module", MODULO),
                 kv("reservaCodigo", reserva.getCodigoReserva()));
@@ -50,7 +67,7 @@ public class CompensadorDeReserva {
         }
         boolean sigueApartada = franja.getEstado() == EstadoFranja.RESERVADA
             && Objects.equals(franja.getReservaId(), reserva.getId());
-        return deshacer(reserva, franja, sigueApartada, motivo, cliente);
+        return deshacer(reserva, franja, sigueApartada, desde, devolverHora, motivo, cliente);
     }
 
     /**
@@ -59,24 +76,26 @@ public class CompensadorDeReserva {
      */
     public ResultadoOrquestacion deshacerApartada(Reserva reserva, Franja franja, String motivo,
             ClienteDePagos cliente) {
-        return deshacer(reserva, franja, true, motivo, cliente);
+        return deshacer(reserva, franja, true, EstadoReserva.PENDIENTE_PAGO, true, motivo, cliente);
     }
 
-    private ResultadoOrquestacion deshacer(Reserva reserva, Franja franja, boolean sigueApartada, String motivo,
-            ClienteDePagos cliente) {
-        try {
-            cliente.devolver(franja.getEscuelaCodigo(), reserva.getEstudianteCodigo(), reserva.getCodigoReserva(),
-                OrquestadorClases.PREFIJO_CLAVE_DEVOLUCION + reserva.getCodigoReserva());
-        } catch (ServicioNoDisponibleException e) {
-            LOG.warn("No se pudo devolver la hora: Pagos no responde", kv("module", MODULO),
-                kv("reservaCodigo", reserva.getCodigoReserva()));
-            return ResultadoOrquestacion.PAGOS_NO_RESPONDE;
+    private ResultadoOrquestacion deshacer(Reserva reserva, Franja franja, boolean sigueApartada, EstadoReserva desde,
+            boolean devolverHora, String motivo, ClienteDePagos cliente) {
+        if (devolverHora) {
+            try {
+                cliente.devolver(franja.getEscuelaCodigo(), reserva.getEstudianteCodigo(),
+                    reserva.getCodigoReserva(), OrquestadorClases.PREFIJO_CLAVE_DEVOLUCION + reserva.getCodigoReserva());
+            } catch (ServicioNoDisponibleException e) {
+                LOG.warn("No se pudo devolver la hora: Pagos no responde", kv("module", MODULO),
+                    kv("reservaCodigo", reserva.getCodigoReserva()));
+                return ResultadoOrquestacion.PAGOS_NO_RESPONDE;
+            }
         }
         if (sigueApartada) {
             franjaRepository.liberar(franja.getCodigoFranja(), reserva.getId());
         }
-        reservaRepository.cambiarEstado(reserva.getCodigoReserva(), reserva.getEstudianteCodigo(),
-            EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CANCELADA, motivo, clock.instant());
+        reservaRepository.cambiarEstado(reserva.getCodigoReserva(), reserva.getEstudianteCodigo(), desde,
+            EstadoReserva.CANCELADA, motivo, clock.instant());
         return ResultadoOrquestacion.CANCELADA;
     }
 }

@@ -52,6 +52,11 @@ public final class AcademicoErrorCodes {
     public static final String INTENTO_NO_ENCONTRADO = "ERR_ACA_30";
     public static final String INTENTO_YA_FINALIZADO = "ERR_ACA_31";
 
+    // * CU15: cancelar o reprogramar clase
+    public static final String RESERVA_NO_ENCONTRADA = "ERR_ACA_32";
+    public static final String RESERVA_NO_MODIFICABLE = "ERR_ACA_33";
+    public static final String RESERVA_FUERA_DE_PLAZO = "ERR_ACA_34";
+
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public static final String VALIDACION = "ERR_SYS_01";
     public static final String SESION_INVALIDA = "ERR_SYS_04";

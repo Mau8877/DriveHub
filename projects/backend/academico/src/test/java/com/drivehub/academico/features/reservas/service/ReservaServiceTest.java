@@ -3,6 +3,7 @@ package com.drivehub.academico.features.reservas.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -38,6 +39,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.drivehub.academico.common.exception.AcademicoErrorCodes;
 import com.drivehub.academico.common.exception.BusinessException;
 import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.config.OrquestadorProperties;
@@ -52,6 +54,8 @@ import com.drivehub.academico.features.reservas.client.PagosClient;
 import com.drivehub.academico.features.reservas.client.PagosClient.ResultadoConsumo;
 import com.drivehub.academico.features.reservas.client.SinHorasException;
 import com.drivehub.academico.features.reservas.dto.FranjaRechazadaResponse;
+import com.drivehub.academico.features.reservas.dto.CancelacionResponse;
+import com.drivehub.academico.features.reservas.dto.HoraDeCancelacion;
 import com.drivehub.academico.features.reservas.dto.ReservaResponse;
 import com.drivehub.academico.features.reservas.dto.ReservasResultadoResponse;
 import com.drivehub.academico.features.reservas.enums.EstadoReserva;
@@ -87,6 +91,8 @@ class ReservaServiceTest {
     private final AtomicLong secuencia = new AtomicLong(100);
     private ReservaService service;
     private OrquestadorClases orquestador;
+    private PlazoDeClase plazo;
+    private ManejadorDeReprogramacion reprogramaciones;
 
     @BeforeEach
     void setUp() {
@@ -96,10 +102,14 @@ class ReservaServiceTest {
         CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
         ManejadorDeReserva manejador = new ManejadorDeReserva(reservaRepository, franjaRepository, compensador,
             orquestadorProps, reloj);
-        orquestador = new OrquestadorClases(List.of(manejador), compensador, reservaRepository, clienteDeServicio,
-            orquestadorProps, reloj);
+        reprogramaciones = new ManejadorDeReprogramacion(reservaRepository, franjaRepository, reloj);
+        orquestador = new OrquestadorClases(List.of(manejador, new ManejadorDeCancelacion(compensador),
+            reprogramaciones), compensador, reservaRepository, clienteDeServicio, orquestadorProps, reloj);
+        ReservasProperties propiedades = new ReservasProperties(1, 10, 2, 12);
+        plazo = new PlazoDeClase(propiedades, reloj);
         service = new ReservaService(reservaRepository, franjaRepository, pagosClient,
-            new ClientesDePagos(pagosClient), orquestador, identidadClient, new ReservasProperties(1, 10, 2), reloj);
+            new ClientesDePagos(pagosClient), orquestador, identidadClient, plazo, reprogramaciones, propiedades,
+            reloj);
         lenient().when(identidadClient.nombresDeInstructores(any(), eq(BEARER)))
             .thenReturn(Map.of(instructor, "Ivan Alfa"));
     }
@@ -676,8 +686,8 @@ class ReservaServiceTest {
     void reservar_laSagaLaHaceElOrquestador_elServicioNoDescuentaNiDevuelveDirecto() {
         OrquestadorClases delegado = org.mockito.Mockito.mock(OrquestadorClases.class);
         ReservaService conOrquestadorFalso = new ReservaService(reservaRepository, franjaRepository, pagosClient,
-            new ClientesDePagos(pagosClient), delegado, identidadClient, new ReservasProperties(1, 10, 2),
-            Clock.fixed(AHORA.atZone(ZONA).toInstant(), ZONA));
+            new ClientesDePagos(pagosClient), delegado, identidadClient, plazo, reprogramaciones,
+            new ReservasProperties(1, 10, 2, 12), Clock.fixed(AHORA.atZone(ZONA).toInstant(), ZONA));
         Franja franja = franjaReservable("10:00");
         seGuardanLasReservasConId();
         laFranjaSePuedeApartar(franja);
@@ -724,5 +734,433 @@ class ReservaServiceTest {
     void reservar_sinEscuelaEnElToken_lanzaErrAca16() {
         assertError(() -> service.reservar(estudiante, null, BEARER, List.of(UUID.randomUUID())), "ERR_ACA_16");
         verifyNoInteractions(reservaRepository, franjaRepository, pagosClient);
+    }
+
+    // ------------------------------------------------------------------ cancelar (CU15)
+
+    /** Una clase confirmada del estudiante, en la franja `RESERVADA` por ella. */
+    private Reserva claseConfirmada(LocalDate fecha, String inicio, String fin) {
+        Reserva reserva = reservaDe(fecha, inicio, fin, EstadoReserva.CONFIRMADA);
+        reserva.setId(secuencia.incrementAndGet());
+        laReservaSeVuelveALeer(reserva);
+        return reserva;
+    }
+
+    private Franja franjaApartadaPor(Reserva reserva) {
+        Franja franja = franja(reserva.getFecha(), reserva.getHoraInicio(), reserva.getHoraFin());
+        franja.setEstado(EstadoFranja.RESERVADA);
+        franja.setReservaId(reserva.getId());
+        lenient().when(franjaRepository.findById(reserva.getFranjaId())).thenReturn(Optional.of(franja));
+        return franja;
+    }
+
+    private void laCancelacionSeInicia(Reserva reserva) {
+        when(reservaRepository.iniciarCancelacion(eq(reserva.getCodigoReserva()), eq(estudiante), anyBoolean(),
+            anyString(), any())).thenAnswer(inv -> {
+                reserva.setEstado(EstadoReserva.CANCELACION_PENDIENTE);
+                ReflectionTestUtils.setField(reserva, "sinDevolucion", inv.getArgument(2));
+                return Optional.of(reserva);
+            });
+    }
+
+    private static void falla(Runnable accion, Class<? extends BusinessException> tipo, String codigo) {
+        assertThatThrownBy(accion::run).isInstanceOf(tipo).hasFieldOrPropertyWithValue("errorCode", codigo);
+    }
+
+    @Test
+    void cancelar_aTiempo_devuelveLaHora_liberaLaFranja_yLaClaseQuedaCancelada() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        Franja franja = franjaApartadaPor(reserva);
+        laCancelacionSeInicia(reserva);
+        when(pagosClient.saldo(BEARER)).thenReturn(5);
+
+        CancelacionResponse respuesta = service.cancelar(estudiante, BEARER, reserva.getCodigoReserva());
+
+        assertThat(respuesta.horaDevuelta()).isEqualTo(HoraDeCancelacion.DEVUELTA);
+        assertThat(respuesta.horasDisponibles()).isEqualTo(5);
+        assertThat(respuesta.reserva().estado()).isEqualTo(EstadoReserva.CANCELADA);
+        assertThat(respuesta.reserva().instructorNombre()).isEqualTo("Ivan Alfa");
+        verify(reservaRepository).iniciarCancelacion(eq(reserva.getCodigoReserva()), eq(estudiante), eq(false),
+            anyString(), any());
+        verify(pagosClient).devolver(BEARER, estudiante, reserva.getCodigoReserva(),
+            "devolucion-" + reserva.getCodigoReserva());
+        verify(franjaRepository).liberar(franja.getCodigoFranja(), reserva.getId());
+    }
+
+    @Test
+    void cancelar_tarde_liberaLaFranja_peroLaHoraSePierdeYNoSeLlamaAPagos() {
+        Reserva reserva = claseConfirmada(HOY, "15:00", "16:00");
+        Franja franja = franjaApartadaPor(reserva);
+        laCancelacionSeInicia(reserva);
+        when(pagosClient.saldo(BEARER)).thenReturn(3);
+
+        CancelacionResponse respuesta = service.cancelar(estudiante, BEARER, reserva.getCodigoReserva());
+
+        assertThat(respuesta.horaDevuelta()).isEqualTo(HoraDeCancelacion.PERDIDA);
+        assertThat(respuesta.horasDisponibles()).isEqualTo(3);
+        assertThat(respuesta.reserva().estado()).isEqualTo(EstadoReserva.CANCELADA);
+        verify(reservaRepository).iniciarCancelacion(eq(reserva.getCodigoReserva()), eq(estudiante), eq(true),
+            anyString(), any());
+        verify(pagosClient, never()).devolver(any(), any(), any(), anyString());
+        verify(franjaRepository).liberar(franja.getCodigoFranja(), reserva.getId());
+    }
+
+    @Test
+    void cancelar_justoEnElLimiteDeDoceHoras_cuentaComoATiempo() {
+        // * ahora 09:30, la clase es a las 21:30 = exactamente 12 h
+        Reserva reserva = claseConfirmada(HOY, "21:30", "22:30");
+        franjaApartadaPor(reserva);
+        laCancelacionSeInicia(reserva);
+        when(pagosClient.saldo(BEARER)).thenReturn(1);
+
+        assertThat(service.cancelar(estudiante, BEARER, reserva.getCodigoReserva()).horaDevuelta())
+            .isEqualTo(HoraDeCancelacion.DEVUELTA);
+    }
+
+    @Test
+    void cancelar_pagosNoResponde_laCancelacionSeAcepta_yLaHoraQuedaEnProceso() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        franjaApartadaPor(reserva);
+        laCancelacionSeInicia(reserva);
+        doThrow(new ServicioNoDisponibleException("ERR_ACA_17", "No")).when(pagosClient)
+            .devolver(any(), any(), any(), anyString());
+
+        CancelacionResponse respuesta = service.cancelar(estudiante, BEARER, reserva.getCodigoReserva());
+
+        assertThat(respuesta.horaDevuelta()).isEqualTo(HoraDeCancelacion.EN_PROCESO);
+        assertThat(respuesta.horasDisponibles()).isNull();
+        // * sigue CANCELACION_PENDIENTE (el cliente la ve cancelada) y la franja no se liberó todavía
+        assertThat(reserva.getEstado()).isEqualTo(EstadoReserva.CANCELACION_PENDIENTE);
+        assertThat(respuesta.reserva().estado()).isEqualTo(EstadoReserva.CANCELADA);
+        verify(franjaRepository, never()).liberar(any(), any());
+        verify(pagosClient, never()).saldo(any());
+    }
+
+    @Test
+    void cancelar_unFalloInesperadoAlTerminar_noDeshaceLaCancelacion() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        laCancelacionSeInicia(reserva);
+        when(franjaRepository.findById(reserva.getFranjaId())).thenThrow(new IllegalStateException("Mongo caído"));
+
+        CancelacionResponse respuesta = service.cancelar(estudiante, BEARER, reserva.getCodigoReserva());
+
+        assertThat(respuesta.horaDevuelta()).isEqualTo(HoraDeCancelacion.EN_PROCESO);
+        assertThat(reserva.getEstado()).isEqualTo(EstadoReserva.CANCELACION_PENDIENTE);
+    }
+
+    @Test
+    void cancelar_siLaLecturaDelSaldoFalla_lasHorasDisponiblesVienenNulas_yNadaSeDeshace() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        franjaApartadaPor(reserva);
+        laCancelacionSeInicia(reserva);
+        when(pagosClient.saldo(BEARER)).thenThrow(new ServicioNoDisponibleException("ERR_ACA_17", "No"));
+
+        CancelacionResponse respuesta = service.cancelar(estudiante, BEARER, reserva.getCodigoReserva());
+
+        assertThat(respuesta.horaDevuelta()).isEqualTo(HoraDeCancelacion.DEVUELTA);
+        assertThat(respuesta.horasDisponibles()).isNull();
+    }
+
+    @Test
+    void cancelar_siIdentidadNoResponde_elNombreSeMuestraComoInstructor() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        franjaApartadaPor(reserva);
+        laCancelacionSeInicia(reserva);
+        when(pagosClient.saldo(BEARER)).thenReturn(2);
+        when(identidadClient.nombresDeInstructores(any(), eq(BEARER)))
+            .thenThrow(new ServicioNoDisponibleException("ERR_ACA_17", "No"));
+
+        CancelacionResponse respuesta = service.cancelar(estudiante, BEARER, reserva.getCodigoReserva());
+
+        assertThat(respuesta.reserva().instructorNombre()).isEqualTo("Instructor");
+        assertThat(respuesta.horaDevuelta()).isEqualTo(HoraDeCancelacion.DEVUELTA);
+    }
+
+    @Test
+    void cancelar_unaReservaQueNoExisteOEsDeOtro_esERR_ACA_32() {
+        UUID codigo = UUID.randomUUID();
+        when(reservaRepository.findByCodigoReservaAndEstudianteCodigoAndDeletedAtIsNull(codigo, estudiante))
+            .thenReturn(Optional.empty());
+
+        falla(() -> service.cancelar(estudiante, BEARER, codigo), BusinessException.class,
+            AcademicoErrorCodes.RESERVA_NO_ENCONTRADA);
+
+        verify(reservaRepository, never()).iniciarCancelacion(any(), any(), anyBoolean(), anyString(), any());
+    }
+
+    @Test
+    void cancelar_unaReservaQueNoEstaConfirmada_esERR_ACA_33_ySinCambios() {
+        for (EstadoReserva estado : List.of(EstadoReserva.CANCELADA, EstadoReserva.COMPLETADA,
+                EstadoReserva.NO_ASISTIO, EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CANCELACION_PENDIENTE,
+                EstadoReserva.REPROGRAMACION_PENDIENTE)) {
+            Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+            reserva.setEstado(estado);
+
+            falla(() -> service.cancelar(estudiante, BEARER, reserva.getCodigoReserva()), BusinessException.class,
+                AcademicoErrorCodes.RESERVA_NO_MODIFICABLE);
+        }
+        verify(reservaRepository, never()).iniciarCancelacion(any(), any(), anyBoolean(), anyString(), any());
+        verifyNoInteractions(pagosClient);
+    }
+
+    @Test
+    void cancelar_unaClaseQueYaEmpezo_esERR_ACA_33() {
+        Reserva reserva = claseConfirmada(HOY, "08:00", "09:00");
+
+        falla(() -> service.cancelar(estudiante, BEARER, reserva.getCodigoReserva()), BusinessException.class,
+            AcademicoErrorCodes.RESERVA_NO_MODIFICABLE);
+
+        verify(reservaRepository, never()).iniciarCancelacion(any(), any(), anyBoolean(), anyString(), any());
+    }
+
+    @Test
+    void cancelar_siOtraPeticionLaCancelaPrimero_laSegundaRecibeERR_ACA_33() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        when(reservaRepository.iniciarCancelacion(eq(reserva.getCodigoReserva()), eq(estudiante), anyBoolean(),
+            anyString(), any())).thenReturn(Optional.empty());
+
+        falla(() -> service.cancelar(estudiante, BEARER, reserva.getCodigoReserva()), BusinessException.class,
+            AcademicoErrorCodes.RESERVA_NO_MODIFICABLE);
+
+        verifyNoInteractions(pagosClient);
+    }
+
+    // ------------------------------------------------------------------ reprogramar (CU15)
+
+    /** Las operaciones atómicas del repositorio, con el efecto que tendrían en Mongo. */
+    private void laReprogramacionSePuedeHacer(Reserva reserva, Franja destino) {
+        lenient().when(franjaRepository.findByCodigoFranjaAndEscuelaCodigoAndDeletedAtIsNull(
+            destino.getCodigoFranja(), escuela)).thenReturn(Optional.of(destino));
+        lenient().when(franjaRepository.findById(destino.getId())).thenReturn(Optional.of(destino));
+        lenient().when(reservaRepository.existeSolape(estudiante, destino.getFecha(), destino.getHoraInicio(),
+            reserva.getCodigoReserva())).thenReturn(false);
+        lenient().when(reservaRepository.iniciarReprogramacion(eq(reserva.getCodigoReserva()), eq(estudiante),
+            eq(destino.getId()), anyString(), any())).thenAnswer(inv -> {
+                reserva.setEstado(EstadoReserva.REPROGRAMACION_PENDIENTE);
+                ReflectionTestUtils.setField(reserva, "franjaDestinoId", destino.getId());
+                return Optional.of(reserva);
+            });
+        lenient().when(franjaRepository.apartar(eq(destino.getCodigoFranja()), eq(escuela), eq(reserva.getId()),
+            any(), anyString())).thenAnswer(inv -> {
+                destino.setEstado(EstadoFranja.RESERVADA);
+                destino.setReservaId(reserva.getId());
+                return Optional.of(destino);
+            });
+        lenient().when(reservaRepository.completarReprogramacion(eq(reserva.getCodigoReserva()), eq(estudiante),
+            eq(destino.getId()), any(), anyString(), anyString(), any(), any())).thenAnswer(inv -> {
+                reserva.setEstado(EstadoReserva.CONFIRMADA);
+                ReflectionTestUtils.setField(reserva, "franjaId", destino.getId());
+                ReflectionTestUtils.setField(reserva, "fecha", destino.getFecha());
+                ReflectionTestUtils.setField(reserva, "horaInicio", destino.getHoraInicio());
+                ReflectionTestUtils.setField(reserva, "horaFin", destino.getHoraFin());
+                ReflectionTestUtils.setField(reserva, "franjaDestinoId", null);
+                return Optional.of(reserva);
+            });
+    }
+
+    private Franja franjaDestino(LocalDate fecha, String inicio, String fin) {
+        Franja destino = franja(fecha, inicio, fin);
+        destino.setEstado(EstadoFranja.LIBRE);
+        return destino;
+    }
+
+    @Test
+    void reprogramar_mueveLaClaseALaFranjaNueva_liberaLaAnterior_yNoTocaPagos() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        Franja anterior = franjaApartadaPor(reserva);
+        Franja destino = franjaDestino(HOY.plusDays(2), "15:00", "16:00");
+        laReprogramacionSePuedeHacer(reserva, destino);
+
+        ReservaResponse respuesta = service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(),
+            destino.getCodigoFranja());
+
+        assertThat(respuesta.codigo()).isEqualTo(reserva.getCodigoReserva());
+        assertThat(respuesta.estado()).isEqualTo(EstadoReserva.CONFIRMADA);
+        assertThat(respuesta.fecha()).isEqualTo(HOY.plusDays(2));
+        assertThat(respuesta.horaInicio()).isEqualTo("15:00");
+        assertThat(respuesta.cancelacionATiempo()).isTrue();
+        verify(franjaRepository).liberar(anterior.getCodigoFranja(), reserva.getId());
+        verifyNoInteractions(pagosClient);
+    }
+
+    @Test
+    void reprogramar_sinLimiteDeVeces_unaClaseSePuedeMoverDosVeces() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        franjaApartadaPor(reserva);
+        Franja primera = franjaDestino(HOY.plusDays(2), "15:00", "16:00");
+        Franja segunda = franjaDestino(HOY.plusDays(3), "09:00", "10:00");
+        laReprogramacionSePuedeHacer(reserva, primera);
+        laReprogramacionSePuedeHacer(reserva, segunda);
+        lenient().when(franjaRepository.findById(primera.getId())).thenReturn(Optional.of(primera));
+
+        service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(), primera.getCodigoFranja());
+        ReservaResponse segunda2 = service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(),
+            segunda.getCodigoFranja());
+
+        assertThat(segunda2.fecha()).isEqualTo(HOY.plusDays(3));
+        assertThat(segunda2.horaInicio()).isEqualTo("09:00");
+    }
+
+    @Test
+    void reprogramar_laFranjaYaNoEstaLibre_vuelveAtras_ylaClaseQuedaEnLaOriginal() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        franjaApartadaPor(reserva);
+        Franja destino = franjaDestino(HOY.plusDays(2), "15:00", "16:00");
+        laReprogramacionSePuedeHacer(reserva, destino);
+        when(franjaRepository.apartar(eq(destino.getCodigoFranja()), eq(escuela), eq(reserva.getId()), any(),
+            anyString())).thenReturn(Optional.empty());
+
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(),
+            destino.getCodigoFranja()), BusinessException.class, AcademicoErrorCodes.FRANJA_NO_DISPONIBLE);
+
+        verify(reservaRepository).revertirReprogramacion(eq(reserva.getCodigoReserva()), eq(estudiante), anyString(),
+            any());
+        verify(franjaRepository, never()).liberar(any(), any());
+        verify(reservaRepository, never()).completarReprogramacion(any(), any(), any(), any(), any(), any(), any(),
+            any());
+    }
+
+    @Test
+    void reprogramar_conMenosDeDoceHoras_esERR_ACA_34_ySinCambios() {
+        Reserva reserva = claseConfirmada(HOY, "15:00", "16:00");
+        Franja destino = franjaDestino(HOY.plusDays(2), "15:00", "16:00");
+
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(),
+            destino.getCodigoFranja()), BusinessException.class, AcademicoErrorCodes.RESERVA_FUERA_DE_PLAZO);
+
+        verify(reservaRepository, never()).iniciarReprogramacion(any(), any(), any(), anyString(), any());
+    }
+
+    @Test
+    void reprogramar_unaReservaAjena_esERR_ACA_32() {
+        UUID codigo = UUID.randomUUID();
+        when(reservaRepository.findByCodigoReservaAndEstudianteCodigoAndDeletedAtIsNull(codigo, estudiante))
+            .thenReturn(Optional.empty());
+
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, codigo, UUID.randomUUID()),
+            BusinessException.class, AcademicoErrorCodes.RESERVA_NO_ENCONTRADA);
+    }
+
+    @Test
+    void reprogramar_unaReservaNoConfirmadaOYaEmpezada_esERR_ACA_33() {
+        Reserva cancelada = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        cancelada.setEstado(EstadoReserva.CANCELADA);
+        Reserva empezada = claseConfirmada(HOY, "08:00", "09:00");
+
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, cancelada.getCodigoReserva(), UUID.randomUUID()),
+            BusinessException.class, AcademicoErrorCodes.RESERVA_NO_MODIFICABLE);
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, empezada.getCodigoReserva(), UUID.randomUUID()),
+            BusinessException.class, AcademicoErrorCodes.RESERVA_NO_MODIFICABLE);
+    }
+
+    @Test
+    void reprogramar_aLaMismaFranjaEnLaQueYaEsta_esUnaValidacion() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        Franja actual = franjaDestino(HOY.plusDays(1), "10:00", "11:00");
+        actual.setId(reserva.getFranjaId());
+        when(franjaRepository.findByCodigoFranjaAndEscuelaCodigoAndDeletedAtIsNull(actual.getCodigoFranja(), escuela))
+            .thenReturn(Optional.of(actual));
+
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(),
+            actual.getCodigoFranja()), BusinessException.class, AcademicoErrorCodes.VALIDACION);
+    }
+
+    @Test
+    void reprogramar_aUnaFranjaQueNoExisteODeOtraEscuela_esERR_ACA_18() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        UUID desconocida = UUID.randomUUID();
+        when(franjaRepository.findByCodigoFranjaAndEscuelaCodigoAndDeletedAtIsNull(desconocida, escuela))
+            .thenReturn(Optional.empty());
+
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(), desconocida),
+            BusinessException.class, AcademicoErrorCodes.FRANJA_NO_DISPONIBLE);
+    }
+
+    @Test
+    void reprogramar_aUnaFranjaQueYaEmpezo_esERR_ACA_10() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        Franja destino = franjaDestino(HOY, "09:00", "10:00");
+        when(franjaRepository.findByCodigoFranjaAndEscuelaCodigoAndDeletedAtIsNull(destino.getCodigoFranja(), escuela))
+            .thenReturn(Optional.of(destino));
+
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(),
+            destino.getCodigoFranja()), BusinessException.class, AcademicoErrorCodes.FRANJA_YA_EMPEZO);
+    }
+
+    @Test
+    void reprogramar_aUnaHoraEnLaQueYaTieneOtraClase_esERR_ACA_20_yLaPropiaNoCuenta() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        Franja destino = franjaDestino(HOY.plusDays(2), "15:00", "16:00");
+        laReprogramacionSePuedeHacer(reserva, destino);
+        when(reservaRepository.existeSolape(estudiante, destino.getFecha(), "15:00", reserva.getCodigoReserva()))
+            .thenReturn(true);
+
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(),
+            destino.getCodigoFranja()), BusinessException.class, AcademicoErrorCodes.CLASE_SOLAPADA);
+
+        verify(reservaRepository, never()).iniciarReprogramacion(any(), any(), any(), anyString(), any());
+    }
+
+    @Test
+    void reprogramar_sinEscuelaEnElToken_esERR_ACA_16() {
+        falla(() -> service.reprogramar(estudiante, null, BEARER, UUID.randomUUID(), UUID.randomUUID()),
+            BusinessException.class, AcademicoErrorCodes.TOKEN_SIN_ESCUELA);
+    }
+
+    @Test
+    void reprogramar_siOtraPeticionCambioLaReserva_esERR_ACA_33() {
+        Reserva reserva = claseConfirmada(HOY.plusDays(1), "10:00", "11:00");
+        Franja destino = franjaDestino(HOY.plusDays(2), "15:00", "16:00");
+        laReprogramacionSePuedeHacer(reserva, destino);
+        when(reservaRepository.iniciarReprogramacion(eq(reserva.getCodigoReserva()), eq(estudiante),
+            eq(destino.getId()), anyString(), any())).thenReturn(Optional.empty());
+
+        falla(() -> service.reprogramar(estudiante, escuela, BEARER, reserva.getCodigoReserva(),
+            destino.getCodigoFranja()), BusinessException.class, AcademicoErrorCodes.RESERVA_NO_MODIFICABLE);
+
+        verify(franjaRepository, never()).apartar(any(), any(), any(), any(), anyString());
+    }
+
+    // ------------------------------------------------------------------ autorización (CU15)
+
+    @Test
+    void cancelarYReprogramar_soloLasPuedeHacerUnEstudiante() throws Exception {
+        // * un servicio sin Spring no ejecuta @PreAuthorize: se comprueba que la regla esté declarada
+        var cancelar = ReservaService.class.getMethod("cancelar", UUID.class, String.class, UUID.class);
+        var reprogramar = ReservaService.class.getMethod("reprogramar", UUID.class, UUID.class, String.class,
+            UUID.class, UUID.class);
+
+        for (var metodo : List.of(cancelar, reprogramar)) {
+            var regla = metodo.getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class);
+            assertThat(regla).as(metodo.getName()).isNotNull();
+            assertThat(regla.value()).isEqualTo("hasRole('ESTUDIANTE')");
+        }
+    }
+
+    // ------------------------------------------------------------------ lo que ve el cliente (CU15)
+
+    @Test
+    void listar_lasReservasConfirmadasDicenSiTodaviaEstanATiempo() {
+        Reserva lejana = reservaDe(HOY.plusDays(1), "10:00", "11:00", EstadoReserva.CONFIRMADA);
+        Reserva cercana = reservaDe(HOY, "15:00", "16:00", EstadoReserva.CONFIRMADA);
+        Reserva yTerminada = reservaDe(HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+        when(reservaRepository.proximas(any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(List.of(lejana, cercana, yTerminada), PageRequest.of(0, 20), 3));
+
+        Page<ReservaResponse> pagina = service.listar(estudiante, BEARER, "proximas", 1, 20);
+
+        assertThat(pagina.getContent()).extracting(ReservaResponse::cancelacionATiempo)
+            .containsExactly(true, false, false);
+    }
+
+    @Test
+    void listar_unaReservaCerradaNuncaEstaATiempo() {
+        Reserva cancelada = reservaDe(HOY.plusDays(1), "10:00", "11:00", EstadoReserva.CANCELADA);
+        when(reservaRepository.historial(any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(List.of(cancelada), PageRequest.of(0, 20), 1));
+
+        Page<ReservaResponse> pagina = service.listar(estudiante, BEARER, "historial", 1, 20);
+
+        assertThat(pagina.getContent()).singleElement().satisfies(r -> assertThat(r.cancelacionATiempo()).isFalse());
     }
 }

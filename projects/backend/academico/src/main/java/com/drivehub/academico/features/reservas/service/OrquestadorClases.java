@@ -164,7 +164,16 @@ public class OrquestadorClases {
      * * ! Pagos siempre devuelve lo que se le pide: las reglas de plazo de CU15 se deciden ANTES de llamar acá.
      */
     public ResultadoOrquestacion deshacerReserva(Reserva reserva, String motivo, ClienteDePagos cliente) {
-        ResultadoOrquestacion resultado = compensador.deshacer(reserva, motivo, cliente);
+        return deshacerReserva(reserva, EstadoReserva.PENDIENTE_PAGO, true, motivo, cliente);
+    }
+
+    /**
+     * Lo mismo para una reserva que sale de otro estado (CU15: una `CANCELACION_PENDIENTE`). Con `devolverHora`
+     * falso (cancelación tardía) no se llama a Pagos: la hora se pierde, la franja se libera y la reserva se cancela.
+     */
+    public ResultadoOrquestacion deshacerReserva(Reserva reserva, EstadoReserva desde, boolean devolverHora,
+            String motivo, ClienteDePagos cliente) {
+        ResultadoOrquestacion resultado = compensador.deshacer(reserva, desde, devolverHora, motivo, cliente);
         LOG.info("Reserva deshecha", kv("module", MODULO), kv("reservaCodigo", reserva.getCodigoReserva()),
             kv("resultado", resultado));
         return resultado;
