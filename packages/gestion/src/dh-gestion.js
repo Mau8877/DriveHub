@@ -534,7 +534,7 @@ export class DhGestion extends LitElement {
 
   /** El formulario abierto: el de crear, el de editar o el de la acción elegida. */
   _definicion() {
-    if (this._vista === 'accion') return this._accionForm.accion.formulario
+    if (this._vista === 'accion') return this._accionActiva.formulario
     return this._vista === 'crear' ? this.esquema.crear : this.esquema.editar
   }
 
@@ -997,7 +997,7 @@ export class DhGestion extends LitElement {
                   <div class="drawer-pie">
                     <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cancelar</button>
                     <button type="submit" class="boton" ?disabled=${this._enviando}>
-                      ${this._enviando ? 'Guardando…' : (definicion.etiquetaEnviar ?? (creando ? 'Crear' : enAccion ? 'Enviar' : 'Guardar'))}
+                      ${this._enviando ? 'Guardando…' : (definicion.etiquetaEnviar ?? (creando ? 'Crear' : accion ? 'Enviar' : 'Guardar'))}
                     </button>
                   </div>
                 </form>`}
