@@ -69,6 +69,12 @@ export const NAV_ITEMS: NavItem[] = [
         icono: 'clipboard',
         roles: [ROLES.ADMIN_ESCUELA],
       },
+      {
+        ruta: '/escuela/disponibilidad',
+        etiqueta: 'Disponibilidad',
+        icono: 'calendar',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
     ],
   },
   {
