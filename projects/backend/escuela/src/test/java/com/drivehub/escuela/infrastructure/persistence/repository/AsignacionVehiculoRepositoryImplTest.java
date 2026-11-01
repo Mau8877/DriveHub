@@ -171,4 +171,50 @@ class AsignacionVehiculoRepositoryImplTest extends PostgresIntegrationTestBase {
         assertThat(asignaciones.historial(otra, auto, 1, 20).total()).isZero();
         assertThat(asignaciones.cerrar(otra, auto, LocalDate.of(2026, 10, 2))).isEmpty();
     }
+
+    // ---------------------------------------------------------------- vigentesDeInstructores (CU11)
+
+    @Test
+    void vigentesDeInstructores_traeSoloLasVigentesDeEsosInstructoresDeEsaEscuela() {
+        UUID escuela = UUID.randomUUID();
+        UUID usuarioAna = UUID.randomUUID();
+        UUID usuarioLuis = UUID.randomUUID();
+        UUID usuarioOtro = UUID.randomUUID();
+        UUID ana = instructor(escuela, usuarioAna);
+        UUID luis = instructor(escuela, usuarioLuis);
+        UUID otro = instructor(escuela, usuarioOtro);
+        UUID autoDeAna = vehiculo(escuela, "B-" + placa());
+        UUID segundoDeAna = vehiculo(escuela, "A-" + placa());
+        UUID autoDeLuis = vehiculo(escuela, placa());
+        UUID autoDeOtro = vehiculo(escuela, placa());
+        UUID autoCerrado = vehiculo(escuela, placa());
+        asignaciones.abrir(escuela, nueva(autoDeAna, ana, LocalDate.of(2026, 10, 1)));
+        asignaciones.abrir(escuela, nueva(segundoDeAna, ana, LocalDate.of(2026, 10, 1)));
+        asignaciones.abrir(escuela, nueva(autoDeLuis, luis, LocalDate.of(2026, 10, 1)));
+        asignaciones.abrir(escuela, nueva(autoDeOtro, otro, LocalDate.of(2026, 10, 1)));
+        asignaciones.abrir(escuela, nueva(autoCerrado, luis, LocalDate.of(2026, 9, 1)));
+        asignaciones.cerrar(escuela, autoCerrado, LocalDate.of(2026, 9, 30));
+
+        List<AsignacionDeAuto> filas = asignaciones.vigentesDeInstructores(escuela, List.of(usuarioAna, usuarioLuis));
+
+        // * Un instructor con dos autos aparece dos veces; la cerrada y la del otro instructor no vienen
+        assertThat(filas).extracting(f -> f.vehiculo().getCodigo())
+            .containsExactlyInAnyOrder(autoDeAna, segundoDeAna, autoDeLuis);
+        assertThat(filas).extracting(AsignacionDeAuto::instructorUsuarioCodigo)
+            .containsExactlyInAnyOrder(usuarioAna, usuarioAna, usuarioLuis);
+        assertThat(filas).allSatisfy(f -> assertThat(f.vigente().getFechaFin()).isNull());
+        // * Ordenadas por placa
+        assertThat(filas).extracting(f -> f.vehiculo().getPlaca()).isSorted();
+    }
+
+    @Test
+    void vigentesDeInstructores_sinInstructoresODeOtraEscuela_devuelveVacio() {
+        UUID escuela = UUID.randomUUID();
+        UUID usuario = UUID.randomUUID();
+        asignaciones.abrir(escuela, nueva(vehiculo(escuela, placa()), instructor(escuela, usuario),
+            LocalDate.of(2026, 10, 1)));
+
+        assertThat(asignaciones.vigentesDeInstructores(escuela, List.of())).isEmpty();
+        assertThat(asignaciones.vigentesDeInstructores(UUID.randomUUID(), List.of(usuario))).isEmpty();
+    }
 }

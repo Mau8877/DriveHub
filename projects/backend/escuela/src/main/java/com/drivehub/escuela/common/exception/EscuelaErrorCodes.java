@@ -27,6 +27,7 @@ public final class EscuelaErrorCodes {
     public static final String VEHICULO_NO_DISPONIBLE = "ERR_ESC_17";
     public static final String INSTRUCTOR_NO_ACTIVO = "ERR_ESC_18";
     public static final String VEHICULO_SIN_ASIGNACION = "ERR_ESC_19";
+    public static final String HORARIOS_NO_DISPONIBLES = "ERR_ESC_20";
 
     // * Código transversal del sistema (ERR_SYS), igual en todos los servicios: validación de negocio
     // * que no cubren las anotaciones del DTO.

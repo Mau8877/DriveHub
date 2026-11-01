@@ -146,6 +146,23 @@ public class AsignacionVehiculoRepositoryImpl implements AsignacionVehiculoRepos
 
     @Override
     @Transactional(readOnly = true)
+    public List<AsignacionDeAuto> vigentesDeInstructores(UUID escuelaCodigo, Collection<UUID> instructorUsuarioCodigos) {
+        if (instructorUsuarioCodigos == null || instructorUsuarioCodigos.isEmpty()) {
+            return List.of();
+        }
+        List<Object[]> filas = entityManager.createQuery(
+            "select v, a, i from AsignacionVehiculoModel a join a.vehiculo v join a.instructor i"
+                + " where v.escuelaCodigo = :escuela and a.fechaFin is null and i.usuarioCodigo in :usuarios"
+                + " order by v.placa, v.id", Object[].class)
+            .setParameter("escuela", escuelaCodigo)
+            .setParameter("usuarios", instructorUsuarioCodigos)
+            .getResultList();
+        return filas.stream().map(fila -> new AsignacionDeAuto(aVehiculo((VehiculoModel) fila[0]),
+            aDominio((AsignacionVehiculoModel) fila[1]), ((InstructorModel) fila[2]).getUsuarioCodigo())).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Pagina<AsignacionHistorial> historial(UUID escuelaCodigo, UUID vehiculoCodigo, int pagina, int tamano) {
         Page<AsignacionVehiculoModel> resultado = jpaRepository.historial(
             escuelaCodigo, vehiculoCodigo, PageRequest.of(pagina - 1, tamano));

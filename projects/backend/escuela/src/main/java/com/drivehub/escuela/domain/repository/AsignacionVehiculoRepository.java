@@ -1,6 +1,8 @@
 package com.drivehub.escuela.domain.repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,6 +42,14 @@ public interface AsignacionVehiculoRepository {
      * @param pagina 1-indexada
      */
     Pagina<AsignacionDeAuto> listar(UUID escuelaCodigo, FiltroAsignaciones filtro, int pagina, int tamano);
+
+    /**
+     * Las asignaciones vigentes (sin fecha de fin) de esos instructores (CU11), con su auto, ordenadas por placa.
+     * Un instructor puede tener más de un auto. Una colección vacía devuelve vacío sin consultar.
+     *
+     * @param instructorUsuarioCodigos los `codigo_usuario` de Identidad de los instructores
+     */
+    List<AsignacionDeAuto> vigentesDeInstructores(UUID escuelaCodigo, Collection<UUID> instructorUsuarioCodigos);
 
     /** Las asignaciones del auto, de la más reciente a la más antigua. */
     Pagina<AsignacionHistorial> historial(UUID escuelaCodigo, UUID vehiculoCodigo, int pagina, int tamano);
