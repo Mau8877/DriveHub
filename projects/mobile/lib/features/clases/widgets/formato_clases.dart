@@ -30,6 +30,20 @@ String etiquetaDeEstado(Reserva reserva) {
   }
 }
 
+/// La clase ya empezó según [ahora] (la hora del teléfono): su fecha y su hora de inicio no son posteriores a ahora.
+/// Es solo para decidir qué acciones ofrecer; el servidor es quien manda (`ERR_ACA_33`).
+bool laClaseYaEmpezo(Reserva reserva, DateTime ahora) {
+  final partes = reserva.horaInicio.split(':');
+  final inicio = DateTime(
+    reserva.fecha.year,
+    reserva.fecha.month,
+    reserva.fecha.day,
+    int.parse(partes[0]),
+    int.parse(partes[1]),
+  );
+  return !inicio.isAfter(ahora);
+}
+
 /// El mensaje que se le muestra al estudiante cuando falla algo de sus clases: el del backend si es un error de
 /// negocio (ya viene en español), o uno genérico si es de red.
 String mensajeDeError(Object error) {

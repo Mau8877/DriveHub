@@ -3,13 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
 import 'package:mobile/features/clases/models/franja_disponible.dart';
 import 'package:mobile/features/clases/models/franja_rechazada.dart';
+import 'package:mobile/features/clases/models/hora_de_cancelacion.dart';
 import 'package:mobile/features/clases/models/instructor_disponible.dart';
 import 'package:mobile/features/clases/models/momento_dia.dart';
+import 'package:mobile/features/clases/models/reprogramar_request.dart';
 import 'package:mobile/features/clases/models/reserva.dart';
 import 'package:mobile/features/clases/models/reservar_franjas_request.dart';
 import 'package:mobile/features/clases/models/reservas_resultado.dart';
+import 'package:mobile/features/clases/models/resultado_cancelacion.dart';
 
-Map<String, dynamic> _reservaJson({String estado = 'CONFIRMADA', bool terminada = false}) => {
+Map<String, dynamic> _reservaJson({String estado = 'CONFIRMADA', bool terminada = false, bool? aTiempo}) => {
   'codigo': 'r1',
   'fecha': '2026-11-02',
   'horaInicio': '10:00',
@@ -18,6 +21,7 @@ Map<String, dynamic> _reservaJson({String estado = 'CONFIRMADA', bool terminada 
   'instructorNombre': 'Ivan Alfa',
   'estado': estado,
   'terminada': terminada,
+  'cancelacionATiempo': ?aTiempo,
 };
 
 void main() {
@@ -87,6 +91,48 @@ void main() {
     test('un estado desconocido no rompe la lista: se trata como confirmada', () {
       expect(Reserva.fromJson(_reservaJson(estado: 'ALGO_NUEVO')).estado, EstadoReserva.confirmada);
     });
+
+    test('lee si todavía está a tiempo de cancelar con devolución (CU15)', () {
+      expect(Reserva.fromJson(_reservaJson(aTiempo: true)).cancelacionATiempo, isTrue);
+      expect(Reserva.fromJson(_reservaJson(aTiempo: false)).cancelacionATiempo, isFalse);
+    });
+
+    test('un backend que no manda cancelacionATiempo se lee como falso: no ofrece reprogramar', () {
+      expect(Reserva.fromJson(_reservaJson()).cancelacionATiempo, isFalse);
+    });
+  });
+
+  group('ResultadoCancelacion', () {
+    Map<String, dynamic> json(String hora, Object? horas) => {
+      'reserva': _reservaJson(estado: 'CANCELADA'),
+      'horaDevuelta': hora,
+      'horasDisponibles': horas,
+    };
+
+    test('lee la clase cancelada, la hora devuelta y el saldo', () {
+      final resultado = ResultadoCancelacion.fromJson(json('DEVUELTA', 5));
+
+      expect(resultado.reserva.estado, EstadoReserva.cancelada);
+      expect(resultado.horaDevuelta, HoraDeCancelacion.devuelta);
+      expect(resultado.horasDisponibles, 5);
+    });
+
+    test('lee cada destino de la hora', () {
+      expect(ResultadoCancelacion.fromJson(json('PERDIDA', 3)).horaDevuelta, HoraDeCancelacion.perdida);
+      expect(ResultadoCancelacion.fromJson(json('EN_PROCESO', null)).horaDevuelta, HoraDeCancelacion.enProceso);
+    });
+
+    test('el saldo puede venir nulo cuando Pagos no respondió', () {
+      expect(ResultadoCancelacion.fromJson(json('EN_PROCESO', null)).horasDisponibles, isNull);
+    });
+
+    test('un valor desconocido se trata como en proceso: no promete ni niega la hora', () {
+      expect(HoraDeCancelacion.fromJson('ALGO_NUEVO'), HoraDeCancelacion.enProceso);
+    });
+  });
+
+  test('ReprogramarRequest manda solo la franja', () {
+    expect(const ReprogramarRequest(franjaCodigo: 'f9').toJson(), {'franjaCodigo': 'f9'});
   });
 
   group('ReservasResultado', () {

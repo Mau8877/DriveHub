@@ -17,6 +17,10 @@ class Reserva {
   /// (el instructor todavía no registró cómo fue, CU17).
   final bool terminada;
 
+  /// Faltan las horas del plazo o más para la clase (CU15): se puede cancelar con devolución de la hora y
+  /// reprogramar. Lo calcula el servidor con su reloj; un backend que no lo manda se lee como `false`.
+  final bool cancelacionATiempo;
+
   const Reserva({
     required this.codigo,
     required this.fecha,
@@ -26,6 +30,7 @@ class Reserva {
     required this.instructorNombre,
     required this.estado,
     required this.terminada,
+    this.cancelacionATiempo = false,
   });
 
   factory Reserva.fromJson(Map<String, dynamic> json) {
@@ -38,6 +43,7 @@ class Reserva {
       instructorNombre: json['instructorNombre'] as String,
       estado: EstadoReserva.fromJson(json['estado'] as String),
       terminada: json['terminada'] as bool,
+      cancelacionATiempo: json['cancelacionATiempo'] as bool? ?? false,
     );
   }
 }

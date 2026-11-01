@@ -6,8 +6,10 @@ import '../../horarios/models/fechas.dart';
 import '../models/franja_disponible.dart';
 import '../models/instructor_disponible.dart';
 import '../models/momento_dia.dart';
+import '../models/reprogramar_request.dart';
 import '../models/reserva.dart';
 import '../models/reservar_franjas_request.dart';
+import '../models/resultado_cancelacion.dart';
 import '../models/reservas_resultado.dart';
 import '../models/vista_reservas.dart';
 
@@ -80,6 +82,26 @@ class ClasesService {
         data: ReservarFranjasRequest(franjaCodigos: franjaCodigos).toJson(),
       );
       return ReservasResultado.fromJson(response.data!);
+    });
+  }
+
+  /// Cancela una clase (CU15). A tiempo se devuelve la hora; tarde, la cancelación se permite pero la hora se pierde;
+  /// si Pagos no responde, la cancelación se acepta y la hora se devuelve sola ([ResultadoCancelacion.horaDevuelta]).
+  Future<ResultadoCancelacion> cancelar(String codigoReserva) {
+    return _llamar(() async {
+      final response = await _dio.post<Map<String, dynamic>>('/reservas/$codigoReserva/cancelar');
+      return ResultadoCancelacion.fromJson(response.data!);
+    });
+  }
+
+  /// Mueve una clase a otra franja libre (CU15), sin tocar las horas. Devuelve la clase ya en la franja nueva.
+  Future<Reserva> reprogramar(String codigoReserva, String franjaCodigo) {
+    return _llamar(() async {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/reservas/$codigoReserva/reprogramar',
+        data: ReprogramarRequest(franjaCodigo: franjaCodigo).toJson(),
+      );
+      return Reserva.fromJson(response.data!);
     });
   }
 

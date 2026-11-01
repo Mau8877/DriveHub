@@ -5,10 +5,12 @@ import 'package:mobile/core/network/pagina.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
 import 'package:mobile/features/clases/models/franja_disponible.dart';
 import 'package:mobile/features/clases/models/franja_rechazada.dart';
+import 'package:mobile/features/clases/models/hora_de_cancelacion.dart';
 import 'package:mobile/features/clases/models/instructor_disponible.dart';
 import 'package:mobile/features/clases/models/momento_dia.dart';
 import 'package:mobile/features/clases/models/reserva.dart';
 import 'package:mobile/features/clases/models/reservas_resultado.dart';
+import 'package:mobile/features/clases/models/resultado_cancelacion.dart';
 import 'package:mobile/features/clases/models/vista_reservas.dart';
 import 'package:mobile/features/clases/providers/clases_service_provider.dart';
 import 'package:mobile/features/clases/services/clases_service.dart';
@@ -41,6 +43,7 @@ Reserva reservaDePrueba({
   String instructorNombre = 'Ivan Alfa',
   EstadoReserva estado = EstadoReserva.confirmada,
   bool terminada = false,
+  bool cancelacionATiempo = false,
 }) => Reserva(
   codigo: codigo,
   fecha: fecha ?? DateTime(2099, 11, 2),
@@ -50,6 +53,7 @@ Reserva reservaDePrueba({
   instructorNombre: instructorNombre,
   estado: estado,
   terminada: terminada,
+  cancelacionATiempo: cancelacionATiempo,
 );
 
 FranjaRechazada rechazadaDePrueba({
@@ -86,6 +90,15 @@ class ClasesServiceFalso extends ClasesService {
   Object? errorAlReservar;
   Future<void> Function()? antesDeReservar;
 
+  /// Lo que responde `cancelar`; por defecto, la hora se devuelve y quedan 4 h.
+  ResultadoCancelacion Function(String codigo)? alCancelar;
+  Object? errorAlCancelar;
+  Future<void> Function()? antesDeCancelar;
+  Object? errorAlReprogramar;
+  Future<void> Function()? antesDeReprogramar;
+
+  final List<String> cancelacionesPedidas = [];
+  final List<({String reserva, String franja})> reprogramacionesPedidas = [];
   final List<({DateTime? fecha, MomentoDia momento, String? instructor})> pedidosDeFranjas = [];
   final List<DateTime?> pedidosDeInstructores = [];
   final List<List<String>> reservasPedidas = [];
@@ -126,6 +139,30 @@ class ClasesServiceFalso extends ClasesService {
       rechazadas: const [],
       horasDisponibles: 0,
     );
+  }
+
+  @override
+  Future<ResultadoCancelacion> cancelar(String codigoReserva) async {
+    cancelacionesPedidas.add(codigoReserva);
+    await antesDeCancelar?.call();
+    final error = errorAlCancelar;
+    if (error != null) throw error;
+    final respuesta = alCancelar;
+    if (respuesta != null) return respuesta(codigoReserva);
+    return ResultadoCancelacion(
+      reserva: reservaDePrueba(codigo: codigoReserva, estado: EstadoReserva.cancelada),
+      horaDevuelta: HoraDeCancelacion.devuelta,
+      horasDisponibles: 4,
+    );
+  }
+
+  @override
+  Future<Reserva> reprogramar(String codigoReserva, String franjaCodigo) async {
+    reprogramacionesPedidas.add((reserva: codigoReserva, franja: franjaCodigo));
+    await antesDeReprogramar?.call();
+    final error = errorAlReprogramar;
+    if (error != null) throw error;
+    return reservaDePrueba(codigo: codigoReserva, cancelacionATiempo: true);
   }
 
   @override

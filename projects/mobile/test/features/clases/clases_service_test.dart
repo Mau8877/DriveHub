@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mobile/core/network/api_client.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
+import 'package:mobile/features/clases/models/hora_de_cancelacion.dart';
 import 'package:mobile/features/clases/models/momento_dia.dart';
 import 'package:mobile/features/clases/models/vista_reservas.dart';
 import 'package:mobile/features/clases/services/clases_service.dart';
@@ -166,6 +167,70 @@ void main() {
       await expectLater(
         servicio.reservar([]),
         throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_SYS_01')),
+      );
+    });
+  });
+
+  group('cancelar', () {
+    Map<String, dynamic> cancelacionJson(String hora, int? horas) => {
+      'reserva': {..._reservaJson(), 'estado': 'CANCELADA'},
+      'horaDevuelta': hora,
+      'horasDisponibles': horas,
+    };
+
+    test('manda la cancelación sin cuerpo y entrega cómo quedó la hora', () async {
+      final adaptador = responder(200, exito(cancelacionJson('DEVUELTA', 5)));
+
+      final resultado = await servicio.cancelar('r1');
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'POST');
+      expect(peticion.path, '/reservas/r1/cancelar');
+      expect(peticion.data, isNull);
+      expect(resultado.reserva.estado, EstadoReserva.cancelada);
+      expect(resultado.horaDevuelta, HoraDeCancelacion.devuelta);
+      expect(resultado.horasDisponibles, 5);
+    });
+
+    test('con la hora en proceso el saldo viene nulo', () async {
+      responder(200, exito(cancelacionJson('EN_PROCESO', null)));
+
+      final resultado = await servicio.cancelar('r1');
+
+      expect(resultado.horaDevuelta, HoraDeCancelacion.enProceso);
+      expect(resultado.horasDisponibles, isNull);
+    });
+
+    test('un error de negocio llega como ApiException con su código', () async {
+      responder(409, fallo('ERR_ACA_33', 'Esa clase ya no se puede cancelar'));
+
+      await expectLater(
+        servicio.cancelar('r1'),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_33')),
+      );
+    });
+  });
+
+  group('reprogramar', () {
+    test('manda la franja nueva y entrega la clase ya movida', () async {
+      final adaptador = responder(200, exito({..._reservaJson(), 'cancelacionATiempo': true}));
+
+      final reserva = await servicio.reprogramar('r1', 'f9');
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'POST');
+      expect(peticion.path, '/reservas/r1/reprogramar');
+      expect(peticion.data, {'franjaCodigo': 'f9'});
+      expect(reserva.codigo, 'r1');
+      expect(reserva.cancelacionATiempo, isTrue);
+    });
+
+    test('una franja que ya no está libre llega como ApiException con ERR_ACA_18', () async {
+      responder(409, fallo('ERR_ACA_18', 'La franja ya no está disponible'));
+
+      await expectLater(
+        servicio.reprogramar('r1', 'f9'),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_18')),
       );
     });
   });
