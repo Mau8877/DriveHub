@@ -146,7 +146,7 @@ Afectan cómo se usa `deshacerReserva` y los estados de cancelar y reprogramar; 
 | 09, 10, 11 y 15 (orquestador, manejadores, intentos, job y plantilla de extensión) | Hechas, con pruebas unitarias. La prueba de integración con MongoDB real de la UT 09 queda para la UT 12 |
 | 12 (punta a punta) | Pendiente: necesita Docker y `PAGOS_CREDENCIAL_ACADEMICO` en el `.env` |
 | 13 (documentación) | Hecha |
-| 16 (flujo en vivo de CU14 usa el orquestador) | **No se hizo**, a propósito: es opcional, cambia el constructor de `ReservaService` y por lo tanto sus tests de CU14. Queda como follow-up; el flujo en vivo sigue con su propia copia de la lógica y funciona igual |
+| 16 (flujo en vivo de CU14 usa el orquestador) | Hecha. `ReservaService` delega en `OrquestadorClases` (`completarReserva` al reservar, `resolver` al consultar las clases) con el Bearer del estudiante; ya no llama a `PagosClient.descontar/devolver`. Las claves `reserva-`/`devolucion-` viven en `OrquestadorClases`. Cambio visible: al consultar, una reserva a medias de 60 min o más se **deshace** (antes se confirmaba), igual que el proceso programado. Falta repetir el escenario 1 de la UT 12 por el flujo en vivo con el stack real |
 | 17 y 18 | Esperan a CU15 |
 
 ## Follow-ups (no se implementan en estas UT)
