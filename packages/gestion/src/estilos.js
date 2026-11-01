@@ -217,6 +217,11 @@ export const estilos = css`
     --dh-select-alto: 2.6rem;
     min-width: 11rem;
   }
+  /* Selector de fecha del filtro (<dh-fecha>) */
+  .filtro-fecha {
+    --dh-fecha-alto: 2.6rem;
+    width: 11rem;
+  }
   input:hover:not([readonly]) {
     border-color: color-mix(in srgb, var(--gris-medio) 55%, transparent);
   }

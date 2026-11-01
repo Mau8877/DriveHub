@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { registrarContextoShell } from '@drivehub/mf-contract'
 
 import './index.js'
+import { fechaDeHoy } from './reglas.js'
 
 const ESQUEMA = {
   recurso: 'escuelas',
@@ -2887,3 +2888,128 @@ describe('<dh-gestion> acciones con formulario y detalle en lista', () => {
     expect(texto()).toContain('Este auto todavía no tuvo instructor.')
   })
 })
+
+describe('<dh-gestion> filtro de fecha', () => {
+  let el
+
+  const FILTRO_FECHA = { clave: 'filter[fecha]', titulo: 'Día', tipo: 'fecha', porDefecto: 'hoy', desdeHoy: true, opciones: [] }
+  const hoy = () => fechaDeHoy()
+
+  async function montar(filtroFecha = FILTRO_FECHA, filas = [VIVA]) {
+    fetch.mockResolvedValueOnce(lista(filas))
+    el = document.createElement('dh-gestion')
+    document.body.append(el)
+    el.esquema = {
+      ...ESQUEMA,
+      filtros: [filtroFecha, ...ESQUEMA.filtros],
+      mensajes: { vacio: 'Todavía no hay escuelas.', sinResultados: 'Sin resultados.' },
+    }
+    await asentar(el)
+  }
+
+  const elegirFecha = async (valor) => {
+    el.shadowRoot
+      .querySelector('dh-fecha')
+      .dispatchEvent(new CustomEvent('dh-cambio', { detail: { valor }, bubbles: true, composed: true }))
+    await asentar(el)
+  }
+
+  beforeEach(() => {
+    registrarContextoShell({
+      apiBaseUrl: 'http://api.test/v1',
+      obtenerToken: () => 't',
+      navegar: () => {},
+      renovarSesion: async () => null,
+    })
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    el?.remove()
+    vi.unstubAllGlobals()
+    globalThis.__drivehubShell__ = undefined
+  })
+
+  it('se dibuja con el calendario propio (<dh-fecha>) y nunca con un input de fecha nativo', async () => {
+    await montar()
+
+    const fecha = el.shadowRoot.querySelector('dh-fecha.filtro-fecha')
+    expect(fecha).not.toBeNull()
+    expect(fecha.etiqueta).toBe('Día')
+    expect(el.shadowRoot.querySelector('input[type="date"]')).toBeNull()
+    // * Los demás filtros siguen dibujándose igual
+    expect(el.shadowRoot.querySelector('.segmentos')).not.toBeNull()
+  })
+
+  it('con porDefecto "hoy", la primera carga ya envía la fecha de hoy y el calendario la muestra', async () => {
+    await montar()
+
+    expect(fetch.mock.calls[0][0]).toBe(`http://api.test/v1/escuelas?page=1&pageSize=20&filter%5Bfecha%5D=${hoy()}`)
+    expect(el.shadowRoot.querySelector('dh-fecha').valor).toBe(hoy())
+  })
+
+  it('sin porDefecto, el filtro arranca vacío y no envía la fecha', async () => {
+    await montar({ clave: 'filter[fecha]', titulo: 'Día', tipo: 'fecha', opciones: [] })
+
+    expect(fetch.mock.calls[0][0]).toBe('http://api.test/v1/escuelas?page=1&pageSize=20')
+    expect(el.shadowRoot.querySelector('dh-fecha').valor).toBe('')
+  })
+
+  it('elegir otra fecha vuelve a cargar con esa fecha desde la página 1', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(lista([VIVA]))
+
+    await elegirFecha('2030-05-01')
+
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/escuelas?page=1&pageSize=20&filter%5Bfecha%5D=2030-05-01')
+  })
+
+  it('vaciar la fecha quita el parámetro', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(lista([VIVA]))
+
+    await elegirFecha('')
+
+    expect(fetch.mock.calls[1][0]).toBe('http://api.test/v1/escuelas?page=1&pageSize=20')
+  })
+
+  it('con desdeHoy, el calendario no deja elegir días anteriores a hoy; sin él, no limita', async () => {
+    await montar()
+    expect(el.shadowRoot.querySelector('dh-fecha').min).toBe(hoy())
+    el.remove()
+    fetch.mockReset()
+
+    await montar({ clave: 'filter[fecha]', titulo: 'Día', tipo: 'fecha', porDefecto: 'hoy', opciones: [] })
+    expect(el.shadowRoot.querySelector('dh-fecha').min).toBe('')
+  })
+
+  it('un filtro de opciones se combina con la fecha', async () => {
+    await montar()
+    fetch.mockResolvedValueOnce(lista([MUERTA]))
+
+    Array.from(el.shadowRoot.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Inactivas').click()
+    await asentar(el)
+
+    expect(fetch.mock.calls[1][0]).toBe(
+      `http://api.test/v1/escuelas?page=1&pageSize=20&filter%5Bfecha%5D=${hoy()}&filter%5Bestado%5D=INACTIVA`
+    )
+  })
+
+  it('la fecha de hoy por defecto no cuenta como filtro: sin datos muestra el mensaje de vacío, no el de sin resultados', async () => {
+    await montar(FILTRO_FECHA, [])
+
+    expect(el.shadowRoot.textContent).toContain('Todavía no hay escuelas.')
+    expect(el.shadowRoot.textContent).not.toContain('Sin resultados.')
+  })
+
+  it('una fecha elegida por la persona sí cuenta como filtro: sin datos muestra sin resultados', async () => {
+    await montar(FILTRO_FECHA, [VIVA])
+    fetch.mockResolvedValueOnce(lista([]))
+
+    await elegirFecha('2030-05-01')
+
+    expect(el.shadowRoot.textContent).toContain('Sin resultados.')
+  })
+})
+

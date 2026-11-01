@@ -51,8 +51,19 @@ export interface Filtro {
   /** Parámetro de la API, tal cual (ej. `filter[estado]`). */
   clave: string
   titulo: string
+  /**
+   * Sin `tipo`, el filtro ofrece `opciones` fijas (un control segmentado, o una lista si son más de 4).
+   * `'fecha'`: elige un día con el calendario propio (`<dh-fecha>`); el valor viaja como `yyyy-MM-dd` y vaciarlo
+   * quita el filtro.
+   */
+  tipo?: 'fecha'
+  /** `tipo: 'fecha'`: `'hoy'` hace que el filtro arranque con la fecha de hoy, ya aplicada en la primera carga. */
+  porDefecto?: 'hoy'
+  /** `tipo: 'fecha'`: el calendario no deja elegir días anteriores a hoy. */
+  desdeHoy?: boolean
   /** Texto de la opción que quita el filtro (por defecto `Todas`). */
   todas?: string
+  /** Las opciones del filtro. Un filtro `tipo: 'fecha'` no las usa: va `opciones: []`. */
   opciones: { valor: string; etiqueta: string }[]
 }
 

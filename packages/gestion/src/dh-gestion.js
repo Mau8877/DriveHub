@@ -246,7 +246,7 @@ export class DhGestion extends LitElement {
     this._aviso = null
     this._pagina = 1
     this._busqueda = ''
-    this._filtros = {}
+    this._filtros = this._filtrosPorDefecto()
     this._confirmando = null
     this._trabajando = null
     this._valores = {}
@@ -344,8 +344,19 @@ export class DhGestion extends LitElement {
     this._cargar()
   }
 
+  /** Los filtros que arrancan aplicados: un filtro `tipo: 'fecha'` con `porDefecto: 'hoy'` empieza en la fecha de hoy. */
+  _filtrosPorDefecto() {
+    const filtros = {}
+    for (const filtro of this.esquema?.filtros ?? []) {
+      if (filtro.tipo === 'fecha' && filtro.porDefecto === 'hoy') filtros[filtro.clave] = fechaDeHoy()
+    }
+    return filtros
+  }
+
+  // * Un filtro que sigue en su valor por defecto (la fecha de hoy) no cuenta como filtro puesto por la persona
   _hayFiltros() {
-    return this._busqueda.trim() !== '' || Object.keys(this._filtros).length > 0
+    const porDefecto = this._filtrosPorDefecto()
+    return this._busqueda.trim() !== '' || Object.entries(this._filtros).some(([clave, valor]) => porDefecto[clave] !== valor)
   }
 
   // ------------------------------------------------------------------ acciones por fila
@@ -760,18 +771,29 @@ export class DhGestion extends LitElement {
 
   _renderFiltro(filtro) {
     const actual = this._filtros[filtro.clave] ?? ''
+    // * Un día: el calendario propio (<dh-fecha>), no el <input type="date"> nativo (UI_FRONTEND.md)
+    if (filtro.tipo === 'fecha') {
+      return html`<dh-fecha
+        class="filtro-fecha"
+        .etiqueta=${filtro.titulo}
+        .valor=${actual}
+        .min=${filtro.desdeHoy ? fechaDeHoy() : ''}
+        @dh-cambio=${(e) => this._alFiltrar(filtro.clave, e.detail.valor)}
+      ></dh-fecha>`
+    }
     // * Pocas opciones: control segmentado (como el diseño). Muchas: lista desplegable
-    if (filtro.opciones.length > 4) {
+    const opcionesDelFiltro = filtro.opciones ?? []
+    if (opcionesDelFiltro.length > 4) {
       return html`<dh-select
         class="filtro-lista"
         .etiqueta=${filtro.titulo}
         .valor=${actual}
         .placeholder=${`${filtro.titulo}: todos`}
-        .opciones=${filtro.opciones}
+        .opciones=${opcionesDelFiltro}
         @dh-cambio=${(e) => this._alFiltrar(filtro.clave, e.detail.valor)}
       ></dh-select>`
     }
-    const opciones = [{ valor: '', etiqueta: filtro.todas ?? 'Todas' }, ...filtro.opciones]
+    const opciones = [{ valor: '', etiqueta: filtro.todas ?? 'Todas' }, ...opcionesDelFiltro]
     return html`<div class="segmentos" role="group" aria-label=${filtro.titulo}>
       ${opciones.map(
       (o) => html`<button
