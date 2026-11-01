@@ -42,6 +42,15 @@ export const routes: Routes = [
             (m) => m.AsignacionAutosGestion
           ),
       },
+      // * CU11: dentro del shell es /escuela/disponibilidad. Una sola ruta: <dh-gestion> maneja por dentro el
+      // * listado y los filtros (día, momento del día, disponibilidad y autos).
+      {
+        path: 'disponibilidad',
+        loadComponent: () =>
+          import('./features/disponibilidad/screens/disponibilidad-gestion').then(
+            (m) => m.DisponibilidadGestion
+          ),
+      },
       // * CU09: dentro del shell es /escuela/instructores. Una sola ruta, igual que estudiantes.
       {
         path: 'instructores',
