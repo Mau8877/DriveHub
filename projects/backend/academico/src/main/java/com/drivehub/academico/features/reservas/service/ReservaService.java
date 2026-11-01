@@ -31,31 +31,34 @@ import com.drivehub.academico.common.exception.ForbiddenException;
 import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.common.exception.ValidationException;
 import com.drivehub.academico.config.ReservasProperties;
-import com.drivehub.academico.features.horarios.enums.EstadoFranja;
 import com.drivehub.academico.features.horarios.model.Franja;
 import com.drivehub.academico.features.horarios.repository.FranjaRepository;
+import com.drivehub.academico.features.reservas.client.ClienteDePagos;
+import com.drivehub.academico.features.reservas.client.ClientesDePagos;
 import com.drivehub.academico.features.reservas.client.IdentidadClient;
 import com.drivehub.academico.features.reservas.client.PagosClient;
-import com.drivehub.academico.features.reservas.client.SinHorasException;
 import com.drivehub.academico.features.reservas.dto.FranjaRechazadaResponse;
 import com.drivehub.academico.features.reservas.dto.ReservaResponse;
 import com.drivehub.academico.features.reservas.dto.ReservasResultadoResponse;
 import com.drivehub.academico.features.reservas.enums.EstadoReserva;
 import com.drivehub.academico.features.reservas.model.Reserva;
 import com.drivehub.academico.features.reservas.repository.ReservaRepository;
+import com.drivehub.academico.features.reservas.service.OrquestadorClases.ReservaCompletada;
+import com.drivehub.academico.features.reservas.service.OrquestadorClases.ResultadoReserva;
 
 import lombok.RequiredArgsConstructor;
 
 /**
  * Las reservas del estudiante (CU14): confirmar varias franjas gastando una hora de la billetera por cada una.
  *
- * * Es una saga simple coordinada por Académico, franja por franja: (1) crear la reserva `PENDIENTE_PAGO`, (2) apartar
- * * la franja (`LIBRE` a `RESERVADA`, atómico), (3) descontar la hora en Pagos con una clave propia de la reserva,
- * * (4) pasar la reserva a `CONFIRMADA`. Si (3) falla se compensa: la franja vuelve a `LIBRE` y la reserva se cancela.
- * * La reserva es el registro del estado de la saga; no hay orquestador aparte.
+ * * Es una saga coordinada por Académico, franja por franja: (1) crear la reserva `PENDIENTE_PAGO`, (2) apartar
+ * * la franja (`LIBRE` a `RESERVADA`, atómico), (3) y (4) descontar la hora y confirmar o compensar, que hace
+ * * {@link OrquestadorClases} (CU44), el mismo que usa el proceso programado.
+ * * La reserva es el registro del estado de la saga.
  * * Cada franja se procesa por separado: una que falla no frena a las demás, y se informa con su motivo.
  * * No hay transacciones entre documentos ni entre servicios: cada paso es repetible. Lo que queda a medias por
- * * una caída (la reserva sigue `PENDIENTE_PAGO`) se retoma cuando el estudiante consulta sus clases.
+ * * una caída (la reserva sigue `PENDIENTE_PAGO`) lo retoma el orquestador al consultar sus clases o el proceso
+ * * programado.
  * * La clase (CU17) se crea después a partir de la reserva: por eso el código de la reserva es el `claseCodigo` de
  * * la billetera, y CU15 devolverá la hora con ese mismo código.
  * ! No se loguean tokens ni datos de pago; solo códigos.
@@ -64,8 +67,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ReservaService {
 
-    static final String PREFIJO_CLAVE_DESCUENTO = "reserva-";
-    static final String PREFIJO_CLAVE_DEVOLUCION = "devolucion-";
     static final String NOMBRE_SIN_DATOS = "Instructor";
     static final int PAGE_SIZE_MAXIMO = 100;
 
@@ -76,6 +77,8 @@ public class ReservaService {
     private final ReservaRepository reservaRepository;
     private final FranjaRepository franjaRepository;
     private final PagosClient pagosClient;
+    private final ClientesDePagos clientesDePagos;
+    private final OrquestadorClases orquestador;
     private final IdentidadClient identidadClient;
     private final ReservasProperties propiedades;
     private final Clock clock;
@@ -136,52 +139,22 @@ public class ReservaService {
      * Retoma las reservas `PENDIENTE_PAGO` de este estudiante que llevan más de `minutosParaRetomar` así: la franja
      * se apartó pero la confirmación no terminó (corte de red, caída del servicio).
      *
-     * * Repite el descuento con la MISMA clave de la reserva: si Pagos ya había descontado devuelve el resultado
-     * * anterior (no cobra dos veces); si no, descuenta ahora. Con el descuento hecho, la reserva queda `CONFIRMADA`.
-     * * Sin horas, se libera la franja y se cancela. Si Pagos no responde no se toca nada: se reintenta la próxima vez.
-     * * No es un job porque descontar y devolver exigen el token del estudiante, que un proceso periódico no tiene.
+     * * Es la misma resolución que hace el proceso programado (CU44): `OrquestadorClases.resolver`, pero con el
+     * * Bearer del estudiante. Completa si es reciente, deshace si es vieja o si la franja ya no es suya.
+     * * Si Pagos no responde no se toca nada: se reintenta la próxima vez.
      * * Un fallo retomando una reserva nunca hace fallar el listado ni frena a las demás.
      */
     private void retomarPendientes(UUID estudianteCodigo, String bearer) {
         Instant limite = clock.instant().minus(Duration.ofMinutes(propiedades.minutosParaRetomar()));
+        ClienteDePagos cliente = clientesDePagos.conBearer(bearer);
         for (Reserva pendiente : reservaRepository.pendientesDeEstudiante(estudianteCodigo, limite)) {
             try {
-                retomar(pendiente, estudianteCodigo, bearer);
+                orquestador.resolver(pendiente, cliente);
             } catch (RuntimeException e) {
                 LOG.warn("No se pudo retomar una reserva a medias", kv("module", MODULO),
                     kv("reservaCodigo", pendiente.getCodigoReserva()), kv("tipoError", e.getClass().getSimpleName()));
             }
         }
-    }
-
-    private void retomar(Reserva reserva, UUID estudianteCodigo, String bearer) {
-        Franja franja = franjaRepository.findById(reserva.getFranjaId()).orElse(null);
-        boolean sigueApartada = franja != null && franja.getEstado() == EstadoFranja.RESERVADA
-            && Objects.equals(franja.getReservaId(), reserva.getId());
-        if (!sigueApartada) {
-            // * Alguien liberó la franja: la clase ya no existe. Si la hora llegó a descontarse, se devuelve.
-            pagosClient.devolver(bearer, estudianteCodigo, reserva.getCodigoReserva(),
-                PREFIJO_CLAVE_DEVOLUCION + reserva.getCodigoReserva());
-            reservaRepository.cambiarEstado(reserva.getCodigoReserva(), estudianteCodigo,
-                EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CANCELADA, "La franja ya no estaba apartada",
-                clock.instant());
-            LOG.info("Reserva a medias cancelada: la franja ya no estaba apartada", kv("module", MODULO),
-                kv("reservaCodigo", reserva.getCodigoReserva()));
-            return;
-        }
-        try {
-            pagosClient.descontar(bearer, estudianteCodigo, reserva.getInstructorCodigo(),
-                reserva.getCodigoReserva(), reserva.getHorasCobradas(),
-                PREFIJO_CLAVE_DESCUENTO + reserva.getCodigoReserva());
-        } catch (SinHorasException e) {
-            cancelar(reserva, franja.getCodigoFranja(), estudianteCodigo, "Sin horas suficientes");
-            LOG.info("Reserva a medias cancelada: sin horas", kv("module", MODULO),
-                kv("reservaCodigo", reserva.getCodigoReserva()));
-            return;
-        }
-        reservaRepository.cambiarEstado(reserva.getCodigoReserva(), estudianteCodigo, EstadoReserva.PENDIENTE_PAGO,
-            EstadoReserva.CONFIRMADA, "Reserva retomada", clock.instant());
-        LOG.info("Reserva a medias confirmada", kv("module", MODULO), kv("reservaCodigo", reserva.getCodigoReserva()));
     }
 
     private ReservasResultado procesarFranjas(UUID estudianteCodigo, UUID escuelaCodigo, String bearer,
@@ -243,50 +216,12 @@ public class ReservaService {
             throw franjaNoDisponible();
         }
 
-        try {
-            pagosClient.descontar(bearer, estudianteCodigo, franja.getInstructorCodigo(), reserva.getCodigoReserva(),
-                propiedades.horasPorClase(), PREFIJO_CLAVE_DESCUENTO + reserva.getCodigoReserva());
-        } catch (SinHorasException e) {
-            cancelar(reserva, franjaCodigo, estudianteCodigo, "Sin horas suficientes");
+        // * La saga es del orquestador: Pagos no responde sale como ServicioNoDisponibleException (ERR_ACA_17)
+        ReservaCompletada completada = orquestador.completarReserva(reserva, franja, clientesDePagos.conBearer(bearer));
+        if (completada.resultado() == ResultadoReserva.SIN_HORAS) {
             throw new ConflictException(AcademicoErrorCodes.HORAS_INSUFICIENTES, "No tienes horas suficientes");
-        } catch (ServicioNoDisponibleException e) {
-            compensarSinSaberSiDescuento(reserva, franjaCodigo, estudianteCodigo, bearer);
-            throw e;
         }
-
-        Reserva confirmada = reservaRepository.cambiarEstado(reserva.getCodigoReserva(), estudianteCodigo,
-            EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CONFIRMADA, "Hora descontada", clock.instant())
-            .orElse(reserva);
-        LOG.info("Reserva confirmada", kv("module", MODULO), kv("estudianteCodigo", estudianteCodigo),
-            kv("reservaCodigo", reserva.getCodigoReserva()), kv("franjaCodigo", franjaCodigo));
-        return confirmada;
-    }
-
-    /**
-     * Pagos no respondió al descontar: no se sabe si la hora salió de la billetera. Se pide devolverla (si no se
-     * había descontado, Pagos responde que no hay nada que devolver y no es un error) y recién entonces se libera la
-     * franja y se cancela la reserva. Si la devolución tampoco llega, la reserva queda `PENDIENTE_PAGO` con la franja
-     * apartada: se resuelve cuando el estudiante consulte sus clases (retomarla repite el descuento con la misma
-     * clave, que no cobra dos veces).
-     */
-    private void compensarSinSaberSiDescuento(Reserva reserva, UUID franjaCodigo, UUID estudianteCodigo,
-            String bearer) {
-        try {
-            pagosClient.devolver(bearer, estudianteCodigo, reserva.getCodigoReserva(),
-                PREFIJO_CLAVE_DEVOLUCION + reserva.getCodigoReserva());
-        } catch (ServicioNoDisponibleException e) {
-            LOG.warn("Reserva a medias: Pagos no respondió ni al descontar ni al devolver", kv("module", MODULO),
-                kv("reservaCodigo", reserva.getCodigoReserva()));
-            return;
-        }
-        cancelar(reserva, franjaCodigo, estudianteCodigo, "No se pudo descontar la hora");
-    }
-
-    /** Libera la franja y cancela la reserva. */
-    private void cancelar(Reserva reserva, UUID franjaCodigo, UUID estudianteCodigo, String motivo) {
-        franjaRepository.liberar(franjaCodigo, reserva.getId());
-        reservaRepository.cambiarEstado(reserva.getCodigoReserva(), estudianteCodigo, EstadoReserva.PENDIENTE_PAGO,
-            EstadoReserva.CANCELADA, motivo, clock.instant());
+        return completada.reserva();
     }
 
     // ------------------------------------------------------------------ apoyo

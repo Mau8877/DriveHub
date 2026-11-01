@@ -48,16 +48,30 @@ public class CompensadorDeReserva {
                 kv("reservaCodigo", reserva.getCodigoReserva()));
             return ResultadoOrquestacion.PENDIENTE;
         }
+        boolean sigueApartada = franja.getEstado() == EstadoFranja.RESERVADA
+            && Objects.equals(franja.getReservaId(), reserva.getId());
+        return deshacer(reserva, franja, sigueApartada, motivo, cliente);
+    }
+
+    /**
+     * Lo mismo para el flujo en vivo de reservar: la franja se acaba de apartar para esta reserva (el objeto que se
+     * tiene todavía la muestra `LIBRE`), así que no hace falta volver a leerla.
+     */
+    public ResultadoOrquestacion deshacerApartada(Reserva reserva, Franja franja, String motivo,
+            ClienteDePagos cliente) {
+        return deshacer(reserva, franja, true, motivo, cliente);
+    }
+
+    private ResultadoOrquestacion deshacer(Reserva reserva, Franja franja, boolean sigueApartada, String motivo,
+            ClienteDePagos cliente) {
         try {
             cliente.devolver(franja.getEscuelaCodigo(), reserva.getEstudianteCodigo(), reserva.getCodigoReserva(),
-                ReservaService.PREFIJO_CLAVE_DEVOLUCION + reserva.getCodigoReserva());
+                OrquestadorClases.PREFIJO_CLAVE_DEVOLUCION + reserva.getCodigoReserva());
         } catch (ServicioNoDisponibleException e) {
             LOG.warn("No se pudo devolver la hora: Pagos no responde", kv("module", MODULO),
                 kv("reservaCodigo", reserva.getCodigoReserva()));
             return ResultadoOrquestacion.PAGOS_NO_RESPONDE;
         }
-        boolean sigueApartada = franja.getEstado() == EstadoFranja.RESERVADA
-            && Objects.equals(franja.getReservaId(), reserva.getId());
         if (sigueApartada) {
             franjaRepository.liberar(franja.getCodigoFranja(), reserva.getId());
         }

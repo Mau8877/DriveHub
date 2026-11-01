@@ -72,7 +72,7 @@ public class ManejadorDeReserva implements ManejadorDeOperacion {
         try {
             cliente.descontar(franja.getEscuelaCodigo(), reserva.getEstudianteCodigo(),
                 reserva.getInstructorCodigo(), reserva.getCodigoReserva(), reserva.getHorasCobradas(),
-                ReservaService.PREFIJO_CLAVE_DESCUENTO + reserva.getCodigoReserva());
+                OrquestadorClases.PREFIJO_CLAVE_DESCUENTO + reserva.getCodigoReserva());
         } catch (SinHorasException e) {
             return compensador.deshacer(reserva, "Sin horas suficientes", cliente);
         } catch (ServicioNoDisponibleException e) {

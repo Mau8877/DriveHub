@@ -16,8 +16,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.config.OrquestadorProperties;
+import com.drivehub.academico.features.horarios.model.Franja;
 import com.drivehub.academico.features.reservas.client.ClienteDePagos;
+import com.drivehub.academico.features.reservas.client.SinHorasException;
 import com.drivehub.academico.features.reservas.enums.EstadoReserva;
 import com.drivehub.academico.features.reservas.model.Reserva;
 import com.drivehub.academico.features.reservas.repository.ReservaRepository;
@@ -38,6 +41,10 @@ import com.drivehub.academico.features.reservas.repository.ReservaRepository;
  */
 @Service
 public class OrquestadorClases {
+
+    /** Las claves de idempotencia de Pagos: un solo lugar, no se cambian (ver CU14 y CU44). */
+    public static final String PREFIJO_CLAVE_DESCUENTO = "reserva-";
+    public static final String PREFIJO_CLAVE_DEVOLUCION = "devolucion-";
 
     private static final Logger LOG = LoggerFactory.getLogger(OrquestadorClases.class);
     private static final String MODULO = "reservas";
@@ -104,6 +111,48 @@ public class OrquestadorClases {
         LOG.info("Reserva a medias procesada", kv("module", MODULO),
             kv("reservaCodigo", reserva.getCodigoReserva()), kv("resultado", resultado));
         return resultado;
+    }
+
+    /** Cómo terminó el flujo en vivo de reservar una franja. */
+    public enum ResultadoReserva {
+        CONFIRMADA,
+        SIN_HORAS
+    }
+
+    /** `reserva` es la reserva ya confirmada cuando el resultado es {@link ResultadoReserva#CONFIRMADA}. */
+    public record ReservaCompletada(ResultadoReserva resultado, Reserva reserva) {
+    }
+
+    /**
+     * El flujo en vivo de reservar (CU14): descuenta la hora de una reserva `PENDIENTE_PAGO` cuya franja se acaba de
+     * apartar y la confirma, con el cliente de Pagos recibido (el Bearer del estudiante).
+     *
+     * * No mira la edad: en vivo la reserva es nueva. Retomar una vieja es `resolver`.
+     * * Sin horas: deshace la reserva y devuelve `SIN_HORAS`.
+     * * Pagos no responde: no se sabe si la hora salió, así que pide devolverla y deshace la reserva; si la devolución
+     * * tampoco llega, la reserva queda `PENDIENTE_PAGO` con la franja apartada para que la retome `resolver` o el
+     * * proceso programado. En los dos casos vuelve a lanzar la `ServicioNoDisponibleException` original.
+     *
+     * @param franja la franja apartada para esta reserva
+     */
+    public ReservaCompletada completarReserva(Reserva reserva, Franja franja, ClienteDePagos cliente) {
+        try {
+            cliente.descontar(franja.getEscuelaCodigo(), reserva.getEstudianteCodigo(), reserva.getInstructorCodigo(),
+                reserva.getCodigoReserva(), reserva.getHorasCobradas(),
+                PREFIJO_CLAVE_DESCUENTO + reserva.getCodigoReserva());
+        } catch (SinHorasException e) {
+            compensador.deshacerApartada(reserva, franja, "Sin horas suficientes", cliente);
+            return new ReservaCompletada(ResultadoReserva.SIN_HORAS, reserva);
+        } catch (ServicioNoDisponibleException e) {
+            compensador.deshacerApartada(reserva, franja, "No se pudo descontar la hora", cliente);
+            throw e;
+        }
+        Reserva confirmada = reservaRepository.cambiarEstado(reserva.getCodigoReserva(), reserva.getEstudianteCodigo(),
+            EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CONFIRMADA, "Hora descontada", clock.instant())
+            .orElse(reserva);
+        LOG.info("Reserva confirmada", kv("module", MODULO), kv("estudianteCodigo", reserva.getEstudianteCodigo()),
+            kv("reservaCodigo", reserva.getCodigoReserva()), kv("franjaCodigo", franja.getCodigoFranja()));
+        return new ReservaCompletada(ResultadoReserva.CONFIRMADA, confirmada);
     }
 
     /**

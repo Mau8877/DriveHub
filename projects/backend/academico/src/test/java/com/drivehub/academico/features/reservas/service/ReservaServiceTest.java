@@ -36,13 +36,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.drivehub.academico.common.exception.BusinessException;
 import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
+import com.drivehub.academico.config.OrquestadorProperties;
 import com.drivehub.academico.config.ReservasProperties;
 import com.drivehub.academico.features.horarios.enums.EstadoFranja;
 import com.drivehub.academico.features.horarios.model.Franja;
 import com.drivehub.academico.features.horarios.repository.FranjaRepository;
+import com.drivehub.academico.features.reservas.client.ClienteDePagos;
+import com.drivehub.academico.features.reservas.client.ClientesDePagos;
 import com.drivehub.academico.features.reservas.client.IdentidadClient;
 import com.drivehub.academico.features.reservas.client.PagosClient;
 import com.drivehub.academico.features.reservas.client.PagosClient.ResultadoConsumo;
@@ -74,17 +78,28 @@ class ReservaServiceTest {
     private PagosClient pagosClient;
     @Mock
     private IdentidadClient identidadClient;
+    @Mock
+    private ClienteDePagos clienteDeServicio;
 
     private final UUID estudiante = UUID.randomUUID();
     private final UUID escuela = UUID.randomUUID();
     private final UUID instructor = UUID.randomUUID();
     private final AtomicLong secuencia = new AtomicLong(100);
     private ReservaService service;
+    private OrquestadorClases orquestador;
 
     @BeforeEach
     void setUp() {
-        service = new ReservaService(reservaRepository, franjaRepository, pagosClient, identidadClient,
-            new ReservasProperties(1, 10, 2), Clock.fixed(AHORA.atZone(ZONA).toInstant(), ZONA));
+        Clock reloj = Clock.fixed(AHORA.atZone(ZONA).toInstant(), ZONA);
+        // * La saga real (CU44) sobre repositorios y Pagos simulados: reservar y retomar usan el mismo código que el job
+        OrquestadorProperties orquestadorProps = new OrquestadorProperties(60, 5, true, "0 * * * * *", 50);
+        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
+        ManejadorDeReserva manejador = new ManejadorDeReserva(reservaRepository, franjaRepository, compensador,
+            orquestadorProps, reloj);
+        orquestador = new OrquestadorClases(List.of(manejador), compensador, reservaRepository, clienteDeServicio,
+            orquestadorProps, reloj);
+        service = new ReservaService(reservaRepository, franjaRepository, pagosClient,
+            new ClientesDePagos(pagosClient), orquestador, identidadClient, new ReservasProperties(1, 10, 2), reloj);
         lenient().when(identidadClient.nombresDeInstructores(any(), eq(BEARER)))
             .thenReturn(Map.of(instructor, "Ivan Alfa"));
     }
@@ -436,7 +451,15 @@ class ReservaServiceTest {
             AHORA.atZone(ZONA).toInstant());
         reserva.inicializarCodigo();
         reserva.setEstado(estado);
+        // * lo que Mongo llena al guardar: el orquestador decide completar o deshacer por esta edad
+        ReflectionTestUtils.setField(reserva, "createdAt", AHORA.atZone(ZONA).toInstant());
         return reserva;
+    }
+
+    /** El orquestador vuelve a leer la reserva antes de actuar. */
+    private void laReservaSeVuelveALeer(Reserva reserva) {
+        lenient().when(reservaRepository.findByCodigoReservaAndEstudianteCodigoAndDeletedAtIsNull(
+            reserva.getCodigoReserva(), estudiante)).thenReturn(Optional.of(reserva));
     }
 
     @Test
@@ -533,6 +556,7 @@ class ReservaServiceTest {
         franja.setEstado(EstadoFranja.RESERVADA);
         franja.setReservaId(reserva.getId());
         when(franjaRepository.findById(reserva.getFranjaId())).thenReturn(Optional.of(franja));
+        laReservaSeVuelveALeer(reserva);
         // * lenient: un test que retoma varias pendientes vuelve a definir esta lista
         lenient().when(reservaRepository.pendientesDeEstudiante(eq(estudiante), any()))
             .thenReturn(List.of(reserva));
@@ -597,7 +621,10 @@ class ReservaServiceTest {
     void listar_unaPendienteCuyaFranjaYaNoEstabaApartada_devuelveLaHoraYLaCancela() {
         Reserva pendiente = reservaDe(HOY.plusDays(1), "10:00", "11:00", EstadoReserva.PENDIENTE_PAGO);
         pendiente.setId(secuencia.incrementAndGet());
-        when(franjaRepository.findById(pendiente.getFranjaId())).thenReturn(Optional.empty());
+        // * la franja existe pero volvió a estar libre
+        Franja libre = franja(HOY.plusDays(1), "10:00", "11:00");
+        when(franjaRepository.findById(pendiente.getFranjaId())).thenReturn(Optional.of(libre));
+        laReservaSeVuelveALeer(pendiente);
         when(reservaRepository.pendientesDeEstudiante(eq(estudiante), any())).thenReturn(List.of(pendiente));
         when(reservaRepository.proximas(any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
@@ -607,8 +634,65 @@ class ReservaServiceTest {
         verify(pagosClient).devolver(BEARER, estudiante, pendiente.getCodigoReserva(),
             "devolucion-" + pendiente.getCodigoReserva());
         verify(pagosClient, never()).descontar(any(), any(), any(), any(), anyInt(), anyString());
+        verify(franjaRepository, never()).liberar(any(), any());
         verify(reservaRepository).cambiarEstado(eq(pendiente.getCodigoReserva()), eq(estudiante),
             eq(EstadoReserva.PENDIENTE_PAGO), eq(EstadoReserva.CANCELADA), anyString(), any());
+    }
+
+    @Test
+    void listar_unaPendienteVieja_laDeshaceEnVezDeConfirmarla_igualQueElProcesoProgramado() {
+        Reserva vieja = pendienteConFranjaApartada();
+        ReflectionTestUtils.setField(vieja, "createdAt", AHORA.atZone(ZONA).toInstant().minusSeconds(60 * 60));
+
+        service.listar(estudiante, BEARER, "proximas", 1, 20);
+
+        verify(pagosClient, never()).descontar(any(), any(), any(), any(), anyInt(), anyString());
+        verify(pagosClient).devolver(BEARER, estudiante, vieja.getCodigoReserva(),
+            "devolucion-" + vieja.getCodigoReserva());
+        verify(franjaRepository).liberar(any(UUID.class), eq(vieja.getId()));
+        verify(reservaRepository).cambiarEstado(eq(vieja.getCodigoReserva()), eq(estudiante),
+            eq(EstadoReserva.PENDIENTE_PAGO), eq(EstadoReserva.CANCELADA), anyString(), any());
+        verify(reservaRepository, never()).cambiarEstado(any(), any(), any(), eq(EstadoReserva.CONFIRMADA), any(),
+            any());
+    }
+
+    @Test
+    void listar_unaPendienteSinFranja_noSeTocaYElListadoNoFalla() {
+        Reserva pendiente = reservaDe(HOY.plusDays(1), "10:00", "11:00", EstadoReserva.PENDIENTE_PAGO);
+        pendiente.setId(secuencia.incrementAndGet());
+        when(franjaRepository.findById(pendiente.getFranjaId())).thenReturn(Optional.empty());
+        laReservaSeVuelveALeer(pendiente);
+        when(reservaRepository.pendientesDeEstudiante(eq(estudiante), any())).thenReturn(List.of(pendiente));
+        when(reservaRepository.proximas(any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        service.listar(estudiante, BEARER, "proximas", 1, 20);
+
+        verifyNoInteractions(pagosClient);
+        verify(reservaRepository, never()).cambiarEstado(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void reservar_laSagaLaHaceElOrquestador_elServicioNoDescuentaNiDevuelveDirecto() {
+        OrquestadorClases delegado = org.mockito.Mockito.mock(OrquestadorClases.class);
+        ReservaService conOrquestadorFalso = new ReservaService(reservaRepository, franjaRepository, pagosClient,
+            new ClientesDePagos(pagosClient), delegado, identidadClient, new ReservasProperties(1, 10, 2),
+            Clock.fixed(AHORA.atZone(ZONA).toInstant(), ZONA));
+        Franja franja = franjaReservable("10:00");
+        seGuardanLasReservasConId();
+        laFranjaSePuedeApartar(franja);
+        when(delegado.completarReserva(any(Reserva.class), eq(franja), any(ClienteDePagos.class)))
+            .thenAnswer(inv -> new OrquestadorClases.ReservaCompletada(
+                OrquestadorClases.ResultadoReserva.CONFIRMADA, inv.getArgument(0)));
+        when(pagosClient.saldo(BEARER)).thenReturn(4);
+
+        ReservasResultadoResponse resultado = conOrquestadorFalso.reservar(estudiante, escuela, BEARER,
+            List.of(franja.getCodigoFranja()));
+
+        assertThat(resultado.reservadas()).hasSize(1);
+        verify(delegado).completarReserva(any(Reserva.class), eq(franja), any(ClienteDePagos.class));
+        verify(pagosClient, never()).descontar(any(), any(), any(), any(), anyInt(), anyString());
+        verify(pagosClient, never()).devolver(any(), any(), any(), anyString());
     }
 
     @Test
@@ -618,6 +702,8 @@ class ReservaServiceTest {
             AHORA.atZone(ZONA).toInstant());
         segunda.inicializarCodigo();
         segunda.setId(secuencia.incrementAndGet());
+        ReflectionTestUtils.setField(segunda, "createdAt", AHORA.atZone(ZONA).toInstant());
+        laReservaSeVuelveALeer(segunda);
         Franja franjaSegunda = franja(HOY.plusDays(2), "12:00", "13:00");
         franjaSegunda.setEstado(EstadoFranja.RESERVADA);
         franjaSegunda.setReservaId(segunda.getId());
