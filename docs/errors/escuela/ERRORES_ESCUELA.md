@@ -168,3 +168,12 @@ Las constantes viven en `EscuelaErrorCodes` (`common/exception/`).
 - **Significado:** El auto no tiene un instructor vigente, así que no hay nada que cambiar ni liberar (CU10).
 - **Dónde se lanza:** `CambiarInstructorVehiculoUseCase.ejecutar()` y `LiberarVehiculoUseCase.ejecutar()`
   (vía `ReglasAsignacionVehiculo.exigirVigente()`)
+
+## `ERR_ESC_20`
+
+- **HTTP:** 503
+- **Excepción:** `ServicioNoDisponibleException`
+- **Significado:** Académico no respondió al pedir las franjas de los instructores (cayó, venció el tiempo de
+  espera o contestó con un error), así que no se puede calcular la disponibilidad (CU11). No se devuelve un
+  listado parcial: se puede reintentar más tarde.
+- **Dónde se lanza:** `AcademicoRestClient.resumenDelDia()`

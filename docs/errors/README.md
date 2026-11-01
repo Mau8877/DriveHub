@@ -89,6 +89,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_17`](escuela/ERRORES_ESCUELA.md#err_esc_17) — El auto no está disponible para asignarse (409)
 - [`ERR_ESC_18`](escuela/ERRORES_ESCUELA.md#err_esc_18) — El instructor no está activo (409)
 - [`ERR_ESC_19`](escuela/ERRORES_ESCUELA.md#err_esc_19) — El auto no tiene un instructor asignado (409)
+- [`ERR_ESC_20`](escuela/ERRORES_ESCUELA.md#err_esc_20) — No se pudieron consultar los horarios de los instructores (503)
 
 ### Pagos (`PAG`)
 
