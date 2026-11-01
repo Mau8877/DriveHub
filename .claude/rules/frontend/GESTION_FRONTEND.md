@@ -48,6 +48,10 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
   `<dh-select>` y `<dh-fecha>` de `@drivehub/ui`, nunca un `<select>` ni un `<input type="date">` nativo
   (ver "Nada de componentes nativos" en [UI_FRONTEND.md](UI_FRONTEND.md)). Un campo `fecha` con
   `fechaNoFutura` o `edadMinima:N` ya limita el calendario a lo que esas reglas permiten.
+- **Filtro de fecha** (`tipo: 'fecha'` y `opciones: []` en un filtro): elige un día con `<dh-fecha>` (nunca un `<input type="date">` nativo)
+  y el valor viaja como `yyyy-MM-dd` bajo su `clave`; vaciarlo quita el filtro. `porDefecto: 'hoy'` hace que arranque con la
+  fecha de hoy ya aplicada, desde la primera carga (y no cuenta como filtro puesto por la persona), y `desdeHoy: true` no deja
+  elegir días anteriores a hoy. Se combina con los demás filtros y con la búsqueda.
 - **Selección múltiple** (campo `seleccion` con `multiple: true`): usa `<dh-select multiple>`, el valor del
   formulario es un **arreglo** (por defecto `[]`), `requerido` significa al menos uno y al enviar viaja el
   arreglo. `opcionesDe.excluir` (`['SIN']`) quita valores del catálogo; `valorDe` (`'sigla'`) dice qué propiedad

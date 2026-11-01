@@ -37,7 +37,7 @@ el espejo de las rutas de
 | Servicio | Recursos (`/api/v1/...`) |
 | --- | --- |
 | `identidad` | `auth`, `usuarios`, `estudiantes`, `roles`, `permisos` |
-| `escuela` | `escuelas`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno` |
+| `escuela` | `escuelas`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno`, `disponibilidad-instructores` |
 | `pagos` | `planes-pago`, `pagos`, `comprobantes`, `billeteras-horas`, `horas-alumnos`, `webhooks-stripe` |
 | `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
 | `contenido` | `manuales`, `tutoriales` |
@@ -103,12 +103,14 @@ existen son:
 | Académico → Identidad | Consultar el nombre de un conjunto de estudiantes de la escuela, para validar al estudiante de un examen de conducción y mostrarlo en el listado (reenvía el Bearer del Administrador) | CU22 |
 | Académico → Identidad | Consultar el nombre de un conjunto de instructores de la escuela, para mostrarlos en las franjas y en las clases del estudiante (reenvía el Bearer del estudiante) | CU14 |
 | Académico → Escuela | Consultar los alumnos asignados al instructor, para listar las notas de esos alumnos (reenvía el Bearer del instructor) | CU23 |
+| Escuela → Académico | Consultar cuántas franjas tiene cada instructor de la escuela en un día (`GET /api/v1/franjas/resumen`), para calcular su disponibilidad (reenvía el Bearer del Administrador) | CU11 |
 | Asistente IA → Contenido | Servidor MCP (`/mcp/`): consultar manuales y tutoriales publicados en nombre de la persona conectada, solo lectura (reenvía su Bearer) | CU46 |
 | Asistente IA → Académico | Servidor MCP: consultar las notas de la persona o las de los alumnos del instructor, solo lectura (reenvía su Bearer) | CU46 |
 
 Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
 Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque
 cada una consulta datos que son del otro servicio.
+Escuela y Académico también se consultan entre sí (CU23 y CU11), por el mismo motivo.
 
 ### Saga de clases y horas (CU44)
 
