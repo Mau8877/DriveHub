@@ -134,6 +134,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://drivehub-postgres:5432/escuela
       # Claves públicas de Identidad (JWKS) para validar el JWT (CU02).
       - IDENTIDAD_URL=http://drivehub-identidad:8081
+      # Resumen de franjas de los instructores (CU11): Escuela le pregunta a Academico por la red interna.
+      - ACADEMICO_URL=http://drivehub-academico:8084
       - SPRING_DATASOURCE_USERNAME=escuela
       # Fotos de los autos (CU07): se piden al .env, vacías si no hay cuenta de Cloudinary.
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
