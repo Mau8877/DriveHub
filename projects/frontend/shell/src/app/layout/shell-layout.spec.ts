@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router'
 import type { DhShell } from '@drivehub/ui'
 
 import type { UsuarioSesion } from '../core/sesion/sesion.types'
+import { PushWebService } from '../core/notificaciones/push-web.service'
 import { SesionService } from '../core/sesion/sesion.service'
 import { ShellLayout } from './shell-layout'
 
@@ -22,6 +23,7 @@ describe('ShellLayout', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
+        { provide: PushWebService, useValue: { activar: vi.fn().mockResolvedValue(undefined) } },
         {
           provide: SesionService,
           useValue: {
@@ -43,6 +45,18 @@ describe('ShellLayout', () => {
       )
     return { fixture, boton, html, shell }
   }
+
+  describe('Push web (CU36)', () => {
+    it('registra el navegador cuando hay sesión', () => {
+      crear(USUARIO)
+      expect(TestBed.inject(PushWebService).activar).toHaveBeenCalled()
+    })
+
+    it('no registra nada sin sesión', () => {
+      crear(null)
+      expect(TestBed.inject(PushWebService).activar).not.toHaveBeenCalled()
+    })
+  })
 
   describe('Armazón compartido', () => {
     it('usa el <dh-shell> de @drivehub/ui con el menú, el usuario y las acciones de la cuenta', () => {

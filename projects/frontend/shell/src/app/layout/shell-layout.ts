@@ -1,10 +1,11 @@
-import { CUSTOM_ELEMENTS_SCHEMA, Component, computed, inject, signal } from '@angular/core'
+import { CUSTOM_ELEMENTS_SCHEMA, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router'
 import type { AccionUsuario, DetalleAccion, DetalleNavegar, UsuarioShell } from '@drivehub/ui'
 import '@drivehub/ui'
 import { filter, map } from 'rxjs'
 
+import { PushWebService } from '../core/notificaciones/push-web.service'
 import { ROLES } from '../core/sesion/roles'
 import { SesionService } from '../core/sesion/sesion.service'
 import { migasDeRuta, navItemsDeRoles } from './nav-items'
@@ -29,8 +30,8 @@ const ACCIONES_USUARIO: AccionUsuario[] = [
  * * las migas, el usuario) y se traducen sus eventos a la navegación del router y a la sesión.
  * * Lo propio del shell entra por los slots: "Verificar correo" en la cabecera y la banda de aviso.
  *
- * TODO: la campana de avisos se conecta con Notificaciones cuando exista
- * TODO: el caso de uso (hoy es solo el lugar reservado en la cabecera).
+ * TODO: la campana de avisos se conecta con Notificaciones en CU38 (hoy es solo el lugar
+ * TODO: reservado en la cabecera). El push del navegador ya se registra acá (CU36).
  */
 @Component({
   selector: 'app-shell-layout',
@@ -77,6 +78,7 @@ const ACCIONES_USUARIO: AccionUsuario[] = [
 export class ShellLayout {
   private readonly sesion = inject(SesionService)
   private readonly router = inject(Router)
+  private readonly pushWeb = inject(PushWebService)
 
   protected readonly acciones = ACCIONES_USUARIO
   protected readonly verificando = signal(false)
@@ -106,6 +108,14 @@ export class ShellLayout {
   protected readonly mostrarVerificarCorreo = computed(
     () => this.sesion.usuario()?.correoVerificado === false
   )
+
+  constructor() {
+    // * Con sesión, el navegador se registra para recibir los avisos (CU36). No espera el resultado
+    // * y es idempotente: se vuelve a llamar cuando cambia el perfil sin registrar dos veces.
+    effect(() => {
+      if (this.sesion.usuario()) void this.pushWeb.activar()
+    })
+  }
 
   protected navegar(evento: Event): void {
     const { ruta } = (evento as CustomEvent<DetalleNavegar>).detail
