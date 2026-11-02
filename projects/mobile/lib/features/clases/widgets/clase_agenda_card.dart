@@ -12,14 +12,26 @@ import 'formato_clases.dart';
 /// * Cada acción se ofrece solo si el servidor lo dice y la pantalla le pasó qué hacer; no usa Riverpod, así se prueba
 ///   sin montar nada más. «Cancelar» si la clase es [ClaseAgenda.cancelable] ([alCancelar]), «Cerrar clase» si es
 ///   [ClaseAgenda.cerrable] ([alCerrar], CU17) y «Editar» si ya se cerró y trae su [ClaseAgenda.claseCodigo]
-///   ([alEditar], CU17). Una clase tiene a lo sumo una de las tres.
+///   ([alEditar], CU17). Una clase tiene a lo sumo una de las tres. Una clase cerrada con asistencia puede ofrecer además
+///   «Evaluar» si es [ClaseAgenda.evaluable] ([alEvaluar], CU18) y «Ver prueba» si [ClaseAgenda.conPrueba]
+///   ([alVerPrueba], CU18); las acciones de una clase cerrada se acomodan en varias líneas si no caben.
 class ClaseAgendaCard extends StatelessWidget {
   final ClaseAgenda clase;
   final VoidCallback? alCancelar;
   final VoidCallback? alCerrar;
   final VoidCallback? alEditar;
+  final VoidCallback? alEvaluar;
+  final VoidCallback? alVerPrueba;
 
-  const ClaseAgendaCard({super.key, required this.clase, this.alCancelar, this.alCerrar, this.alEditar});
+  const ClaseAgendaCard({
+    super.key,
+    required this.clase,
+    this.alCancelar,
+    this.alCerrar,
+    this.alEditar,
+    this.alEvaluar,
+    this.alVerPrueba,
+  });
 
   bool get _cancelada => clase.estado == EstadoReserva.cancelada;
 
@@ -80,13 +92,31 @@ class ClaseAgendaCard extends StatelessWidget {
                   child: const Text('Cerrar clase'),
                 ),
               ),
-            if (clase.claseCodigo != null && alEditar != null)
+            if ((clase.claseCodigo != null && alEditar != null) ||
+                (clase.conPrueba && alVerPrueba != null) ||
+                (clase.evaluable && alEvaluar != null))
               Align(
                 alignment: Alignment.centerRight,
-                child: TextButton(
-                  key: Key('editar-${clase.codigo}'),
-                  onPressed: alEditar,
-                  child: const Text('Editar'),
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 4,
+                  children: [
+                    if (clase.claseCodigo != null && alEditar != null)
+                      TextButton(key: Key('editar-${clase.codigo}'), onPressed: alEditar, child: const Text('Editar')),
+                    if (clase.conPrueba && alVerPrueba != null)
+                      TextButton(
+                        key: Key('ver-prueba-${clase.codigo}'),
+                        onPressed: alVerPrueba,
+                        child: const Text('Ver prueba'),
+                      ),
+                    if (clase.evaluable && alEvaluar != null)
+                      FilledButton.tonal(
+                        key: Key('evaluar-${clase.codigo}'),
+                        onPressed: alEvaluar,
+                        style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+                        child: const Text('Evaluar'),
+                      ),
+                  ],
                 ),
               ),
           ],

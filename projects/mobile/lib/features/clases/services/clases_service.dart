@@ -4,12 +4,15 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/pagina.dart';
 import '../../horarios/models/fechas.dart';
 import '../models/actualizar_clase_request.dart';
+import '../models/catalogo_pruebas.dart';
 import '../models/cerrar_clase_request.dart';
 import '../models/clase_agenda.dart';
 import '../models/clase_dictada.dart';
+import '../models/evaluar_clase_request.dart';
 import '../models/franja_disponible.dart';
 import '../models/instructor_disponible.dart';
 import '../models/momento_dia.dart';
+import '../models/prueba_clase.dart';
 import '../models/reprogramar_request.dart';
 import '../models/reserva.dart';
 import '../models/reservar_franjas_request.dart';
@@ -152,6 +155,35 @@ class ClasesService {
     return _llamar(() async {
       final response = await _dio.patch<Map<String, dynamic>>('/clases/$codigoClase', data: request.toJson());
       return ClaseDictada.fromJson(response.data!);
+    });
+  }
+
+  /// Los criterios con que se puntúa cada tipo de prueba de clase (CU18).
+  Future<CatalogoPruebas> catalogoDePruebas() {
+    return _llamar(() async {
+      final response = await _dio.get<Map<String, dynamic>>('/pruebas-clase/criterios');
+      return CatalogoPruebas.fromJson(response.data!);
+    });
+  }
+
+  /// Evalúa una clase ya cerrada con asistencia (CU18): el puntaje de cada criterio del tipo elegido. La nota entra
+  /// en el historial del estudiante.
+  Future<PruebaClase> evaluarClase(EvaluarClaseRequest request) {
+    return _llamar(() async {
+      final response = await _dio.post<Map<String, dynamic>>('/pruebas-clase', data: request.toJson());
+      return PruebaClase.fromJson(response.data!);
+    });
+  }
+
+  /// Las pruebas de una clase (CU18), en el orden en que se hicieron. Una clase tiene a lo sumo una por tipo, así
+  /// que una página alcanza.
+  Future<List<PruebaClase>> pruebasDeClase(String claseCodigo) {
+    return _llamar(() async {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/pruebas-clase',
+        queryParameters: {'filter[claseCodigo]': claseCodigo, 'pageSize': 20},
+      );
+      return Pagina.fromJson(response.data!, PruebaClase.fromJson).items;
     });
   }
 

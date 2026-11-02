@@ -4,19 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/network/pagina.dart';
 import 'package:mobile/features/clases/models/actualizar_clase_request.dart';
 import 'package:mobile/features/clases/models/asistencia_clase.dart';
+import 'package:mobile/features/clases/models/catalogo_pruebas.dart';
 import 'package:mobile/features/clases/models/cerrar_clase_request.dart';
 import 'package:mobile/features/clases/models/clase_agenda.dart';
 import 'package:mobile/features/clases/models/clase_dictada.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
+import 'package:mobile/features/clases/models/evaluar_clase_request.dart';
 import 'package:mobile/features/clases/models/franja_disponible.dart';
 import 'package:mobile/features/clases/models/franja_rechazada.dart';
 import 'package:mobile/features/clases/models/hora_de_cancelacion.dart';
 import 'package:mobile/features/clases/models/instructor_disponible.dart';
 import 'package:mobile/features/clases/models/momento_dia.dart';
+import 'package:mobile/features/clases/models/prueba_clase.dart';
 import 'package:mobile/features/clases/models/reserva.dart';
 import 'package:mobile/features/clases/models/reservas_resultado.dart';
 import 'package:mobile/features/clases/models/resultado_cancelacion.dart';
 import 'package:mobile/features/clases/models/resultado_cancelacion_instructor.dart';
+import 'package:mobile/features/clases/models/tipo_prueba.dart';
 import 'package:mobile/features/clases/models/vista_reservas.dart';
 import 'package:mobile/features/clases/providers/clases_service_provider.dart';
 import 'package:mobile/features/clases/services/clases_service.dart';
@@ -74,6 +78,8 @@ ClaseAgenda claseDeAgendaDePrueba({
   bool cancelable = false,
   bool cerrable = false,
   String? claseCodigo,
+  bool evaluable = false,
+  bool conPrueba = false,
 }) => ClaseAgenda(
   codigo: codigo,
   fecha: fecha ?? DateTime(2099, 11, 2),
@@ -86,6 +92,8 @@ ClaseAgenda claseDeAgendaDePrueba({
   cancelable: cancelable,
   cerrable: cerrable,
   claseCodigo: claseCodigo,
+  evaluable: evaluable,
+  conPrueba: conPrueba,
 );
 
 /// Una clase ya dictada y cerrada de prueba (CU17), en el año 2099.
@@ -108,6 +116,55 @@ ClaseDictada claseDictadaDePrueba({
   kmInicio: kmInicio,
   kmFin: kmFin,
 );
+
+/// El catálogo de criterios de prueba (CU18): tres tipos de dos criterios con máximo 10, para que los tests sean cortos.
+CatalogoPruebas catalogoDePruebaDePrueba() => CatalogoPruebas(
+  tipos: [
+    for (final tipo in TipoPrueba.values)
+      TipoDelCatalogo(
+        tipo: tipo,
+        etiqueta: tipo.etiqueta,
+        criterios: [
+          CriterioDelCatalogo(codigo: '${tipo.name}_a', descripcion: 'Criterio A de ${tipo.etiqueta}', maximo: 10),
+          CriterioDelCatalogo(codigo: '${tipo.name}_b', descripcion: 'Criterio B de ${tipo.etiqueta}', maximo: 10),
+        ],
+      ),
+  ],
+);
+
+/// Una prueba de clase ya guardada (CU18), con los dos criterios del catálogo de prueba.
+PruebaClase pruebaClaseDePrueba({
+  String codigo = 'p1',
+  String claseCodigo = 'c1',
+  TipoPrueba tipo = TipoPrueba.manejo,
+  double puntaje = 8,
+  String? observaciones,
+}) {
+  final total = puntaje * 10;
+  return PruebaClase(
+    codigo: codigo,
+    claseCodigo: claseCodigo,
+    tipo: tipo,
+    criterios: [
+      CriterioEvaluado(
+        codigo: '${tipo.name}_a',
+        descripcion: 'Criterio A de ${tipo.etiqueta}',
+        puntaje: puntaje,
+        maximo: 10,
+      ),
+      CriterioEvaluado(
+        codigo: '${tipo.name}_b',
+        descripcion: 'Criterio B de ${tipo.etiqueta}',
+        puntaje: puntaje,
+        maximo: 10,
+      ),
+    ],
+    puntajeTotal: total,
+    resultado: total >= 70 ? ResultadoPrueba.aprobado : ResultadoPrueba.reprobado,
+    observaciones: observaciones,
+    fecha: DateTime(2099, 11, 2),
+  );
+}
 
 FranjaRechazada rechazadaDePrueba({
   String franjaCodigo = 'f2',
@@ -295,6 +352,56 @@ class ClasesServiceFalso extends ClasesService {
       kmInicio: request.kmInicio ?? claseGuardada.kmInicio,
       kmFin: request.kmFin ?? claseGuardada.kmFin,
     );
+  }
+
+  /// Lo que responde `catalogoDePruebas` (CU18).
+  CatalogoPruebas catalogo = catalogoDePruebaDePrueba();
+  Object? errorCatalogo;
+  int pedidosDeCatalogo = 0;
+
+  /// Las pruebas que ya tiene cada clase (por código de clase) y lo que responde `evaluarClase`.
+  final Map<String, List<PruebaClase>> pruebasPorClase = {};
+  Object? errorPruebasDeClase;
+  final List<String> pruebasPedidas = [];
+  PruebaClase Function(EvaluarClaseRequest request)? alEvaluarClase;
+  Object? errorAlEvaluarClase;
+  Future<void> Function()? antesDeEvaluarClase;
+  final List<EvaluarClaseRequest> evaluacionesPedidas = [];
+
+  @override
+  Future<CatalogoPruebas> catalogoDePruebas() async {
+    pedidosDeCatalogo++;
+    final error = errorCatalogo;
+    if (error != null) throw error;
+    return catalogo;
+  }
+
+  @override
+  Future<List<PruebaClase>> pruebasDeClase(String claseCodigo) async {
+    pruebasPedidas.add(claseCodigo);
+    final error = errorPruebasDeClase;
+    if (error != null) throw error;
+    return pruebasPorClase[claseCodigo] ?? const [];
+  }
+
+  /// Por defecto, la prueba queda guardada con el puntaje de su primer criterio en todos (los tests lo controlan con
+  /// [alEvaluarClase]) y se suma a las pruebas de esa clase.
+  @override
+  Future<PruebaClase> evaluarClase(EvaluarClaseRequest request) async {
+    evaluacionesPedidas.add(request);
+    await antesDeEvaluarClase?.call();
+    final error = errorAlEvaluarClase;
+    if (error != null) throw error;
+    final respuesta = alEvaluarClase;
+    final prueba = respuesta != null
+        ? respuesta(request)
+        : pruebaClaseDePrueba(
+            claseCodigo: request.claseCodigo,
+            tipo: request.tipo,
+            puntaje: request.criterios.first.puntaje,
+          );
+    pruebasPorClase.putIfAbsent(request.claseCodigo, () => []).add(prueba);
+    return prueba;
   }
 
   @override
