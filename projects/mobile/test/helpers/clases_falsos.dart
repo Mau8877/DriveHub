@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mobile/core/network/pagina.dart';
+import 'package:mobile/features/clases/models/clase_agenda.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
 import 'package:mobile/features/clases/models/franja_disponible.dart';
 import 'package:mobile/features/clases/models/franja_rechazada.dart';
@@ -11,6 +12,7 @@ import 'package:mobile/features/clases/models/momento_dia.dart';
 import 'package:mobile/features/clases/models/reserva.dart';
 import 'package:mobile/features/clases/models/reservas_resultado.dart';
 import 'package:mobile/features/clases/models/resultado_cancelacion.dart';
+import 'package:mobile/features/clases/models/resultado_cancelacion_instructor.dart';
 import 'package:mobile/features/clases/models/vista_reservas.dart';
 import 'package:mobile/features/clases/providers/clases_service_provider.dart';
 import 'package:mobile/features/clases/services/clases_service.dart';
@@ -54,6 +56,28 @@ Reserva reservaDePrueba({
   estado: estado,
   terminada: terminada,
   cancelacionATiempo: cancelacionATiempo,
+);
+
+/// Una clase de la agenda del instructor de prueba, en el año 2099 para que nunca "ya haya empezado".
+ClaseAgenda claseDeAgendaDePrueba({
+  String codigo = 'r1',
+  DateTime? fecha,
+  String horaInicio = '10:00',
+  String horaFin = '11:00',
+  String estudianteNombre = 'Eva Estudiante',
+  EstadoReserva estado = EstadoReserva.confirmada,
+  bool terminada = false,
+  bool cancelable = false,
+}) => ClaseAgenda(
+  codigo: codigo,
+  fecha: fecha ?? DateTime(2099, 11, 2),
+  horaInicio: horaInicio,
+  horaFin: horaFin,
+  estudianteCodigo: 'e1',
+  estudianteNombre: estudianteNombre,
+  estado: estado,
+  terminada: terminada,
+  cancelable: cancelable,
 );
 
 FranjaRechazada rechazadaDePrueba({
@@ -171,6 +195,39 @@ class ClasesServiceFalso extends ClasesService {
     final error = errorReservas;
     if (error != null) throw error;
     return _pagina(vista == VistaReservas.proximas ? proximas : historial);
+  }
+
+  /// La agenda del instructor (CU16): lo mismo para cualquier día; cada pedido anota el día.
+  List<ClaseAgenda> clasesDeAgenda = [];
+  Object? errorAgenda;
+  final List<DateTime> pedidosDeAgenda = [];
+
+  /// Lo que responde `cancelarComoInstructor`; por defecto, la hora se devuelve.
+  ResultadoCancelacionInstructor Function(String codigo)? alCancelarComoInstructor;
+  Object? errorAlCancelarComoInstructor;
+  Future<void> Function()? antesDeCancelarComoInstructor;
+  final List<String> cancelacionesDeInstructorPedidas = [];
+
+  @override
+  Future<Pagina<ClaseAgenda>> agenda({required DateTime fecha, int page = 1, int pageSize = 50}) async {
+    pedidosDeAgenda.add(fecha);
+    final error = errorAgenda;
+    if (error != null) throw error;
+    return _pagina(clasesDeAgenda);
+  }
+
+  @override
+  Future<ResultadoCancelacionInstructor> cancelarComoInstructor(String codigoReserva) async {
+    cancelacionesDeInstructorPedidas.add(codigoReserva);
+    await antesDeCancelarComoInstructor?.call();
+    final error = errorAlCancelarComoInstructor;
+    if (error != null) throw error;
+    final respuesta = alCancelarComoInstructor;
+    if (respuesta != null) return respuesta(codigoReserva);
+    return ResultadoCancelacionInstructor(
+      clase: claseDeAgendaDePrueba(codigo: codigoReserva, estado: EstadoReserva.cancelada),
+      horaDevuelta: HoraDeCancelacion.devuelta,
+    );
   }
 
   static Pagina<T> _pagina<T>(List<T> items) =>

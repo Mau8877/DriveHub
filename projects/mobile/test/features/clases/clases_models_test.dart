@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:mobile/features/clases/models/clase_agenda.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
 import 'package:mobile/features/clases/models/franja_disponible.dart';
 import 'package:mobile/features/clases/models/franja_rechazada.dart';
@@ -11,6 +12,7 @@ import 'package:mobile/features/clases/models/reserva.dart';
 import 'package:mobile/features/clases/models/reservar_franjas_request.dart';
 import 'package:mobile/features/clases/models/reservas_resultado.dart';
 import 'package:mobile/features/clases/models/resultado_cancelacion.dart';
+import 'package:mobile/features/clases/models/resultado_cancelacion_instructor.dart';
 
 Map<String, dynamic> _reservaJson({String estado = 'CONFIRMADA', bool terminada = false, bool? aTiempo}) => {
   'codigo': 'r1',
@@ -128,6 +130,85 @@ void main() {
 
     test('un valor desconocido se trata como en proceso: no promete ni niega la hora', () {
       expect(HoraDeCancelacion.fromJson('ALGO_NUEVO'), HoraDeCancelacion.enProceso);
+    });
+  });
+
+  group('ClaseAgenda', () {
+    Map<String, dynamic> agendaJson({String estado = 'CONFIRMADA', bool? terminada, bool? cancelable}) => {
+      'codigo': 'r1',
+      'fecha': '2026-11-02',
+      'horaInicio': '10:00',
+      'horaFin': '11:00',
+      'estudianteCodigo': 'e1',
+      'estudianteNombre': 'Eva Estudiante',
+      'estado': estado,
+      'terminada': ?terminada,
+      'cancelable': ?cancelable,
+    };
+
+    test('lee la clase con el estudiante y si se puede cancelar', () {
+      final clase = ClaseAgenda.fromJson(agendaJson(terminada: false, cancelable: true));
+
+      expect(clase.codigo, 'r1');
+      expect(clase.fecha, DateTime(2026, 11, 2));
+      expect(clase.horaInicio, '10:00');
+      expect(clase.horaFin, '11:00');
+      expect(clase.estudianteCodigo, 'e1');
+      expect(clase.estudianteNombre, 'Eva Estudiante');
+      expect(clase.estado, EstadoReserva.confirmada);
+      expect(clase.terminada, isFalse);
+      expect(clase.cancelable, isTrue);
+    });
+
+    test('lee cada estado de la API', () {
+      expect(ClaseAgenda.fromJson(agendaJson(estado: 'COMPLETADA')).estado, EstadoReserva.completada);
+      expect(ClaseAgenda.fromJson(agendaJson(estado: 'NO_ASISTIO')).estado, EstadoReserva.noAsistio);
+      expect(ClaseAgenda.fromJson(agendaJson(estado: 'CANCELADA')).estado, EstadoReserva.cancelada);
+    });
+
+    test('un estado desconocido se trata como confirmada', () {
+      expect(ClaseAgenda.fromJson(agendaJson(estado: 'ALGO_NUEVO')).estado, EstadoReserva.confirmada);
+    });
+
+    test('sin terminada ni cancelable se leen como falsos: no ofrece cancelar', () {
+      final clase = ClaseAgenda.fromJson(agendaJson());
+
+      expect(clase.terminada, isFalse);
+      expect(clase.cancelable, isFalse);
+    });
+
+    test('una confirmada terminada queda pendiente de cierre', () {
+      expect(ClaseAgenda.fromJson(agendaJson(terminada: true)).terminada, isTrue);
+    });
+  });
+
+  group('ResultadoCancelacionInstructor', () {
+    Map<String, dynamic> json(String hora) => {
+      'clase': {
+        'codigo': 'r1',
+        'fecha': '2026-11-02',
+        'horaInicio': '10:00',
+        'horaFin': '11:00',
+        'estudianteCodigo': 'e1',
+        'estudianteNombre': 'Eva Estudiante',
+        'estado': 'CANCELADA',
+        'terminada': false,
+        'cancelable': false,
+      },
+      'horaDevuelta': hora,
+    };
+
+    test('lee la clase cancelada y la hora devuelta', () {
+      final resultado = ResultadoCancelacionInstructor.fromJson(json('DEVUELTA'));
+
+      expect(resultado.clase.estado, EstadoReserva.cancelada);
+      expect(resultado.clase.cancelable, isFalse);
+      expect(resultado.horaDevuelta, HoraDeCancelacion.devuelta);
+    });
+
+    test('lee la hora en proceso y tolera una perdida', () {
+      expect(ResultadoCancelacionInstructor.fromJson(json('EN_PROCESO')).horaDevuelta, HoraDeCancelacion.enProceso);
+      expect(ResultadoCancelacionInstructor.fromJson(json('PERDIDA')).horaDevuelta, HoraDeCancelacion.perdida);
     });
   });
 

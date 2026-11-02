@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/pagina.dart';
 import '../../horarios/models/fechas.dart';
+import '../models/clase_agenda.dart';
 import '../models/franja_disponible.dart';
 import '../models/instructor_disponible.dart';
 import '../models/momento_dia.dart';
@@ -10,6 +11,7 @@ import '../models/reprogramar_request.dart';
 import '../models/reserva.dart';
 import '../models/reservar_franjas_request.dart';
 import '../models/resultado_cancelacion.dart';
+import '../models/resultado_cancelacion_instructor.dart';
 import '../models/reservas_resultado.dart';
 import '../models/vista_reservas.dart';
 
@@ -102,6 +104,26 @@ class ClasesService {
         data: ReprogramarRequest(franjaCodigo: franjaCodigo).toJson(),
       );
       return Reserva.fromJson(response.data!);
+    });
+  }
+
+  /// La agenda del instructor (CU16): sus clases de un [fecha], por hora de inicio.
+  Future<Pagina<ClaseAgenda>> agenda({required DateTime fecha, int page = 1, int pageSize = 50}) {
+    return _llamar(() async {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/reservas/agenda',
+        queryParameters: {'page': page, 'pageSize': pageSize, 'filter[fecha]': fechaParaApi(fecha)},
+      );
+      return Pagina.fromJson(response.data!, ClaseAgenda.fromJson);
+    });
+  }
+
+  /// Cancela una clase como instructor (CU16): sin plazo, el estudiante siempre recupera su hora y la franja queda
+  /// bloqueada. Si Pagos no responde, la cancelación se acepta y la hora queda «en proceso».
+  Future<ResultadoCancelacionInstructor> cancelarComoInstructor(String codigoReserva) {
+    return _llamar(() async {
+      final response = await _dio.post<Map<String, dynamic>>('/reservas/$codigoReserva/cancelar-por-instructor');
+      return ResultadoCancelacionInstructor.fromJson(response.data!);
     });
   }
 

@@ -154,10 +154,10 @@ void main() {
     expect(find.text('No pudimos obtener los datos de los instructores.'), findsOneWidget);
   });
 
-  testWidgets('el instructor sigue viendo su agenda y no las pestañas del estudiante', (tester) async {
+  testWidgets('el instructor ve su agenda y no las pestañas del estudiante', (tester) async {
     await montar(tester, roles: const ['INSTRUCTOR']);
 
-    expect(find.text('No tienes clases hoy'), findsOneWidget);
+    expect(find.text('No tienes clases este día'), findsOneWidget);
     expect(find.byKey(const Key('pestanasClases')), findsNothing);
     expect(find.byKey(const Key('bannerHoras')), findsNothing);
   });

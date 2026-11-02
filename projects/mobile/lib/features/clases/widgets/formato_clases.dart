@@ -1,5 +1,6 @@
 import '../../../core/network/api_client.dart';
 import '../../horarios/models/fechas.dart';
+import '../models/clase_agenda.dart';
 import '../models/estado_reserva.dart';
 import '../models/reserva.dart';
 
@@ -11,6 +12,15 @@ String tituloDeDia(DateTime fecha, DateTime ahora) {
   if (dia == sumarDias(hoy, 1)) return 'Mañana';
   final nombre = nombreDeDia(dia.weekday);
   return '${nombre.substring(0, 3)} ${dia.day} ${mesCorto(dia.month)}';
+}
+
+/// El día de la agenda del instructor como título: «Hoy», «Mañana» o «Lunes 27 oct».
+String tituloDeDiaLargo(DateTime fecha, DateTime ahora) {
+  final dia = soloFecha(fecha);
+  final hoy = soloFecha(ahora);
+  if (dia == hoy) return 'Hoy';
+  if (dia == sumarDias(hoy, 1)) return 'Mañana';
+  return '${diaConNumero(dia)} ${mesCorto(dia.month)}';
 }
 
 /// El rango de una clase: `08:00 – 09:00`.
@@ -27,6 +37,21 @@ String etiquetaDeEstado(Reserva reserva) {
       return 'Cancelada';
     case EstadoReserva.confirmada:
       return reserva.terminada ? 'Pendiente de cierre' : 'Confirmada';
+  }
+}
+
+/// El estado de una clase de la agenda del instructor (CU16), en español. Una confirmada que ya terminó queda
+/// «pendiente de cierre» (el cierre es de CU17).
+String etiquetaDeEstadoAgenda(ClaseAgenda clase) {
+  switch (clase.estado) {
+    case EstadoReserva.completada:
+      return 'Completada';
+    case EstadoReserva.noAsistio:
+      return 'No asistió';
+    case EstadoReserva.cancelada:
+      return 'Cancelada';
+    case EstadoReserva.confirmada:
+      return clase.terminada ? 'Pendiente de cierre' : 'Confirmada';
   }
 }
 
