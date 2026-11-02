@@ -1,5 +1,6 @@
 import type { TipoNotificacion } from '../enums/tipo-notificacion.enum.js'
 import type { PreferenciasNotificacion } from '../../preferencias/models/preferencias-notificacion.model.js'
+import { PREFERENCIAS_POR_DEFECTO } from '../../preferencias/models/preferencias-por-defecto.js'
 
 export interface DecisionEnvio {
   inApp: boolean
@@ -47,8 +48,8 @@ export function decidirCanales(
   ahora: Date,
   emailPedido?: string
 ): DecisionEnvio {
-  const canales = preferencias?.canales ?? { email: true, push: true, inApp: true }
-  const tipoActivo = preferencias?.tipos?.[tipo] ?? true
+  const canales = preferencias?.canales ?? PREFERENCIAS_POR_DEFECTO.canales
+  const tipoActivo = (preferencias?.tipos ?? PREFERENCIAS_POR_DEFECTO.tipos)[tipo] ?? true
   if (!tipoActivo) return { inApp: false, email: false, push: false }
 
   const correo = emailPedido || preferencias?.email || undefined

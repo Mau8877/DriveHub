@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
 
 import { TABLA_PREFERENCIAS } from '../../../common/dynamodb/definicion-tablas.js'
 import { DYNAMODB_DOCUMENT_CLIENT } from '../../../common/dynamodb/dynamodb.constants.js'
@@ -8,8 +8,7 @@ import type { PreferenciasNotificacion } from '../models/preferencias-notificaci
 /**
  * Acceso a la tabla PreferenciasNotificacion: sin lógica de negocio.
  *
- * * Hoy solo lee (CU36 consulta qué quiere la persona). La escritura la
- * * agrega CU37 en este mismo repositorio.
+ * * CU36 consulta qué quiere la persona y CU37 la guarda.
  */
 @Injectable()
 export class PreferenciasRepository {
@@ -20,5 +19,10 @@ export class PreferenciasRepository {
       new GetCommand({ TableName: TABLA_PREFERENCIAS, Key: { usuarioCodigo } })
     )
     return (respuesta.Item as PreferenciasNotificacion | undefined) ?? null
+  }
+
+  /** Reemplaza la configuración completa de la persona. */
+  async guardar(preferencias: PreferenciasNotificacion): Promise<void> {
+    await this.db.send(new PutCommand({ TableName: TABLA_PREFERENCIAS, Item: preferencias }))
   }
 }

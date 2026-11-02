@@ -42,4 +42,10 @@ Cuerpo del pedido (el título y el mensaje los redacta quien lo pide, en españo
 La app registra el token de Firebase con `POST /api/v1/dispositivos-push` y lo quita con `DELETE /api/v1/dispositivos-push/{codigo}`.
 Sin `FIREBASE_CREDENCIALES` el push queda `FALLIDA`; el correo y la bandeja funcionan igual.
 
+## CU37: preferencias de notificación
+
+`GET` y `PUT /api/v1/preferencias-notificacion` (rol `ESTUDIANTE` o `INSTRUCTOR`; la persona sale del token). `PUT` guarda la
+configuración completa: `canales`, `tipos`, y opcionalmente `silencioDesde`/`silencioHasta` (`HH:mm`, las dos o ninguna, no iguales)
+y `email`. Sin nada guardado, `GET` devuelve todo activado y sin silencio. CU36 aplica lo guardado en cada aviso.
+
 Variables: [`.env.example`](.env.example). `GET /health` para verificar (necesita DynamoDB local en :8000).

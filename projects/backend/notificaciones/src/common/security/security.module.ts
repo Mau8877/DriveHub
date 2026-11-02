@@ -4,6 +4,7 @@ import { createRemoteJWKSet } from 'jose'
 
 import { CredencialServicioGuard } from './credencial-servicio.guard.js'
 import { JwtAuthGuard } from './jwt-auth.guard.js'
+import { RolesGuard } from './roles.guard.js'
 import { VerificadorJwt } from './verificador-jwt.js'
 
 /**
@@ -25,8 +26,9 @@ import { VerificadorJwt } from './verificador-jwt.js'
       },
     },
     JwtAuthGuard,
+    RolesGuard,
     CredencialServicioGuard,
   ],
-  exports: [VerificadorJwt, JwtAuthGuard, CredencialServicioGuard],
+  exports: [VerificadorJwt, JwtAuthGuard, RolesGuard, CredencialServicioGuard],
 })
 export class SecurityModule {}
