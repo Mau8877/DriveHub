@@ -298,9 +298,10 @@ services:
   notificaciones:
     image: node:24-alpine
     container_name: drivehub-notificaciones
-    # * Usa ~290m reales (NestJS en modo watch con la compilación de TypeScript): con 320m el kernel ya lo
-    # * presionaba al límite; 384m deja ~90m de margen para `pnpm install` y los picos.
-    mem_limit: 384m
+    # * Usa ~290m reales (NestJS en modo watch con la compilación de TypeScript). El `pnpm install` del
+    # * arranque (firebase-admin, protobufjs...) pasaba de 384m y el kernel lo mataba con SIGKILL: 768m
+    # * le da margen para instalar.
+    mem_limit: 768m
     profiles: ['extras']
     working_dir: /app/projects/backend/notificaciones
     volumes:
@@ -324,11 +325,25 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - RABBITMQ_URL=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@drivehub-rabbitmq:5672
+      # Claves públicas de Identidad (JWKS) para validar el JWT (CU02) de quien registra su dispositivo (CU36).
+      - IDENTIDAD_URL=http://drivehub-identidad:8081
+      # Correo (CU36): en desarrollo va a Mailpit; con un SMTP real solo cambian estos valores.
+      - SMTP_HOST=${SMTP_HOST:-drivehub-mailpit}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-no-reply@drivehub.local}
+      # Push (CU36): cuenta de servicio de Firebase (JSON en una línea). Vacía = el push queda FALLIDA.
+      - FIREBASE_CREDENCIALES=${FIREBASE_CREDENCIALES:-}
+      # Credencial de SERVICIO de la ruta interna /internal/v1/notificaciones (CU36).
+      - NOTIFICACIONES_CREDENCIAL_SERVICIOS=${NOTIFICACIONES_CREDENCIAL_SERVICIOS:-}
     depends_on:
       dynamodb:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     networks:
       - drivehub-network
 
