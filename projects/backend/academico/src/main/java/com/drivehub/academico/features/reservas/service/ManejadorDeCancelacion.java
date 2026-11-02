@@ -31,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class ManejadorDeCancelacion implements ManejadorDeOperacion {
 
     static final String MOTIVO = "Cancelada por el estudiante";
+    static final String MOTIVO_INSTRUCTOR = "Cancelada por el instructor";
 
     private static final Logger LOG = LoggerFactory.getLogger(ManejadorDeCancelacion.class);
     private static final String MODULO = "reservas";
@@ -44,11 +45,15 @@ public class ManejadorDeCancelacion implements ManejadorDeOperacion {
 
     @Override
     public ResultadoOrquestacion resolver(Reserva reserva, ClienteDePagos cliente) {
-        ResultadoOrquestacion resultado = compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE,
-            !reserva.isSinDevolucion(), MOTIVO, cliente);
+        // * Del instructor (CU16): la hora siempre se devuelve y la franja se bloquea en vez de liberarse
+        ResultadoOrquestacion resultado = reserva.isCanceladaPorInstructor()
+            ? compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true, true, MOTIVO_INSTRUCTOR, cliente)
+            : compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, !reserva.isSinDevolucion(), MOTIVO,
+                cliente);
         if (resultado == ResultadoOrquestacion.CANCELADA) {
             LOG.info("Cancelación terminada", kv("module", MODULO), kv("reservaCodigo", reserva.getCodigoReserva()),
-                kv("estudianteCodigo", reserva.getEstudianteCodigo()), kv("sinDevolucion", reserva.isSinDevolucion()));
+                kv("estudianteCodigo", reserva.getEstudianteCodigo()), kv("sinDevolucion", reserva.isSinDevolucion()),
+                kv("canceladaPorInstructor", reserva.isCanceladaPorInstructor()));
         } else {
             LOG.warn("La cancelación quedó pendiente", kv("module", MODULO),
                 kv("reservaCodigo", reserva.getCodigoReserva()), kv("resultado", resultado));

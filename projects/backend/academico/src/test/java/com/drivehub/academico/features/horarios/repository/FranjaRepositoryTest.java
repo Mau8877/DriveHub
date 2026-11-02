@@ -609,6 +609,49 @@ class FranjaRepositoryTest extends MongoIntegrationTestBase {
         assertThat(repository.liberar(franja.getCodigoFranja(), 5L)).isFalse();
     }
 
+    // ---------------------------------------------------------------- bloquear una franja reservada (CU16)
+
+    @Test
+    void bloquearReservada_pasaLaFranjaReservadaPorEsaReservaABloqueadaSinReserva() {
+        Franja franja = libre(instructor, HOY.plusDays(1), "10:00");
+        repository.apartar(franja.getCodigoFranja(), escuela, 5L, HOY, "09:00");
+
+        assertThat(repository.bloquearReservada(franja.getCodigoFranja(), 5L)).isTrue();
+
+        Franja bloqueada = repository.findById(franja.getId()).orElseThrow();
+        assertThat(bloqueada.getEstado()).isEqualTo(EstadoFranja.BLOQUEADA);
+        assertThat(bloqueada.getReservaId()).isNull();
+    }
+
+    @Test
+    void bloquearReservada_noTocaLaFranjaReservadaPorOtraReservaLibreBloqueadaOBorrada() {
+        Franja deOtra = libre(instructor, HOY.plusDays(1), "10:00");
+        repository.apartar(deOtra.getCodigoFranja(), escuela, 5L, HOY, "09:00");
+        Franja libre = libre(instructor, HOY.plusDays(1), "11:00");
+        Franja yaBloqueada = guardar(instructor, 1L, HOY.plusDays(1), "12:00", EstadoFranja.BLOQUEADA);
+        Franja borrada = libre(instructor, HOY.plusDays(1), "13:00");
+        repository.apartar(borrada.getCodigoFranja(), escuela, 6L, HOY, "09:00");
+        Franja aBorrar = repository.findById(borrada.getId()).orElseThrow();
+        aBorrar.setDeletedAt(java.time.Instant.now());
+        repository.save(aBorrar);
+
+        assertThat(repository.bloquearReservada(deOtra.getCodigoFranja(), 99L)).isFalse();
+        assertThat(repository.bloquearReservada(libre.getCodigoFranja(), 5L)).isFalse();
+        assertThat(repository.bloquearReservada(yaBloqueada.getCodigoFranja(), 5L)).isFalse();
+        assertThat(repository.bloquearReservada(borrada.getCodigoFranja(), 6L)).isFalse();
+        assertThat(repository.findById(deOtra.getId()).orElseThrow().getEstado()).isEqualTo(EstadoFranja.RESERVADA);
+        assertThat(repository.findById(libre.getId()).orElseThrow().getEstado()).isEqualTo(EstadoFranja.LIBRE);
+    }
+
+    @Test
+    void bloquearReservada_repetirloNoCambiaNada() {
+        Franja franja = libre(instructor, HOY.plusDays(1), "10:00");
+        repository.apartar(franja.getCodigoFranja(), escuela, 5L, HOY, "09:00");
+
+        assertThat(repository.bloquearReservada(franja.getCodigoFranja(), 5L)).isTrue();
+        assertThat(repository.bloquearReservada(franja.getCodigoFranja(), 5L)).isFalse();
+    }
+
     @Test
     void buscarPorCodigoYEscuela_distingueLaFranjaInexistenteDeLaDeOtraEscuela() {
         Franja franja = libre(instructor, HOY.plusDays(1), "10:00");

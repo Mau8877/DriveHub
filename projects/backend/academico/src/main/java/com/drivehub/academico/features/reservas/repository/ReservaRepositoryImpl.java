@@ -196,6 +196,42 @@ public class ReservaRepositoryImpl implements ReservaRepositoryCustom {
         return Optional.ofNullable(actualizada);
     }
 
+    @Override
+    public Optional<Reserva> iniciarCancelacionPorInstructor(UUID codigoReserva, UUID instructorCodigo,
+            String motivo, Instant ahora) {
+        Query consulta = Query.query(Criteria.where("codigoReserva").is(codigoReserva)
+            .and("instructorCodigo").is(instructorCodigo)
+            .and("estado").is(EstadoReserva.CONFIRMADA)
+            .and("deletedAt").is(null));
+        Update cambio = new Update().set("estado", EstadoReserva.CANCELACION_PENDIENTE)
+            .set("sinDevolucion", false).set("canceladaPorInstructor", true).set("updatedAt", ahora)
+            .push("historialEstados", new HistorialEstado(EstadoReserva.CANCELACION_PENDIENTE, ahora, motivo));
+        Reserva actualizada = mongoTemplate.findAndModify(consulta, cambio,
+            FindAndModifyOptions.options().returnNew(true), Reserva.class);
+        return Optional.ofNullable(actualizada);
+    }
+
+    @Override
+    public Page<Reserva> agendaDeInstructor(UUID instructorCodigo, LocalDate fecha, Pageable pageable) {
+        // * Una CANCELADA solo es una clase si alguna vez estuvo confirmada (la misma regla del historial del estudiante)
+        Criteria estado = new Criteria().orOperator(
+            Criteria.where("estado").in(EstadoReserva.CONFIRMADA, EstadoReserva.REPROGRAMACION_PENDIENTE,
+                EstadoReserva.COMPLETADA, EstadoReserva.NO_ASISTIO, EstadoReserva.CANCELACION_PENDIENTE),
+            Criteria.where("estado").is(EstadoReserva.CANCELADA)
+                .and("historialEstados.estado").is(EstadoReserva.CONFIRMADA));
+        Criteria criterio = new Criteria().andOperator(
+            Criteria.where("instructorCodigo").is(instructorCodigo).and("fecha").is(fecha)
+                .and("deletedAt").is(null),
+            estado);
+        // * Por hora de inicio y, para que la paginación sea estable, por código
+        Pageable ordenada = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+            Sort.by(Sort.Direction.ASC, "horaInicio", "codigoReserva"));
+        Query consulta = Query.query(criterio);
+        List<Reserva> contenido = mongoTemplate.find(Query.of(consulta).with(ordenada), Reserva.class);
+        return PageableExecutionUtils.getPage(contenido, ordenada,
+            () -> mongoTemplate.count(Query.of(consulta).limit(-1).skip(-1), Reserva.class));
+    }
+
     private static Criteria delEstudiante(UUID estudianteCodigo) {
         return Criteria.where("estudianteCodigo").is(estudianteCodigo).and("deletedAt").is(null);
     }

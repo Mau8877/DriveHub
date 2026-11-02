@@ -93,4 +93,41 @@ class ManejadorDeCancelacionTest {
 
         assertThat(manejador.resolver(reserva, otro)).isEqualTo(ResultadoOrquestacion.CANCELADA);
     }
+
+    // ---------------------------------------------------------------- cancelación del instructor (CU16)
+
+    @Test
+    void delInstructor_devuelveLaHoraYBloqueaLaFranja_aunqueSinDevolucionVengaEnVerdadero() {
+        Reserva reserva = reserva(true);
+        ReflectionTestUtils.setField(reserva, "canceladaPorInstructor", true);
+        when(compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true, true,
+            "Cancelada por el instructor", cliente)).thenReturn(ResultadoOrquestacion.CANCELADA);
+
+        assertThat(manejador.resolver(reserva, cliente)).isEqualTo(ResultadoOrquestacion.CANCELADA);
+
+        verify(compensador).deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true, true,
+            "Cancelada por el instructor", cliente);
+    }
+
+    @Test
+    void delInstructor_conPagosCaido_dejaLaReservaPendiente() {
+        Reserva reserva = reserva(false);
+        ReflectionTestUtils.setField(reserva, "canceladaPorInstructor", true);
+        when(compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true, true,
+            "Cancelada por el instructor", cliente)).thenReturn(ResultadoOrquestacion.PAGOS_NO_RESPONDE);
+
+        assertThat(manejador.resolver(reserva, cliente)).isEqualTo(ResultadoOrquestacion.PAGOS_NO_RESPONDE);
+    }
+
+    @Test
+    void delEstudiante_noBloqueaLaFranja() {
+        Reserva reserva = reserva(false);
+        when(compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true, "Cancelada por el estudiante",
+            cliente)).thenReturn(ResultadoOrquestacion.CANCELADA);
+
+        manejador.resolver(reserva, cliente);
+
+        verify(compensador, org.mockito.Mockito.never()).deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true,
+            true, "Cancelada por el instructor", cliente);
+    }
 }

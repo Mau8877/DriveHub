@@ -57,6 +57,10 @@ public final class AcademicoErrorCodes {
     public static final String RESERVA_NO_MODIFICABLE = "ERR_ACA_33";
     public static final String RESERVA_FUERA_DE_PLAZO = "ERR_ACA_34";
 
+    // * CU16: cancelar una clase por el instructor
+    public static final String CLASE_INSTRUCTOR_NO_ENCONTRADA = "ERR_ACA_35";
+    public static final String CLASE_NO_CANCELABLE_POR_INSTRUCTOR = "ERR_ACA_36";
+
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public static final String VALIDACION = "ERR_SYS_01";
     public static final String SESION_INVALIDA = "ERR_SYS_04";

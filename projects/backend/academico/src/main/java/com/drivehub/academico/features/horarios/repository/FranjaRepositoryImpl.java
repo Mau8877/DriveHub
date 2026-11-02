@@ -172,6 +172,17 @@ public class FranjaRepositoryImpl implements FranjaRepositoryCustom {
             .getModifiedCount() > 0;
     }
 
+    @Override
+    public boolean bloquearReservada(UUID codigoFranja, Long reservaId) {
+        Query consulta = Query.query(Criteria.where("codigoFranja").is(codigoFranja)
+            .and("estado").is(EstadoFranja.RESERVADA)
+            .and("reservaId").is(reservaId)
+            .and("deletedAt").is(null));
+        return mongoTemplate.updateFirst(consulta,
+            new Update().set("estado", EstadoFranja.BLOQUEADA).unset("reservaId"), Franja.class)
+            .getModifiedCount() > 0;
+    }
+
     /** Escuela, `LIBRE`, sin borrar, que no empezó y dentro del rango de fechas (si lo hay). */
     private static List<Criteria> condicionesDisponibles(UUID escuelaCodigo, LocalDate hoy, String ahora,
             LocalDate fechaDesde, LocalDate fechaHasta) {

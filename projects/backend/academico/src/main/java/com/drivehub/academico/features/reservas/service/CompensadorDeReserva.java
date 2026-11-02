@@ -53,6 +53,15 @@ public class CompensadorDeReserva {
      */
     public ResultadoOrquestacion deshacer(Reserva reserva, EstadoReserva desde, boolean devolverHora, String motivo,
             ClienteDePagos cliente) {
+        return deshacer(reserva, desde, devolverHora, false, motivo, cliente);
+    }
+
+    /**
+     * Lo mismo, pudiendo dejar la franja `BLOQUEADA` en vez de `LIBRE` (CU16: el instructor canceló porque no puede
+     * atender, así que la franja no se vuelve a ofrecer).
+     */
+    public ResultadoOrquestacion deshacer(Reserva reserva, EstadoReserva desde, boolean devolverHora,
+            boolean bloquearFranja, String motivo, ClienteDePagos cliente) {
         Franja franja = franjaRepository.findById(reserva.getFranjaId()).orElse(null);
         if (franja == null) {
             if (!devolverHora) {
@@ -67,7 +76,7 @@ public class CompensadorDeReserva {
         }
         boolean sigueApartada = franja.getEstado() == EstadoFranja.RESERVADA
             && Objects.equals(franja.getReservaId(), reserva.getId());
-        return deshacer(reserva, franja, sigueApartada, desde, devolverHora, motivo, cliente);
+        return deshacer(reserva, franja, sigueApartada, desde, devolverHora, bloquearFranja, motivo, cliente);
     }
 
     /**
@@ -76,11 +85,11 @@ public class CompensadorDeReserva {
      */
     public ResultadoOrquestacion deshacerApartada(Reserva reserva, Franja franja, String motivo,
             ClienteDePagos cliente) {
-        return deshacer(reserva, franja, true, EstadoReserva.PENDIENTE_PAGO, true, motivo, cliente);
+        return deshacer(reserva, franja, true, EstadoReserva.PENDIENTE_PAGO, true, false, motivo, cliente);
     }
 
     private ResultadoOrquestacion deshacer(Reserva reserva, Franja franja, boolean sigueApartada, EstadoReserva desde,
-            boolean devolverHora, String motivo, ClienteDePagos cliente) {
+            boolean devolverHora, boolean bloquearFranja, String motivo, ClienteDePagos cliente) {
         if (devolverHora) {
             try {
                 cliente.devolver(franja.getEscuelaCodigo(), reserva.getEstudianteCodigo(),
@@ -92,7 +101,11 @@ public class CompensadorDeReserva {
             }
         }
         if (sigueApartada) {
-            franjaRepository.liberar(franja.getCodigoFranja(), reserva.getId());
+            if (bloquearFranja) {
+                franjaRepository.bloquearReservada(franja.getCodigoFranja(), reserva.getId());
+            } else {
+                franjaRepository.liberar(franja.getCodigoFranja(), reserva.getId());
+            }
         }
         reservaRepository.cambiarEstado(reserva.getCodigoReserva(), reserva.getEstudianteCodigo(), desde,
             EstadoReserva.CANCELADA, motivo, clock.instant());

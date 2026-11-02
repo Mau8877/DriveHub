@@ -92,4 +92,10 @@ public interface FranjaRepositoryCustom {
      * la reserva de otro). Devuelve si cambió algo.
      */
     boolean liberar(UUID codigoFranja, Long reservaId);
+
+    /**
+     * Deja la franja `BLOQUEADA` y le quita la reserva, solo si sigue `RESERVADA` por esa reserva (CU16: el instructor
+     * canceló la clase porque no puede atender). Nunca toca la franja reservada por otra. Devuelve si cambió algo.
+     */
+    boolean bloquearReservada(UUID codigoFranja, Long reservaId);
 }

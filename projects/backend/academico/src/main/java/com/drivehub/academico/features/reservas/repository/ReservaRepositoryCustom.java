@@ -108,6 +108,22 @@ public interface ReservaRepositoryCustom {
             String motivo, Instant ahora);
 
     /**
+     * Inicia la cancelación por el instructor (CU16) con un solo `findAndModify` atómico: la reserva pasa de
+     * `CONFIRMADA` a `CANCELACION_PENDIENTE`, la hora SIEMPRE se devuelve (`sinDevolucion` falso) y queda marcada
+     * como `canceladaPorInstructor` para que se bloquee la franja. Vacío si no existe, es de otro instructor o ya no
+     * estaba `CONFIRMADA` (así una cancelación del estudiante y otra del instructor no se pisan).
+     */
+    Optional<Reserva> iniciarCancelacionPorInstructor(UUID codigoReserva, UUID instructorCodigo, String motivo,
+            Instant ahora);
+
+    /**
+     * La agenda del instructor (CU16): sus reservas de esa fecha que son o fueron una clase: `CONFIRMADA`,
+     * `REPROGRAMACION_PENDIENTE`, `COMPLETADA`, `NO_ASISTIO`, `CANCELACION_PENDIENTE` y las `CANCELADA` que alguna
+     * vez estuvieron confirmadas. Nunca las `PENDIENTE_PAGO`. Por hora de inicio; el orden lo fija el repository.
+     */
+    Page<Reserva> agendaDeInstructor(UUID instructorCodigo, LocalDate fecha, Pageable pageable);
+
+    /**
      * Cambia el estado con un solo `findAndModify` atómico, solo si todavía es el esperado, y agrega la entrada
      * al historial de estados. También fija `updatedAt`, que `findAndModify` no actualiza solo. Devuelve la reserva ya actualizada, o vacío si no existe, es de otro estudiante o
      * ya no estaba en ese estado (así dos peticiones simultáneas no pisan el estado).

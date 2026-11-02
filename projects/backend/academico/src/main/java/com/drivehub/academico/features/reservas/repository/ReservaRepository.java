@@ -17,6 +17,10 @@ public interface ReservaRepository extends MongoRepository<Reserva, Long>, Reser
     Optional<Reserva> findByCodigoReservaAndEstudianteCodigoAndDeletedAtIsNull(UUID codigoReserva,
             UUID estudianteCodigo);
 
+    /** La reserva de una clase del instructor (CU16). */
+    Optional<Reserva> findByCodigoReservaAndInstructorCodigoAndDeletedAtIsNull(UUID codigoReserva,
+            UUID instructorCodigo);
+
     /**
      * La reserva que el estudiante ya tiene sobre esa franja en ese estado: hace inocuo repetir la confirmación.
      */

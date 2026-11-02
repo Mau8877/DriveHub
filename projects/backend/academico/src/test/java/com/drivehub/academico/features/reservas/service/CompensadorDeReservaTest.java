@@ -168,6 +168,64 @@ class CompensadorDeReservaTest {
             eq(reserva.getCodigoReserva()), eq(claveDeDevolucion()));
     }
 
+    // ---------------------------------------------------------------- bloquear la franja (CU16)
+
+    @Test
+    void conBloquearFranja_devuelveLaHoraBloqueaLaFranjaYCancela() {
+        conLaFranja();
+
+        ResultadoOrquestacion resultado = compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true,
+            true, "Cancelada por el instructor", cliente);
+
+        assertThat(resultado).isEqualTo(ResultadoOrquestacion.CANCELADA);
+        verify(cliente).devolver(escuela, estudiante, reserva.getCodigoReserva(), claveDeDevolucion());
+        verify(franjaRepository).bloquearReservada(franja.getCodigoFranja(), 100L);
+        verify(franjaRepository, never()).liberar(any(), any());
+        verify(reservaRepository).cambiarEstado(reserva.getCodigoReserva(), estudiante,
+            EstadoReserva.CANCELACION_PENDIENTE, EstadoReserva.CANCELADA, "Cancelada por el instructor", AHORA);
+    }
+
+    @Test
+    void sinBloquearFranja_siguePasandoLaFranjaALibre() {
+        conLaFranja();
+
+        compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true, false, "x", cliente);
+
+        verify(franjaRepository).liberar(franja.getCodigoFranja(), 100L);
+        verify(franjaRepository, never()).bloquearReservada(any(), any());
+    }
+
+    @Test
+    void conBloquearFranja_pagosCaido_noTocaLaFranjaNiElEstado() {
+        conLaFranja();
+        doThrow(new ServicioNoDisponibleException("ERR_ACA_17", "Pagos no responde")).when(cliente)
+            .devolver(any(), any(), any(), anyString());
+
+        ResultadoOrquestacion resultado = compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true,
+            true, "x", cliente);
+
+        assertThat(resultado).isEqualTo(ResultadoOrquestacion.PAGOS_NO_RESPONDE);
+        verify(franjaRepository, never()).bloquearReservada(any(), any());
+        verify(franjaRepository, never()).liberar(any(), any());
+        verify(reservaRepository, never()).cambiarEstado(any(), any(), any(), any(), anyString(), any());
+    }
+
+    @Test
+    void conBloquearFranja_conLaFranjaYaBloqueada_noLaToca_peroCancela() {
+        // * un reintento: la franja ya no es RESERVADA por esta reserva
+        franja.setEstado(EstadoFranja.BLOQUEADA);
+        ReflectionTestUtils.setField(franja, "reservaId", null);
+        conLaFranja();
+
+        ResultadoOrquestacion resultado = compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true,
+            true, "x", cliente);
+
+        assertThat(resultado).isEqualTo(ResultadoOrquestacion.CANCELADA);
+        verify(franjaRepository, never()).bloquearReservada(any(), any());
+        verify(reservaRepository).cambiarEstado(reserva.getCodigoReserva(), estudiante,
+            EstadoReserva.CANCELACION_PENDIENTE, EstadoReserva.CANCELADA, "x", AHORA);
+    }
+
     @Test
     void elCaminoDeCU14_sigueDeshaciendoDesdePendientePago() {
         reserva.setEstado(EstadoReserva.PENDIENTE_PAGO);

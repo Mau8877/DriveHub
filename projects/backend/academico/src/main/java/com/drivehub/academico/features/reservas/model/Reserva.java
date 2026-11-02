@@ -95,6 +95,11 @@ public class Reserva extends BaseDocument {
     // * vieja sin el campo lee false. Sin setter: lo fija `iniciarCancelacion` del repository
     private boolean sinDevolucion;
 
+    // * Solo en CANCELACION_PENDIENTE y CANCELADA (CU16): true si la canceló el instructor. Le dice al manejador de la
+    // * cancelación que la hora SIEMPRE se devuelve y que la franja se bloquea en vez de liberarse. Una reserva vieja
+    // * sin el campo lee false. Sin setter: lo fija `iniciarCancelacionPorInstructor` del repository
+    private boolean canceladaPorInstructor;
+
     /**
      * Reserva nueva, `PENDIENTE_PAGO` (CU14): la franja ya se apartó pero la hora todavía no se descontó.
      *
