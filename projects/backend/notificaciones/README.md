@@ -48,4 +48,10 @@ Sin `FIREBASE_CREDENCIALES` el push queda `FALLIDA`; el correo y la bandeja func
 configuración completa: `canales`, `tipos`, y opcionalmente `silencioDesde`/`silencioHasta` (`HH:mm`, las dos o ninguna, no iguales)
 y `email`. Sin nada guardado, `GET` devuelve todo activado y sin silencio. CU36 aplica lo guardado en cada aviso.
 
+## CU38: historial de notificaciones
+
+Rol `ESTUDIANTE` o `INSTRUCTOR`; la persona sale del token. La bandeja son solo los avisos del canal `IN_APP`.
+`GET /api/v1/notificaciones` (`page`, `pageSize`, `filter[leida]`, `filter[tipo]`; más recientes primero), `GET /api/v1/notificaciones/conteo-no-leidas`,
+`POST /api/v1/notificaciones/{codigo}/leer` (404 `ERR_NOT_04` si no existe o es ajeno) y `POST /api/v1/notificaciones/leer-todas`.
+
 Variables: [`.env.example`](.env.example). `GET /health` para verificar (necesita DynamoDB local en :8000).
