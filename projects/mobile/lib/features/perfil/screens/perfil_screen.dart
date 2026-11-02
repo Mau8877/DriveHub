@@ -409,6 +409,13 @@ class _PerfilContenidoState extends ConsumerState<_PerfilContenido> {
                 detalle: 'Lo confirmas con un enlace',
                 onTap: () => context.push('/perfil/correo'),
               ),
+              const Divider(),
+              FilaAccion(
+                icono: Icons.notifications_none,
+                titulo: 'Notificaciones',
+                detalle: 'Elige qué avisos recibes',
+                onTap: () => context.push('/perfil/notificaciones'),
+              ),
             ],
           ),
         ),
