@@ -86,8 +86,12 @@ resumen que importa entre servicios:
 | Servicio → servicios (algo pasó) | Evento en RabbitMQ, publicado con **outbox** (la tabla/colección `outbox_evento(s)` se escribe en la misma transacción que el cambio; un proceso aparte publica). |
 | Consumidor de eventos | **Idempotente**: el mismo evento puede llegar dos veces (ver `EventosProcesados` en Notificaciones). |
 
-Hoy no hay ningún evento implementado. Las llamadas REST entre servicios que ya
-existen son:
+El único consumidor de eventos implementado es el de Notificaciones (CU36): la cola
+`notificaciones.enviar`, enlazada al exchange `drivehub.eventos` con la clave `notificacion.solicitada`.
+El mensaje trae `eventoCodigo`, `usuarioCodigo`, `tipo`, `titulo`, `mensaje`, `datos?` y `email?`, con el texto ya
+redactado por quien lo publica; un mensaje inválido va a `notificaciones.enviar.dlq`. Los servicios que quieran
+avisar a una persona lo publican con su outbox, cada uno en su propio caso de uso. Las llamadas REST entre servicios
+que ya existen son:
 
 | Desde → hacia | Para qué | Caso de uso |
 | --- | --- | --- |
@@ -104,6 +108,7 @@ existen son:
 | Académico → Identidad | Consultar el nombre de un conjunto de instructores de la escuela, para mostrarlos en las franjas y en las clases del estudiante (reenvía el Bearer del estudiante) | CU14 |
 | Académico → Escuela | Consultar los alumnos asignados al instructor, para listar las notas de esos alumnos (reenvía el Bearer del instructor) | CU23 |
 | Escuela → Académico | Consultar cuántas franjas tiene cada instructor de la escuela en un día (`GET /api/v1/franjas/resumen`), para calcular su disponibilidad (reenvía el Bearer del Administrador) | CU11 |
+| Cualquier servicio → Notificaciones | Pedir un aviso sin pasar por el bus: `POST /internal/v1/notificaciones` con la credencial de servicio (header `X-Service-Key`, variable `NOTIFICACIONES_CREDENCIAL_SERVICIOS`); esa ruta no pasa por el gateway | CU36 |
 | Asistente IA → Contenido | Servidor MCP (`/mcp/`): consultar manuales y tutoriales publicados en nombre de la persona conectada, solo lectura (reenvía su Bearer) | CU46 |
 | Asistente IA → Académico | Servidor MCP: consultar las notas de la persona o las de los alumnos del instructor, solo lectura (reenvía su Bearer) | CU46 |
 
