@@ -21,6 +21,13 @@ class ClaseAgenda {
   /// no lo manda se lee como `false`.
   final bool cancelable;
 
+  /// Se puede cerrar: está confirmada y ya empezó (CU17). Es el complemento de [cancelable]. Lo decide el servidor;
+  /// un backend que no lo manda se lee como `false`.
+  final bool cerrable;
+
+  /// El código de la clase dictada, solo si la clase ya se cerró (CU17): con él se abre para corregirla.
+  final String? claseCodigo;
+
   const ClaseAgenda({
     required this.codigo,
     required this.fecha,
@@ -31,6 +38,8 @@ class ClaseAgenda {
     required this.estado,
     this.terminada = false,
     this.cancelable = false,
+    this.cerrable = false,
+    this.claseCodigo,
   });
 
   factory ClaseAgenda.fromJson(Map<String, dynamic> json) {
@@ -44,6 +53,8 @@ class ClaseAgenda {
       estado: EstadoReserva.fromJson(json['estado'] as String),
       terminada: json['terminada'] as bool? ?? false,
       cancelable: json['cancelable'] as bool? ?? false,
+      cerrable: json['cerrable'] as bool? ?? false,
+      claseCodigo: json['claseCodigo'] as String?,
     );
   }
 }

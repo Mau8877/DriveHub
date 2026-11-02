@@ -2,6 +2,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/features/clases/models/actualizar_clase_request.dart';
+import 'package:mobile/features/clases/models/asistencia_clase.dart';
+import 'package:mobile/features/clases/models/cerrar_clase_request.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
 import 'package:mobile/features/clases/models/hora_de_cancelacion.dart';
 import 'package:mobile/features/clases/models/momento_dia.dart';
@@ -305,6 +308,86 @@ void main() {
       await expectLater(
         servicio.cancelarComoInstructor('r1'),
         throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_35')),
+      );
+    });
+  });
+
+  group('cerrar, ver y corregir una clase (CU17)', () {
+    Map<String, dynamic> dictadaJson({String asistencia = 'PRESENTE', String? tema, int? kmFin}) => {
+      'codigo': 'c1',
+      'fecha': '2026-11-02',
+      'estudianteCodigo': 'e1',
+      'estudianteNombre': 'Eva Estudiante',
+      'asistencia': asistencia,
+      'tema': tema,
+      'observaciones': null,
+      'kmInicio': null,
+      'kmFin': kmFin,
+      'estado': 'CERRADA',
+    };
+
+    test('cerrarClase manda la reserva, la asistencia y los datos, y entrega la clase', () async {
+      final adaptador = responder(201, exito(dictadaJson(tema: 'Giros', kmFin: 142)));
+
+      final clase = await servicio.cerrarClase(
+        const CerrarClaseRequest(
+          reservaCodigo: 'r1',
+          asistencia: AsistenciaClase.presente,
+          tema: 'Giros',
+          kmFin: 142,
+        ),
+      );
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'POST');
+      expect(peticion.path, '/clases');
+      expect(peticion.data, {'reservaCodigo': 'r1', 'asistencia': 'PRESENTE', 'tema': 'Giros', 'kmFin': 142});
+      expect(clase.codigo, 'c1');
+      expect(clase.tema, 'Giros');
+      expect(clase.kmFin, 142);
+    });
+
+    test('claseDictada pide la clase por su código', () async {
+      final adaptador = responder(200, exito(dictadaJson(asistencia: 'AUSENTE')));
+
+      final clase = await servicio.claseDictada('c1');
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'GET');
+      expect(peticion.path, '/clases/c1');
+      expect(clase.asistencia, AsistenciaClase.ausente);
+    });
+
+    test('actualizarClase hace un PATCH solo con lo que cambió', () async {
+      final adaptador = responder(200, exito(dictadaJson(tema: 'Nuevo')));
+
+      final clase = await servicio.actualizarClase('c1', const ActualizarClaseRequest(tema: 'Nuevo'));
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'PATCH');
+      expect(peticion.path, '/clases/c1');
+      expect(peticion.data, {'tema': 'Nuevo'});
+      expect(clase.tema, 'Nuevo');
+    });
+
+    test('cada error de negocio llega como ApiException con su código', () async {
+      for (final (status, codigo) in [(409, 'ERR_ACA_37'), (400, 'ERR_ACA_38'), (404, 'ERR_ACA_35')]) {
+        responder(status, fallo(codigo, 'No se pudo'));
+
+        await expectLater(
+          servicio.cerrarClase(const CerrarClaseRequest(reservaCodigo: 'r1', asistencia: AsistenciaClase.tarde)),
+          throwsA(isA<ApiException>().having((e) => e.code, 'code', codigo)),
+        );
+      }
+      responder(404, fallo('ERR_ACA_35', 'No encontramos esa clase'));
+      await expectLater(
+        servicio.claseDictada('c1'),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_35')),
+      );
+      responder(400, fallo('ERR_ACA_38', 'Datos inválidos'));
+      await expectLater(
+        servicio.actualizarClase('c1', const ActualizarClaseRequest(kmFin: 1)),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_38')),
       );
     });
   });

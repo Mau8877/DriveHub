@@ -3,7 +3,10 @@ import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/pagina.dart';
 import '../../horarios/models/fechas.dart';
+import '../models/actualizar_clase_request.dart';
+import '../models/cerrar_clase_request.dart';
 import '../models/clase_agenda.dart';
+import '../models/clase_dictada.dart';
 import '../models/franja_disponible.dart';
 import '../models/instructor_disponible.dart';
 import '../models/momento_dia.dart';
@@ -124,6 +127,31 @@ class ClasesService {
     return _llamar(() async {
       final response = await _dio.post<Map<String, dynamic>>('/reservas/$codigoReserva/cancelar-por-instructor');
       return ResultadoCancelacionInstructor.fromJson(response.data!);
+    });
+  }
+
+  /// Cierra una clase que ya empezó (CU17): la asistencia y, si asistió, el tema, las observaciones y los kilómetros.
+  /// La reserva queda completada o con inasistencia; la hora del estudiante nunca se devuelve.
+  Future<ClaseDictada> cerrarClase(CerrarClaseRequest request) {
+    return _llamar(() async {
+      final response = await _dio.post<Map<String, dynamic>>('/clases', data: request.toJson());
+      return ClaseDictada.fromJson(response.data!);
+    });
+  }
+
+  /// Una clase ya cerrada, con lo guardado (CU17), para corregirla.
+  Future<ClaseDictada> claseDictada(String codigoClase) {
+    return _llamar(() async {
+      final response = await _dio.get<Map<String, dynamic>>('/clases/$codigoClase');
+      return ClaseDictada.fromJson(response.data!);
+    });
+  }
+
+  /// Corrige el tema, las observaciones o los kilómetros de una clase cerrada (CU17). Solo viaja lo que cambió.
+  Future<ClaseDictada> actualizarClase(String codigoClase, ActualizarClaseRequest request) {
+    return _llamar(() async {
+      final response = await _dio.patch<Map<String, dynamic>>('/clases/$codigoClase', data: request.toJson());
+      return ClaseDictada.fromJson(response.data!);
     });
   }
 

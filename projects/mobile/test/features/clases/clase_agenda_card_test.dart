@@ -65,4 +65,79 @@ void main() {
     final boton = tester.widget<TextButton>(find.byKey(const Key('cancelar-r1')));
     expect(boton.style?.foregroundColor?.resolve({}), AppTheme.light.colorScheme.error);
   });
+
+  testWidgets('«Cerrar clase» solo se dibuja si la clase es cerrable y la pantalla dijo qué hacer', (tester) async {
+    await montar(tester, ClaseAgendaCard(clase: claseDeAgendaDePrueba(cerrable: true)));
+    expect(find.byKey(const Key('cerrar-r1')), findsNothing);
+
+    await montar(tester, ClaseAgendaCard(clase: claseDeAgendaDePrueba(), alCerrar: () {}));
+    expect(find.byKey(const Key('cerrar-r1')), findsNothing);
+
+    var cierres = 0;
+    await montar(
+      tester,
+      ClaseAgendaCard(clase: claseDeAgendaDePrueba(cerrable: true), alCerrar: () => cierres++),
+    );
+    expect(find.text('Cerrar clase'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('cerrar-r1')));
+    expect(cierres, 1);
+  });
+
+  testWidgets('«Editar» solo se dibuja si la clase ya tiene su código y la pantalla dijo qué hacer', (tester) async {
+    await montar(
+      tester,
+      ClaseAgendaCard(clase: claseDeAgendaDePrueba(estado: EstadoReserva.completada, claseCodigo: 'c1')),
+    );
+    expect(find.byKey(const Key('editar-r1')), findsNothing);
+
+    await montar(
+      tester,
+      ClaseAgendaCard(clase: claseDeAgendaDePrueba(estado: EstadoReserva.completada), alEditar: () {}),
+    );
+    expect(find.byKey(const Key('editar-r1')), findsNothing);
+
+    var ediciones = 0;
+    await montar(
+      tester,
+      ClaseAgendaCard(
+        clase: claseDeAgendaDePrueba(estado: EstadoReserva.noAsistio, claseCodigo: 'c1'),
+        alEditar: () => ediciones++,
+      ),
+    );
+    expect(find.text('Editar'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('editar-r1')));
+    expect(ediciones, 1);
+  });
+
+  testWidgets('una clase ofrece a lo sumo una acción: cancelar, cerrar o editar', (tester) async {
+    final casos = {
+      'cancelar': claseDeAgendaDePrueba(cancelable: true),
+      'cerrar': claseDeAgendaDePrueba(cerrable: true),
+      'editar': claseDeAgendaDePrueba(estado: EstadoReserva.completada, claseCodigo: 'c1'),
+    };
+    for (final MapEntry(key: ofrecida, value: clase) in casos.entries) {
+      await montar(tester, ClaseAgendaCard(clase: clase, alCancelar: () {}, alCerrar: () {}, alEditar: () {}));
+
+      for (final accion in casos.keys) {
+        expect(
+          find.byKey(Key('$accion-r1')),
+          accion == ofrecida ? findsOneWidget : findsNothing,
+          reason: 'una clase para «$ofrecida» no debe ofrecer «$accion»',
+        );
+      }
+    }
+  });
+
+  testWidgets('las clases sin ninguna acción no dibujan botones', (tester) async {
+    for (final clase in [
+      claseDeAgendaDePrueba(estado: EstadoReserva.cancelada),
+      claseDeAgendaDePrueba(estado: EstadoReserva.completada),
+      claseDeAgendaDePrueba(terminada: true),
+    ]) {
+      await montar(tester, ClaseAgendaCard(clase: clase, alCancelar: () {}, alCerrar: () {}, alEditar: () {}));
+
+      expect(find.byType(TextButton), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
+    }
+  });
 }

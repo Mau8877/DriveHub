@@ -1,6 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:mobile/features/clases/models/actualizar_clase_request.dart';
+import 'package:mobile/features/clases/models/asistencia_clase.dart';
+import 'package:mobile/features/clases/models/cerrar_clase_request.dart';
 import 'package:mobile/features/clases/models/clase_agenda.dart';
+import 'package:mobile/features/clases/models/clase_dictada.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
 import 'package:mobile/features/clases/models/franja_disponible.dart';
 import 'package:mobile/features/clases/models/franja_rechazada.dart';
@@ -209,6 +213,138 @@ void main() {
     test('lee la hora en proceso y tolera una perdida', () {
       expect(ResultadoCancelacionInstructor.fromJson(json('EN_PROCESO')).horaDevuelta, HoraDeCancelacion.enProceso);
       expect(ResultadoCancelacionInstructor.fromJson(json('PERDIDA')).horaDevuelta, HoraDeCancelacion.perdida);
+    });
+  });
+
+  group('ClaseAgenda: cerrar y editar (CU17)', () {
+    Map<String, dynamic> json({bool? cerrable, String? claseCodigo}) => {
+      'codigo': 'r1',
+      'fecha': '2026-11-02',
+      'horaInicio': '10:00',
+      'horaFin': '11:00',
+      'estudianteCodigo': 'e1',
+      'estudianteNombre': 'Eva Estudiante',
+      'estado': 'CONFIRMADA',
+      'cerrable': ?cerrable,
+      'claseCodigo': ?claseCodigo,
+    };
+
+    test('lee si se puede cerrar y el código de la clase ya dictada', () {
+      final abierta = ClaseAgenda.fromJson(json(cerrable: true));
+      final cerrada = ClaseAgenda.fromJson(json(cerrable: false, claseCodigo: 'c1'));
+
+      expect(abierta.cerrable, isTrue);
+      expect(abierta.claseCodigo, isNull);
+      expect(cerrada.cerrable, isFalse);
+      expect(cerrada.claseCodigo, 'c1');
+    });
+
+    test('un backend que no los manda se lee como no cerrable y sin clase: no ofrece nada', () {
+      final clase = ClaseAgenda.fromJson(json());
+
+      expect(clase.cerrable, isFalse);
+      expect(clase.claseCodigo, isNull);
+    });
+  });
+
+  group('AsistenciaClase', () {
+    test('lee cada valor de la API y tiene su etiqueta en español', () {
+      expect(AsistenciaClase.fromJson('PRESENTE'), AsistenciaClase.presente);
+      expect(AsistenciaClase.fromJson('TARDE'), AsistenciaClase.tarde);
+      expect(AsistenciaClase.fromJson('AUSENTE'), AsistenciaClase.ausente);
+      expect([for (final a in AsistenciaClase.values) a.etiqueta], ['Presente', 'Tarde', 'Ausente']);
+      expect([for (final a in AsistenciaClase.values) a.valorApi], ['PRESENTE', 'TARDE', 'AUSENTE']);
+    });
+
+    test('un valor desconocido se trata como presente: no insinúa que se perdió la hora', () {
+      expect(AsistenciaClase.fromJson('ALGO_NUEVO'), AsistenciaClase.presente);
+    });
+  });
+
+  group('ClaseDictada', () {
+    test('lee todos los campos', () {
+      final clase = ClaseDictada.fromJson({
+        'codigo': 'c1',
+        'fecha': '2026-11-02',
+        'estudianteCodigo': 'e1',
+        'estudianteNombre': 'Eva Estudiante',
+        'asistencia': 'TARDE',
+        'tema': 'Giros',
+        'observaciones': 'Llegó tarde',
+        'kmInicio': 100,
+        'kmFin': 142,
+        'estado': 'CERRADA',
+      });
+
+      expect(clase.codigo, 'c1');
+      expect(clase.fecha, DateTime(2026, 11, 2));
+      expect(clase.estudianteNombre, 'Eva Estudiante');
+      expect(clase.asistencia, AsistenciaClase.tarde);
+      expect(clase.tema, 'Giros');
+      expect(clase.observaciones, 'Llegó tarde');
+      expect(clase.kmInicio, 100);
+      expect(clase.kmFin, 142);
+    });
+
+    test('los opcionales pueden venir nulos', () {
+      final clase = ClaseDictada.fromJson({
+        'codigo': 'c1',
+        'fecha': '2026-11-02',
+        'estudianteCodigo': 'e1',
+        'estudianteNombre': 'Estudiante',
+        'asistencia': 'AUSENTE',
+        'tema': null,
+        'observaciones': null,
+        'kmInicio': null,
+        'kmFin': null,
+      });
+
+      expect(clase.asistencia, AsistenciaClase.ausente);
+      expect(clase.tema, isNull);
+      expect(clase.observaciones, isNull);
+      expect(clase.kmInicio, isNull);
+      expect(clase.kmFin, isNull);
+    });
+  });
+
+  group('CerrarClaseRequest', () {
+    test('manda la reserva, la asistencia y solo los datos que hay', () {
+      expect(
+        const CerrarClaseRequest(
+          reservaCodigo: 'r1',
+          asistencia: AsistenciaClase.presente,
+          tema: 'Giros',
+          kmInicio: 100,
+        ).toJson(),
+        {'reservaCodigo': 'r1', 'asistencia': 'PRESENTE', 'tema': 'Giros', 'kmInicio': 100},
+      );
+    });
+
+    test('solo con la asistencia omite todo lo demás', () {
+      expect(
+        const CerrarClaseRequest(reservaCodigo: 'r1', asistencia: AsistenciaClase.ausente).toJson(),
+        {'reservaCodigo': 'r1', 'asistencia': 'AUSENTE'},
+      );
+    });
+  });
+
+  group('ActualizarClaseRequest', () {
+    test('manda solo lo no nulo', () {
+      expect(const ActualizarClaseRequest(observaciones: 'Bien', kmFin: 150).toJson(), {
+        'observaciones': 'Bien',
+        'kmFin': 150,
+      });
+    });
+
+    test('un texto vacío sí se manda: así se borra', () {
+      expect(const ActualizarClaseRequest(tema: '').toJson(), {'tema': ''});
+    });
+
+    test('estaVacio dice si no hay nada que cambiar', () {
+      expect(const ActualizarClaseRequest().estaVacio, isTrue);
+      expect(const ActualizarClaseRequest().toJson(), isEmpty);
+      expect(const ActualizarClaseRequest(tema: '').estaVacio, isFalse);
+      expect(const ActualizarClaseRequest(kmInicio: 0).estaVacio, isFalse);
     });
   });
 

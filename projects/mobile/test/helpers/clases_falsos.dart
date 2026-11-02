@@ -2,7 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mobile/core/network/pagina.dart';
+import 'package:mobile/features/clases/models/actualizar_clase_request.dart';
+import 'package:mobile/features/clases/models/asistencia_clase.dart';
+import 'package:mobile/features/clases/models/cerrar_clase_request.dart';
 import 'package:mobile/features/clases/models/clase_agenda.dart';
+import 'package:mobile/features/clases/models/clase_dictada.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
 import 'package:mobile/features/clases/models/franja_disponible.dart';
 import 'package:mobile/features/clases/models/franja_rechazada.dart';
@@ -68,6 +72,8 @@ ClaseAgenda claseDeAgendaDePrueba({
   EstadoReserva estado = EstadoReserva.confirmada,
   bool terminada = false,
   bool cancelable = false,
+  bool cerrable = false,
+  String? claseCodigo,
 }) => ClaseAgenda(
   codigo: codigo,
   fecha: fecha ?? DateTime(2099, 11, 2),
@@ -78,6 +84,29 @@ ClaseAgenda claseDeAgendaDePrueba({
   estado: estado,
   terminada: terminada,
   cancelable: cancelable,
+  cerrable: cerrable,
+  claseCodigo: claseCodigo,
+);
+
+/// Una clase ya dictada y cerrada de prueba (CU17), en el año 2099.
+ClaseDictada claseDictadaDePrueba({
+  String codigo = 'c1',
+  AsistenciaClase asistencia = AsistenciaClase.presente,
+  String estudianteNombre = 'Eva Estudiante',
+  String? tema,
+  String? observaciones,
+  int? kmInicio,
+  int? kmFin,
+}) => ClaseDictada(
+  codigo: codigo,
+  fecha: DateTime(2099, 11, 2),
+  estudianteCodigo: 'e1',
+  estudianteNombre: estudianteNombre,
+  asistencia: asistencia,
+  tema: tema,
+  observaciones: observaciones,
+  kmInicio: kmInicio,
+  kmFin: kmFin,
 );
 
 FranjaRechazada rechazadaDePrueba({
@@ -207,6 +236,66 @@ class ClasesServiceFalso extends ClasesService {
   Object? errorAlCancelarComoInstructor;
   Future<void> Function()? antesDeCancelarComoInstructor;
   final List<String> cancelacionesDeInstructorPedidas = [];
+
+  /// Lo que responde `cerrarClase`; por defecto, la clase queda cerrada con lo pedido.
+  ClaseDictada Function(CerrarClaseRequest request)? alCerrarClase;
+  Object? errorAlCerrarClase;
+  Future<void> Function()? antesDeCerrarClase;
+  final List<CerrarClaseRequest> cierresPedidos = [];
+
+  /// Lo que responde `claseDictada` (lo guardado de la clase que se va a corregir).
+  ClaseDictada claseGuardada = claseDictadaDePrueba();
+  Object? errorClaseDictada;
+  final List<String> clasesDictadasPedidas = [];
+
+  /// Lo que responde `actualizarClase`; por defecto, la clase guardada con lo corregido.
+  ClaseDictada Function(String codigo, ActualizarClaseRequest request)? alActualizarClase;
+  Object? errorAlActualizarClase;
+  Future<void> Function()? antesDeActualizarClase;
+  final List<({String codigo, ActualizarClaseRequest request})> correccionesPedidas = [];
+
+  @override
+  Future<ClaseDictada> cerrarClase(CerrarClaseRequest request) async {
+    cierresPedidos.add(request);
+    await antesDeCerrarClase?.call();
+    final error = errorAlCerrarClase;
+    if (error != null) throw error;
+    final respuesta = alCerrarClase;
+    if (respuesta != null) return respuesta(request);
+    return claseDictadaDePrueba(
+      asistencia: request.asistencia,
+      tema: request.tema,
+      observaciones: request.observaciones,
+      kmInicio: request.kmInicio,
+      kmFin: request.kmFin,
+    );
+  }
+
+  @override
+  Future<ClaseDictada> claseDictada(String codigoClase) async {
+    clasesDictadasPedidas.add(codigoClase);
+    final error = errorClaseDictada;
+    if (error != null) throw error;
+    return claseGuardada;
+  }
+
+  @override
+  Future<ClaseDictada> actualizarClase(String codigoClase, ActualizarClaseRequest request) async {
+    correccionesPedidas.add((codigo: codigoClase, request: request));
+    await antesDeActualizarClase?.call();
+    final error = errorAlActualizarClase;
+    if (error != null) throw error;
+    final respuesta = alActualizarClase;
+    if (respuesta != null) return respuesta(codigoClase, request);
+    return claseDictadaDePrueba(
+      codigo: codigoClase,
+      asistencia: claseGuardada.asistencia,
+      tema: request.tema ?? claseGuardada.tema,
+      observaciones: request.observaciones ?? claseGuardada.observaciones,
+      kmInicio: request.kmInicio ?? claseGuardada.kmInicio,
+      kmFin: request.kmFin ?? claseGuardada.kmFin,
+    );
+  }
 
   @override
   Future<Pagina<ClaseAgenda>> agenda({required DateTime fecha, int page = 1, int pageSize = 50}) async {

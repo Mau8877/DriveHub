@@ -9,13 +9,17 @@ import 'formato_clases.dart';
 ///
 /// * Los colores salen del tema; el estado va siempre en texto y el color solo lo refuerza.
 /// * Una clase cancelada se ve atenuada con el color secundario del tema, no con opacidad: sigue legible.
-/// * «Cancelar» se ofrece solo si el servidor dice que la clase es [ClaseAgenda.cancelable] y la pantalla le pasó qué
-///   hacer ([alCancelar]); no usa Riverpod, así se prueba sin montar nada más.
+/// * Cada acción se ofrece solo si el servidor lo dice y la pantalla le pasó qué hacer; no usa Riverpod, así se prueba
+///   sin montar nada más. «Cancelar» si la clase es [ClaseAgenda.cancelable] ([alCancelar]), «Cerrar clase» si es
+///   [ClaseAgenda.cerrable] ([alCerrar], CU17) y «Editar» si ya se cerró y trae su [ClaseAgenda.claseCodigo]
+///   ([alEditar], CU17). Una clase tiene a lo sumo una de las tres.
 class ClaseAgendaCard extends StatelessWidget {
   final ClaseAgenda clase;
   final VoidCallback? alCancelar;
+  final VoidCallback? alCerrar;
+  final VoidCallback? alEditar;
 
-  const ClaseAgendaCard({super.key, required this.clase, this.alCancelar});
+  const ClaseAgendaCard({super.key, required this.clase, this.alCancelar, this.alCerrar, this.alEditar});
 
   bool get _cancelada => clase.estado == EstadoReserva.cancelada;
 
@@ -64,6 +68,25 @@ class ClaseAgendaCard extends StatelessWidget {
                   onPressed: alCancelar,
                   style: TextButton.styleFrom(foregroundColor: tema.colorScheme.error),
                   child: const Text('Cancelar'),
+                ),
+              ),
+            if (clase.cerrable && alCerrar != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.tonal(
+                  key: Key('cerrar-${clase.codigo}'),
+                  onPressed: alCerrar,
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+                  child: const Text('Cerrar clase'),
+                ),
+              ),
+            if (clase.claseCodigo != null && alEditar != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  key: Key('editar-${clase.codigo}'),
+                  onPressed: alEditar,
+                  child: const Text('Editar'),
                 ),
               ),
           ],
