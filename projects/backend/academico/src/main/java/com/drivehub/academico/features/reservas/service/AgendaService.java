@@ -25,6 +25,7 @@ import com.drivehub.academico.common.exception.ForbiddenException;
 import com.drivehub.academico.common.exception.NotFoundException;
 import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.common.exception.ValidationException;
+import com.drivehub.academico.features.clases.service.ClaseService;
 import com.drivehub.academico.features.reservas.client.ClienteDePagos;
 import com.drivehub.academico.features.reservas.client.IdentidadClient;
 import com.drivehub.academico.features.reservas.dto.CancelacionInstructorResponse;
@@ -60,16 +61,18 @@ public class AgendaService {
     private final PlazoDeClase plazo;
     private final OrquestadorClases orquestador;
     private final ClienteDePagos clienteDeServicio;
+    private final ClaseService claseService;
     private final Clock clock;
 
     public AgendaService(ReservaRepository reservaRepository, IdentidadClient identidadClient, PlazoDeClase plazo,
             OrquestadorClases orquestador, @Qualifier("clienteDeServicio") ClienteDePagos clienteDeServicio,
-            Clock clock) {
+            ClaseService claseService, Clock clock) {
         this.reservaRepository = reservaRepository;
         this.identidadClient = identidadClient;
         this.plazo = plazo;
         this.orquestador = orquestador;
         this.clienteDeServicio = clienteDeServicio;
+        this.claseService = claseService;
         this.clock = clock;
     }
 
@@ -94,7 +97,8 @@ public class AgendaService {
         List<UUID> estudiantes = clases.getContent().stream().map(Reserva::getEstudianteCodigo).distinct().toList();
         Map<UUID, String> nombres = estudiantes.isEmpty() ? Map.of()
             : identidadClient.nombresDeEstudiantes(estudiantes, bearer);
-        return clases.map(c -> aRespuesta(c, nombres, ahora));
+        Map<Long, UUID> codigosDeClase = codigosDeClase(clases.getContent());
+        return clases.map(c -> aRespuesta(c, nombres, ahora, codigosDeClase));
     }
 
     /**
@@ -173,13 +177,30 @@ public class AgendaService {
         } catch (ServicioNoDisponibleException e) {
             nombres = Map.of();
         }
-        return aRespuesta(reserva, nombres, LocalDateTime.now(clock));
+        return aRespuesta(reserva, nombres, LocalDateTime.now(clock), Map.of());
     }
 
-    private ClaseAgendaResponse aRespuesta(Reserva reserva, Map<UUID, String> nombres, LocalDateTime ahora) {
-        boolean cancelable = reserva.getEstado() == EstadoReserva.CONFIRMADA && !plazo.haEmpezado(reserva);
+    /**
+     * Los códigos de la clase dictada (CU17) de las reservas ya cerradas de la página, con una sola consulta. Solo
+     * una `COMPLETADA` o `NO_ASISTIO` puede tener clase que mostrar: sin ellas no se consulta.
+     */
+    private Map<Long, UUID> codigosDeClase(List<Reserva> reservas) {
+        List<Long> cerradas = reservas.stream()
+            .filter(r -> r.getEstado() == EstadoReserva.COMPLETADA || r.getEstado() == EstadoReserva.NO_ASISTIO)
+            .map(Reserva::getId).toList();
+        return cerradas.isEmpty() ? Map.of() : claseService.codigosPorReserva(cerradas);
+    }
+
+    private ClaseAgendaResponse aRespuesta(Reserva reserva, Map<UUID, String> nombres, LocalDateTime ahora,
+            Map<Long, UUID> codigosDeClase) {
+        boolean confirmada = reserva.getEstado() == EstadoReserva.CONFIRMADA;
+        boolean empezo = plazo.haEmpezado(reserva);
+        // * Solo una clase ya cerrada muestra su código (una confirmada con clase a medias, S1 de CU17, todavía no)
+        boolean cerrada = reserva.getEstado() == EstadoReserva.COMPLETADA
+            || reserva.getEstado() == EstadoReserva.NO_ASISTIO;
         return ClaseAgendaResponse.de(reserva, nombres.getOrDefault(reserva.getEstudianteCodigo(), NOMBRE_SIN_DATOS),
-            ReservaService.terminada(reserva, ahora), cancelable);
+            ReservaService.terminada(reserva, ahora), confirmada && !empezo, confirmada && empezo,
+            cerrada ? codigosDeClase.get(reserva.getId()) : null);
     }
 
     private static ConflictException claseNoCancelable() {

@@ -38,6 +38,7 @@ import com.drivehub.academico.common.exception.BusinessException;
 import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.config.OrquestadorProperties;
 import com.drivehub.academico.config.ReservasProperties;
+import com.drivehub.academico.features.clases.service.ClaseService;
 import com.drivehub.academico.features.horarios.enums.EstadoFranja;
 import com.drivehub.academico.features.horarios.model.Franja;
 import com.drivehub.academico.features.horarios.repository.FranjaRepository;
@@ -71,6 +72,8 @@ class AgendaServiceTest {
     private IdentidadClient identidadClient;
     @Mock
     private ClienteDePagos clienteDeServicio;
+    @Mock
+    private ClaseService claseService;
 
     private final UUID instructor = UUID.randomUUID();
     private final UUID estudiante = UUID.randomUUID();
@@ -86,7 +89,8 @@ class AgendaServiceTest {
         OrquestadorClases orquestador = new OrquestadorClases(List.of(new ManejadorDeCancelacion(compensador)),
             compensador, reservaRepository, clienteDeServicio, orquestadorProps, reloj);
         PlazoDeClase plazo = new PlazoDeClase(new ReservasProperties(1, 10, 2, 12), reloj);
-        service = new AgendaService(reservaRepository, identidadClient, plazo, orquestador, clienteDeServicio, reloj);
+        service = new AgendaService(reservaRepository, identidadClient, plazo, orquestador, clienteDeServicio,
+            claseService, reloj);
         lenient().when(identidadClient.nombresDeEstudiantes(any(), eq(BEARER)))
             .thenReturn(Map.of(estudiante, "Ana Pérez"));
     }
@@ -194,6 +198,66 @@ class AgendaServiceTest {
         // * ya empezó, por empezar (sin plazo de 12 horas), otro día, y las que no están confirmadas
         assertThat(contenido).extracting(ClaseAgendaResponse::cancelable)
             .containsExactly(false, true, true, false, false, false, false);
+    }
+
+    @Test
+    void agenda_cerrableSoloSiEstaConfirmadaYYaEmpezo_complementoExactoDeCancelable() {
+        laAgendaDevuelve(
+            clase(HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA),
+            clase(HOY, "09:00", "10:00", EstadoReserva.CONFIRMADA),
+            clase(HOY, "10:00", "11:00", EstadoReserva.CONFIRMADA),
+            clase(HOY.plusDays(1), "08:00", "09:00", EstadoReserva.CONFIRMADA),
+            clase(HOY, "08:00", "09:00", EstadoReserva.CANCELADA),
+            clase(HOY, "08:00", "09:00", EstadoReserva.COMPLETADA),
+            clase(HOY, "08:00", "09:00", EstadoReserva.NO_ASISTIO),
+            clase(HOY, "08:00", "09:00", EstadoReserva.REPROGRAMACION_PENDIENTE));
+
+        var contenido = service.agenda(instructor, escuela, BEARER, null, 1, 20).getContent();
+
+        // * ya empezó, en curso, por empezar, otro día y las que no están confirmadas
+        assertThat(contenido).extracting(ClaseAgendaResponse::cerrable)
+            .containsExactly(true, true, false, false, false, false, false, false);
+        assertThat(contenido).noneMatch(c -> c.cerrable() && c.cancelable());
+    }
+
+    @Test
+    void agenda_claseCodigoSoloEnLasCerradasQueTienenClase() {
+        Reserva completada = clase(HOY, "08:00", "09:00", EstadoReserva.COMPLETADA);
+        Reserva noAsistio = clase(HOY, "09:00", "10:00", EstadoReserva.NO_ASISTIO);
+        Reserva sinClase = clase(HOY, "10:00", "11:00", EstadoReserva.COMPLETADA);
+        Reserva confirmada = clase(HOY, "11:00", "12:00", EstadoReserva.CONFIRMADA);
+        Reserva cancelada = clase(HOY, "12:00", "13:00", EstadoReserva.CANCELADA);
+        UUID claseA = UUID.randomUUID();
+        UUID claseB = UUID.randomUUID();
+        // * una clase pendiente de terminar (cierre interrumpido) tampoco se muestra: la reserva sigue confirmada
+        laAgendaDevuelve(completada, noAsistio, sinClase, confirmada, cancelada);
+        when(claseService.codigosPorReserva(List.of(completada.getId(), noAsistio.getId(), sinClase.getId())))
+            .thenReturn(Map.of(completada.getId(), claseA, noAsistio.getId(), claseB, confirmada.getId(),
+                UUID.randomUUID()));
+
+        var contenido = service.agenda(instructor, escuela, BEARER, null, 1, 20).getContent();
+
+        assertThat(contenido).extracting(ClaseAgendaResponse::claseCodigo)
+            .containsExactly(claseA, claseB, null, null, null);
+    }
+
+    @Test
+    void agenda_pideLosCodigosDeClaseUnaSolaVezYNoSiNoHayCerradas() {
+        laAgendaDevuelve(clase(HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA),
+            clase(HOY, "09:00", "10:00", EstadoReserva.CANCELADA));
+
+        service.agenda(instructor, escuela, BEARER, null, 1, 20);
+
+        verifyNoInteractions(claseService);
+
+        Reserva cerrada = clase(HOY, "10:00", "11:00", EstadoReserva.COMPLETADA);
+        Reserva otra = clase(HOY, "11:00", "12:00", EstadoReserva.NO_ASISTIO);
+        laAgendaDevuelve(cerrada, otra);
+        when(claseService.codigosPorReserva(any())).thenReturn(Map.of());
+
+        service.agenda(instructor, escuela, BEARER, null, 1, 20);
+
+        verify(claseService).codigosPorReserva(List.of(cerrada.getId(), otra.getId()));
     }
 
     @Test

@@ -67,6 +67,20 @@ public class Clase extends BaseDocument {
     @Setter
     private EstadoClase estado;
 
+    /**
+     * Una clase dictada que se cierra (CU17): `CERRADA` desde el primer momento (no hay paso de «iniciar»). El
+     * vehículo, la hora real de inicio y la de fin quedan vacíos.
+     */
+    public Clase(Long reservaId, UUID estudianteCodigo, UUID instructorCodigo, LocalDate fecha,
+            Asistencia asistencia) {
+        this.reservaId = reservaId;
+        this.estudianteCodigo = estudianteCodigo;
+        this.instructorCodigo = instructorCodigo;
+        this.fecha = fecha;
+        this.asistencia = asistencia;
+        this.estado = EstadoClase.CERRADA;
+    }
+
     @Override
     public void inicializarCodigo() {
         if (codigoClase == null) {

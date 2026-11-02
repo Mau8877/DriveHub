@@ -68,7 +68,7 @@ class AgendaControllerTest {
 
     private ClaseAgendaResponse clase(EstadoReserva estado, boolean cancelable) {
         return new ClaseAgendaResponse(UUID.randomUUID(), FECHA, "10:00", "11:00", estudiante, "Ana Pérez", estado,
-            false, cancelable);
+            false, cancelable, !cancelable && estado == EstadoReserva.CONFIRMADA, null);
     }
 
     private String rutaDeCancelar(UUID codigo) {
@@ -96,6 +96,8 @@ class AgendaControllerTest {
             .andExpect(jsonPath("$.data[0].estado").value("CONFIRMADA"))
             .andExpect(jsonPath("$.data[0].terminada").value(false))
             .andExpect(jsonPath("$.data[0].cancelable").value(true))
+            .andExpect(jsonPath("$.data[0].cerrable").value(false))
+            .andExpect(jsonPath("$.data[0].claseCodigo").doesNotExist())
             .andExpect(jsonPath("$.data[0].id").doesNotExist())
             .andExpect(jsonPath("$.meta.page").value(1))
             .andExpect(jsonPath("$.meta.pageSize").value(20))

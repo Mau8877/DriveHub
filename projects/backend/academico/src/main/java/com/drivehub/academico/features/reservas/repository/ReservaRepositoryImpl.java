@@ -212,6 +212,23 @@ public class ReservaRepositoryImpl implements ReservaRepositoryCustom {
     }
 
     @Override
+    public Optional<Reserva> cerrar(UUID codigoReserva, UUID instructorCodigo, EstadoReserva nuevoEstado,
+            String motivo, Instant ahora) {
+        if (nuevoEstado != EstadoReserva.COMPLETADA && nuevoEstado != EstadoReserva.NO_ASISTIO) {
+            throw new IllegalArgumentException("Una clase solo se cierra como COMPLETADA o NO_ASISTIO");
+        }
+        Query consulta = Query.query(Criteria.where("codigoReserva").is(codigoReserva)
+            .and("instructorCodigo").is(instructorCodigo)
+            .and("estado").is(EstadoReserva.CONFIRMADA)
+            .and("deletedAt").is(null));
+        Update cambio = new Update().set("estado", nuevoEstado).set("updatedAt", ahora)
+            .push("historialEstados", new HistorialEstado(nuevoEstado, ahora, motivo));
+        Reserva actualizada = mongoTemplate.findAndModify(consulta, cambio,
+            FindAndModifyOptions.options().returnNew(true), Reserva.class);
+        return Optional.ofNullable(actualizada);
+    }
+
+    @Override
     public Page<Reserva> agendaDeInstructor(UUID instructorCodigo, LocalDate fecha, Pageable pageable) {
         // * Una CANCELADA solo es una clase si alguna vez estuvo confirmada (la misma regla del historial del estudiante)
         Criteria estado = new Criteria().orOperator(

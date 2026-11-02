@@ -500,6 +500,93 @@ class ReservaRepositoryTest extends MongoIntegrationTestBase {
         assertThat(repository.iniciarCancelacion(reserva.getCodigoReserva(), estudiante, false, "y", AHORA)).isEmpty();
     }
 
+    // ---------------------------------------------------------------- cerrar la clase (CU17)
+
+    @Test
+    void cerrar_confirmadaPasaACompletadaOANoAsistioConSuHistorial() {
+        Reserva presente = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+        Reserva ausente = delInstructor(instructor, HOY, "09:00", "10:00", EstadoReserva.CONFIRMADA);
+        Instant despues = AHORA.plusSeconds(60);
+
+        var completada = repository.cerrar(presente.getCodigoReserva(), instructor, EstadoReserva.COMPLETADA,
+            "Clase cerrada por el instructor (PRESENTE)", despues);
+        var noAsistio = repository.cerrar(ausente.getCodigoReserva(), instructor, EstadoReserva.NO_ASISTIO,
+            "Clase cerrada por el instructor (AUSENTE)", despues);
+
+        assertThat(completada).isPresent();
+        assertThat(completada.get().getEstado()).isEqualTo(EstadoReserva.COMPLETADA);
+        assertThat(completada.get().getUpdatedAt()).isEqualTo(despues);
+        assertThat(completada.get().getHistorialEstados()).hasSize(3);
+        assertThat(completada.get().getHistorialEstados().get(2).estado()).isEqualTo(EstadoReserva.COMPLETADA);
+        assertThat(completada.get().getHistorialEstados().get(2).motivo())
+            .isEqualTo("Clase cerrada por el instructor (PRESENTE)");
+        assertThat(noAsistio).isPresent();
+        assertThat(noAsistio.get().getEstado()).isEqualTo(EstadoReserva.NO_ASISTIO);
+    }
+
+    @Test
+    void cerrar_noTocaLasHorasLaFranjaNiLosCamposDeLasCancelaciones() {
+        Reserva reserva = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+
+        var cerrada = repository.cerrar(reserva.getCodigoReserva(), instructor, EstadoReserva.COMPLETADA, "x", AHORA)
+            .orElseThrow();
+
+        assertThat(cerrada.getHorasCobradas()).isEqualTo(reserva.getHorasCobradas());
+        assertThat(cerrada.getFranjaId()).isEqualTo(reserva.getFranjaId());
+        assertThat(cerrada.isSinDevolucion()).isFalse();
+        assertThat(cerrada.isCanceladaPorInstructor()).isFalse();
+    }
+
+    @Test
+    void cerrar_siNoEstaConfirmadaEsDeOtroOEstaBorrada_devuelveVacioYNoCambiaNada() {
+        Reserva pendiente = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        Reserva cancelada = delInstructor(instructor, HOY, "09:00", "10:00", EstadoReserva.CANCELADA);
+        Reserva completada = delInstructor(instructor, HOY, "10:00", "11:00", EstadoReserva.COMPLETADA);
+        Reserva noAsistio = delInstructor(instructor, HOY, "11:00", "12:00", EstadoReserva.NO_ASISTIO);
+        Reserva cancelando = delInstructor(instructor, HOY, "12:00", "13:00", EstadoReserva.CANCELACION_PENDIENTE);
+        Reserva aMedias = delInstructor(instructor, HOY, "13:00", "14:00", EstadoReserva.REPROGRAMACION_PENDIENTE);
+        Reserva ajena = delInstructor(otroInstructor, HOY, "14:00", "15:00", EstadoReserva.CONFIRMADA);
+        Reserva borrada = delInstructor(instructor, HOY, "15:00", "16:00", EstadoReserva.CONFIRMADA);
+        borrada.setDeletedAt(AHORA);
+        repository.save(borrada);
+
+        for (Reserva reserva : java.util.List.of(pendiente, cancelada, completada, noAsistio, cancelando, aMedias,
+            ajena, borrada)) {
+            assertThat(repository.cerrar(reserva.getCodigoReserva(), instructor, EstadoReserva.COMPLETADA, "x", AHORA))
+                .isEmpty();
+        }
+        Reserva sinCambios = repository.findById(ajena.getId()).orElseThrow();
+        assertThat(sinCambios.getEstado()).isEqualTo(EstadoReserva.CONFIRMADA);
+        assertThat(sinCambios.getHistorialEstados()).hasSize(2);
+    }
+
+    @Test
+    void cerrar_repetidoOSimultaneoConLaCancelacion_soloUnoGana() {
+        Reserva reserva = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+
+        assertThat(repository.cerrar(reserva.getCodigoReserva(), instructor, EstadoReserva.COMPLETADA, "x", AHORA))
+            .isPresent();
+        assertThat(repository.cerrar(reserva.getCodigoReserva(), instructor, EstadoReserva.NO_ASISTIO, "y", AHORA))
+            .isEmpty();
+        assertThat(repository.iniciarCancelacionPorInstructor(reserva.getCodigoReserva(), instructor, "z", AHORA))
+            .isEmpty();
+        assertThat(repository.findById(reserva.getId()).orElseThrow().getEstado())
+            .isEqualTo(EstadoReserva.COMPLETADA);
+    }
+
+    @Test
+    void cerrar_conUnEstadoQueNoEsDeCierre_lanzaIllegalArgumentException() {
+        Reserva reserva = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+
+        for (EstadoReserva estado : java.util.List.of(EstadoReserva.CONFIRMADA, EstadoReserva.CANCELADA,
+            EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CANCELACION_PENDIENTE)) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> repository.cerrar(reserva.getCodigoReserva(), instructor, estado, "x", AHORA))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThat(repository.findById(reserva.getId()).orElseThrow().getEstado()).isEqualTo(EstadoReserva.CONFIRMADA);
+    }
+
     @Test
     void reservaSinElCampoCanceladaPorInstructor_seLeeComoFalso() {
         Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");

@@ -117,6 +117,16 @@ public interface ReservaRepositoryCustom {
             Instant ahora);
 
     /**
+     * Cierra la clase (CU17) con un solo `findAndModify` atómico: la reserva pasa de `CONFIRMADA` a `COMPLETADA` o
+     * `NO_ASISTIO` (`nuevoEstado`). Vacío si no existe, es de otro instructor o ya no estaba `CONFIRMADA` (así dos
+     * cierres, o un cierre y una cancelación a la vez, no se pisan).
+     *
+     * @throws IllegalArgumentException si `nuevoEstado` no es `COMPLETADA` ni `NO_ASISTIO` (error de programación)
+     */
+    Optional<Reserva> cerrar(UUID codigoReserva, UUID instructorCodigo, EstadoReserva nuevoEstado, String motivo,
+            Instant ahora);
+
+    /**
      * La agenda del instructor (CU16): sus reservas de esa fecha que son o fueron una clase: `CONFIRMADA`,
      * `REPROGRAMACION_PENDIENTE`, `COMPLETADA`, `NO_ASISTIO`, `CANCELACION_PENDIENTE` y las `CANCELADA` que alguna
      * vez estuvieron confirmadas. Nunca las `PENDIENTE_PAGO`. Por hora de inicio; el orden lo fija el repository.
