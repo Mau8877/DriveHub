@@ -9,6 +9,7 @@ import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/recuperar_screen.dart';
 import '../../features/auth/screens/registro_screen.dart';
 import '../../features/horarios/screens/horario_form_screen.dart';
+import '../../features/notificaciones/screens/notificaciones_screen.dart';
 import '../../features/notificaciones/screens/preferencias_notificacion_screen.dart';
 import '../../features/pagos/screens/comprar_horas_screen.dart';
 import '../../features/pagos/screens/pago_detalle_screen.dart';
@@ -207,6 +208,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/perfil/correo',
         builder: (context, state) => const CambiarCorreoScreen(),
+      ),
+      // * Bandeja de avisos (CU38)
+      GoRoute(
+        path: '/notificaciones',
+        builder: (context, state) => const NotificacionesScreen(),
       ),
       // * Preferencias de notificación (CU37)
       GoRoute(

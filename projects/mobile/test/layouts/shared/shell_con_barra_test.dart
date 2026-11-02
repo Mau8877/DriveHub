@@ -7,6 +7,7 @@ import 'package:mobile/features/auth/models/usuario_sesion.dart';
 import 'package:mobile/features/auth/providers/sesion_provider.dart';
 import 'package:mobile/layouts/shared/shell_con_barra.dart';
 
+import '../../helpers/notificaciones_falsas.dart';
 import '../../helpers/pagos_falsos.dart';
 import '../../helpers/sesion_falsa.dart';
 
@@ -36,11 +37,19 @@ Widget _construirPropia(BuildContext context) => const Text('cuerpo propio');
 
 Widget _construirPerfil(BuildContext context) => const Text('cuerpo del perfil');
 
-Future<SesionFalsa> _montar(WidgetTester tester, UsuarioSesion usuario) async {
+Future<SesionFalsa> _montar(
+  WidgetTester tester,
+  UsuarioSesion usuario, {
+  NotificacionesServiceFalso? avisos,
+}) async {
   final sesion = SesionFalsa(EstadoSesion.conSesion(usuario));
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sesionFalsa(sesion), pagosServiceFalso(PagosServiceFalso())],
+      overrides: [
+        sesionFalsa(sesion),
+        pagosServiceFalso(PagosServiceFalso()),
+        notificacionesServiceFalso(avisos ?? NotificacionesServiceFalso()),
+      ],
       child: const MaterialApp(home: ShellConBarra(secciones: _secciones)),
     ),
   );
@@ -60,15 +69,45 @@ void main() {
       expect(find.byTooltip('Cerrar sesión'), findsNothing);
     });
 
-    testWidgets('el botón de avisos dice que no hay avisos nuevos', (
+    testWidgets('la campana muestra cuántos avisos sin leer tiene la persona', (
+      tester,
+    ) async {
+      await _montar(
+        tester,
+        _verificado,
+        avisos: NotificacionesServiceFalso()
+          ..avisos = [avisoDePrueba(1), avisoDePrueba(2)],
+      );
+
+      await tester.pump();
+
+      expect(find.byTooltip('Avisos'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+    });
+
+    testWidgets('sin avisos sin leer la campana no muestra insignia', (
       tester,
     ) async {
       await _montar(tester, _verificado);
 
-      await tester.tap(find.byTooltip('Avisos'));
+      expect(
+        tester.widget<Badge>(find.byKey(const Key('insigniaAvisos'))).isLabelVisible,
+        isFalse,
+      );
+    });
+
+    testWidgets('al volver la app del segundo plano se vuelve a pedir el contador', (
+      tester,
+    ) async {
+      final avisos = NotificacionesServiceFalso();
+      await _montar(tester, _verificado, avisos: avisos);
+      final antes = avisos.conteos;
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
 
-      expect(find.text('Todavía no tienes avisos nuevos'), findsOneWidget);
+      expect(avisos.conteos, greaterThan(antes));
     });
 
     testWidgets('tocar el avatar abre la sección Perfil', (tester) async {
