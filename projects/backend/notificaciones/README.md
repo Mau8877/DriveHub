@@ -18,4 +18,28 @@ pnpm test
 pnpm lint
 ```
 
+## CU36: enviar notificación
+
+Dos entradas, un solo servicio (`EnvioNotificacionService`):
+
+- **RabbitMQ**: cola `notificaciones.enviar` (exchange `drivehub.eventos`, clave `notificacion.solicitada`).
+- **Ruta interna**: `POST /internal/v1/notificaciones` con `X-Service-Key` (no pasa por el gateway).
+
+Cuerpo del pedido (el título y el mensaje los redacta quien lo pide, en español):
+
+```json
+{
+  "eventoCodigo": "UUID del pedido (se procesa una sola vez)",
+  "usuarioCodigo": "UUID de la persona (codigo_usuario de Identidad)",
+  "tipo": "RESERVA | PAGO | EXAMEN | RECORDATORIO",
+  "titulo": "hasta 120 caracteres",
+  "mensaje": "hasta 1000 caracteres",
+  "datos": { "reservaCodigo": "opcional, para abrir el detalle" },
+  "email": "opcional; si falta se usa el de las preferencias"
+}
+```
+
+La app registra el token de Firebase con `POST /api/v1/dispositivos-push` y lo quita con `DELETE /api/v1/dispositivos-push/{codigo}`.
+Sin `FIREBASE_CREDENCIALES` el push queda `FALLIDA`; el correo y la bandeja funcionan igual.
+
 Variables: [`.env.example`](.env.example). `GET /health` para verificar (necesita DynamoDB local en :8000).
