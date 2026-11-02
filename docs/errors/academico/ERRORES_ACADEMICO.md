@@ -286,3 +286,20 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 - **Significado:** Se quiso reprogramar una clase con menos de 12 horas de anticipación (CU15). Cancelarla sí se
   permite, pero la hora no se devuelve. El plazo es la propiedad `app.reservas.horas-para-cancelar`.
 - **Dónde se lanza:** `ReservaService.reprogramar()`
+
+## `ERR_ACA_35`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** La clase que el instructor quiso cancelar no existe, está borrada o es de otro instructor (CU16).
+  Nunca se revela si existe a nombre de otra persona.
+- **Dónde se lanza:** `AgendaService.cancelar()`
+
+## `ERR_ACA_36`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La clase no se puede cancelar por el instructor porque no está `CONFIRMADA` (ya está cancelada,
+  cerrada o a medias) o ya empezó (CU16). También cuando otra petición, por ejemplo la cancelación del estudiante,
+  la cambió un instante antes.
+- **Dónde se lanza:** `AgendaService.cancelar()`

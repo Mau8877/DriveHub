@@ -149,6 +149,8 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_32`](academico/ERRORES_ACADEMICO.md#err_aca_32) — La reserva no existe o es de otro estudiante (404)
 - [`ERR_ACA_33`](academico/ERRORES_ACADEMICO.md#err_aca_33) — La reserva no se puede cancelar ni reprogramar (409)
 - [`ERR_ACA_34`](academico/ERRORES_ACADEMICO.md#err_aca_34) — Reprogramar fuera de plazo (409)
+- [`ERR_ACA_35`](academico/ERRORES_ACADEMICO.md#err_aca_35) — La clase no existe o es de otro instructor (404)
+- [`ERR_ACA_36`](academico/ERRORES_ACADEMICO.md#err_aca_36) — La clase no se puede cancelar por el instructor (409)
 
 ### Contenido (`CON`)
 
