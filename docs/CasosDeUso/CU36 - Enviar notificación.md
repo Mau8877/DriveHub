@@ -9,7 +9,7 @@
 **Objetivo:** Avisar a una persona de algo que pasó en la plataforma (una reserva, un pago, un examen, un recordatorio) por los canales que ella tiene activados, y dejar constancia en su historial.
 **Plataforma:** Backend (sin interfaz) y registro del navegador en el shell web
 
-> Lo consultan la persona en [CU38: Consultar historial de notificaciones](CU38%20-%20Consultar%20historial%20de%20notificaciones.md) y lo configura en [CU37: Configurar preferencias de notificación](CU37%20-%20Configurar%20preferencias%20de%20notificaci%C3%B3n.md). CU37 y CU38 todavía no tienen su archivo; este CU deja listo lo que ambos reutilizan.
+> Lo consultan la persona en [CU38: Consultar historial de notificaciones](CU38%20-%20Consultar%20historial%20de%20notificaciones.md) y lo configura en [CU37: Configurar preferencias de notificación](CU37%20-%20Configurar%20preferencias%20de%20notificaci%C3%B3n.md). Este CU deja listo lo que ambos reutilizan.
 
 **Descripción:**
 Otro servicio (Pagos, Académico...) pide avisar a una persona con un tipo, un título y un mensaje, ya redactados. El sistema comprueba que no haya procesado antes ese mismo pedido, mira las preferencias de la persona (qué tipos de aviso y qué canales quiere, y su franja de silencio) y envía por cada canal activo: queda en su historial dentro de la app (`IN_APP`), le llega un correo (`EMAIL`) y una notificación al teléfono (`PUSH`) en todos sus dispositivos registrados. Cada envío queda registrado como enviado o fallido. Si un canal falla, los demás siguen; si el pedido llega repetido, no se avisa dos veces. Para que el push llegue, la app del teléfono o el navegador de la persona (panel web) registran el token de su dispositivo.
@@ -99,7 +99,7 @@ Otro servicio (Pagos, Académico...) pide avisar a una persona con un tipo, un t
 - **Publicar los pedidos** desde Pagos, Académico, etc.: cada servicio lo agrega en su propio CU.
 - **Reintentos automáticos** de envíos fallidos y recordatorios programados.
 - **Registrar el token desde la app móvil** (`firebase_messaging`): solo se deja listo el endpoint.
-- **La campana con la lista de avisos del panel web:** es el historial de [CU38](CU38%20-%20Consultar%20historial%20de%20notificaciones.md); aquí solo llega el push.
+- **La campana con la lista de avisos del panel web:** el historial de [CU38](CU38%20-%20Consultar%20historial%20de%20notificaciones.md) es de la app móvil y no la incluye; aquí solo llega el push.
 - **Mantener al día el correo** de las preferencias a partir de Identidad.
 
 ## Desarrollador
