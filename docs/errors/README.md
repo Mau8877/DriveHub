@@ -26,7 +26,7 @@ prefijo del código dice qué servicio lo produjo:
 | `PAG` | Pagos | [`pagos/`](pagos/ERRORES_PAGOS.md) |
 | `ACA` | Académico | [`academico/`](academico/ERRORES_ACADEMICO.md) |
 | `CON` | Contenido | [`contenido/`](contenido/ERRORES_CONTENIDO.md) |
-| `NOT` | Notificaciones | `notificaciones/` (sin errores todavía) |
+| `NOT` | Notificaciones | [`notificaciones/`](notificaciones/ERRORES_NOTIFICACIONES.md) |
 | `IA` | Asistente IA | `asistente-ia/` (sin errores todavía) |
 
 ## Índice de errores
@@ -166,6 +166,11 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_CON_05`](contenido/ERRORES_CONTENIDO.md#err_con_05) — El tutorial no existe para quien lo pide (404)
 - [`ERR_CON_06`](contenido/ERRORES_CONTENIDO.md#err_con_06) — Cambio no permitido desde el estado actual del tutorial (409)
 - [`ERR_CON_07`](contenido/ERRORES_CONTENIDO.md#err_con_07) — El recurso del tutorial no es válido: PDF ajeno o enlace que no es de YouTube (400)
+
+### Notificaciones (`NOT`)
+
+- [`ERR_NOT_01`](notificaciones/ERRORES_NOTIFICACIONES.md#err_not_01) — Credencial de servicio inválida en una ruta interna (401)
+- [`ERR_NOT_02`](notificaciones/ERRORES_NOTIFICACIONES.md#err_not_02) — El dispositivo push no existe para quien lo quita (404)
 
 ### Asistente IA (`IA`)
 

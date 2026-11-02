@@ -877,6 +877,8 @@ Todo se consulta por usuario y fecha: partición `usuarioCodigo` (la persona de 
 
 ### `Notificaciones` (CU36, CU38)
 
+CU36 guarda **una fila por canal intentado** (`canal` es un solo valor): la de `IN_APP` es la bandeja de la persona y la única con `noLeidaTs` (alimenta el índice `NoLeidas`); las de `EMAIL` y `PUSH` son la constancia de ese envío, con su `estado`. Un tipo desactivado en las preferencias no deja ninguna fila.
+
 | Atributo | Tipo | Notas |
 | --- | --- | --- |
 | `usuarioCodigo`, `sk` | S | Clave |
@@ -913,7 +915,7 @@ Tokens de la app móvil.
 | --- | --- | --- |
 | `usuarioCodigo`, `codigoDispositivoPush` | S | Clave |
 | `tokenFcm` | S | |
-| `plataforma` | S (enum) | `ANDROID`, `IOS` |
+| `plataforma` | S (enum) | `ANDROID`, `IOS`, `WEB` (el navegador del panel) |
 | `activo` | BOOL | |
 | `ultimoUso` | S | |
 
