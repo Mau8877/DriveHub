@@ -113,6 +113,7 @@ Lo que quedó distinto o más preciso al implementar (vale lo de acá sobre lo q
 - **El nombre del estudiante usa `IdentidadClient.nombresDeEstudiantes`** tal cual existía (CU22); no hizo falta tocar Identidad.
 - **Los tests de repositorio con MongoDB real se omiten solos en esta máquina**; se corrieron parchando solo durante la corrida `MongoIntegrationTestBase` (base temporal `academico_ut_tmp`, ya borrada, archivo restaurado), como en CU15.
 - **`ClaseAgendaResponse` ganó `cerrable` y `claseCodigo` con el CU17** ([UT-CU17-BE-08](../../CU17%20-%20Gestionar%20clases%20%28asistencia%20y%20cierre%29/UT-BACKEND/UT-CU17-BE-08.md)): cambio compatible hacia atrás. `AgendaService` recibe ahora también `ClaseService`.
+- **`ClaseAgendaResponse` ganó `evaluable` y `conPrueba` con el CU18** ([UT-CU18-BE-07](../../CU18%20-%20Gestionar%20prueba%20de%20clases/UT-BACKEND/UT-CU18-BE-07.md)): cambio compatible hacia atrás. `AgendaService` recibe ahora también `PruebaClaseService`.
 
 ## Follow-ups (no se implementan en estas UT)
 

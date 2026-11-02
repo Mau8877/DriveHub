@@ -10,7 +10,7 @@
 **Plataforma:** Móvil (estudiante e instructor) y Web (Administrador)
 
 **Descripción:**
-Cada vez que se cierra una evaluación, el sistema deja su nota en un historial: un simulacro escrito ([CU21](CU21%20-%20Rendir%20simulacro%20escrito.md)) y un examen de conducción ([CU22](CU22%20-%20Gestionar%20examen%20de%20conducci%C3%B3n.md)) hoy; la prueba de clase ([CU17](../../CU.md)) cuando exista. El estudiante abre «Estudio > Mis notas» en la app y ve sus notas de la más reciente a la más antigua, con un filtro por tipo de evaluación. El Instructor abre «Notas de mis alumnos» desde su Inicio y ve las notas de los alumnos que tiene asignados, con el nombre de cada uno y el mismo filtro. El Administrador abre «Gestionar exámenes > Resultados» en la web y ve las notas de todos los estudiantes de su escuela, con el nombre de cada uno y el mismo filtro. Cada quien ve solo lo suyo.
+Cada vez que se cierra una evaluación, el sistema deja su nota en un historial: un simulacro escrito ([CU21](CU21%20-%20Rendir%20simulacro%20escrito.md)) y un examen de conducción ([CU22](CU22%20-%20Gestionar%20examen%20de%20conducci%C3%B3n.md)) hoy; la prueba de clase ([CU18](CU18%20-%20Gestionar%20prueba%20de%20clases.md)) cuando exista. El estudiante abre «Estudio > Mis notas» en la app y ve sus notas de la más reciente a la más antigua, con un filtro por tipo de evaluación. El Instructor abre «Notas de mis alumnos» desde su Inicio y ve las notas de los alumnos que tiene asignados, con el nombre de cada uno y el mismo filtro. El Administrador abre «Gestionar exámenes > Resultados» en la web y ve las notas de todos los estudiantes de su escuela, con el nombre de cada uno y el mismo filtro. Cada quien ve solo lo suyo.
 
 ---
 

@@ -725,7 +725,9 @@ Evaluación práctica durante la clase.
 | `puntajeTotal` | double | |
 | `resultado` | enum | `APROBADO`, `REPROBADO` |
 | `observaciones` | string | Opcional |
-| `fecha` | date | |
+| `fecha` | date | La de la clase dictada, no el día en que se evalúa |
+
+**Uso real (CU18):** índice único compuesto `uq_prueba_clase_tipo (claseId, tipo)` (reemplaza al índice simple de `claseId`): una clase tiene a lo sumo una prueba de cada tipo, hasta tres, y dos peticiones a la vez no pueden duplicarla. Los `criterios` son exactamente los del tipo según el catálogo en código (`CatalogoDePruebas`: 5 por tipo, máximo 10 cada uno) y guardan **copia** de `descripcion` y `maximo`. `puntajeTotal` es la suma de lo obtenido sobre la suma de los máximos, sobre 100 con dos decimales; `resultado` es `APROBADO` desde 70. Una prueba no se corrige ni se borra. Al guardarla se escribe su nota en `resultados` con `origen = PRUEBA_CLASE` y `origenId` igual a su `_id`; si el servicio se cae entre las dos escrituras, repetir la evaluación completa la nota sin duplicar la prueba. No hay migración (`auto-index-creation`).
 
 ### `examenes_conduccion` (CU22)
 
@@ -806,6 +808,8 @@ Vista consolidada de notas: se escribe al cerrar cada evaluación y publica `exa
 | `puntaje` | double | |
 | `aprobado` | boolean | |
 | `fecha` | instant | |
+
+Índice único `uq_resultado_origen (origen, origenId)` (CU18): una evaluación tiene a lo sumo una nota, aunque dos peticiones lleguen a la vez.
 
 ### `outbox_eventos` (CU44)
 

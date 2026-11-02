@@ -120,7 +120,7 @@ Se reutilizan: `ERR_ACA_16` (el token no trae la escuela) y `ERR_SYS_01` (cuerpo
 | UT | Estado |
 | --- | --- |
 | 01 a 09 | **Hechas** (2026-11-01), con pruebas: `academico` 648 tests unitarios sin fallos y `./mvnw checkstyle:check` limpio. Los tests de repositorio se corrieron contra el Mongo del compose (`ClaseRepositoryTest` 6, `ReservaRepositoryTest` 48), sin fallos |
-| 10 (punta a punta) | **Pendiente**: necesita el stack reconstruido con este código y el JWT de un instructor de `escuelaexample` |
+| 10 (punta a punta) | **Hecha** (2026-11-01): los 14 escenarios, 31 comprobaciones, contra el stack real (gateway, `academico`, Mongo del compose) con `instructorexample@gmail.com` y `estudianteprueba@gmail.com`; todas dieron el resultado esperado. Los datos de prueba (reservas `_id` desde 900000, sus clases) se borraron al terminar |
 
 ## Notas de implementación
 
