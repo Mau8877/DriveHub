@@ -291,9 +291,11 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 
 - **HTTP:** 404
 - **Excepción:** `NotFoundException`
-- **Significado:** La clase que el instructor quiso cancelar no existe, está borrada o es de otro instructor (CU16).
-  Nunca se revela si existe a nombre de otra persona.
-- **Dónde se lanza:** `AgendaService.cancelar()`
+- **Significado:** La clase que el instructor quiso cancelar (CU16), o la reserva o la clase dictada que quiso cerrar,
+  ver o corregir (CU17), no existe, está borrada o es de otro instructor. Nunca se revela si existe a nombre de otra
+  persona.
+- **Dónde se lanza:** `AgendaService.cancelar()`, `CierreDeReservaService.buscarCerrable()`,
+  `ClaseService.obtener()` y `ClaseService.actualizar()`
 
 ## `ERR_ACA_36`
 
@@ -303,3 +305,22 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
   cerrada o a medias) o ya empezó (CU16). También cuando otra petición, por ejemplo la cancelación del estudiante,
   la cambió un instante antes.
 - **Dónde se lanza:** `AgendaService.cancelar()`
+
+## `ERR_ACA_37`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La clase no se puede cerrar (CU17) porque la reserva no está `CONFIRMADA` (ya está cerrada,
+  cancelada o a medias), porque todavía no empezó, o porque otra petición la cambió mientras se cerraba (por ejemplo,
+  el estudiante la canceló un instante antes).
+- **Dónde se lanza:** `CierreDeReservaService.buscarCerrable()` y `ClaseService.cerrar()`
+
+## `ERR_ACA_38`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** Los datos de la clase no cumplen las reglas de negocio (CU17): el kilometraje final es menor que
+  el inicial, o se enviaron tema o kilómetros en una clase con asistencia `AUSENTE` (solo admite observaciones). Los
+  tamaños y rangos (tema de más de 120 caracteres, kilómetros negativos...) caen en `ERR_SYS_01`.
+- **Dónde se lanza:** `ReglasDeClase.validarCierre()` y `ReglasDeClase.validarCorreccion()`, desde
+  `ClaseService.cerrar()` y `ClaseService.actualizar()`

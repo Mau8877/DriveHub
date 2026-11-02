@@ -151,6 +151,8 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_34`](academico/ERRORES_ACADEMICO.md#err_aca_34) — Reprogramar fuera de plazo (409)
 - [`ERR_ACA_35`](academico/ERRORES_ACADEMICO.md#err_aca_35) — La clase no existe o es de otro instructor (404)
 - [`ERR_ACA_36`](academico/ERRORES_ACADEMICO.md#err_aca_36) — La clase no se puede cancelar por el instructor (409)
+- [`ERR_ACA_37`](academico/ERRORES_ACADEMICO.md#err_aca_37) — La clase no se puede cerrar (409)
+- [`ERR_ACA_38`](academico/ERRORES_ACADEMICO.md#err_aca_38) — Datos de la clase no válidos (400)
 
 ### Contenido (`CON`)
 

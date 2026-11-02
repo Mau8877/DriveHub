@@ -709,6 +709,8 @@ Las franjas se generan desde el horario para 28 días contando hoy, y una tarea 
 | `kmInicio`, `kmFin` | int | |
 | `estado` | enum | `ABIERTA`, `CERRADA` |
 
+**Uso real (CU17):** la clase se crea **al cerrarla**, siempre `CERRADA`: no hay paso de «iniciar», así que `ABIERTA` queda sin uso y `inicioReal`, `finReal` y `vehiculoCodigo` quedan vacíos (el vehículo, hasta que las clases se asocien al auto en CU10 y CU11). Cada reserva tiene a lo sumo una clase (índice único de `reservaId`); si un cierre se corta a medias, cerrar de nuevo reutiliza la clase ya guardada. Con `asistencia = AUSENTE` solo se guardan `observaciones` (sin `tema` ni kilómetros). `kmInicio` y `kmFin` son opcionales, de 0 a 9 999 999, y `kmFin` no es menor que `kmInicio`; `tema` admite hasta 120 caracteres y `observaciones` hasta 500. La asistencia no se cambia una vez cerrada. No hay migración ni índices nuevos.
+
 ### `pruebas_clase` (CU18)
 
 Evaluación práctica durante la clase.
