@@ -49,6 +49,17 @@ public class CierreDeReservaService {
     }
 
     /**
+     * Si la reserva ya quedó `COMPLETADA`, es decir, el cierre de su clase terminó (CU18). Una clase dictada puede
+     * existir con la reserva todavía `CONFIRMADA` si un cierre se cortó a medias.
+     */
+    public boolean reservaCompletada(Long reservaId) {
+        return reservaRepository.findById(reservaId)
+            .filter(r -> r.getDeletedAt() == null)
+            .map(r -> r.getEstado() == EstadoReserva.COMPLETADA)
+            .orElse(false);
+    }
+
+    /**
      * Deja la reserva `COMPLETADA` (`PRESENTE` o `TARDE`) o `NO_ASISTIO` (`AUSENTE`), solo si sigue `CONFIRMADA`.
      * Vacío si otra petición la cambió antes: quien llama decide qué hacer.
      */

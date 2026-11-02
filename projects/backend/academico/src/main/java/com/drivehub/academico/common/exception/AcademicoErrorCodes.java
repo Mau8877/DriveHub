@@ -65,6 +65,11 @@ public final class AcademicoErrorCodes {
     public static final String CLASE_NO_CERRABLE = "ERR_ACA_37";
     public static final String DATOS_DE_CLASE_INVALIDOS = "ERR_ACA_38";
 
+    // * CU18: evaluar una clase dictada (prueba de clase)
+    public static final String CLASE_NO_EVALUABLE = "ERR_ACA_39";
+    public static final String PRUEBA_YA_REGISTRADA = "ERR_ACA_40";
+    public static final String DATOS_DE_PRUEBA_INVALIDOS = "ERR_ACA_41";
+
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public static final String VALIDACION = "ERR_SYS_01";
     public static final String SESION_INVALIDA = "ERR_SYS_04";

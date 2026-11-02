@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -25,7 +26,9 @@ import com.drivehub.academico.common.exception.ForbiddenException;
 import com.drivehub.academico.common.exception.NotFoundException;
 import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.common.exception.ValidationException;
+import com.drivehub.academico.features.clases.enums.TipoPrueba;
 import com.drivehub.academico.features.clases.service.ClaseService;
+import com.drivehub.academico.features.clases.service.PruebaClaseService;
 import com.drivehub.academico.features.reservas.client.ClienteDePagos;
 import com.drivehub.academico.features.reservas.client.IdentidadClient;
 import com.drivehub.academico.features.reservas.dto.CancelacionInstructorResponse;
@@ -62,17 +65,19 @@ public class AgendaService {
     private final OrquestadorClases orquestador;
     private final ClienteDePagos clienteDeServicio;
     private final ClaseService claseService;
+    private final PruebaClaseService pruebaClaseService;
     private final Clock clock;
 
     public AgendaService(ReservaRepository reservaRepository, IdentidadClient identidadClient, PlazoDeClase plazo,
             OrquestadorClases orquestador, @Qualifier("clienteDeServicio") ClienteDePagos clienteDeServicio,
-            ClaseService claseService, Clock clock) {
+            ClaseService claseService, PruebaClaseService pruebaClaseService, Clock clock) {
         this.reservaRepository = reservaRepository;
         this.identidadClient = identidadClient;
         this.plazo = plazo;
         this.orquestador = orquestador;
         this.clienteDeServicio = clienteDeServicio;
         this.claseService = claseService;
+        this.pruebaClaseService = pruebaClaseService;
         this.clock = clock;
     }
 
@@ -98,7 +103,8 @@ public class AgendaService {
         Map<UUID, String> nombres = estudiantes.isEmpty() ? Map.of()
             : identidadClient.nombresDeEstudiantes(estudiantes, bearer);
         Map<Long, UUID> codigosDeClase = codigosDeClase(clases.getContent());
-        return clases.map(c -> aRespuesta(c, nombres, ahora, codigosDeClase));
+        Map<Long, Set<TipoPrueba>> tiposEvaluados = tiposEvaluados(clases.getContent());
+        return clases.map(c -> aRespuesta(c, nombres, ahora, codigosDeClase, tiposEvaluados));
     }
 
     /**
@@ -177,7 +183,7 @@ public class AgendaService {
         } catch (ServicioNoDisponibleException e) {
             nombres = Map.of();
         }
-        return aRespuesta(reserva, nombres, LocalDateTime.now(clock), Map.of());
+        return aRespuesta(reserva, nombres, LocalDateTime.now(clock), Map.of(), Map.of());
     }
 
     /**
@@ -191,16 +197,32 @@ public class AgendaService {
         return cerradas.isEmpty() ? Map.of() : claseService.codigosPorReserva(cerradas);
     }
 
+    /**
+     * Los tipos de prueba (CU18) ya hechos en las clases de las reservas `COMPLETADA` de la página, con una sola
+     * consulta. Una reserva que no esté `COMPLETADA` nunca se evalúa: sin ellas no se consulta.
+     */
+    private Map<Long, Set<TipoPrueba>> tiposEvaluados(List<Reserva> reservas) {
+        List<Long> completadas = reservas.stream()
+            .filter(r -> r.getEstado() == EstadoReserva.COMPLETADA)
+            .map(Reserva::getId).toList();
+        return completadas.isEmpty() ? Map.of() : pruebaClaseService.tiposEvaluadosPorReserva(completadas);
+    }
+
     private ClaseAgendaResponse aRespuesta(Reserva reserva, Map<UUID, String> nombres, LocalDateTime ahora,
-            Map<Long, UUID> codigosDeClase) {
+            Map<Long, UUID> codigosDeClase, Map<Long, Set<TipoPrueba>> tiposEvaluados) {
         boolean confirmada = reserva.getEstado() == EstadoReserva.CONFIRMADA;
         boolean empezo = plazo.haEmpezado(reserva);
         // * Solo una clase ya cerrada muestra su código (una confirmada con clase a medias, S1 de CU17, todavía no)
         boolean cerrada = reserva.getEstado() == EstadoReserva.COMPLETADA
             || reserva.getEstado() == EstadoReserva.NO_ASISTIO;
+        // * Evaluable: cerrada con asistencia (`COMPLETADA`), con clase y con algún tipo sin hacer
+        Set<TipoPrueba> hechos = reserva.getEstado() == EstadoReserva.COMPLETADA
+            ? tiposEvaluados.get(reserva.getId()) : null;
+        boolean evaluable = hechos != null && hechos.size() < TipoPrueba.values().length;
+        boolean conPrueba = hechos != null && !hechos.isEmpty();
         return ClaseAgendaResponse.de(reserva, nombres.getOrDefault(reserva.getEstudianteCodigo(), NOMBRE_SIN_DATOS),
             ReservaService.terminada(reserva, ahora), confirmada && !empezo, confirmada && empezo,
-            cerrada ? codigosDeClase.get(reserva.getId()) : null);
+            cerrada ? codigosDeClase.get(reserva.getId()) : null, evaluable, conPrueba);
     }
 
     private static ConflictException claseNoCancelable() {

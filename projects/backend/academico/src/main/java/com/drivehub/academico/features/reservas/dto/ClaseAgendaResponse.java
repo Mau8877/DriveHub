@@ -17,6 +17,9 @@ import com.drivehub.academico.features.reservas.model.Reserva;
  *        los dos verdaderos. Lo calcula el servidor con su reloj
  * @param claseCodigo el `codigoClase` de la clase dictada, solo si la reserva está `COMPLETADA` o `NO_ASISTIO` y ya
  *        tiene clase (CU17); si no, `null`
+ * @param evaluable la reserva está `COMPLETADA`, tiene clase y todavía le falta algún tipo de prueba (CU18). Lo
+ *        calcula el servidor; nunca es verdadero junto con `cancelable` o `cerrable`
+ * @param conPrueba la clase tiene al menos una prueba de clase (CU18)
  *
  * * Los estados transitorios de CU15 no se muestran: `CANCELACION_PENDIENTE` se ve `CANCELADA` y
  * * `REPROGRAMACION_PENDIENTE` se ve `CONFIRMADA`, igual que en {@link ReservaResponse}.
@@ -32,13 +35,15 @@ public record ClaseAgendaResponse(
         boolean terminada,
         boolean cancelable,
         boolean cerrable,
-        UUID claseCodigo) {
+        UUID claseCodigo,
+        boolean evaluable,
+        boolean conPrueba) {
 
     public static ClaseAgendaResponse de(Reserva reserva, String estudianteNombre, boolean terminada,
-            boolean cancelable, boolean cerrable, UUID claseCodigo) {
+            boolean cancelable, boolean cerrable, UUID claseCodigo, boolean evaluable, boolean conPrueba) {
         return new ClaseAgendaResponse(reserva.getCodigoReserva(), reserva.getFecha(), reserva.getHoraInicio(),
             reserva.getHoraFin(), reserva.getEstudianteCodigo(), estudianteNombre, estadoVisible(reserva.getEstado()),
-            terminada, cancelable, cerrable, claseCodigo);
+            terminada, cancelable, cerrable, claseCodigo, evaluable, conPrueba);
     }
 
     private static EstadoReserva estadoVisible(EstadoReserva estado) {

@@ -155,4 +155,21 @@ class CierreDeReservaServiceTest {
             "Clase cerrada por el instructor (AUSENTE)", INSTANTE);
         verifyNoMoreInteractions(reservaRepository);
     }
+
+    @Test
+    void reservaCompletada_soloEsVerdaderaConLaReservaCompletadaYNoBorrada() {
+        Reserva completada = reserva(HOY, "08:00", "09:00", EstadoReserva.COMPLETADA);
+        Reserva confirmada = reserva(HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+        Reserva borrada = reserva(HOY, "08:00", "09:00", EstadoReserva.COMPLETADA);
+        borrada.setDeletedAt(INSTANTE);
+        when(reservaRepository.findById(1L)).thenReturn(Optional.of(completada));
+        when(reservaRepository.findById(2L)).thenReturn(Optional.of(confirmada));
+        when(reservaRepository.findById(3L)).thenReturn(Optional.of(borrada));
+        when(reservaRepository.findById(4L)).thenReturn(Optional.empty());
+
+        assertThat(service.reservaCompletada(1L)).isTrue();
+        assertThat(service.reservaCompletada(2L)).isFalse();
+        assertThat(service.reservaCompletada(3L)).isFalse();
+        assertThat(service.reservaCompletada(4L)).isFalse();
+    }
 }

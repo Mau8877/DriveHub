@@ -16,6 +16,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,7 +39,9 @@ import com.drivehub.academico.common.exception.BusinessException;
 import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.config.OrquestadorProperties;
 import com.drivehub.academico.config.ReservasProperties;
+import com.drivehub.academico.features.clases.enums.TipoPrueba;
 import com.drivehub.academico.features.clases.service.ClaseService;
+import com.drivehub.academico.features.clases.service.PruebaClaseService;
 import com.drivehub.academico.features.horarios.enums.EstadoFranja;
 import com.drivehub.academico.features.horarios.model.Franja;
 import com.drivehub.academico.features.horarios.repository.FranjaRepository;
@@ -74,6 +77,8 @@ class AgendaServiceTest {
     private ClienteDePagos clienteDeServicio;
     @Mock
     private ClaseService claseService;
+    @Mock
+    private PruebaClaseService pruebaClaseService;
 
     private final UUID instructor = UUID.randomUUID();
     private final UUID estudiante = UUID.randomUUID();
@@ -90,7 +95,7 @@ class AgendaServiceTest {
             compensador, reservaRepository, clienteDeServicio, orquestadorProps, reloj);
         PlazoDeClase plazo = new PlazoDeClase(new ReservasProperties(1, 10, 2, 12), reloj);
         service = new AgendaService(reservaRepository, identidadClient, plazo, orquestador, clienteDeServicio,
-            claseService, reloj);
+            claseService, pruebaClaseService, reloj);
         lenient().when(identidadClient.nombresDeEstudiantes(any(), eq(BEARER)))
             .thenReturn(Map.of(estudiante, "Ana Pérez"));
     }
@@ -239,6 +244,46 @@ class AgendaServiceTest {
 
         assertThat(contenido).extracting(ClaseAgendaResponse::claseCodigo)
             .containsExactly(claseA, claseB, null, null, null);
+    }
+
+    @Test
+    void agenda_evaluableYConPrueba_segunLosTiposYaEvaluados() {
+        Reserva sinPruebas = clase(HOY, "08:00", "09:00", EstadoReserva.COMPLETADA);
+        Reserva conUna = clase(HOY, "09:00", "10:00", EstadoReserva.COMPLETADA);
+        Reserva conTres = clase(HOY, "10:00", "11:00", EstadoReserva.COMPLETADA);
+        Reserva sinClase = clase(HOY, "11:00", "12:00", EstadoReserva.COMPLETADA);
+        Reserva noAsistio = clase(HOY, "12:00", "13:00", EstadoReserva.NO_ASISTIO);
+        Reserva confirmada = clase(HOY, "13:00", "14:00", EstadoReserva.CONFIRMADA);
+        Reserva cancelada = clase(HOY, "14:00", "15:00", EstadoReserva.CANCELADA);
+        laAgendaDevuelve(sinPruebas, conUna, conTres, sinClase, noAsistio, confirmada, cancelada);
+        when(claseService.codigosPorReserva(any())).thenReturn(Map.of());
+        when(pruebaClaseService.tiposEvaluadosPorReserva(
+            List.of(sinPruebas.getId(), conUna.getId(), conTres.getId(), sinClase.getId()))).thenReturn(Map.of(
+                sinPruebas.getId(), EnumSet.noneOf(TipoPrueba.class),
+                conUna.getId(), EnumSet.of(TipoPrueba.MANEJO),
+                conTres.getId(), EnumSet.allOf(TipoPrueba.class)));
+
+        var contenido = service.agenda(instructor, escuela, BEARER, null, 1, 20).getContent();
+
+        assertThat(contenido).extracting(ClaseAgendaResponse::evaluable)
+            .containsExactly(true, true, false, false, false, false, false);
+        assertThat(contenido).extracting(ClaseAgendaResponse::conPrueba)
+            .containsExactly(false, true, true, false, false, false, false);
+        assertThat(contenido).allSatisfy(c -> assertThat(c.evaluable() && (c.cancelable() || c.cerrable())).isFalse());
+    }
+
+    @Test
+    void agenda_noPideLasPruebasSiNoHayCompletadas() {
+        laAgendaDevuelve(clase(HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA),
+            clase(HOY, "09:00", "10:00", EstadoReserva.NO_ASISTIO));
+
+        var contenido = service.agenda(instructor, escuela, BEARER, null, 1, 20).getContent();
+
+        verifyNoInteractions(pruebaClaseService);
+        assertThat(contenido).allSatisfy(c -> {
+            assertThat(c.evaluable()).isFalse();
+            assertThat(c.conPrueba()).isFalse();
+        });
     }
 
     @Test

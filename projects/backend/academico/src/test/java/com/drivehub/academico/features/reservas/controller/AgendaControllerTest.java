@@ -68,7 +68,7 @@ class AgendaControllerTest {
 
     private ClaseAgendaResponse clase(EstadoReserva estado, boolean cancelable) {
         return new ClaseAgendaResponse(UUID.randomUUID(), FECHA, "10:00", "11:00", estudiante, "Ana Pérez", estado,
-            false, cancelable, !cancelable && estado == EstadoReserva.CONFIRMADA, null);
+            false, cancelable, !cancelable && estado == EstadoReserva.CONFIRMADA, null, false, false);
     }
 
     private String rutaDeCancelar(UUID codigo) {
