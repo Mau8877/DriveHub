@@ -17,3 +17,10 @@ Las constantes viven en `ErrorCodes` (`src/common/exceptions/error-codes.ts`).
 - **Excepción:** `NotFoundException`
 - **Significado:** Se quiso quitar un dispositivo push que no existe o es de otra persona (CU36). Uno ajeno y uno inexistente responden igual.
 - **Dónde se lanza:** `DispositivosService.quitar()`
+
+## `ERR_NOT_03`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** La franja de horas de silencio de las preferencias no es válida (CU37): viene una sola de las dos horas, o las dos son iguales. El formato `HH:mm` mal escrito no llega aquí: lo rechaza la validación del cuerpo con `ERR_SYS_01`. No se cambia nada.
+- **Dónde se lanza:** `PreferenciasService.guardar()`

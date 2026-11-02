@@ -171,6 +171,7 @@ prefijo del código dice qué servicio lo produjo:
 
 - [`ERR_NOT_01`](notificaciones/ERRORES_NOTIFICACIONES.md#err_not_01) — Credencial de servicio inválida en una ruta interna (401)
 - [`ERR_NOT_02`](notificaciones/ERRORES_NOTIFICACIONES.md#err_not_02) — El dispositivo push no existe para quien lo quita (404)
+- [`ERR_NOT_03`](notificaciones/ERRORES_NOTIFICACIONES.md#err_not_03) — La franja de silencio de las preferencias no es válida (400)
 
 ### Asistente IA (`IA`)
 
