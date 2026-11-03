@@ -190,6 +190,9 @@ services:
       - PAGOS_ENLACE_APP=${PAGOS_ENLACE_APP:?Define PAGOS_ENLACE_APP en .env (ver .env.example)}
       # * Credencial de servicio de las rutas internas (CU44): la misma que recibe academico
       - PAGOS_CREDENCIAL_ACADEMICO=${PAGOS_CREDENCIAL_ACADEMICO:?Define PAGOS_CREDENCIAL_ACADEMICO en .env (ver .env.example)}
+      # Avisos al estudiante (CU36): Notificaciones por la red interna. Sin credencial no se envia ninguno.
+      - NOTIFICACIONES_URL=http://drivehub-notificaciones:8086
+      - NOTIFICACIONES_CREDENCIAL_SERVICIOS=${NOTIFICACIONES_CREDENCIAL_SERVICIOS:-}
       # Bolivianos por dolar: solo de esta variable, sin valor por defecto en el codigo.
       - TIPO_CAMBIO_BS_USD=${TIPO_CAMBIO_BS_USD:?Define TIPO_CAMBIO_BS_USD en .env (ver .env.example)}
       - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
@@ -245,6 +248,9 @@ services:
       - PAGOS_URL=http://drivehub-pagos:8083
       # * Credencial con la que el orquestador se identifica ante las rutas internas de Pagos (CU44): la misma de pagos
       - PAGOS_CREDENCIAL_ACADEMICO=${PAGOS_CREDENCIAL_ACADEMICO:?Define PAGOS_CREDENCIAL_ACADEMICO en .env (ver .env.example)}
+      # Avisos de clases y examenes (CU36): Notificaciones por la red interna. Sin credencial no se envia ninguno.
+      - NOTIFICACIONES_URL=http://drivehub-notificaciones:8086
+      - NOTIFICACIONES_CREDENCIAL_SERVICIOS=${NOTIFICACIONES_CREDENCIAL_SERVICIOS:-}
       - SPRING_RABBITMQ_HOST=drivehub-rabbitmq
       - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
       - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
