@@ -1,0 +1,144 @@
+{"pantalla": "clases", "texto": "oye cuándo era que me tocaba manejar la próxima vez", "accion": "ver_mis_clases", "argumentos": {}}
+{"pantalla": "clases", "texto": "a ver, qué tengo agendado esta semana", "accion": "ver_mis_clases", "argumentos": {}}
+{"pantalla": "clases", "texto": "tengo práctica el viernes?", "accion": "ver_mis_clases", "argumentos": {"dia": "viernes"}}
+{"pantalla": "clases", "texto": "me recuerdas con quién es mi clase de mañana", "accion": "ver_mis_clases", "argumentos": {"dia": "manana"}}
+{"pantalla": "clases", "texto": "cuántas prácticas tengo programadas", "accion": "ver_mis_clases", "argumentos": {}}
+{"pantalla": "clases", "texto": "mi próxima práctica es con Carlos?", "accion": "ver_mis_clases", "argumentos": {"instructor": "Carlos"}}
+{"pantalla": "clases", "texto": "qué día me toca con la profe Lucía", "accion": "ver_mis_clases", "argumentos": {"instructor": "Lucía"}}
+{"pantalla": "clases", "texto": "tengo algo para hoy?", "accion": "ver_mis_clases", "argumentos": {"dia": "hoy"}}
+{"pantalla": "clases", "texto": "muéstrame lo que reservé para pasado mañana", "accion": "ver_mis_clases", "argumentos": {"dia": "pasado_manana"}}
+{"pantalla": "clases", "texto": "necesito saber a qué hora manejo el sábado", "accion": "ver_mis_clases", "argumentos": {"dia": "sabado"}}
+{"pantalla": "clases", "texto": "lista de mis clases agendadas", "accion": "ver_mis_clases", "argumentos": {}}
+{"pantalla": "clases", "texto": "ya está confirmada mi clase del lunes?", "accion": "ver_mis_clases", "argumentos": {"dia": "lunes"}}
+{"pantalla": "clases", "texto": "qué clases me quedan con Jorge Quispe", "accion": "ver_mis_clases", "argumentos": {"instructor": "Jorge Quispe"}}
+{"pantalla": "clases", "texto": "cuántas prácticas tengo pendientes", "accion": "ver_mis_clases", "argumentos": {}}
+{"pantalla": "clases", "texto": "dime si el martes tengo clase con Ana", "accion": "ver_mis_clases", "argumentos": {"dia": "martes", "instructor": "Ana"}}
+{"pantalla": "clases", "texto": "mis reservas de hoy con Pedro", "accion": "ver_mis_clases", "argumentos": {"dia": "hoy", "instructor": "Pedro"}}
+{"pantalla": "clases", "texto": "quiero repasar lo que ya practiqué", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuántas veces he salido a manejar", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "con quién fue mi última práctica", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "historial de mis prácticas", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "las clases del mes pasado", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuántas clases completé hasta hoy", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "ver clases terminadas", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "revisar mi progreso de clases anteriores", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "mostrame las clases a las que ya fui", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "a cuántas clases falté", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "qué días tuve clase la semana pasada", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "mi registro de clases", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "lo que ya llevo recorrido en el curso", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuándo fue la última vez que practiqué", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "enséñame mis clases viejas", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "dame el detalle de las clases que ya hice", "accion": "ver_historial", "argumentos": {}}
+{"pantalla": "clases", "texto": "quiero manejar mañana en la tarde", "accion": "buscar_horarios", "argumentos": {"dia": "manana", "momento": "tarde"}}
+{"pantalla": "clases", "texto": "hay algún espacio para practicar el sábado", "accion": "buscar_horarios", "argumentos": {"dia": "sabado"}}
+{"pantalla": "clases", "texto": "necesito una práctica temprano", "accion": "buscar_horarios", "argumentos": {"momento": "manana"}}
+{"pantalla": "clases", "texto": "qué disponibilidad tiene Roberto", "accion": "buscar_horarios", "argumentos": {"instructor": "Roberto"}}
+{"pantalla": "clases", "texto": "busca clases libres para el lunes por la noche", "accion": "buscar_horarios", "argumentos": {"dia": "lunes", "momento": "noche"}}
+{"pantalla": "clases", "texto": "quiero sacar una hora con la profe Carla", "accion": "buscar_horarios", "argumentos": {"instructor": "Carla"}}
+{"pantalla": "clases", "texto": "tienen cupos hoy?", "accion": "buscar_horarios", "argumentos": {"dia": "hoy"}}
+{"pantalla": "clases", "texto": "quiero inscribirme a una práctica más", "accion": "buscar_horarios", "argumentos": {}}
+{"pantalla": "clases", "texto": "hay clase pasado mañana en la mañana con Luis", "accion": "buscar_horarios", "argumentos": {"dia": "pasado_manana", "momento": "manana", "instructor": "Luis"}}
+{"pantalla": "clases", "texto": "ábreme la parte de reservar", "accion": "buscar_horarios", "argumentos": {}}
+{"pantalla": "clases", "texto": "para cuándo hay horarios disponibles", "accion": "buscar_horarios", "argumentos": {}}
+{"pantalla": "clases", "texto": "estoy libre en la tarde, qué hay", "accion": "buscar_horarios", "argumentos": {"momento": "tarde"}}
+{"pantalla": "clases", "texto": "quiero una clase el miércoles con Sofía", "accion": "buscar_horarios", "argumentos": {"dia": "miercoles", "instructor": "Sofía"}}
+{"pantalla": "clases", "texto": "busco horario nocturno", "accion": "buscar_horarios", "argumentos": {"momento": "noche"}}
+{"pantalla": "clases", "texto": "puedo ver qué hay libre el domingo", "accion": "buscar_horarios", "argumentos": {"dia": "domingo"}}
+{"pantalla": "clases", "texto": "me urge una clase hoy en la noche", "accion": "buscar_horarios", "argumentos": {"dia": "hoy", "momento": "noche"}}
+{"pantalla": "clases", "texto": "dame la de las 5 de la tarde", "accion": "seleccionar_horario", "argumentos": {"hora": "17:00"}}
+{"pantalla": "clases", "texto": "ese, el de las 9 y media de la mañana", "accion": "seleccionar_horario", "argumentos": {"hora": "09:30"}}
+{"pantalla": "clases", "texto": "me sirve la de mediodía", "accion": "seleccionar_horario", "argumentos": {"hora": "12:00"}}
+{"pantalla": "clases", "texto": "quedémonos con la de las 7 pm", "accion": "seleccionar_horario", "argumentos": {"hora": "19:00"}}
+{"pantalla": "clases", "texto": "reserva la de las 4 de la tarde con Carlos", "accion": "seleccionar_horario", "argumentos": {"hora": "16:00", "instructor": "Carlos"}}
+{"pantalla": "clases", "texto": "elijo la de las 10 de la mañana del viernes", "accion": "seleccionar_horario", "argumentos": {"hora": "10:00", "dia": "viernes"}}
+{"pantalla": "clases", "texto": "me gusta más la de las 18:00", "accion": "seleccionar_horario", "argumentos": {"hora": "18:00"}}
+{"pantalla": "clases", "texto": "la del mediodía de mañana", "accion": "seleccionar_horario", "argumentos": {"hora": "12:00", "dia": "manana"}}
+{"pantalla": "clases", "texto": "apúntame en el horario de las 8 de la mañana", "accion": "seleccionar_horario", "argumentos": {"hora": "08:00"}}
+{"pantalla": "clases", "texto": "quiero la de las 3 y media de la tarde con Ana", "accion": "seleccionar_horario", "argumentos": {"hora": "15:30", "instructor": "Ana"}}
+{"pantalla": "clases", "texto": "esa de las 2 de la tarde está perfecta", "accion": "seleccionar_horario", "argumentos": {"hora": "14:00"}}
+{"pantalla": "clases", "texto": "resérvame la de las 11 de la mañana mañana", "accion": "seleccionar_horario", "argumentos": {"hora": "11:00", "dia": "manana"}}
+{"pantalla": "clases", "texto": "la de las 20:00 por favor", "accion": "seleccionar_horario", "argumentos": {"hora": "20:00"}}
+{"pantalla": "clases", "texto": "me quedo con la de las 6 y media de la tarde del jueves", "accion": "seleccionar_horario", "argumentos": {"hora": "18:30", "dia": "jueves"}}
+{"pantalla": "clases", "texto": "prefiero el de la 1 de la tarde", "accion": "seleccionar_horario", "argumentos": {"hora": "13:00"}}
+{"pantalla": "clases", "texto": "dame esa de las 9 de la noche con el profe Diego", "accion": "seleccionar_horario", "argumentos": {"hora": "21:00", "instructor": "Diego"}}
+{"pantalla": "clases", "texto": "ya no quiero ver solo la tarde, muestra todo", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "sácame los filtros", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "que vuelvan a salir todos los instructores", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "olvida lo que filtré", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "borra la selección de instructor", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "muéstrame todo sin restricciones", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "reinicia la búsqueda", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "quita el filtro de la noche", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "ya no quiero filtrar por profe", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "déjame ver todos los horarios, sin filtro", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "limpia los filtros de la pantalla", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "cancela los filtros", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "vuelve a como estaba antes de filtrar", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "que aparezcan todos de nuevo", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "desmarca los filtros que puse", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "quiero ver a todos los instructores otra vez", "accion": "limpiar_filtros", "argumentos": {}}
+{"pantalla": "clases", "texto": "no voy a poder ir mañana, cancela mi clase", "accion": "cancelar_clase", "argumentos": {"dia": "manana"}}
+{"pantalla": "clases", "texto": "se me complicó el jueves, anula esa clase", "accion": "cancelar_clase", "argumentos": {"dia": "jueves"}}
+{"pantalla": "clases", "texto": "quiero dar de baja la clase de las 4 de la tarde", "accion": "cancelar_clase", "argumentos": {"hora": "16:00"}}
+{"pantalla": "clases", "texto": "cancélame la de Carlos", "accion": "cancelar_clase", "argumentos": {"instructor": "Carlos"}}
+{"pantalla": "clases", "texto": "ya no necesito mi práctica de hoy", "accion": "cancelar_clase", "argumentos": {"dia": "hoy"}}
+{"pantalla": "clases", "texto": "me enfermé, no puedo asistir a mi próxima clase", "accion": "cancelar_clase", "argumentos": {}}
+{"pantalla": "clases", "texto": "anula la reserva del sábado a las 10 de la mañana", "accion": "cancelar_clase", "argumentos": {"dia": "sabado", "hora": "10:00"}}
+{"pantalla": "clases", "texto": "elimina mi clase con la instructora Rosa", "accion": "cancelar_clase", "argumentos": {"instructor": "Rosa"}}
+{"pantalla": "clases", "texto": "cancela la clase del martes con Luis", "accion": "cancelar_clase", "argumentos": {"dia": "martes", "instructor": "Luis"}}
+{"pantalla": "clases", "texto": "tengo que faltar a la clase de pasado mañana", "accion": "cancelar_clase", "argumentos": {"dia": "pasado_manana"}}
+{"pantalla": "clases", "texto": "ya no quiero la clase de las 6 de la tarde", "accion": "cancelar_clase", "argumentos": {"hora": "18:00"}}
+{"pantalla": "clases", "texto": "por favor cancela mi reserva", "accion": "cancelar_clase", "argumentos": {}}
+{"pantalla": "clases", "texto": "mejor cancela la que tengo el lunes", "accion": "cancelar_clase", "argumentos": {"dia": "lunes"}}
+{"pantalla": "clases", "texto": "no podré llegar a mi clase, déjala sin efecto", "accion": "cancelar_clase", "argumentos": {}}
+{"pantalla": "clases", "texto": "cancela mi práctica de las 3 de la tarde de mañana con Pedro", "accion": "cancelar_clase", "argumentos": {"dia": "manana", "hora": "15:00", "instructor": "Pedro"}}
+{"pantalla": "clases", "texto": "quítame esa clase", "accion": "cancelar_clase", "argumentos": {}}
+{"pantalla": "clases", "texto": "necesito pasar mi clase del viernes a otro día", "accion": "reprogramar_clase", "argumentos": {"dia": "viernes"}}
+{"pantalla": "clases", "texto": "cámbiame el horario de la clase de mañana", "accion": "reprogramar_clase", "argumentos": {"dia": "manana"}}
+{"pantalla": "clases", "texto": "no me queda bien la hora, quiero reprogramar", "accion": "reprogramar_clase", "argumentos": {}}
+{"pantalla": "clases", "texto": "mueve mi clase con Ana para otro horario", "accion": "reprogramar_clase", "argumentos": {"instructor": "Ana"}}
+{"pantalla": "clases", "texto": "puedo cambiar la de las 5 de la tarde?", "accion": "reprogramar_clase", "argumentos": {"hora": "17:00"}}
+{"pantalla": "clases", "texto": "reagenda mi práctica del lunes", "accion": "reprogramar_clase", "argumentos": {"dia": "lunes"}}
+{"pantalla": "clases", "texto": "quiero otra hora para la clase del sábado", "accion": "reprogramar_clase", "argumentos": {"dia": "sabado"}}
+{"pantalla": "clases", "texto": "adelanta mi próxima clase", "accion": "reprogramar_clase", "argumentos": {}}
+{"pantalla": "clases", "texto": "pásame la clase de las 9 de la mañana para la tarde", "accion": "reprogramar_clase", "argumentos": {"hora": "09:00"}}
+{"pantalla": "clases", "texto": "reprograma mi clase de hoy con Jorge", "accion": "reprogramar_clase", "argumentos": {"dia": "hoy", "instructor": "Jorge"}}
+{"pantalla": "clases", "texto": "me coincide con el trabajo, cambia mi clase de horario", "accion": "reprogramar_clase", "argumentos": {}}
+{"pantalla": "clases", "texto": "necesito mover la clase del miércoles de las 3 de la tarde", "accion": "reprogramar_clase", "argumentos": {"dia": "miercoles", "hora": "15:00"}}
+{"pantalla": "clases", "texto": "quiero atrasar mi clase con la profe Laura", "accion": "reprogramar_clase", "argumentos": {"instructor": "Laura"}}
+{"pantalla": "clases", "texto": "cambia la fecha de mi próxima práctica", "accion": "reprogramar_clase", "argumentos": {}}
+{"pantalla": "clases", "texto": "esa clase de mañana la quiero en otro horario", "accion": "reprogramar_clase", "argumentos": {"dia": "manana"}}
+{"pantalla": "clases", "texto": "reagéndame con el instructor Mario", "accion": "reprogramar_clase", "argumentos": {"instructor": "Mario"}}
+{"pantalla": "clases", "texto": "cuánto me queda de horas", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "tengo saldo para otra clase", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuántas horas de práctica me quedan en mi plan", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "me alcanza para reservar más clases", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "dime mi saldo de clases", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuántas horas llevo disponibles", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "ya se me acabaron las horas?", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "revisar saldo de horas", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "con cuántas horas cuento todavía", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuántas horas puedo usar", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "me quedan horas del plan que compré", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "horas libres que tengo", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuánto tiempo de práctica me queda", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "mi saldo de manejo", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "tengo horas suficientes para dos clases?", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "a ver cuántas horas tengo", "accion": "ver_horas_disponibles", "argumentos": {}}
+{"pantalla": "clases", "texto": "quiero comprar 10 horas más", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "cambia mi correo por favor", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuánto cuesta una hora de manejo", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "ponme en modo oscuro", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "quién es el presidente", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "ábreme el simulacro de examen", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "dónde queda la escuela", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "llama al instructor", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "qué significa esta luz amarilla del tablero", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "te quiero", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "dame mi comprobante de pago", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "cierra la sesión de mi cuenta", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuál es el mejor auto para aprender", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "ayúdame a escribir un correo", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "cuánto falta para mi examen de conducción", "accion": "fuera_de_alcance", "argumentos": {}}
+{"pantalla": "clases", "texto": "ver el tutorial de cómo arrancar en subida", "accion": "fuera_de_alcance", "argumentos": {}}
