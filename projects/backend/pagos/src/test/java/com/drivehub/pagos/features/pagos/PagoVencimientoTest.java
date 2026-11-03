@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import com.drivehub.pagos.PagosPropertiesPrueba;
@@ -70,7 +71,8 @@ class PagoVencimientoTest {
         PagosProperties propiedades = PagosPropertiesPrueba.con(PagosPropertiesPrueba.TIPO_CAMBIO);
         servicio = new PagoService(pagoRepository, transaccionRepository, planRepository,
             new ConversionMoneda(propiedades), propiedades, pasarela, identidad, bearer,
-            Clock.fixed(AHORA, ZoneOffset.UTC), mock(PlatformTransactionManager.class));
+            Clock.fixed(AHORA, ZoneOffset.UTC), mock(ApplicationEventPublisher.class),
+            mock(PlatformTransactionManager.class));
     }
 
     private static Pago pago(long id, EstadoPago estado) {

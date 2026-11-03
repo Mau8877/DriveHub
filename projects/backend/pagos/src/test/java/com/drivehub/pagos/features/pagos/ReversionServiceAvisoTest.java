@@ -19,6 +19,7 @@ import com.drivehub.pagos.features.pagos.model.TransaccionPasarela;
 import com.drivehub.pagos.features.pagos.pasarela.AvisoPasarela;
 import com.drivehub.pagos.features.pagos.pasarela.TipoAviso;
 import com.drivehub.pagos.features.pagos.service.evento.ReembolsoEjecutado;
+import com.drivehub.pagos.features.pagos.service.evento.ReembolsoFallido;
 
 /**
  * Lo que pasa cuando la pasarela avisa que una devolución terminó o falló (CU31), con todo mockeado.
@@ -107,7 +108,7 @@ class ReversionServiceAvisoTest extends ReversionServiceTestBase {
         assertThat(pago.getEstado()).isEqualTo(EstadoPago.CONFIRMADO);
         verify(billetera).restituirApartadas(pago, 10, reversion.getCodigo());
         assertThat(transaccionesGuardadas.get(0).getEstado()).isEqualTo("FALLIDA");
-        assertThat(eventosPublicados).isEmpty();
+        assertThat(eventosPublicados).containsExactly(new ReembolsoFallido(pago.getCodigo(), reversion.getCodigo()));
         assertThat(huboRegistro("WARN")).isTrue();
     }
 

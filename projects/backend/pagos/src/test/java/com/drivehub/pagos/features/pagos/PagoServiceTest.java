@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import com.drivehub.pagos.PagosPropertiesPrueba;
@@ -91,7 +92,8 @@ class PagoServiceTest {
         PagosProperties propiedades = PagosPropertiesPrueba.conPasarela(PagosPropertiesPrueba.pasarela("", ""));
         servicio = new PagoService(pagoRepository, transaccionRepository, planRepository,
             new ConversionMoneda(propiedades), propiedades, pasarela, identidad, bearer,
-            Clock.fixed(AHORA, ZoneOffset.UTC), mock(PlatformTransactionManager.class));
+            Clock.fixed(AHORA, ZoneOffset.UTC), mock(ApplicationEventPublisher.class),
+            mock(PlatformTransactionManager.class));
         logs = new ListAppender<>();
         logs.start();
         ((Logger) LoggerFactory.getLogger(PagoService.class)).addAppender(logs);
