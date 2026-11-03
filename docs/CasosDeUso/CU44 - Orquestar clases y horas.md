@@ -179,11 +179,11 @@ siguiente pasada, sin límite de intentos por esa causa.
 - **CA14:** Dado que el estudiante reserva una clase, el resultado (confirmada, sin horas o Pagos no disponible) debe ser el mismo que obtiene el proceso programado ante la misma situación.
 - **CA15:** Dada una operación nueva de clase con sus propios estados intermedios (como cancelar), cuando se agrega, el proceso programado debe retomarla, contar sus intentos y marcarla para revisión sin cambios en el proceso.
 
-## Pendiente de definir (no bloquea el flujo S1)
+## Reglas de negocio de CU15 (definidas)
 
-Reglas de negocio de CU15 que afectan cómo se usará «deshacer una reserva» y que se definen cuando se documente ese
-caso de uso: el plazo para cancelar con devolución de la hora, qué pasa con la hora en una cancelación tardía, quién
-puede cancelar (estudiante, instructor o Administrador) y cuántas veces y con qué anticipación se puede reprogramar.
+Ya están en [CU15: Cancelar o reprogramar clase](CU15%20-%20Cancelar%20o%20reprogramar%20clase.md): plazo de 12 horas
+para cancelar con devolución; una cancelación tardía del estudiante se permite pero pierde la hora (Académico no llama
+a Pagos); cancela el estudiante (la cancelación por el instructor llega con CU16); se reprograma sin límite de veces, dentro del mismo plazo, sin tocar las horas.
 
 ## Desarrollador
 

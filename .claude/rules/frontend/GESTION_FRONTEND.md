@@ -48,6 +48,10 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
   `<dh-select>` y `<dh-fecha>` de `@drivehub/ui`, nunca un `<select>` ni un `<input type="date">` nativo
   (ver "Nada de componentes nativos" en [UI_FRONTEND.md](UI_FRONTEND.md)). Un campo `fecha` con
   `fechaNoFutura` o `edadMinima:N` ya limita el calendario a lo que esas reglas permiten.
+- **Filtro de fecha** (`tipo: 'fecha'` y `opciones: []` en un filtro): elige un día con `<dh-fecha>` (nunca un `<input type="date">` nativo)
+  y el valor viaja como `yyyy-MM-dd` bajo su `clave`; vaciarlo quita el filtro. `porDefecto: 'hoy'` hace que arranque con la
+  fecha de hoy ya aplicada, desde la primera carga (y no cuenta como filtro puesto por la persona), y `desdeHoy: true` no deja
+  elegir días anteriores a hoy. Se combina con los demás filtros y con la búsqueda.
 - **Selección múltiple** (campo `seleccion` con `multiple: true`): usa `<dh-select multiple>`, el valor del
   formulario es un **arreglo** (por defecto `[]`), `requerido` significa al menos uno y al enviar viaja el
   arreglo. `opcionesDe.excluir` (`['SIN']`) quita valores del catálogo; `valorDe` (`'sigla'`) dice qué propiedad
@@ -77,6 +81,16 @@ remoto expone **una sola ruta** hacia la pantalla (no `/nueva` ni
   `secciones` de campos y, al enviar, llama a la ruta de la acción (con su método) con ese cuerpo. Sirve para acciones que
   piden datos y no son crear ni editar (ej. registrar el puntaje de un examen).
 - **Confirmar** una acción (`confirmar` en el esquema) abre un **diálogo**, no una fila inline.
+- **Acción con formulario** (`formulario` en la acción): pide datos antes de enviarse (ej. elegir un instructor y una
+  fecha). Abre el mismo drawer de crear y editar con las secciones de la acción y, al enviar, llama a la `ruta` y el
+  `metodo` de la acción con el cuerpo del formulario. Un código de `erroresDeCampo` sale bajo su campo; un error de
+  negocio del backend sin campo (4xx con código) se muestra con su mensaje en el panel. Gana sobre `confirmar`.
+- **Detalle en forma de lista** (`detalle.lista`): para mostrar varias filas de un registro (ej. el historial de un
+  auto). La respuesta de `cargar` es un **arreglo** y el panel dibuja una tarjeta por fila con las `columnas` de la
+  lista (`secciones` va como `[]`); sin filas, el mensaje `vacio`.
+- **Texto de vacío** (`vacioTexto` en una columna o dato): lo que se muestra cuando el valor es nulo o está vacío
+  (ej. "Sin asignar", "Vigente"). Una condición `visibleSi` con `igual: null` / `distinto: null` significa "sin valor" /
+  "con algún valor" (también cuenta que el campo no venga en la respuesta).
 - **Avisos** de éxito o error como toast abajo a la derecha, que se va solo.
 
 ## El esquema

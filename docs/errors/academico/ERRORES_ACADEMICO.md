@@ -262,3 +262,93 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
 - **Excepción:** `ConflictException`
 - **Significado:** Se intentó finalizar un intento que ya estaba finalizado o expirado (CU21).
 - **Dónde se lanza:** `IntentoSimulacroService.finalizar()`
+
+## `ERR_ACA_32`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** La reserva que se quiso cancelar o reprogramar no existe, está borrada o es de otro estudiante
+  (CU15). Nunca se revela si existe a nombre de otra persona.
+- **Dónde se lanza:** `ReservaService.cancelar()` y `ReservaService.reprogramar()`
+
+## `ERR_ACA_33`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La reserva no se puede cancelar ni reprogramar porque no está `CONFIRMADA` (ya está cancelada,
+  cerrada o a medias) o la clase ya empezó (CU15). También cuando otra petición cambió la reserva un instante antes.
+- **Dónde se lanza:** `ReservaService.cancelar()` y `ReservaService.reprogramar()`
+
+## `ERR_ACA_34`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** Se quiso reprogramar una clase con menos de 12 horas de anticipación (CU15). Cancelarla sí se
+  permite, pero la hora no se devuelve. El plazo es la propiedad `app.reservas.horas-para-cancelar`.
+- **Dónde se lanza:** `ReservaService.reprogramar()`
+
+## `ERR_ACA_35`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** La clase que el instructor quiso cancelar (CU16), o la reserva o la clase dictada que quiso cerrar,
+  ver o corregir (CU17), o evaluar o consultar sus pruebas (CU18), no existe, está borrada o es de otro instructor.
+  Nunca se revela si existe a nombre de otra persona.
+- **Dónde se lanza:** `AgendaService.cancelar()`, `CierreDeReservaService.buscarCerrable()`,
+  `ClaseService.obtener()`, `ClaseService.actualizar()`, `PruebaClaseService.evaluar()` y
+  `PruebaClaseService.listarPorClase()`
+
+## `ERR_ACA_36`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La clase no se puede cancelar por el instructor porque no está `CONFIRMADA` (ya está cancelada,
+  cerrada o a medias) o ya empezó (CU16). También cuando otra petición, por ejemplo la cancelación del estudiante,
+  la cambió un instante antes.
+- **Dónde se lanza:** `AgendaService.cancelar()`
+
+## `ERR_ACA_37`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La clase no se puede cerrar (CU17) porque la reserva no está `CONFIRMADA` (ya está cerrada,
+  cancelada o a medias), porque todavía no empezó, o porque otra petición la cambió mientras se cerraba (por ejemplo,
+  el estudiante la canceló un instante antes).
+- **Dónde se lanza:** `CierreDeReservaService.buscarCerrable()` y `ClaseService.cerrar()`
+
+## `ERR_ACA_38`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** Los datos de la clase no cumplen las reglas de negocio (CU17): el kilometraje final es menor que
+  el inicial, o se enviaron tema o kilómetros en una clase con asistencia `AUSENTE` (solo admite observaciones). Los
+  tamaños y rangos (tema de más de 120 caracteres, kilómetros negativos...) caen en `ERR_SYS_01`.
+- **Dónde se lanza:** `ReglasDeClase.validarCierre()` y `ReglasDeClase.validarCorreccion()`, desde
+  `ClaseService.cerrar()` y `ClaseService.actualizar()`
+
+## `ERR_ACA_39`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La clase no se puede evaluar (CU18): el estudiante estuvo ausente (no hubo clase que evaluar) o el
+  cierre de la clase no terminó (la clase dictada se guardó pero su reserva todavía no quedó `COMPLETADA`).
+- **Dónde se lanza:** `PruebaClaseService.evaluar()`
+
+## `ERR_ACA_40`
+
+- **HTTP:** 409
+- **Excepción:** `ConflictException`
+- **Significado:** La clase ya tiene una prueba de ese tipo con su nota escrita (CU18). También cuando otra petición
+  la creó un instante antes (índice único `(claseId, tipo)`). Si la prueba existe pero su nota falta, no es este
+  error: repetir la evaluación completa la nota.
+- **Dónde se lanza:** `PruebaClaseService.evaluar()`
+
+## `ERR_ACA_41`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** Los datos de la prueba no cumplen las reglas de negocio (CU18): los criterios enviados no son
+  exactamente los del tipo (falta uno, sobra uno, está repetido o es de otro tipo) o un puntaje está fuera de 0 a 10
+  o no es de medio en medio punto. Las observaciones de más de 500 caracteres o un cuerpo incompleto caen en
+  `ERR_SYS_01`.
+- **Dónde se lanza:** `ReglasDePrueba.validarYArmarCriterios()`, desde `PruebaClaseService.evaluar()`

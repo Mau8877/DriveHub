@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,6 +41,7 @@ import com.drivehub.pagos.features.pagos.pasarela.SesionCobro;
 import com.drivehub.pagos.features.pagos.pasarela.SolicitudCobro;
 import com.drivehub.pagos.features.pagos.repository.PagoRepository;
 import com.drivehub.pagos.features.pagos.repository.TransaccionPasarelaRepository;
+import com.drivehub.pagos.features.pagos.service.evento.PagoVencido;
 import com.drivehub.pagos.features.planes.model.PlanPago;
 import com.drivehub.pagos.features.planes.repository.PlanPagoRepository;
 import com.drivehub.pagos.features.planes.service.ConversionMoneda;
@@ -76,13 +78,14 @@ public class PagoService {
     private final IdentidadClient identidad;
     private final BearerActual bearer;
     private final Clock reloj;
+    private final ApplicationEventPublisher eventos;
     private final TransactionTemplate escritura;
     private final TransactionTemplate lectura;
 
     public PagoService(PagoRepository pagoRepository, TransaccionPasarelaRepository transaccionRepository,
             PlanPagoRepository planRepository, ConversionMoneda conversion, PagosProperties propiedades,
             PasarelaPago pasarela, IdentidadClient identidad, BearerActual bearer, Clock reloj,
-            PlatformTransactionManager transactionManager) {
+            ApplicationEventPublisher eventos, PlatformTransactionManager transactionManager) {
         this.pagoRepository = pagoRepository;
         this.transaccionRepository = transaccionRepository;
         this.planRepository = planRepository;
@@ -92,6 +95,7 @@ public class PagoService {
         this.identidad = identidad;
         this.bearer = bearer;
         this.reloj = reloj;
+        this.eventos = eventos;
         this.escritura = new TransactionTemplate(transactionManager);
         this.lectura = new TransactionTemplate(transactionManager);
         this.lectura.setReadOnly(true);
@@ -205,6 +209,7 @@ public class PagoService {
             .map(pago -> {
                 pago.setEstado(EstadoPago.FALLIDO);
                 pagoRepository.saveAndFlush(pago);
+                eventos.publishEvent(new PagoVencido(pago.getCodigo()));
                 return true;
             }).orElse(false);
     }

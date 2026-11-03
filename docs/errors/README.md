@@ -26,7 +26,7 @@ prefijo del código dice qué servicio lo produjo:
 | `PAG` | Pagos | [`pagos/`](pagos/ERRORES_PAGOS.md) |
 | `ACA` | Académico | [`academico/`](academico/ERRORES_ACADEMICO.md) |
 | `CON` | Contenido | [`contenido/`](contenido/ERRORES_CONTENIDO.md) |
-| `NOT` | Notificaciones | `notificaciones/` (sin errores todavía) |
+| `NOT` | Notificaciones | [`notificaciones/`](notificaciones/ERRORES_NOTIFICACIONES.md) |
 | `IA` | Asistente IA | `asistente-ia/` (sin errores todavía) |
 
 ## Índice de errores
@@ -85,6 +85,11 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ESC_13`](escuela/ERRORES_ESCUELA.md#err_esc_13) — El instructor no existe en la escuela (404)
 - [`ERR_ESC_14`](escuela/ERRORES_ESCUELA.md#err_esc_14) — Una categoría del instructor no es válida (400)
 - [`ERR_ESC_15`](escuela/ERRORES_ESCUELA.md#err_esc_15) — El estudiante no es alumno de este instructor (404)
+- [`ERR_ESC_16`](escuela/ERRORES_ESCUELA.md#err_esc_16) — El auto ya tiene instructor asignado (409)
+- [`ERR_ESC_17`](escuela/ERRORES_ESCUELA.md#err_esc_17) — El auto no está disponible para asignarse (409)
+- [`ERR_ESC_18`](escuela/ERRORES_ESCUELA.md#err_esc_18) — El instructor no está activo (409)
+- [`ERR_ESC_19`](escuela/ERRORES_ESCUELA.md#err_esc_19) — El auto no tiene un instructor asignado (409)
+- [`ERR_ESC_20`](escuela/ERRORES_ESCUELA.md#err_esc_20) — No se pudieron consultar los horarios de los instructores (503)
 
 ### Pagos (`PAG`)
 
@@ -141,6 +146,16 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_29`](academico/ERRORES_ACADEMICO.md#err_aca_29) — El estudiante ya tiene un intento de simulacro en curso (409)
 - [`ERR_ACA_30`](academico/ERRORES_ACADEMICO.md#err_aca_30) — El intento de simulacro no existe (404)
 - [`ERR_ACA_31`](academico/ERRORES_ACADEMICO.md#err_aca_31) — El intento de simulacro ya terminó (409)
+- [`ERR_ACA_32`](academico/ERRORES_ACADEMICO.md#err_aca_32) — La reserva no existe o es de otro estudiante (404)
+- [`ERR_ACA_33`](academico/ERRORES_ACADEMICO.md#err_aca_33) — La reserva no se puede cancelar ni reprogramar (409)
+- [`ERR_ACA_34`](academico/ERRORES_ACADEMICO.md#err_aca_34) — Reprogramar fuera de plazo (409)
+- [`ERR_ACA_35`](academico/ERRORES_ACADEMICO.md#err_aca_35) — La clase no existe o es de otro instructor (404)
+- [`ERR_ACA_36`](academico/ERRORES_ACADEMICO.md#err_aca_36) — La clase no se puede cancelar por el instructor (409)
+- [`ERR_ACA_37`](academico/ERRORES_ACADEMICO.md#err_aca_37) — La clase no se puede cerrar (409)
+- [`ERR_ACA_38`](academico/ERRORES_ACADEMICO.md#err_aca_38) — Datos de la clase no válidos (400)
+- [`ERR_ACA_39`](academico/ERRORES_ACADEMICO.md#err_aca_39) — La clase no se puede evaluar (409)
+- [`ERR_ACA_40`](academico/ERRORES_ACADEMICO.md#err_aca_40) — La clase ya tiene una prueba de ese tipo (409)
+- [`ERR_ACA_41`](academico/ERRORES_ACADEMICO.md#err_aca_41) — Datos de la prueba no válidos (400)
 
 ### Contenido (`CON`)
 
@@ -151,6 +166,13 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_CON_05`](contenido/ERRORES_CONTENIDO.md#err_con_05) — El tutorial no existe para quien lo pide (404)
 - [`ERR_CON_06`](contenido/ERRORES_CONTENIDO.md#err_con_06) — Cambio no permitido desde el estado actual del tutorial (409)
 - [`ERR_CON_07`](contenido/ERRORES_CONTENIDO.md#err_con_07) — El recurso del tutorial no es válido: PDF ajeno o enlace que no es de YouTube (400)
+
+### Notificaciones (`NOT`)
+
+- [`ERR_NOT_01`](notificaciones/ERRORES_NOTIFICACIONES.md#err_not_01) — Credencial de servicio inválida en una ruta interna (401)
+- [`ERR_NOT_02`](notificaciones/ERRORES_NOTIFICACIONES.md#err_not_02) — El dispositivo push no existe para quien lo quita (404)
+- [`ERR_NOT_03`](notificaciones/ERRORES_NOTIFICACIONES.md#err_not_03) — La franja de silencio de las preferencias no es válida (400)
+- [`ERR_NOT_04`](notificaciones/ERRORES_NOTIFICACIONES.md#err_not_04) — El aviso de la bandeja no existe para quien lo abre (404)
 
 ### Asistente IA (`IA`)
 

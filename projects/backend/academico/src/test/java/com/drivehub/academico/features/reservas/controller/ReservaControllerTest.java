@@ -35,6 +35,10 @@ import com.drivehub.academico.common.exception.ValidationException;
 import com.drivehub.academico.config.BearerActual;
 import com.drivehub.academico.config.SecurityConfig;
 import com.drivehub.academico.config.WebMvcConfig;
+import com.drivehub.academico.features.reservas.dto.CancelacionResponse;
+import com.drivehub.academico.features.reservas.dto.HoraDeCancelacion;
+import com.drivehub.academico.common.exception.ConflictException;
+import com.drivehub.academico.common.exception.NotFoundException;
 import com.drivehub.academico.features.reservas.dto.FranjaRechazadaResponse;
 import com.drivehub.academico.features.reservas.dto.ReservaResponse;
 import com.drivehub.academico.features.reservas.dto.ReservasResultadoResponse;
@@ -75,7 +79,7 @@ class ReservaControllerTest {
 
     private ReservaResponse reserva() {
         return new ReservaResponse(UUID.randomUUID(), FECHA, "10:00", "11:00", instructor, "Ivan Alfa",
-            EstadoReserva.CONFIRMADA, false);
+            EstadoReserva.CONFIRMADA, false, true);
     }
 
     @Test
@@ -224,5 +228,150 @@ class ReservaControllerTest {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(cuerpo(franjaA)))
             .andExpect(status().isUnauthorized());
         verifyNoInteractions(service);
+    }
+
+    // ---------------------------------------------------------------- cancelar y reprogramar (CU15)
+
+    @Test
+    void cancelar_aTiempo_responde200ConLaHoraDevueltaYElSaldo() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        when(bearerActual.cabecera()).thenReturn(BEARER);
+        when(service.cancelar(estudiante, BEARER, codigo)).thenReturn(
+            new CancelacionResponse(reserva(), HoraDeCancelacion.DEVUELTA, 5));
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/cancelar").with(comoEstudiante()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.message").value("Clase cancelada correctamente"))
+            .andExpect(jsonPath("$.timestamp").exists())
+            .andExpect(jsonPath("$.data.horaDevuelta").value("DEVUELTA"))
+            .andExpect(jsonPath("$.data.horasDisponibles").value(5))
+            .andExpect(jsonPath("$.data.reserva.instructorNombre").value("Ivan Alfa"))
+            .andExpect(jsonPath("$.data.reserva.cancelacionATiempo").value(true))
+            .andExpect(jsonPath("$.data.reserva.id").doesNotExist())
+            .andExpect(jsonPath("$.error").doesNotExist());
+    }
+
+    @Test
+    void cancelar_tardeYEnProceso_respondenConSuHoraYSaldoNuloSiCorresponde() throws Exception {
+        UUID tarde = UUID.randomUUID();
+        UUID enProceso = UUID.randomUUID();
+        when(bearerActual.cabecera()).thenReturn(BEARER);
+        when(service.cancelar(estudiante, BEARER, tarde)).thenReturn(
+            new CancelacionResponse(reserva(), HoraDeCancelacion.PERDIDA, 3));
+        when(service.cancelar(estudiante, BEARER, enProceso)).thenReturn(
+            new CancelacionResponse(reserva(), HoraDeCancelacion.EN_PROCESO, null));
+
+        mockMvc.perform(post(RUTA + "/" + tarde + "/cancelar").with(comoEstudiante()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.horaDevuelta").value("PERDIDA"))
+            .andExpect(jsonPath("$.data.horasDisponibles").value(3));
+        mockMvc.perform(post(RUTA + "/" + enProceso + "/cancelar").with(comoEstudiante()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.horaDevuelta").value("EN_PROCESO"))
+            .andExpect(jsonPath("$.data.horasDisponibles").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void cancelar_unaReservaQueNoExiste_responde404ConERR_ACA_32() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        when(bearerActual.cabecera()).thenReturn(BEARER);
+        when(service.cancelar(estudiante, BEARER, codigo)).thenThrow(
+            new NotFoundException(AcademicoErrorCodes.RESERVA_NO_ENCONTRADA, "No encontramos esa clase"));
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/cancelar").with(comoEstudiante()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.status").value("failed"))
+            .andExpect(jsonPath("$.error").value("ERR_ACA_32"));
+    }
+
+    @Test
+    void cancelar_unaClaseNoCancelable_responde409ConERR_ACA_33() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        when(bearerActual.cabecera()).thenReturn(BEARER);
+        when(service.cancelar(estudiante, BEARER, codigo)).thenThrow(
+            new ConflictException(AcademicoErrorCodes.RESERVA_NO_MODIFICABLE, "Esa clase ya no se puede cancelar"));
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/cancelar").with(comoEstudiante()))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_33"));
+    }
+
+    @Test
+    void cancelar_conUnCodigoQueNoEsUuid_responde400() throws Exception {
+        mockMvc.perform(post(RUTA + "/no-es-un-uuid/cancelar").with(comoEstudiante()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+    }
+
+    @Test
+    void cancelar_sinSesion_responde401() throws Exception {
+        UUID codigo = UUID.randomUUID();
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/cancelar"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_04"));
+    }
+
+    @Test
+    void reprogramar_responde200ConLaReservaEnLaFranjaNueva() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        when(bearerActual.cabecera()).thenReturn(BEARER);
+        when(service.reprogramar(estudiante, escuela, BEARER, codigo, franjaA)).thenReturn(reserva());
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reprogramar").with(comoEstudiante())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"franjaCodigo\":\"" + franjaA + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.message").value("Clase reprogramada correctamente"))
+            .andExpect(jsonPath("$.timestamp").exists())
+            .andExpect(jsonPath("$.data.estado").value("CONFIRMADA"))
+            .andExpect(jsonPath("$.data.instructorNombre").value("Ivan Alfa"))
+            .andExpect(jsonPath("$.data.id").doesNotExist());
+    }
+
+    @Test
+    void reprogramar_losErroresDeNegocioConservanSuCodigoYSuStatus() throws Exception {
+        UUID codigo = UUID.randomUUID();
+        when(bearerActual.cabecera()).thenReturn(BEARER);
+        when(service.reprogramar(estudiante, escuela, BEARER, codigo, franjaA)).thenThrow(
+            new ConflictException(AcademicoErrorCodes.FRANJA_NO_DISPONIBLE, "La franja ya no está disponible"));
+        when(service.reprogramar(estudiante, escuela, BEARER, codigo, franjaB)).thenThrow(
+            new ConflictException(AcademicoErrorCodes.RESERVA_FUERA_DE_PLAZO, "Fuera de plazo"));
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reprogramar").with(comoEstudiante())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"franjaCodigo\":\"" + franjaA + "\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_18"));
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reprogramar").with(comoEstudiante())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"franjaCodigo\":\"" + franjaB + "\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("ERR_ACA_34"));
+    }
+
+    @Test
+    void reprogramar_conElCuerpoInvalido_responde400() throws Exception {
+        UUID codigo = UUID.randomUUID();
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reprogramar").with(comoEstudiante())
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reprogramar").with(comoEstudiante())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"franjaCodigo\":\"no-es-uuid\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("ERR_SYS_01"));
+        mockMvc.perform(post(RUTA + "/no-es-un-uuid/reprogramar").with(comoEstudiante())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"franjaCodigo\":\"" + franjaA + "\"}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void reprogramar_sinSesion_responde401() throws Exception {
+        UUID codigo = UUID.randomUUID();
+
+        mockMvc.perform(post(RUTA + "/" + codigo + "/reprogramar").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"franjaCodigo\":\"" + franjaA + "\"}"))
+            .andExpect(status().isUnauthorized());
     }
 }

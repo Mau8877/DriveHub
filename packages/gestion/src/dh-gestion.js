@@ -88,8 +88,9 @@ function escribir(objeto, ruta, valor) {
 function cumple(condicion, fila) {
   if (!condicion) return true
   const valor = leer(fila, condicion.campo)
-  if ('igual' in condicion) return valor === condicion.igual
-  if ('distinto' in condicion) return valor !== condicion.distinto
+  // * `null` en una condición significa "sin valor": también cuenta que el campo no venga en la respuesta
+  if ('igual' in condicion) return condicion.igual === null ? valor == null : valor === condicion.igual
+  if ('distinto' in condicion) return condicion.distinto === null ? valor != null : valor !== condicion.distinto
   return true
 }
 
@@ -245,7 +246,7 @@ export class DhGestion extends LitElement {
     this._aviso = null
     this._pagina = 1
     this._busqueda = ''
-    this._filtros = {}
+    this._filtros = this._filtrosPorDefecto()
     this._confirmando = null
     this._trabajando = null
     this._valores = {}
@@ -343,8 +344,19 @@ export class DhGestion extends LitElement {
     this._cargar()
   }
 
+  /** Los filtros que arrancan aplicados: un filtro `tipo: 'fecha'` con `porDefecto: 'hoy'` empieza en la fecha de hoy. */
+  _filtrosPorDefecto() {
+    const filtros = {}
+    for (const filtro of this.esquema?.filtros ?? []) {
+      if (filtro.tipo === 'fecha' && filtro.porDefecto === 'hoy') filtros[filtro.clave] = fechaDeHoy()
+    }
+    return filtros
+  }
+
+  // * Un filtro que sigue en su valor por defecto (la fecha de hoy) no cuenta como filtro puesto por la persona
   _hayFiltros() {
-    return this._busqueda.trim() !== '' || Object.keys(this._filtros).length > 0
+    const porDefecto = this._filtrosPorDefecto()
+    return this._busqueda.trim() !== '' || Object.entries(this._filtros).some(([clave, valor]) => porDefecto[clave] !== valor)
   }
 
   // ------------------------------------------------------------------ acciones por fila
@@ -368,7 +380,7 @@ export class DhGestion extends LitElement {
   }
 
   _alPulsarAccion(accion, fila) {
-    if (accion.formulario) this._abrirAccion(accion, fila)
+    if (accion.formulario) this._abrirAccionConFormulario(accion, fila)
     else if (accion.confirmar) this._confirmando = { accion, fila }
     else this._ejecutarAccion(accion, fila)
   }
@@ -389,19 +401,25 @@ export class DhGestion extends LitElement {
     this._cargarOpciones(camposDe(this.esquema.crear.secciones))
   }
 
-  /** Abre el drawer con el formulario de una acción (`accion.formulario`): al enviar, llama a la ruta de la acción. */
-  _abrirAccion(accion, fila) {
+  /**
+   * Una acción con `formulario` pide datos antes de enviarse: abre el mismo drawer de crear y editar con
+   * los campos de la acción y, al enviar, llama a la ruta y el método de la acción con ese cuerpo.
+   */
+  _abrirAccionConFormulario(accion, fila) {
     this._prepararFormulario('accion')
+    this._accionActiva = accion
+    this._idAccion = fila[this._id]
+    const campos = camposDe(accion.formulario.secciones)
     const valores = {}
-    camposDe(accion.formulario.secciones).forEach((campo) => {
+    campos.forEach((campo) => {
       if (campo.tipo === 'seleccion' && campo.multiple) valores[campo.campo] = []
+      else if (campo.tipo === 'fecha' && campo.porDefecto === 'hoy') valores[campo.campo] = fechaDeHoy()
       else if (campo.porDefecto !== undefined) valores[campo.campo] = campo.porDefecto
     })
     this._valores = valores
     this._iniciales = {}
-    this._accionForm = { accion, id: fila[this._id] }
     this._vista = 'accion'
-    this._cargarOpciones(camposDe(accion.formulario.secciones))
+    this._cargarOpciones(campos)
   }
 
   /** Trae de la API las opciones de los campos `seleccion` que las piden con `opcionesDe`. */
@@ -527,12 +545,13 @@ export class DhGestion extends LitElement {
 
   /** El formulario abierto: el de crear, el de editar o el de la acción elegida. */
   _definicion() {
-    if (this._vista === 'accion') return this._accionForm.accion.formulario
+    if (this._vista === 'accion') return this._accionActiva.formulario
     return this._vista === 'crear' ? this.esquema.crear : this.esquema.editar
   }
 
   _secciones() {
-    return this._definicion().secciones
+    if (this._vista === 'accion') return this._accionActiva.formulario.secciones
+    return (this._vista === 'crear' ? this.esquema.crear : this.esquema.editar).secciones
   }
 
   _alEscribir(campo, texto) {
@@ -632,28 +651,37 @@ export class DhGestion extends LitElement {
       escribir(cuerpo, campo.campo, valor)
     })
 
-    const creando = this._vista === 'crear'
-    const enAccion = this._vista === 'accion'
-    const definicion = this._definicion()
-    let metodo = creando ? 'POST' : (definicion.metodo ?? 'PATCH')
-    let ruta = creando
-      ? this.esquema.recurso
-      : `${this.esquema.recurso}/${(definicion.ruta ?? '{id}').replace('{id}', encodeURIComponent(this._idEditando))}`
-    let exito = definicion.mensajeExito
-    if (enAccion) {
-      const { accion, id } = this._accionForm
-      metodo = accion.metodo
-      ruta = `${this.esquema.recurso}/${accion.ruta.replace('{id}', encodeURIComponent(id))}`
-      exito = accion.mensajeExito
-    }
+    const { metodo, ruta, mensajeExito } = this._destinoDelEnvio()
     this._enviando = true
     try {
       await solicitar(metodo, ruta, { cuerpo })
       this._enviando = false
-      this._volverALista({ tipo: 'ok', texto: exito })
+      this._volverALista({ tipo: 'ok', texto: mensajeExito })
     } catch (error) {
       this._enviando = false
       this._mostrarErrorDelServidor(error)
+    }
+  }
+
+  /** A dónde va el formulario abierto: crear, editar o una acción con formulario. */
+  _destinoDelEnvio() {
+    const recurso = this.esquema.recurso
+    if (this._vista === 'accion') {
+      const accion = this._accionActiva
+      return {
+        metodo: accion.metodo,
+        ruta: `${recurso}/${accion.ruta.replace('{id}', encodeURIComponent(this._idAccion))}`,
+        mensajeExito: accion.mensajeExito,
+      }
+    }
+    if (this._vista === 'crear') {
+      return { metodo: 'POST', ruta: recurso, mensajeExito: this.esquema.crear.mensajeExito }
+    }
+    const editar = this.esquema.editar
+    return {
+      metodo: editar.metodo ?? 'PATCH',
+      ruta: `${recurso}/${(editar.ruta ?? '{id}').replace('{id}', encodeURIComponent(this._idEditando))}`,
+      mensajeExito: editar.mensajeExito,
     }
   }
 
@@ -663,6 +691,12 @@ export class DhGestion extends LitElement {
     if (regla) {
       this._tocados = new Set(this._tocados).add(regla.campo)
       this._erroresServidor = { [regla.campo]: regla.mensaje }
+      return
+    }
+    // * Una acción con formulario no tiene un "no pudimos guardar el auto" genérico que le sirva: un error de
+    // * negocio del backend (4xx con código) ya trae su mensaje en español, y es el que explica qué pasó.
+    if (this._vista === 'accion' && codigo && codigo !== 'ERR_SYS_01' && error.estado >= 400 && error.estado < 500) {
+      this._errorGeneral = error.message
       return
     }
     this._errorGeneral =
@@ -693,20 +727,20 @@ export class DhGestion extends LitElement {
             ${esquema.descripcion ? html`<p class="descripcion">${esquema.descripcion}</p>` : nothing}
           </div>
           ${esquema.crear
-            ? html`<button type="button" class="boton" @click=${() => this._abrirCrear()}>
+        ? html`<button type="button" class="boton" @click=${() => this._abrirCrear()}>
                 ${icono('plus', 18)}<span>${esquema.crear.etiqueta}</span>
               </button>`
-            : nothing}
+        : nothing}
         </div>
 
         <div class="tarjeta gestion">
           ${this._renderFiltros()}
           ${this._errorCarga
-            ? html`<div class="estado error" role="alert">
+        ? html`<div class="estado error" role="alert">
                 <p>${this._errorCarga}</p>
                 <button type="button" class="enlace" @click=${() => this._cargar()}>Reintentar</button>
               </div>`
-            : html`${this._renderTabla()}${this._renderPie()}`}
+        : html`${this._renderTabla()}${this._renderPie()}`}
         </div>
       </section>
     `
@@ -718,7 +752,7 @@ export class DhGestion extends LitElement {
     return html`
       <div class="barra">
         ${esquema.busqueda
-          ? html`<label class="buscador">
+        ? html`<label class="buscador">
               ${icono('search', 18)}
               <span class="solo-lectores">Buscar</span>
               <input
@@ -729,7 +763,7 @@ export class DhGestion extends LitElement {
                 @input=${(e) => this._alBuscar(e.target.value)}
               />
             </label>`
-          : nothing}
+        : nothing}
         ${(esquema.filtros ?? []).map((filtro) => this._renderFiltro(filtro))}
       </div>
     `
@@ -737,28 +771,39 @@ export class DhGestion extends LitElement {
 
   _renderFiltro(filtro) {
     const actual = this._filtros[filtro.clave] ?? ''
+    // * Un día: el calendario propio (<dh-fecha>), no el <input type="date"> nativo (UI_FRONTEND.md)
+    if (filtro.tipo === 'fecha') {
+      return html`<dh-fecha
+        class="filtro-fecha"
+        .etiqueta=${filtro.titulo}
+        .valor=${actual}
+        .min=${filtro.desdeHoy ? fechaDeHoy() : ''}
+        @dh-cambio=${(e) => this._alFiltrar(filtro.clave, e.detail.valor)}
+      ></dh-fecha>`
+    }
     // * Pocas opciones: control segmentado (como el diseño). Muchas: lista desplegable
-    if (filtro.opciones.length > 4) {
+    const opcionesDelFiltro = filtro.opciones ?? []
+    if (opcionesDelFiltro.length > 4) {
       return html`<dh-select
         class="filtro-lista"
         .etiqueta=${filtro.titulo}
         .valor=${actual}
         .placeholder=${`${filtro.titulo}: todos`}
-        .opciones=${filtro.opciones}
+        .opciones=${opcionesDelFiltro}
         @dh-cambio=${(e) => this._alFiltrar(filtro.clave, e.detail.valor)}
       ></dh-select>`
     }
-    const opciones = [{ valor: '', etiqueta: filtro.todas ?? 'Todas' }, ...filtro.opciones]
+    const opciones = [{ valor: '', etiqueta: filtro.todas ?? 'Todas' }, ...opcionesDelFiltro]
     return html`<div class="segmentos" role="group" aria-label=${filtro.titulo}>
       ${opciones.map(
-        (o) => html`<button
+      (o) => html`<button
           type="button"
           aria-pressed=${String(actual === o.valor)}
           @click=${() => this._alFiltrar(filtro.clave, o.valor)}
         >
           ${o.etiqueta}
         </button>`
-      )}
+    )}
     </div>`
   }
 
@@ -780,8 +825,8 @@ export class DhGestion extends LitElement {
             <b>${filtrado ? 'Sin resultados' : 'Todavía no hay registros'}</b>
             <p>
               ${filtrado
-                ? (esquema.mensajes?.sinResultados ?? 'Prueba con otro texto o quita los filtros.')
-                : (esquema.mensajes?.vacio ?? 'Crea el primero para empezar.')}
+          ? (esquema.mensajes?.sinResultados ?? 'Prueba con otro texto o quita los filtros.')
+          : (esquema.mensajes?.vacio ?? 'Crea el primero para empezar.')}
             </p>
           </div>
         </td>
@@ -791,13 +836,13 @@ export class DhGestion extends LitElement {
         (fila, i) => html`<tr style=${`--i:${i}`}>
           <td class="nro" data-label="Nro">${(this._pagina - 1) * porPagina + i + 1}</td>
           ${esquema.columnas.map(
-            (c) => html`<td
+          (c) => html`<td
               class=${[c.principal ? 'principal' : '', c.secundaria ? 'secundaria' : ''].join(' ').trim()}
               data-label=${c.titulo}
             >
               ${this._celda(c, fila)}
             </td>`
-          )}
+        )}
           <td class="derecha">${this._renderAcciones(fila)}</td>
         </tr>`
       )
@@ -820,6 +865,7 @@ export class DhGestion extends LitElement {
 
   _celda(columna, fila) {
     const valor = leer(fila, columna.campo)
+    if (columna.vacioTexto && (valor === undefined || valor === null || valor === '')) return columna.vacioTexto
     if (columna.tipo === 'insignia') {
       const insignia = columna.insignias?.[valor]
       return html`<span class="insignia ${insignia?.tono ?? ''}">${insignia?.etiqueta ?? valor}</span>`
@@ -932,15 +978,15 @@ export class DhGestion extends LitElement {
 
   _renderDrawer() {
     const creando = this._vista === 'crear'
-    const enAccion = this._vista === 'accion'
-    const definicion = this._definicion()
+    const accion = this._vista === 'accion' ? this._accionActiva : null
+    const definicion = accion
+      ? { ...accion.formulario, etiquetaEnviar: accion.formulario.etiquetaEnviar ?? accion.etiqueta }
+      : creando
+        ? this.esquema.crear
+        : this.esquema.editar
     const titulo =
       definicion.titulo ??
-      (enAccion
-        ? this._accionForm.accion.etiqueta
-        : creando
-          ? this.esquema.crear.etiqueta
-          : `Editar ${this.esquema.nombreSingular ?? 'registro'}`)
+      (accion ? accion.etiqueta : creando ? this.esquema.crear.etiqueta : `Editar ${this.esquema.nombreSingular ?? 'registro'}`)
     const numerar = definicion.secciones.length > 1
     return html`
       <div class="fondo" @mousedown=${(e) => e.target === e.currentTarget && this._cerrarDrawer()}>
@@ -955,25 +1001,25 @@ export class DhGestion extends LitElement {
             </button>
           </header>
           ${this._cargandoRegistro
-            ? html`<div class="drawer-cuerpo" aria-busy="true">
+        ? html`<div class="drawer-cuerpo" aria-busy="true">
                 <span class="brillo"></span><span class="brillo"></span><span class="brillo"></span>
               </div>`
-            : this._bloqueo
-              ? html`<div class="drawer-cuerpo">
+        : this._bloqueo
+          ? html`<div class="drawer-cuerpo">
                   <p class="aviso-caja error" role="alert">${icono('alert', 18)}<span>${this._bloqueo}</span></p>
                   <div class="drawer-pie">
                     <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cerrar</button>
                   </div>
                 </div>`
-              : html`<form class="drawer-cuerpo" @submit=${(e) => this._enviar(e)} novalidate>
+          : html`<form class="drawer-cuerpo" @submit=${(e) => this._enviar(e)} novalidate>
                   ${definicion.secciones.map((seccion, i) => this._renderSeccion(seccion, numerar ? i + 1 : null))}
                   ${this._errorGeneral
-                    ? html`<p class="aviso-caja error" role="alert">${icono('alert', 18)}<span>${this._errorGeneral}</span></p>`
-                    : nothing}
+              ? html`<p class="aviso-caja error" role="alert">${icono('alert', 18)}<span>${this._errorGeneral}</span></p>`
+              : nothing}
                   <div class="drawer-pie">
                     <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cancelar</button>
                     <button type="submit" class="boton" ?disabled=${this._enviando}>
-                      ${this._enviando ? 'Guardando…' : (definicion.etiquetaEnviar ?? (creando ? 'Crear' : enAccion ? 'Enviar' : 'Guardar'))}
+                      ${this._enviando ? 'Guardando…' : (definicion.etiquetaEnviar ?? (creando ? 'Crear' : accion ? 'Enviar' : 'Guardar'))}
                     </button>
                   </div>
                 </form>`}
@@ -1000,8 +1046,10 @@ export class DhGestion extends LitElement {
           </header>
           <div class="drawer-cuerpo" aria-busy=${String(this._cargandoRegistro)}>
             ${this._cargandoRegistro || !this._registro
-              ? html`<span class="brillo"></span><span class="brillo"></span><span class="brillo"></span>`
-              : detalle.secciones.map((seccion) => this._renderSeccionDetalle(seccion))}
+        ? html`<span class="brillo"></span><span class="brillo"></span><span class="brillo"></span>`
+        : detalle.lista
+          ? this._renderListaDetalle(detalle.lista)
+          : detalle.secciones.map((seccion) => this._renderSeccionDetalle(seccion))}
             <div class="drawer-pie">
               <button type="button" class="boton secundario" @click=${() => this._cerrarDrawer()}>Cerrar</button>
             </div>
@@ -1009,6 +1057,19 @@ export class DhGestion extends LitElement {
         </aside>
       </div>
     `
+  }
+
+  /** Detalle en forma de lista (ej. el historial): `_registro` es un arreglo y cada fila es una tarjeta con sus datos. */
+  _renderListaDetalle(lista) {
+    const filas = Array.isArray(this._registro) ? this._registro : []
+    if (filas.length === 0) {
+      return html`<p class="secundaria">${lista.vacio ?? 'No hay registros.'}</p>`
+    }
+    return html`<div class="lista-detalle">
+      ${filas.map(
+      (fila) => html`<div class="lista-fila">${lista.columnas.map((columna) => this._renderDato(columna, fila))}</div>`
+    )}
+    </div>`
   }
 
   _renderSeccionDetalle(seccion) {
@@ -1022,20 +1083,20 @@ export class DhGestion extends LitElement {
     return html`<fieldset>
       ${seccion.titulo ? html`<legend>${seccion.titulo}</legend>` : nothing}
       ${bloques.map((b) =>
-        b.par && b.campos.length === 2
-          ? html`<div class="grid-2">${b.campos.map((c) => this._renderDato(c))}</div>`
-          : b.campos.map((c) => this._renderDato(c))
-      )}
+      b.par && b.campos.length === 2
+        ? html`<div class="grid-2">${b.campos.map((c) => this._renderDato(c))}</div>`
+        : b.campos.map((c) => this._renderDato(c))
+    )}
     </fieldset>`
   }
 
-  _renderDato(campo) {
-    const valor = leer(this._registro, campo.campo)
+  _renderDato(campo, registro = this._registro) {
+    const valor = leer(registro, campo.campo)
     const vacio = valor === undefined || valor === null || valor === '' || (Array.isArray(valor) && valor.length === 0)
     if (campo.tipo === 'foto') {
-      return html`<div class="dato foto">${this._avatar(campo, this._registro, valor, 72)}</div>`
+      return html`<div class="dato foto">${this._avatar(campo, registro, valor, 72)}</div>`
     }
-    let contenido = '—'
+    let contenido = campo.vacioTexto ?? '—'
     if (!vacio) {
       if (campo.tipo === 'insignia') {
         const insignia = campo.insignias?.[valor]
@@ -1103,10 +1164,10 @@ export class DhGestion extends LitElement {
         ? html`<legend>${numero ? html`<span class="paso">${numero}</span>` : nothing}${seccion.titulo}</legend>`
         : nothing}
       ${bloques.map((b) =>
-        b.par && b.campos.length === 2
-          ? html`<div class="grid-2">${b.campos.map((c) => this._renderCampo(c))}</div>`
-          : b.campos.map((c) => this._renderCampo(c))
-      )}
+          b.par && b.campos.length === 2
+            ? html`<div class="grid-2">${b.campos.map((c) => this._renderCampo(c))}</div>`
+            : b.campos.map((c) => this._renderCampo(c))
+        )}
     </fieldset>`
   }
 
@@ -1315,7 +1376,7 @@ export class DhGestion extends LitElement {
       >
       <ol class="filas-opcion">
         ${filas.map(
-          (fila, i) => html`<li class="fila-opcion">
+      (fila, i) => html`<li class="fila-opcion">
             <input
               type="text"
               aria-label=${`Opción ${i + 1}`}
@@ -1323,7 +1384,7 @@ export class DhGestion extends LitElement {
               autocomplete="off"
               .value=${fila.texto}
               @input=${(e) =>
-                this._cambiarFilas(campo, (f) => f.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
+          this._cambiarFilas(campo, (f) => f.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
               @blur=${() => this._tocar(campo)}
             />
             <label class="correcta">
@@ -1331,7 +1392,7 @@ export class DhGestion extends LitElement {
                 type="checkbox"
                 .checked=${fila.correcta}
                 @change=${(e) =>
-                  this._cambiarFilas(campo, (f) => f.map((x, j) => (j === i ? { ...x, correcta: e.target.checked } : x)))}
+          this._cambiarFilas(campo, (f) => f.map((x, j) => (j === i ? { ...x, correcta: e.target.checked } : x)))}
               />
               Correcta
             </label>
@@ -1345,7 +1406,7 @@ export class DhGestion extends LitElement {
               Quitar
             </button>
           </li>`
-        )}
+    )}
       </ol>
       <button
         type="button"
@@ -1375,7 +1436,7 @@ export class DhGestion extends LitElement {
       <span class="etiqueta-campo">${campo.titulo}</span>
       <ol class="filas-opcion">
         ${filas.map(
-          (fila, i) => html`<li class="fila-opcion">
+      (fila, i) => html`<li class="fila-opcion">
             <input
               type="text"
               aria-label=${`Tema ${i + 1}`}
@@ -1407,7 +1468,7 @@ export class DhGestion extends LitElement {
               Quitar
             </button>
           </li>`
-        )}
+    )}
       </ol>
       <button
         type="button"
@@ -1466,9 +1527,9 @@ export class DhGestion extends LitElement {
         ?deshabilitado=${campo.soloLectura}
         ?invalido=${!!error}
         @dh-cambio=${(e) => {
-          this._alEscribir(campo, e.detail.valor)
-          this._tocar(campo)
-        }}
+        this._alEscribir(campo, e.detail.valor)
+        this._tocar(campo)
+      }}
         @dh-blur=${() => this._tocar(campo)}
       ></dh-fecha>
       ${campo.ayuda ? html`<span class="ayuda">${campo.ayuda}</span>` : nothing}
@@ -1498,9 +1559,9 @@ export class DhGestion extends LitElement {
         ?deshabilitado=${campo.soloLectura || estado === 'cargando'}
         ?invalido=${!!error}
         @dh-cambio=${(e) => {
-          this._alEscribir(campo, multiple ? e.detail.valores : e.detail.valor)
-          this._tocar(campo)
-        }}
+        this._alEscribir(campo, multiple ? e.detail.valores : e.detail.valor)
+        this._tocar(campo)
+      }}
         @dh-blur=${() => this._tocar(campo)}
       ></dh-select>
       ${estado === 'error'

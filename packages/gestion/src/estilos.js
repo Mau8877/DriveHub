@@ -217,6 +217,11 @@ export const estilos = css`
     --dh-select-alto: 2.6rem;
     min-width: 11rem;
   }
+  /* Selector de fecha del filtro (<dh-fecha>) */
+  .filtro-fecha {
+    --dh-fecha-alto: 2.6rem;
+    width: 11rem;
+  }
   input:hover:not([readonly]) {
     border-color: color-mix(in srgb, var(--gris-medio) 55%, transparent);
   }
@@ -647,6 +652,25 @@ export const estilos = css`
   }
   .dato-valor.sin-valor {
     color: var(--muted-foreground);
+  }
+
+  /* Detalle en forma de lista (ej. el historial de un auto): una tarjeta por fila */
+  .lista-detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .lista-fila {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.5rem 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg, 0.75rem);
+    background: var(--card);
+  }
+  .lista-fila .dato {
+    margin-bottom: 0;
   }
 
   /* Campos */

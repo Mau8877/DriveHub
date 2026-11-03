@@ -35,6 +35,7 @@ import com.drivehub.academico.config.WebMvcConfig;
 import com.drivehub.academico.features.horarios.dto.FranjaDisponibleResponse;
 import com.drivehub.academico.features.horarios.dto.InstructorDisponibleResponse;
 import com.drivehub.academico.features.horarios.service.FranjaDisponibleService;
+import com.drivehub.academico.features.horarios.service.FranjaResumenService;
 import com.drivehub.academico.features.horarios.service.FranjaService;
 
 /**
@@ -54,6 +55,8 @@ class FranjaDisponibleControllerTest {
 
     @MockitoBean
     private FranjaDisponibleService disponibleService;
+    @MockitoBean
+    private FranjaResumenService resumenService;
     @MockitoBean
     private FranjaService franjaService;
     @MockitoBean

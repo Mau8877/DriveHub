@@ -370,4 +370,425 @@ class ReservaRepositoryTest extends MongoIntegrationTestBase {
         assertThat(repository.marcarParaRevision(confirmada.getCodigoReserva(), "x", AHORA, PENDIENTES)).isEmpty();
         assertThat(repository.findById(confirmada.getId()).orElseThrow().isRequiereRevision()).isFalse();
     }
+
+    // ---------------------------------------------------------------- cancelar (CU15)
+
+    private static final Set<EstadoReserva> TRANSITORIOS = Set.of(EstadoReserva.PENDIENTE_PAGO,
+        EstadoReserva.CANCELACION_PENDIENTE);
+
+    @Test
+    void iniciarCancelacion_pasaDeConfirmadaACancelacionPendiente_fijaSinDevolucionYAgregaAlHistorial() {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+        Instant despues = AHORA.plusSeconds(60);
+
+        var iniciada = repository.iniciarCancelacion(reserva.getCodigoReserva(), estudiante, true,
+            "Cancelada por el estudiante", despues);
+
+        assertThat(iniciada).isPresent();
+        assertThat(iniciada.get().getEstado()).isEqualTo(EstadoReserva.CANCELACION_PENDIENTE);
+        assertThat(iniciada.get().isSinDevolucion()).isTrue();
+        assertThat(iniciada.get().getUpdatedAt()).isEqualTo(despues);
+        assertThat(iniciada.get().getHistorialEstados()).hasSize(2);
+        assertThat(iniciada.get().getHistorialEstados().get(1).estado()).isEqualTo(EstadoReserva.CANCELACION_PENDIENTE);
+        assertThat(iniciada.get().getHistorialEstados().get(1).motivo()).isEqualTo("Cancelada por el estudiante");
+    }
+
+    @Test
+    void iniciarCancelacion_aTiempo_dejaSinDevolucionEnFalso() {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+
+        var iniciada = repository.iniciarCancelacion(reserva.getCodigoReserva(), estudiante, false, "x", AHORA);
+
+        assertThat(iniciada).isPresent();
+        assertThat(iniciada.get().isSinDevolucion()).isFalse();
+    }
+
+    @Test
+    void iniciarCancelacion_siNoEstaConfirmada_oEsDeOtro_oEstaBorrada_devuelveVacioYNoCambiaNada() {
+        Reserva pendiente = guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        Reserva cancelada = guardar(estudiante, HOY, "09:00", "10:00", EstadoReserva.CANCELADA);
+        Reserva ajena = confirmada(otroEstudiante, HOY, "10:00", "11:00");
+        Reserva borrada = confirmada(estudiante, HOY, "11:00", "12:00");
+        borrada.setDeletedAt(AHORA);
+        repository.save(borrada);
+
+        assertThat(repository.iniciarCancelacion(pendiente.getCodigoReserva(), estudiante, false, "x", AHORA)).isEmpty();
+        assertThat(repository.iniciarCancelacion(cancelada.getCodigoReserva(), estudiante, false, "x", AHORA)).isEmpty();
+        assertThat(repository.iniciarCancelacion(ajena.getCodigoReserva(), estudiante, false, "x", AHORA)).isEmpty();
+        assertThat(repository.iniciarCancelacion(borrada.getCodigoReserva(), estudiante, false, "x", AHORA)).isEmpty();
+        assertThat(repository.findById(ajena.getId()).orElseThrow().getEstado()).isEqualTo(EstadoReserva.CONFIRMADA);
+    }
+
+    @Test
+    void iniciarCancelacion_dosAlMismoTiempo_soloUnaGana() throws Exception {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var a = pool.submit(() -> repository.iniciarCancelacion(reserva.getCodigoReserva(), estudiante, false, "a",
+                AHORA));
+            var b = pool.submit(() -> repository.iniciarCancelacion(reserva.getCodigoReserva(), estudiante, true, "b",
+                AHORA));
+
+            assertThat(java.util.stream.Stream.of(a.get(), b.get()).filter(java.util.Optional::isPresent).count())
+                .isEqualTo(1);
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    // ---------------------------------------------------------------- cancelar por el instructor y agenda (CU16)
+
+    private final UUID otroInstructor = UUID.randomUUID();
+
+    private Reserva delInstructor(UUID elInstructor, LocalDate fecha, String inicio, String fin,
+            EstadoReserva estado) {
+        Reserva reserva = new Reserva(estudiante, elInstructor, 1L, fecha, inicio, fin, 1, AHORA);
+        reserva.setEstado(estado);
+        reserva.setHistorialEstados(new java.util.ArrayList<>(java.util.List.of(
+            new HistorialEstado(EstadoReserva.PENDIENTE_PAGO, AHORA, null),
+            new HistorialEstado(EstadoReserva.CONFIRMADA, AHORA, "Hora descontada"))));
+        return repository.save(reserva);
+    }
+
+    @Test
+    void iniciarCancelacionPorInstructor_marcaLosCamposYAgregaAlHistorial() {
+        Reserva reserva = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+        Instant despues = AHORA.plusSeconds(60);
+
+        var iniciada = repository.iniciarCancelacionPorInstructor(reserva.getCodigoReserva(), instructor,
+            "Cancelada por el instructor", despues);
+
+        assertThat(iniciada).isPresent();
+        assertThat(iniciada.get().getEstado()).isEqualTo(EstadoReserva.CANCELACION_PENDIENTE);
+        assertThat(iniciada.get().isSinDevolucion()).isFalse();
+        assertThat(iniciada.get().isCanceladaPorInstructor()).isTrue();
+        assertThat(iniciada.get().getUpdatedAt()).isEqualTo(despues);
+        assertThat(iniciada.get().getHistorialEstados()).hasSize(3);
+        assertThat(iniciada.get().getHistorialEstados().get(2).estado()).isEqualTo(EstadoReserva.CANCELACION_PENDIENTE);
+        assertThat(iniciada.get().getHistorialEstados().get(2).motivo()).isEqualTo("Cancelada por el instructor");
+    }
+
+    @Test
+    void iniciarCancelacionPorInstructor_siNoEstaConfirmadaEsDeOtroOEstaBorrada_devuelveVacioYNoCambiaNada() {
+        Reserva pendiente = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        Reserva cancelada = delInstructor(instructor, HOY, "09:00", "10:00", EstadoReserva.CANCELADA);
+        Reserva completada = delInstructor(instructor, HOY, "10:00", "11:00", EstadoReserva.COMPLETADA);
+        Reserva aMedias = delInstructor(instructor, HOY, "11:00", "12:00", EstadoReserva.REPROGRAMACION_PENDIENTE);
+        Reserva ajena = delInstructor(otroInstructor, HOY, "12:00", "13:00", EstadoReserva.CONFIRMADA);
+        Reserva borrada = delInstructor(instructor, HOY, "13:00", "14:00", EstadoReserva.CONFIRMADA);
+        borrada.setDeletedAt(AHORA);
+        repository.save(borrada);
+
+        for (Reserva reserva : java.util.List.of(pendiente, cancelada, completada, aMedias, ajena, borrada)) {
+            assertThat(repository.iniciarCancelacionPorInstructor(reserva.getCodigoReserva(), instructor, "x", AHORA))
+                .isEmpty();
+        }
+        Reserva sinCambios = repository.findById(ajena.getId()).orElseThrow();
+        assertThat(sinCambios.getEstado()).isEqualTo(EstadoReserva.CONFIRMADA);
+        assertThat(sinCambios.isCanceladaPorInstructor()).isFalse();
+    }
+
+    @Test
+    void iniciarCancelacionPorInstructor_repetidaOSimultaneaConLaDelEstudiante_soloUnaGana() {
+        Reserva reserva = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+
+        assertThat(repository.iniciarCancelacionPorInstructor(reserva.getCodigoReserva(), instructor, "x", AHORA))
+            .isPresent();
+        assertThat(repository.iniciarCancelacionPorInstructor(reserva.getCodigoReserva(), instructor, "x", AHORA))
+            .isEmpty();
+        // * ya la tomó el instructor: el estudiante no puede iniciar la suya
+        assertThat(repository.iniciarCancelacion(reserva.getCodigoReserva(), estudiante, false, "y", AHORA)).isEmpty();
+    }
+
+    // ---------------------------------------------------------------- cerrar la clase (CU17)
+
+    @Test
+    void cerrar_confirmadaPasaACompletadaOANoAsistioConSuHistorial() {
+        Reserva presente = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+        Reserva ausente = delInstructor(instructor, HOY, "09:00", "10:00", EstadoReserva.CONFIRMADA);
+        Instant despues = AHORA.plusSeconds(60);
+
+        var completada = repository.cerrar(presente.getCodigoReserva(), instructor, EstadoReserva.COMPLETADA,
+            "Clase cerrada por el instructor (PRESENTE)", despues);
+        var noAsistio = repository.cerrar(ausente.getCodigoReserva(), instructor, EstadoReserva.NO_ASISTIO,
+            "Clase cerrada por el instructor (AUSENTE)", despues);
+
+        assertThat(completada).isPresent();
+        assertThat(completada.get().getEstado()).isEqualTo(EstadoReserva.COMPLETADA);
+        assertThat(completada.get().getUpdatedAt()).isEqualTo(despues);
+        assertThat(completada.get().getHistorialEstados()).hasSize(3);
+        assertThat(completada.get().getHistorialEstados().get(2).estado()).isEqualTo(EstadoReserva.COMPLETADA);
+        assertThat(completada.get().getHistorialEstados().get(2).motivo())
+            .isEqualTo("Clase cerrada por el instructor (PRESENTE)");
+        assertThat(noAsistio).isPresent();
+        assertThat(noAsistio.get().getEstado()).isEqualTo(EstadoReserva.NO_ASISTIO);
+    }
+
+    @Test
+    void cerrar_noTocaLasHorasLaFranjaNiLosCamposDeLasCancelaciones() {
+        Reserva reserva = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+
+        var cerrada = repository.cerrar(reserva.getCodigoReserva(), instructor, EstadoReserva.COMPLETADA, "x", AHORA)
+            .orElseThrow();
+
+        assertThat(cerrada.getHorasCobradas()).isEqualTo(reserva.getHorasCobradas());
+        assertThat(cerrada.getFranjaId()).isEqualTo(reserva.getFranjaId());
+        assertThat(cerrada.isSinDevolucion()).isFalse();
+        assertThat(cerrada.isCanceladaPorInstructor()).isFalse();
+    }
+
+    @Test
+    void cerrar_siNoEstaConfirmadaEsDeOtroOEstaBorrada_devuelveVacioYNoCambiaNada() {
+        Reserva pendiente = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        Reserva cancelada = delInstructor(instructor, HOY, "09:00", "10:00", EstadoReserva.CANCELADA);
+        Reserva completada = delInstructor(instructor, HOY, "10:00", "11:00", EstadoReserva.COMPLETADA);
+        Reserva noAsistio = delInstructor(instructor, HOY, "11:00", "12:00", EstadoReserva.NO_ASISTIO);
+        Reserva cancelando = delInstructor(instructor, HOY, "12:00", "13:00", EstadoReserva.CANCELACION_PENDIENTE);
+        Reserva aMedias = delInstructor(instructor, HOY, "13:00", "14:00", EstadoReserva.REPROGRAMACION_PENDIENTE);
+        Reserva ajena = delInstructor(otroInstructor, HOY, "14:00", "15:00", EstadoReserva.CONFIRMADA);
+        Reserva borrada = delInstructor(instructor, HOY, "15:00", "16:00", EstadoReserva.CONFIRMADA);
+        borrada.setDeletedAt(AHORA);
+        repository.save(borrada);
+
+        for (Reserva reserva : java.util.List.of(pendiente, cancelada, completada, noAsistio, cancelando, aMedias,
+            ajena, borrada)) {
+            assertThat(repository.cerrar(reserva.getCodigoReserva(), instructor, EstadoReserva.COMPLETADA, "x", AHORA))
+                .isEmpty();
+        }
+        Reserva sinCambios = repository.findById(ajena.getId()).orElseThrow();
+        assertThat(sinCambios.getEstado()).isEqualTo(EstadoReserva.CONFIRMADA);
+        assertThat(sinCambios.getHistorialEstados()).hasSize(2);
+    }
+
+    @Test
+    void cerrar_repetidoOSimultaneoConLaCancelacion_soloUnoGana() {
+        Reserva reserva = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+
+        assertThat(repository.cerrar(reserva.getCodigoReserva(), instructor, EstadoReserva.COMPLETADA, "x", AHORA))
+            .isPresent();
+        assertThat(repository.cerrar(reserva.getCodigoReserva(), instructor, EstadoReserva.NO_ASISTIO, "y", AHORA))
+            .isEmpty();
+        assertThat(repository.iniciarCancelacionPorInstructor(reserva.getCodigoReserva(), instructor, "z", AHORA))
+            .isEmpty();
+        assertThat(repository.findById(reserva.getId()).orElseThrow().getEstado())
+            .isEqualTo(EstadoReserva.COMPLETADA);
+    }
+
+    @Test
+    void cerrar_conUnEstadoQueNoEsDeCierre_lanzaIllegalArgumentException() {
+        Reserva reserva = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+
+        for (EstadoReserva estado : java.util.List.of(EstadoReserva.CONFIRMADA, EstadoReserva.CANCELADA,
+            EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CANCELACION_PENDIENTE)) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> repository.cerrar(reserva.getCodigoReserva(), instructor, estado, "x", AHORA))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThat(repository.findById(reserva.getId()).orElseThrow().getEstado()).isEqualTo(EstadoReserva.CONFIRMADA);
+    }
+
+    @Test
+    void reservaSinElCampoCanceladaPorInstructor_seLeeComoFalso() {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+
+        assertThat(repository.findById(reserva.getId()).orElseThrow().isCanceladaPorInstructor()).isFalse();
+    }
+
+    @Test
+    void agendaDeInstructor_devuelveLasDelInstructorYLaFechaOrdenadasPorHora() {
+        Reserva tarde = delInstructor(instructor, HOY, "15:00", "16:00", EstadoReserva.CONFIRMADA);
+        Reserva temprano = delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+        delInstructor(instructor, HOY.plusDays(1), "08:00", "09:00", EstadoReserva.CONFIRMADA);
+        delInstructor(otroInstructor, HOY, "09:00", "10:00", EstadoReserva.CONFIRMADA);
+
+        var agenda = repository.agendaDeInstructor(instructor, HOY, pagina());
+
+        assertThat(agenda.getContent()).extracting(Reserva::getCodigoReserva)
+            .containsExactly(temprano.getCodigoReserva(), tarde.getCodigoReserva());
+        assertThat(agenda.getTotalElements()).isEqualTo(2);
+    }
+
+    @Test
+    void agendaDeInstructor_incluyeLasQueSonOFueronUnaClase() {
+        delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.CONFIRMADA);
+        delInstructor(instructor, HOY, "09:00", "10:00", EstadoReserva.REPROGRAMACION_PENDIENTE);
+        delInstructor(instructor, HOY, "10:00", "11:00", EstadoReserva.COMPLETADA);
+        delInstructor(instructor, HOY, "11:00", "12:00", EstadoReserva.NO_ASISTIO);
+        delInstructor(instructor, HOY, "12:00", "13:00", EstadoReserva.CANCELACION_PENDIENTE);
+        delInstructor(instructor, HOY, "13:00", "14:00", EstadoReserva.CANCELADA);
+
+        assertThat(repository.agendaDeInstructor(instructor, HOY, pagina()).getTotalElements()).isEqualTo(6);
+    }
+
+    @Test
+    void agendaDeInstructor_excluyeLasPendientesDePagoLasCanceladasQueNuncaFueronClaseYLasBorradas() {
+        delInstructor(instructor, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        // * cancelada por el sistema antes de confirmarse: nunca fue una clase
+        Reserva nuncaConfirmada = new Reserva(estudiante, instructor, 1L, HOY, "09:00", "10:00", 1, AHORA);
+        nuncaConfirmada.setEstado(EstadoReserva.CANCELADA);
+        repository.save(nuncaConfirmada);
+        Reserva borrada = delInstructor(instructor, HOY, "10:00", "11:00", EstadoReserva.CONFIRMADA);
+        borrada.setDeletedAt(AHORA);
+        repository.save(borrada);
+
+        assertThat(repository.agendaDeInstructor(instructor, HOY, pagina()).getContent()).isEmpty();
+    }
+
+    @Test
+    void agendaDeInstructor_paginaConElTotalReal_yUnDiaSinClasesDevuelveVacio() {
+        for (int hora = 8; hora < 11; hora++) {
+            delInstructor(instructor, HOY, String.format("%02d:00", hora), String.format("%02d:00", hora + 1),
+                EstadoReserva.CONFIRMADA);
+        }
+
+        var primera = repository.agendaDeInstructor(instructor, HOY, PageRequest.of(0, 2));
+        var segunda = repository.agendaDeInstructor(instructor, HOY, PageRequest.of(1, 2));
+
+        assertThat(primera.getContent()).hasSize(2);
+        assertThat(segunda.getContent()).hasSize(1);
+        assertThat(primera.getTotalElements()).isEqualTo(3);
+        assertThat(repository.agendaDeInstructor(instructor, HOY.plusDays(5), pagina()).getContent()).isEmpty();
+    }
+
+    @Test
+    void cambiarEstado_fijaUpdatedAt() {
+        Reserva reserva = guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.PENDIENTE_PAGO);
+        Instant despues = AHORA.plusSeconds(120);
+
+        var cambiada = repository.cambiarEstado(reserva.getCodigoReserva(), estudiante, EstadoReserva.PENDIENTE_PAGO,
+            EstadoReserva.CONFIRMADA, "x", despues);
+
+        assertThat(cambiada.orElseThrow().getUpdatedAt()).isEqualTo(despues);
+    }
+
+    @Test
+    void reservaAntiguaSinLosCamposDeCancelacion_seLeeConLosValoresPorDefecto() {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+
+        Reserva leida = repository.findById(reserva.getId()).orElseThrow();
+
+        assertThat(leida.isSinDevolucion()).isFalse();
+        assertThat(leida.getFranjaDestinoId()).isNull();
+    }
+
+    @Test
+    void pendientesAntiguas_midePorUpdatedAt_noPorCreatedAt() {
+        // * una clase confirmada hace días que se acaba de cancelar: createdAt viejo, updatedAt reciente
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+        mongoTemplate.updateFirst(Query.query(org.springframework.data.mongodb.core.query.Criteria.where("_id")
+                .is(reserva.getId())),
+            new org.springframework.data.mongodb.core.query.Update()
+                .set("createdAt", Instant.now().minusSeconds(7 * 24 * 3600L)), Reserva.class);
+        repository.iniciarCancelacion(reserva.getCodigoReserva(), estudiante, false, "x", Instant.now());
+
+        assertThat(repository.pendientesAntiguas(TRANSITORIOS, Instant.now().minusSeconds(120), 10)).isEmpty();
+        assertThat(repository.pendientesAntiguas(TRANSITORIOS, Instant.now().plusSeconds(60), 10))
+            .extracting(Reserva::getCodigoReserva).containsExactly(reserva.getCodigoReserva());
+    }
+
+    // ---------------------------------------------------------------- reprogramar (CU15)
+
+    @Test
+    void iniciarReprogramacion_pasaDeConfirmadaAReprogramacionPendiente_yGuardaLaFranjaDestino() {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+
+        var iniciada = repository.iniciarReprogramacion(reserva.getCodigoReserva(), estudiante, 99L,
+            "Reprogramación pedida", AHORA.plusSeconds(5));
+
+        assertThat(iniciada).isPresent();
+        assertThat(iniciada.get().getEstado()).isEqualTo(EstadoReserva.REPROGRAMACION_PENDIENTE);
+        assertThat(iniciada.get().getFranjaDestinoId()).isEqualTo(99L);
+        assertThat(iniciada.get().getFranjaId()).isEqualTo(1L);
+        assertThat(iniciada.get().getHistorialEstados()).hasSize(2);
+        // * una segunda reprogramación a la vez no pisa la primera
+        assertThat(repository.iniciarReprogramacion(reserva.getCodigoReserva(), estudiante, 100L, "otra", AHORA))
+            .isEmpty();
+        assertThat(repository.findById(reserva.getId()).orElseThrow().getFranjaDestinoId()).isEqualTo(99L);
+    }
+
+    @Test
+    void iniciarReprogramacion_siNoEstaConfirmadaOEsDeOtro_devuelveVacio() {
+        Reserva cancelada = guardar(estudiante, HOY, "08:00", "09:00", EstadoReserva.CANCELADA);
+        Reserva ajena = confirmada(otroEstudiante, HOY, "09:00", "10:00");
+
+        assertThat(repository.iniciarReprogramacion(cancelada.getCodigoReserva(), estudiante, 9L, "x", AHORA)).isEmpty();
+        assertThat(repository.iniciarReprogramacion(ajena.getCodigoReserva(), estudiante, 9L, "x", AHORA)).isEmpty();
+    }
+
+    @Test
+    void completarReprogramacion_copiaLaFranjaNueva_vuelveAConfirmada_yBorraElDestino() {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+        repository.iniciarReprogramacion(reserva.getCodigoReserva(), estudiante, 99L, "x", AHORA);
+        UUID otroInstructor = UUID.randomUUID();
+        LocalDate manana = HOY.plusDays(1);
+
+        var completada = repository.completarReprogramacion(reserva.getCodigoReserva(), estudiante, 99L, manana,
+            "15:00", "16:00", otroInstructor, AHORA.plusSeconds(10));
+
+        assertThat(completada).isPresent();
+        Reserva leida = repository.findById(reserva.getId()).orElseThrow();
+        assertThat(leida.getEstado()).isEqualTo(EstadoReserva.CONFIRMADA);
+        assertThat(leida.getFranjaId()).isEqualTo(99L);
+        assertThat(leida.getFecha()).isEqualTo(manana);
+        assertThat(leida.getHoraInicio()).isEqualTo("15:00");
+        assertThat(leida.getHoraFin()).isEqualTo("16:00");
+        assertThat(leida.getInstructorCodigo()).isEqualTo(otroInstructor);
+        assertThat(leida.getFranjaDestinoId()).isNull();
+        assertThat(leida.getHistorialEstados().get(leida.getHistorialEstados().size() - 1).motivo())
+            .isEqualTo("Reprogramada");
+        // * repetirlo es inocuo: ya no está a medias
+        assertThat(repository.completarReprogramacion(reserva.getCodigoReserva(), estudiante, 99L, manana, "15:00",
+            "16:00", otroInstructor, AHORA)).isEmpty();
+    }
+
+    @Test
+    void completarReprogramacion_noTocaUnaReservaQueNoEstaAMedias() {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+
+        assertThat(repository.completarReprogramacion(reserva.getCodigoReserva(), estudiante, 99L, HOY, "15:00",
+            "16:00", instructor, AHORA)).isEmpty();
+        assertThat(repository.findById(reserva.getId()).orElseThrow().getFranjaId()).isEqualTo(1L);
+    }
+
+    @Test
+    void revertirReprogramacion_vuelveAConfirmadaEnLaFranjaOriginal_yBorraElDestino() {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+        repository.iniciarReprogramacion(reserva.getCodigoReserva(), estudiante, 99L, "x", AHORA);
+
+        var revertida = repository.revertirReprogramacion(reserva.getCodigoReserva(), estudiante,
+            "La franja ya no estaba libre", AHORA.plusSeconds(10));
+
+        assertThat(revertida).isPresent();
+        Reserva leida = repository.findById(reserva.getId()).orElseThrow();
+        assertThat(leida.getEstado()).isEqualTo(EstadoReserva.CONFIRMADA);
+        assertThat(leida.getFranjaId()).isEqualTo(1L);
+        assertThat(leida.getHoraInicio()).isEqualTo("08:00");
+        assertThat(leida.getFranjaDestinoId()).isNull();
+        assertThat(repository.revertirReprogramacion(reserva.getCodigoReserva(), estudiante, "x", AHORA)).isEmpty();
+    }
+
+    @Test
+    void existeSolape_cuentaLaReprogramacionAMedias_yPuedeExcluirALaPropiaReserva() {
+        Reserva reserva = confirmada(estudiante, HOY, "08:00", "09:00");
+        repository.iniciarReprogramacion(reserva.getCodigoReserva(), estudiante, 99L, "x", AHORA);
+
+        assertThat(repository.existeSolape(estudiante, HOY, "08:00")).isTrue();
+        assertThat(repository.existeSolape(estudiante, HOY, "08:00", null)).isTrue();
+        // * la clase que se mueve no choca consigo misma
+        assertThat(repository.existeSolape(estudiante, HOY, "08:00", reserva.getCodigoReserva())).isFalse();
+        // * pero sí con otra distinta
+        assertThat(repository.existeSolape(estudiante, HOY, "08:00", UUID.randomUUID())).isTrue();
+    }
+
+    @Test
+    void proximas_incluyeLaReprogramacionAMedias_peroNoLaCancelacionPendiente() {
+        Reserva moviendose = confirmada(estudiante, HOY.plusDays(1), "08:00", "09:00");
+        repository.iniciarReprogramacion(moviendose.getCodigoReserva(), estudiante, 99L, "x", AHORA);
+        Reserva cancelandose = confirmada(estudiante, HOY.plusDays(1), "09:00", "10:00");
+        repository.iniciarCancelacion(cancelandose.getCodigoReserva(), estudiante, false, "x", AHORA);
+
+        assertThat(repository.proximas(estudiante, HOY, "08:00", pagina()))
+            .extracting(Reserva::getCodigoReserva).containsExactly(moviendose.getCodigoReserva());
+        assertThat(repository.historial(estudiante, HOY, "08:00", pagina())).isEmpty();
+    }
 }

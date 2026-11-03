@@ -63,6 +63,18 @@ export const NAV_ITEMS: NavItem[] = [
     roles: [ROLES.ADMIN_ESCUELA],
     hijos: [
       { ruta: '/escuela/autos', etiqueta: 'Autos', icono: 'car', roles: [ROLES.ADMIN_ESCUELA] },
+      {
+        ruta: '/escuela/asignacion-autos',
+        etiqueta: 'Asignación de autos',
+        icono: 'clipboard',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
+      {
+        ruta: '/escuela/disponibilidad',
+        etiqueta: 'Disponibilidad',
+        icono: 'calendar',
+        roles: [ROLES.ADMIN_ESCUELA],
+      },
     ],
   },
   {

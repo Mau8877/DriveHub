@@ -59,12 +59,14 @@ class ExamenConduccionServiceTest {
     private ResultadoRepository resultadoRepository;
     @Mock
     private IdentidadClient identidad;
+    @Mock
+    private AvisosExamen avisos;
 
     private ExamenConduccionService service;
 
     @BeforeEach
     void preparar() {
-        service = new ExamenConduccionService(repository, resultadoRepository, identidad, RELOJ);
+        service = new ExamenConduccionService(repository, resultadoRepository, identidad, RELOJ, avisos);
     }
 
     private static ProgramarExamenRequest programar(LocalDate fecha, String hora) {
@@ -116,6 +118,7 @@ class ExamenConduccionServiceTest {
         assertThat(respuesta.estudianteNombre()).isEqualTo("Ana Pérez");
         assertThat(respuesta.fecha()).isEqualTo(LocalDate.of(2026, 11, 10));
         assertThat(respuesta.hora()).isEqualTo("10:00");
+        verify(avisos).programado(guardado.getValue());
     }
 
     @Test
@@ -194,6 +197,7 @@ class ExamenConduccionServiceTest {
         assertThat(respuesta.fecha()).isEqualTo(LocalDate.of(2026, 11, 10));
         assertThat(respuesta.hora()).isEqualTo("15:30");
         assertThat(respuesta.vehiculoCodigo()).isEqualTo(vehiculo);
+        verify(avisos).reprogramado(examen);
     }
 
     @Test
@@ -210,8 +214,10 @@ class ExamenConduccionServiceTest {
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
         conExamen(existente(EstadoExamen.PROGRAMADO));
         assertThat(service.cancelar(ESCUELA, CODIGO).estado()).isEqualTo(EstadoExamen.CANCELADO);
+        verify(avisos).cancelado(any());
         conExamen(existente(EstadoExamen.PROGRAMADO));
         assertThat(service.marcarNoAsistio(ESCUELA, CODIGO).estado()).isEqualTo(EstadoExamen.NO_ASISTIO);
+        verify(avisos).sinAsistencia(any());
 
         conExamen(existente(EstadoExamen.REALIZADO));
         esperaCodigo(() -> service.cancelar(ESCUELA, CODIGO), AcademicoErrorCodes.EXAMEN_NO_ESTA_PROGRAMADO);
@@ -219,6 +225,7 @@ class ExamenConduccionServiceTest {
         esperaCodigo(() -> service.marcarNoAsistio(ESCUELA, CODIGO), AcademicoErrorCodes.EXAMEN_NO_ESTA_PROGRAMADO);
         esperaCodigo(() -> service.reprogramar(ESCUELA, CODIGO, new ReprogramarExamenRequest(null, null, null, null)),
             AcademicoErrorCodes.EXAMEN_NO_ESTA_PROGRAMADO);
+        verify(avisos, never()).reprogramado(any());
     }
 
     // ------------------------------------------------------------------ registrar resultado
@@ -242,6 +249,7 @@ class ExamenConduccionServiceTest {
         assertThat(nota.getValue().isAprobado()).isTrue();
         assertThat(nota.getValue().getPuntaje()).isEqualTo(70.0);
         assertThat(nota.getValue().getTitulo()).contains("categoría B").contains("intento 1");
+        verify(avisos).conResultado(any());
     }
 
     @Test

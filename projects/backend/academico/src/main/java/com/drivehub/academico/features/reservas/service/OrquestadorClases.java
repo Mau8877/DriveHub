@@ -16,8 +16,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import com.drivehub.academico.common.exception.ServicioNoDisponibleException;
 import com.drivehub.academico.config.OrquestadorProperties;
+import com.drivehub.academico.features.horarios.model.Franja;
 import com.drivehub.academico.features.reservas.client.ClienteDePagos;
+import com.drivehub.academico.features.reservas.client.SinHorasException;
 import com.drivehub.academico.features.reservas.enums.EstadoReserva;
 import com.drivehub.academico.features.reservas.model.Reserva;
 import com.drivehub.academico.features.reservas.repository.ReservaRepository;
@@ -39,6 +42,10 @@ import com.drivehub.academico.features.reservas.repository.ReservaRepository;
 @Service
 public class OrquestadorClases {
 
+    /** Las claves de idempotencia de Pagos: un solo lugar, no se cambian (ver CU14 y CU44). */
+    public static final String PREFIJO_CLAVE_DESCUENTO = "reserva-";
+    public static final String PREFIJO_CLAVE_DEVOLUCION = "devolucion-";
+
     private static final Logger LOG = LoggerFactory.getLogger(OrquestadorClases.class);
     private static final String MODULO = "reservas";
     private static final Duration ALERTA_PAGOS_CAIDO = Duration.ofHours(24);
@@ -50,10 +57,11 @@ public class OrquestadorClases {
     private final ClienteDePagos clienteDeServicio;
     private final OrquestadorProperties propiedades;
     private final Clock clock;
+    private final AvisosReserva avisos;
 
     public OrquestadorClases(List<ManejadorDeOperacion> manejadores, CompensadorDeReserva compensador,
             ReservaRepository reservaRepository, @Qualifier("clienteDeServicio") ClienteDePagos clienteDeServicio,
-            OrquestadorProperties propiedades, Clock clock) {
+            OrquestadorProperties propiedades, Clock clock, AvisosReserva avisos) {
         for (ManejadorDeOperacion manejador : manejadores) {
             for (EstadoReserva estado : manejador.estados()) {
                 ManejadorDeOperacion anterior = manejadorPorEstado.put(estado, manejador);
@@ -70,6 +78,7 @@ public class OrquestadorClases {
         this.clienteDeServicio = clienteDeServicio;
         this.propiedades = propiedades;
         this.clock = clock;
+        this.avisos = avisos;
     }
 
     /** Los estados que algún manejador atiende: lo que el repositorio y el proceso programado tienen que buscar. */
@@ -106,6 +115,49 @@ public class OrquestadorClases {
         return resultado;
     }
 
+    /** Cómo terminó el flujo en vivo de reservar una franja. */
+    public enum ResultadoReserva {
+        CONFIRMADA,
+        SIN_HORAS
+    }
+
+    /** `reserva` es la reserva ya confirmada cuando el resultado es {@link ResultadoReserva#CONFIRMADA}. */
+    public record ReservaCompletada(ResultadoReserva resultado, Reserva reserva) {
+    }
+
+    /**
+     * El flujo en vivo de reservar (CU14): descuenta la hora de una reserva `PENDIENTE_PAGO` cuya franja se acaba de
+     * apartar y la confirma, con el cliente de Pagos recibido (el Bearer del estudiante).
+     *
+     * * No mira la edad: en vivo la reserva es nueva. Retomar una vieja es `resolver`.
+     * * Sin horas: deshace la reserva y devuelve `SIN_HORAS`.
+     * * Pagos no responde: no se sabe si la hora salió, así que pide devolverla y deshace la reserva; si la devolución
+     * * tampoco llega, la reserva queda `PENDIENTE_PAGO` con la franja apartada para que la retome `resolver` o el
+     * * proceso programado. En los dos casos vuelve a lanzar la `ServicioNoDisponibleException` original.
+     *
+     * @param franja la franja apartada para esta reserva
+     */
+    public ReservaCompletada completarReserva(Reserva reserva, Franja franja, ClienteDePagos cliente) {
+        try {
+            cliente.descontar(franja.getEscuelaCodigo(), reserva.getEstudianteCodigo(), reserva.getInstructorCodigo(),
+                reserva.getCodigoReserva(), reserva.getHorasCobradas(),
+                PREFIJO_CLAVE_DESCUENTO + reserva.getCodigoReserva());
+        } catch (SinHorasException e) {
+            compensador.deshacerApartada(reserva, franja, "Sin horas suficientes", cliente);
+            return new ReservaCompletada(ResultadoReserva.SIN_HORAS, reserva);
+        } catch (ServicioNoDisponibleException e) {
+            compensador.deshacerApartada(reserva, franja, "No se pudo descontar la hora", cliente);
+            throw e;
+        }
+        var cambiada = reservaRepository.cambiarEstado(reserva.getCodigoReserva(), reserva.getEstudianteCodigo(),
+            EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CONFIRMADA, "Hora descontada", clock.instant());
+        cambiada.ifPresent(avisos::claseConfirmada);
+        Reserva confirmada = cambiada.orElse(reserva);
+        LOG.info("Reserva confirmada", kv("module", MODULO), kv("estudianteCodigo", reserva.getEstudianteCodigo()),
+            kv("reservaCodigo", reserva.getCodigoReserva()), kv("franjaCodigo", franja.getCodigoFranja()));
+        return new ReservaCompletada(ResultadoReserva.CONFIRMADA, confirmada);
+    }
+
     /**
      * Deshace una reserva a medias: devuelve la hora, libera la franja y la pasa de `PENDIENTE_PAGO` a `CANCELADA`
      * con el `motivo` en su historial. Repetirlo no devuelve dos veces. Pagos caído: no toca nada.
@@ -115,7 +167,16 @@ public class OrquestadorClases {
      * * ! Pagos siempre devuelve lo que se le pide: las reglas de plazo de CU15 se deciden ANTES de llamar acá.
      */
     public ResultadoOrquestacion deshacerReserva(Reserva reserva, String motivo, ClienteDePagos cliente) {
-        ResultadoOrquestacion resultado = compensador.deshacer(reserva, motivo, cliente);
+        return deshacerReserva(reserva, EstadoReserva.PENDIENTE_PAGO, true, motivo, cliente);
+    }
+
+    /**
+     * Lo mismo para una reserva que sale de otro estado (CU15: una `CANCELACION_PENDIENTE`). Con `devolverHora`
+     * falso (cancelación tardía) no se llama a Pagos: la hora se pierde, la franja se libera y la reserva se cancela.
+     */
+    public ResultadoOrquestacion deshacerReserva(Reserva reserva, EstadoReserva desde, boolean devolverHora,
+            String motivo, ClienteDePagos cliente) {
+        ResultadoOrquestacion resultado = compensador.deshacer(reserva, desde, devolverHora, motivo, cliente);
         LOG.info("Reserva deshecha", kv("module", MODULO), kv("reservaCodigo", reserva.getCodigoReserva()),
             kv("resultado", resultado));
         return resultado;

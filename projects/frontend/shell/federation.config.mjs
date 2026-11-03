@@ -34,6 +34,10 @@ export default withNativeFederation({
     '@drivehub/ui',
     // Solo lo usa el shell para cargar los remotos React.
     '@module-federation/runtime',
+    // * Push web (CU36): solo lo usa el shell, ningún remoto: no hace falta compartirlo como singleton.
+    'firebase',
+    'firebase/app',
+    'firebase/messaging',
   ],
 
   // Please read our docs about configuring native federation:

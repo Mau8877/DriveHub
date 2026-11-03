@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,8 @@ import com.drivehub.academico.common.response.PageMeta;
 import com.drivehub.academico.config.BearerActual;
 import com.drivehub.academico.config.CurrentEscuelaId;
 import com.drivehub.academico.config.CurrentUserId;
+import com.drivehub.academico.features.reservas.dto.CancelacionResponse;
+import com.drivehub.academico.features.reservas.dto.ReprogramarReservaRequest;
 import com.drivehub.academico.features.reservas.dto.ReservaResponse;
 import com.drivehub.academico.features.reservas.dto.ReservarFranjasRequest;
 import com.drivehub.academico.features.reservas.dto.ReservasResultadoResponse;
@@ -26,7 +29,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Las reservas del estudiante (CU14). La decisión por rol vive en el service (@PreAuthorize), no acá.
+ * Las reservas del estudiante (CU14) y su cancelación o reprogramación (CU15). La decisión por rol vive en el service (@PreAuthorize), no acá.
  *
  * * El estudiante y su escuela salen del token, nunca del cuerpo ni de la URL.
  * * Confirmar es parcial: responde 200 con las franjas reservadas y las que no, cada una con su motivo, aunque
@@ -54,6 +57,27 @@ public class ReservaController {
         return ResponseEntity.ok(ApiResponse.successList(pagina.getContent(), "Clases obtenidas correctamente",
             new PageMeta(pagina.getNumber() + 1, pagina.getSize(), pagina.getTotalElements(),
                 pagina.getTotalPages())));
+    }
+
+    /** Cancela una clase del estudiante: a tiempo se devuelve la hora, tarde se pierde (CU15). */
+    @PostMapping("/{codigo}/cancelar")
+    public ResponseEntity<ApiResponse<CancelacionResponse>> cancelar(
+            @CurrentUserId UUID estudianteCodigo,
+            @PathVariable("codigo") UUID codigo) {
+        return ResponseEntity.ok(ApiResponse.success(
+            service.cancelar(estudianteCodigo, bearer.cabecera(), codigo), "Clase cancelada correctamente"));
+    }
+
+    /** Mueve una clase a otra franja libre, sin tocar las horas (CU15). */
+    @PostMapping("/{codigo}/reprogramar")
+    public ResponseEntity<ApiResponse<ReservaResponse>> reprogramar(
+            @CurrentUserId UUID estudianteCodigo,
+            @CurrentEscuelaId UUID escuelaCodigo,
+            @PathVariable("codigo") UUID codigo,
+            @Valid @RequestBody ReprogramarReservaRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+            service.reprogramar(estudianteCodigo, escuelaCodigo, bearer.cabecera(), codigo, request.franjaCodigo()),
+            "Clase reprogramada correctamente"));
     }
 
     @PostMapping

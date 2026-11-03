@@ -173,6 +173,22 @@ describe('SesionService', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/login'])
     })
 
+    it('quita el dispositivo del push web con el token aún vigente (CU36)', async () => {
+      await login()
+      localStorage.setItem('dh.push.dispositivo', 'd1')
+
+      const promesa = servicio.cerrarSesion()
+      const quitar = backend.expectOne(`${API_BASE_URL}/dispositivos-push/d1`)
+      expect(quitar.request.method).toBe('DELETE')
+      expect(quitar.request.headers.get('Authorization')).toBe('Bearer jwt-1')
+      quitar.flush(ok)
+      backend.expectOne(`${API_BASE_URL}/auth/logout`).flush(ok)
+      await promesa
+
+      expect(servicio.autenticado()).toBe(false)
+      localStorage.clear()
+    })
+
     it('cancela la renovación programada', async () => {
       await login()
 

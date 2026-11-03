@@ -3,8 +3,9 @@ import { TipoNotificacion } from '../../notificaciones/enums/tipo-notificacion.e
 /**
  * Ítem de la tabla PreferenciasNotificacion (CU37). Un ítem por usuario.
  *
- * * email es una copia del correo de Identidad, para no consultar ese
- * * servicio en cada envío (se mantiene al día por eventos).
+ * * email es una copia del correo de la persona, para no consultar Identidad en cada
+ * * envío: la app lo manda con cada guardado (CU37). Es opcional: sin él, el correo
+ * * depende de que cada aviso lo traiga.
  */
 export interface PreferenciasNotificacion {
   // Clave de partición. = codigo de persona de Identidad
@@ -16,6 +17,6 @@ export interface PreferenciasNotificacion {
   // Franja de silencio opcional, HH:mm
   silencioDesde?: string
   silencioHasta?: string
-  email: string
+  email?: string
   actualizadoEn: string
 }

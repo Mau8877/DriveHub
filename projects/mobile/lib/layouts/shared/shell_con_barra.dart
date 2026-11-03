@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/providers/sesion_provider.dart';
+import '../../features/notificaciones/providers/bandeja_providers.dart';
+import '../../features/notificaciones/widgets/campana_avisos.dart';
 import '../../features/pagos/widgets/saldo_horas_chip.dart';
 import '../../features/perfil/providers/perfil_provider.dart';
 import '../../shared/widgets/aviso_cockpit.dart';
-import '../../shared/widgets/aviso_snack.dart';
 import '../../shared/widgets/avatar_usuario.dart';
 import '../../shared/widgets/cockpit_scaffold.dart';
 import '../../shared/widgets/estado_vacio.dart';
@@ -69,8 +70,9 @@ class _ShellConBarraState extends ConsumerState<ShellConBarra>
   /// app se renueva la sesión para que el botón "Verificar correo" desaparezca.
   @override
   void didChangeAppLifecycleState(AppLifecycleState estado) {
-    if (estado == AppLifecycleState.resumed &&
-        ref.read(sesionProvider).usuario?.correoVerificado == false) {
+    if (estado != AppLifecycleState.resumed) return;
+    ref.invalidate(conteoNoLeidasProvider);
+    if (ref.read(sesionProvider).usuario?.correoVerificado == false) {
       unawaited(_renovarYRecargarPerfil());
     }
   }
@@ -128,11 +130,7 @@ class _ShellConBarraState extends ConsumerState<ShellConBarra>
             usuario.roles.contains('ESTUDIANTE') &&
             !usuario.roles.contains('INSTRUCTOR'))
           const SaldoHorasChip(),
-        IconButton(
-          tooltip: 'Avisos',
-          icon: const Icon(Icons.notifications_none),
-          onPressed: () => avisar(context, 'Todavía no tienes avisos nuevos'),
-        ),
+        const CampanaAvisos(),
         if (usuario != null)
           Padding(
             padding: const EdgeInsets.only(right: 12, left: 4),

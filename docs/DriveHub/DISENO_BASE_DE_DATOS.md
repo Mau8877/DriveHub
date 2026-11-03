@@ -678,7 +678,10 @@ Las franjas se generan desde el horario para 28 días contando hoy, y una tarea 
 | `franjaId` | long | → `franjas._id` |
 | `solicitudId` | long | Opcional → `solicitudes_clase._id` |
 | `fecha`, `horaInicio`, `horaFin` | date, string, string | **Copia** de la franja, para consultar sin join |
-| `estado` | enum | `PENDIENTE_PAGO`, `CONFIRMADA`, `CANCELADA`, `COMPLETADA`, `NO_ASISTIO` |
+| `estado` | enum | `PENDIENTE_PAGO`, `CONFIRMADA`, `CANCELADA`, `COMPLETADA`, `NO_ASISTIO`, y los transitorios de CU15 `CANCELACION_PENDIENTE` (se pidió cancelar; falta devolver la hora si corresponde, liberar la franja y dejarla `CANCELADA`; no se muestra al estudiante) y `REPROGRAMACION_PENDIENTE` (se eligió otra franja y el cambio no terminó; sigue en «Mis clases» con la franja anterior) |
+| `franjaDestinoId` | long | Solo en `REPROGRAMACION_PENDIENTE` (CU15): `franjas._id` a la que se está moviendo la clase. Se borra al terminar o deshacer. No se expone al cliente |
+| `sinDevolucion` | boolean | Solo en `CANCELACION_PENDIENTE` (CU15): `true` si la cancelación es tardía y la hora no se devuelve. Empieza en `false`; una reserva sin el campo se lee como `false`. No se expone al cliente |
+| `canceladaPorInstructor` | boolean | Solo en `CANCELACION_PENDIENTE` y `CANCELADA` (CU16): `true` si la canceló el instructor; entonces la hora siempre se devuelve y la franja queda `BLOQUEADA`. Empieza en `false`; una reserva sin el campo se lee como `false`. No se expone al cliente |
 | `pagoCodigo` | UUID | Opcional → Pagos `pago.codigo_pago` |
 | `sagaCodigo` | UUID | Saga reserva-pago (CU44) |
 | `reprogramadaDeId` | long | Opcional → `reservas._id` de la original |
@@ -706,6 +709,8 @@ Las franjas se generan desde el horario para 28 días contando hoy, y una tarea 
 | `kmInicio`, `kmFin` | int | |
 | `estado` | enum | `ABIERTA`, `CERRADA` |
 
+**Uso real (CU17):** la clase se crea **al cerrarla**, siempre `CERRADA`: no hay paso de «iniciar», así que `ABIERTA` queda sin uso y `inicioReal`, `finReal` y `vehiculoCodigo` quedan vacíos (el vehículo, hasta que las clases se asocien al auto en CU10 y CU11). Cada reserva tiene a lo sumo una clase (índice único de `reservaId`); si un cierre se corta a medias, cerrar de nuevo reutiliza la clase ya guardada. Con `asistencia = AUSENTE` solo se guardan `observaciones` (sin `tema` ni kilómetros). `kmInicio` y `kmFin` son opcionales, de 0 a 9 999 999, y `kmFin` no es menor que `kmInicio`; `tema` admite hasta 120 caracteres y `observaciones` hasta 500. La asistencia no se cambia una vez cerrada. No hay migración ni índices nuevos.
+
 ### `pruebas_clase` (CU18)
 
 Evaluación práctica durante la clase.
@@ -720,7 +725,9 @@ Evaluación práctica durante la clase.
 | `puntajeTotal` | double | |
 | `resultado` | enum | `APROBADO`, `REPROBADO` |
 | `observaciones` | string | Opcional |
-| `fecha` | date | |
+| `fecha` | date | La de la clase dictada, no el día en que se evalúa |
+
+**Uso real (CU18):** índice único compuesto `uq_prueba_clase_tipo (claseId, tipo)` (reemplaza al índice simple de `claseId`): una clase tiene a lo sumo una prueba de cada tipo, hasta tres, y dos peticiones a la vez no pueden duplicarla. Los `criterios` son exactamente los del tipo según el catálogo en código (`CatalogoDePruebas`: 5 por tipo, máximo 10 cada uno) y guardan **copia** de `descripcion` y `maximo`. `puntajeTotal` es la suma de lo obtenido sobre la suma de los máximos, sobre 100 con dos decimales; `resultado` es `APROBADO` desde 70. Una prueba no se corrige ni se borra. Al guardarla se escribe su nota en `resultados` con `origen = PRUEBA_CLASE` y `origenId` igual a su `_id`; si el servicio se cae entre las dos escrituras, repetir la evaluación completa la nota sin duplicar la prueba. No hay migración (`auto-index-creation`).
 
 ### `examenes_conduccion` (CU22)
 
@@ -802,6 +809,8 @@ Vista consolidada de notas: se escribe al cerrar cada evaluación y publica `exa
 | `aprobado` | boolean | |
 | `fecha` | instant | |
 
+Índice único `uq_resultado_origen (origen, origenId)` (CU18): una evaluación tiene a lo sumo una nota, aunque dos peticiones lleguen a la vez.
+
 ### `outbox_eventos` (CU44)
 
 | Campo | Tipo | Notas |
@@ -868,6 +877,8 @@ Todo se consulta por usuario y fecha: partición `usuarioCodigo` (la persona de 
 
 ### `Notificaciones` (CU36, CU38)
 
+CU36 guarda **una fila por canal intentado** (`canal` es un solo valor): la de `IN_APP` es la bandeja de la persona y la única con `noLeidaTs` (alimenta el índice `NoLeidas`); las de `EMAIL` y `PUSH` son la constancia de ese envío, con su `estado`. Un tipo desactivado en las preferencias no deja ninguna fila.
+
 | Atributo | Tipo | Notas |
 | --- | --- | --- |
 | `usuarioCodigo`, `sk` | S | Clave |
@@ -904,7 +915,7 @@ Tokens de la app móvil.
 | --- | --- | --- |
 | `usuarioCodigo`, `codigoDispositivoPush` | S | Clave |
 | `tokenFcm` | S | |
-| `plataforma` | S (enum) | `ANDROID`, `IOS` |
+| `plataforma` | S (enum) | `ANDROID`, `IOS`, `WEB` (el navegador del panel) |
 | `activo` | BOOL | |
 | `ultimoUso` | S | |
 

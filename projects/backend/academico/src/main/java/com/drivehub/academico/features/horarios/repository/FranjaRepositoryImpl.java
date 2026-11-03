@@ -131,6 +131,22 @@ public class FranjaRepositoryImpl implements FranjaRepositoryCustom {
     }
 
     @Override
+    public List<Franja> delDia(UUID escuelaCodigo, LocalDate fecha, String horaDesde, String horaHasta) {
+        List<Criteria> condiciones = new ArrayList<>(List.of(
+            Criteria.where("escuelaCodigo").is(escuelaCodigo),
+            Criteria.where("fecha").is(fecha),
+            Criteria.where("deletedAt").is(null)));
+        if (horaDesde != null && horaHasta != null) {
+            condiciones.add(Criteria.where("horaInicio").gte(horaDesde).lt(horaHasta));
+        } else if (horaDesde != null) {
+            condiciones.add(Criteria.where("horaInicio").gte(horaDesde));
+        } else if (horaHasta != null) {
+            condiciones.add(Criteria.where("horaInicio").lt(horaHasta));
+        }
+        return mongoTemplate.find(Query.query(new Criteria().andOperator(condiciones)), Franja.class);
+    }
+
+    @Override
     public Optional<Franja> apartar(UUID codigoFranja, UUID escuelaCodigo, Long reservaId, LocalDate hoy,
             String ahora) {
         Query consulta = Query.query(new Criteria().andOperator(
@@ -153,6 +169,17 @@ public class FranjaRepositoryImpl implements FranjaRepositoryCustom {
             .and("deletedAt").is(null));
         return mongoTemplate.updateFirst(consulta,
             new Update().set("estado", EstadoFranja.LIBRE).unset("reservaId"), Franja.class)
+            .getModifiedCount() > 0;
+    }
+
+    @Override
+    public boolean bloquearReservada(UUID codigoFranja, Long reservaId) {
+        Query consulta = Query.query(Criteria.where("codigoFranja").is(codigoFranja)
+            .and("estado").is(EstadoFranja.RESERVADA)
+            .and("reservaId").is(reservaId)
+            .and("deletedAt").is(null));
+        return mongoTemplate.updateFirst(consulta,
+            new Update().set("estado", EstadoFranja.BLOQUEADA).unset("reservaId"), Franja.class)
             .getModifiedCount() > 0;
     }
 

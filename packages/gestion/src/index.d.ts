@@ -1,7 +1,9 @@
 /** Condición sobre un registro: el campo (con puntos para anidados) igual o distinto de un valor. */
 export interface Condicion {
   campo: string
+  /** Con `null`, se cumple si el campo no tiene valor (nulo o ausente). */
   igual?: unknown
+  /** Con `null`, se cumple si el campo tiene algún valor. */
   distinto?: unknown
 }
 
@@ -41,14 +43,27 @@ export interface Columna {
   codigo?: boolean
   /** Ancho CSS de la columna (ej. '10rem'). Por defecto, corto para insignias y fechas; el resto reparte lo que sobra. */
   ancho?: string
+  /** Texto que se muestra cuando el valor está vacío (ej. "Sin asignar"). Sin él, la celda queda vacía. */
+  vacioTexto?: string
 }
 
 export interface Filtro {
   /** Parámetro de la API, tal cual (ej. `filter[estado]`). */
   clave: string
   titulo: string
+  /**
+   * Sin `tipo`, el filtro ofrece `opciones` fijas (un control segmentado, o una lista si son más de 4).
+   * `'fecha'`: elige un día con el calendario propio (`<dh-fecha>`); el valor viaja como `yyyy-MM-dd` y vaciarlo
+   * quita el filtro.
+   */
+  tipo?: 'fecha'
+  /** `tipo: 'fecha'`: `'hoy'` hace que el filtro arranque con la fecha de hoy, ya aplicada en la primera carga. */
+  porDefecto?: 'hoy'
+  /** `tipo: 'fecha'`: el calendario no deja elegir días anteriores a hoy. */
+  desdeHoy?: boolean
   /** Texto de la opción que quita el filtro (por defecto `Todas`). */
   todas?: string
+  /** Las opciones del filtro. Un filtro `tipo: 'fecha'` no las usa: va `opciones: []`. */
   opciones: { valor: string; etiqueta: string }[]
 }
 
@@ -75,21 +90,21 @@ export interface Campo {
   campo: string
   titulo: string
   tipo?:
-    | 'texto'
-    | 'email'
-    | 'password'
-    | 'fecha'
-    | 'telefono'
-    | 'numero'
-    | 'decimal'
-    | 'seleccion'
-    | 'ubicacion'
-    | 'imagen'
-    | 'archivo'
-    | 'lista'
-    | 'textarea'
-    | 'opciones'
-    | 'reglas'
+  | 'texto'
+  | 'email'
+  | 'password'
+  | 'fecha'
+  | 'telefono'
+  | 'numero'
+  | 'decimal'
+  | 'seleccion'
+  | 'ubicacion'
+  | 'imagen'
+  | 'archivo'
+  | 'lista'
+  | 'textarea'
+  | 'opciones'
+  | 'reglas'
   requerido?: boolean
   /**
    * `decimal`: cuántos decimales admite como máximo (2 por defecto; 0 = solo enteros). Se escribe con punto o
@@ -187,10 +202,17 @@ export interface Accion {
   visibleSi?: Condicion
   tono?: 'peligro'
   /**
-   * Si existe, la acción abre un formulario en el drawer (mismos campos que crear y editar) y al enviarlo llama a
-   * `ruta` con ese cuerpo, en vez de ejecutarse directo. Con `formulario`, `confirmar` no se usa.
+   * Si existe, la acción pide datos antes de enviarse: abre el mismo panel lateral de crear y editar con estas
+   * secciones y, al enviar, llama a `ruta` con `metodo` y el cuerpo del formulario (como crear). Gana sobre `confirmar`.
+   * Un error de negocio del backend sin campo en `erroresDeCampo` se muestra con su mensaje en el panel.
    */
-  formulario?: { titulo?: string; descripcion?: string; etiquetaEnviar?: string; secciones: Seccion[] }
+  formulario?: {
+    titulo?: string
+    descripcion?: string
+    /** Texto del botón de enviar (por defecto, la etiqueta de la acción). */
+    etiquetaEnviar?: string
+    secciones: Seccion[]
+  }
 }
 
 export interface Crear {
@@ -236,6 +258,8 @@ export interface CampoDetalle {
   etiqueta?: string
   /** Con otro campo `mitad` a continuación, los dos comparten fila. */
   mitad?: boolean
+  /** Texto que se muestra cuando el valor está vacío (por defecto "—", ej. "Vigente" para una fecha de fin). */
+  vacioTexto?: string
 }
 
 export interface SeccionDetalle {
@@ -256,6 +280,11 @@ export interface Detalle {
   /** El botón solo aparece en las filas que cumplen esto. */
   visibleSi?: Condicion
   secciones: SeccionDetalle[]
+  /**
+   * Detalle en forma de lista (ej. el historial de un auto): la respuesta de `cargar` es un **arreglo** y el panel
+   * dibuja una tarjeta por fila con estos datos, en lugar de las `secciones` (que entonces va como `[]`). Sin filas se muestra `vacio`.
+   */
+  lista?: { columnas: CampoDetalle[]; vacio?: string }
 }
 
 export interface EsquemaGestion {

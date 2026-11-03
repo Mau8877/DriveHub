@@ -25,6 +25,7 @@
     "@drivehub/ui": "workspace:*",
     "@module-federation/runtime": "^2.9.2",
     "es-module-shims": "^2.8.0",
+    "firebase": "^13.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

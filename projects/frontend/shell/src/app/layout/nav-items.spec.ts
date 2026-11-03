@@ -38,7 +38,11 @@ describe('navItemsDeRoles', () => {
       ['Estudiantes', '/escuela/estudiantes'],
       ['Instructores', '/escuela/instructores'],
     ])
-    expect(opciones('Gestionar escuela')).toEqual([['Autos', '/escuela/autos']])
+    expect(opciones('Gestionar escuela')).toEqual([
+      ['Autos', '/escuela/autos'],
+      ['Asignación de autos', '/escuela/asignacion-autos'],
+      ['Disponibilidad', '/escuela/disponibilidad'],
+    ])
     expect(opciones('Gestionar pagos')).toEqual([['Planes de horas', '/pagos/planes']])
     expect(opciones('Gestionar exámenes')).toEqual([
       ['Banco de preguntas', '/examenes'],
@@ -71,8 +75,14 @@ describe('navItemsDeRoles', () => {
     expect(superAdmin.filter((r) => admin.includes(r))).toEqual(['/'])
   })
 
-  it('Estudiantes, Instructores y Autos solo los ve el Administrador de escuela', () => {
-    for (const ruta of ['/escuela/estudiantes', '/escuela/instructores', '/escuela/autos']) {
+  it('Estudiantes, Instructores, Autos, Asignación de autos y Disponibilidad solo los ve el Administrador de escuela', () => {
+    for (const ruta of [
+      '/escuela/estudiantes',
+      '/escuela/instructores',
+      '/escuela/autos',
+      '/escuela/asignacion-autos',
+      '/escuela/disponibilidad',
+    ]) {
       expect(rutas([ROLES.ADMIN_ESCUELA])).toContain(ruta)
       expect(rutas([ROLES.SUPER_ADMIN])).not.toContain(ruta)
       expect(rutas([ROLES.INSTRUCTOR])).not.toContain(ruta)

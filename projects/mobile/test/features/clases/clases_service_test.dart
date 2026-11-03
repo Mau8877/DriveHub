@@ -2,7 +2,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/features/clases/models/actualizar_clase_request.dart';
+import 'package:mobile/features/clases/models/asistencia_clase.dart';
+import 'package:mobile/features/clases/models/cerrar_clase_request.dart';
 import 'package:mobile/features/clases/models/estado_reserva.dart';
+import 'package:mobile/features/clases/models/hora_de_cancelacion.dart';
 import 'package:mobile/features/clases/models/momento_dia.dart';
 import 'package:mobile/features/clases/models/vista_reservas.dart';
 import 'package:mobile/features/clases/services/clases_service.dart';
@@ -166,6 +170,248 @@ void main() {
       await expectLater(
         servicio.reservar([]),
         throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_SYS_01')),
+      );
+    });
+  });
+
+  group('cancelar', () {
+    Map<String, dynamic> cancelacionJson(String hora, int? horas) => {
+      'reserva': {..._reservaJson(), 'estado': 'CANCELADA'},
+      'horaDevuelta': hora,
+      'horasDisponibles': horas,
+    };
+
+    test('manda la cancelación sin cuerpo y entrega cómo quedó la hora', () async {
+      final adaptador = responder(200, exito(cancelacionJson('DEVUELTA', 5)));
+
+      final resultado = await servicio.cancelar('r1');
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'POST');
+      expect(peticion.path, '/reservas/r1/cancelar');
+      expect(peticion.data, isNull);
+      expect(resultado.reserva.estado, EstadoReserva.cancelada);
+      expect(resultado.horaDevuelta, HoraDeCancelacion.devuelta);
+      expect(resultado.horasDisponibles, 5);
+    });
+
+    test('con la hora en proceso el saldo viene nulo', () async {
+      responder(200, exito(cancelacionJson('EN_PROCESO', null)));
+
+      final resultado = await servicio.cancelar('r1');
+
+      expect(resultado.horaDevuelta, HoraDeCancelacion.enProceso);
+      expect(resultado.horasDisponibles, isNull);
+    });
+
+    test('un error de negocio llega como ApiException con su código', () async {
+      responder(409, fallo('ERR_ACA_33', 'Esa clase ya no se puede cancelar'));
+
+      await expectLater(
+        servicio.cancelar('r1'),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_33')),
+      );
+    });
+  });
+
+  group('agenda', () {
+    Map<String, dynamic> claseJson() => {
+      'codigo': 'r1',
+      'fecha': '2026-11-02',
+      'horaInicio': '10:00',
+      'horaFin': '11:00',
+      'estudianteCodigo': 'e1',
+      'estudianteNombre': 'Eva Estudiante',
+      'estado': 'CONFIRMADA',
+      'terminada': false,
+      'cancelable': true,
+    };
+
+    test('pide el día con la fecha en yyyy-MM-dd y la paginación', () async {
+      final adaptador = responder(200, _exitoLista([claseJson()]));
+
+      final pagina = await servicio.agenda(fecha: DateTime(2026, 11, 2));
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'GET');
+      expect(peticion.path, '/reservas/agenda');
+      expect(peticion.queryParameters, {'page': 1, 'pageSize': 50, 'filter[fecha]': '2026-11-02'});
+      expect(pagina.items.single.estudianteNombre, 'Eva Estudiante');
+      expect(pagina.items.single.cancelable, isTrue);
+    });
+
+    test('un día sin clases es una lista vacía, no un error', () async {
+      responder(200, _exitoLista([]));
+
+      final pagina = await servicio.agenda(fecha: DateTime(2026, 11, 3), page: 2, pageSize: 10);
+
+      expect(pagina.items, isEmpty);
+    });
+
+    test('Identidad caída llega como ApiException con ERR_ACA_17', () async {
+      responder(503, fallo('ERR_ACA_17', 'No pudimos obtener los datos'));
+
+      await expectLater(
+        servicio.agenda(fecha: DateTime(2026, 11, 2)),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_17')),
+      );
+    });
+  });
+
+  group('cancelarComoInstructor', () {
+    Map<String, dynamic> cancelacionJson(String hora) => {
+      'clase': {
+        'codigo': 'r1',
+        'fecha': '2026-11-02',
+        'horaInicio': '10:00',
+        'horaFin': '11:00',
+        'estudianteCodigo': 'e1',
+        'estudianteNombre': 'Eva Estudiante',
+        'estado': 'CANCELADA',
+        'terminada': false,
+        'cancelable': false,
+      },
+      'horaDevuelta': hora,
+    };
+
+    test('manda la cancelación sin cuerpo y entrega cómo quedó la hora', () async {
+      final adaptador = responder(200, exito(cancelacionJson('DEVUELTA')));
+
+      final resultado = await servicio.cancelarComoInstructor('r1');
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'POST');
+      expect(peticion.path, '/reservas/r1/cancelar-por-instructor');
+      expect(peticion.data, isNull);
+      expect(resultado.clase.estado, EstadoReserva.cancelada);
+      expect(resultado.horaDevuelta, HoraDeCancelacion.devuelta);
+    });
+
+    test('con Pagos caído la hora queda en proceso', () async {
+      responder(200, exito(cancelacionJson('EN_PROCESO')));
+
+      expect((await servicio.cancelarComoInstructor('r1')).horaDevuelta, HoraDeCancelacion.enProceso);
+    });
+
+    test('una clase que ya no se puede cancelar llega como ApiException con ERR_ACA_36', () async {
+      responder(409, fallo('ERR_ACA_36', 'Esa clase ya no se puede cancelar'));
+
+      await expectLater(
+        servicio.cancelarComoInstructor('r1'),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_36')),
+      );
+    });
+
+    test('una clase ajena o inexistente llega como ApiException con ERR_ACA_35', () async {
+      responder(404, fallo('ERR_ACA_35', 'No encontramos esa clase'));
+
+      await expectLater(
+        servicio.cancelarComoInstructor('r1'),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_35')),
+      );
+    });
+  });
+
+  group('cerrar, ver y corregir una clase (CU17)', () {
+    Map<String, dynamic> dictadaJson({String asistencia = 'PRESENTE', String? tema, int? kmFin}) => {
+      'codigo': 'c1',
+      'fecha': '2026-11-02',
+      'estudianteCodigo': 'e1',
+      'estudianteNombre': 'Eva Estudiante',
+      'asistencia': asistencia,
+      'tema': tema,
+      'observaciones': null,
+      'kmInicio': null,
+      'kmFin': kmFin,
+      'estado': 'CERRADA',
+    };
+
+    test('cerrarClase manda la reserva, la asistencia y los datos, y entrega la clase', () async {
+      final adaptador = responder(201, exito(dictadaJson(tema: 'Giros', kmFin: 142)));
+
+      final clase = await servicio.cerrarClase(
+        const CerrarClaseRequest(
+          reservaCodigo: 'r1',
+          asistencia: AsistenciaClase.presente,
+          tema: 'Giros',
+          kmFin: 142,
+        ),
+      );
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'POST');
+      expect(peticion.path, '/clases');
+      expect(peticion.data, {'reservaCodigo': 'r1', 'asistencia': 'PRESENTE', 'tema': 'Giros', 'kmFin': 142});
+      expect(clase.codigo, 'c1');
+      expect(clase.tema, 'Giros');
+      expect(clase.kmFin, 142);
+    });
+
+    test('claseDictada pide la clase por su código', () async {
+      final adaptador = responder(200, exito(dictadaJson(asistencia: 'AUSENTE')));
+
+      final clase = await servicio.claseDictada('c1');
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'GET');
+      expect(peticion.path, '/clases/c1');
+      expect(clase.asistencia, AsistenciaClase.ausente);
+    });
+
+    test('actualizarClase hace un PATCH solo con lo que cambió', () async {
+      final adaptador = responder(200, exito(dictadaJson(tema: 'Nuevo')));
+
+      final clase = await servicio.actualizarClase('c1', const ActualizarClaseRequest(tema: 'Nuevo'));
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'PATCH');
+      expect(peticion.path, '/clases/c1');
+      expect(peticion.data, {'tema': 'Nuevo'});
+      expect(clase.tema, 'Nuevo');
+    });
+
+    test('cada error de negocio llega como ApiException con su código', () async {
+      for (final (status, codigo) in [(409, 'ERR_ACA_37'), (400, 'ERR_ACA_38'), (404, 'ERR_ACA_35')]) {
+        responder(status, fallo(codigo, 'No se pudo'));
+
+        await expectLater(
+          servicio.cerrarClase(const CerrarClaseRequest(reservaCodigo: 'r1', asistencia: AsistenciaClase.tarde)),
+          throwsA(isA<ApiException>().having((e) => e.code, 'code', codigo)),
+        );
+      }
+      responder(404, fallo('ERR_ACA_35', 'No encontramos esa clase'));
+      await expectLater(
+        servicio.claseDictada('c1'),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_35')),
+      );
+      responder(400, fallo('ERR_ACA_38', 'Datos inválidos'));
+      await expectLater(
+        servicio.actualizarClase('c1', const ActualizarClaseRequest(kmFin: 1)),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_38')),
+      );
+    });
+  });
+
+  group('reprogramar', () {
+    test('manda la franja nueva y entrega la clase ya movida', () async {
+      final adaptador = responder(200, exito({..._reservaJson(), 'cancelacionATiempo': true}));
+
+      final reserva = await servicio.reprogramar('r1', 'f9');
+
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'POST');
+      expect(peticion.path, '/reservas/r1/reprogramar');
+      expect(peticion.data, {'franjaCodigo': 'f9'});
+      expect(reserva.codigo, 'r1');
+      expect(reserva.cancelacionATiempo, isTrue);
+    });
+
+    test('una franja que ya no está libre llega como ApiException con ERR_ACA_18', () async {
+      responder(409, fallo('ERR_ACA_18', 'La franja ya no está disponible'));
+
+      await expectLater(
+        servicio.reprogramar('r1', 'f9'),
+        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'ERR_ACA_18')),
       );
     });
   });

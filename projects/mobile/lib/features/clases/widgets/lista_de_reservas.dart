@@ -6,7 +6,10 @@ import '../../../shared/widgets/estado_vacio.dart';
 import '../models/reserva.dart';
 import '../models/vista_reservas.dart';
 import '../providers/franjas_disponibles_provider.dart';
+import 'acciones_reserva.dart';
+import 'dialogo_cancelar_reserva.dart';
 import 'formato_clases.dart';
+import 'reprogramar_sheet.dart';
 import 'reserva_card.dart';
 
 /// Las clases del estudiante de una vista (CU14): «Mis clases» (agrupadas por día, de la más próxima a la más
@@ -102,6 +105,13 @@ class _ProximasPorDia extends StatelessWidget {
       }
       hijos
         ..add(ReservaCard(key: Key('reserva-${reserva.codigo}'), reserva: reserva))
+        ..add(
+          AccionesReserva(
+            reserva: reserva,
+            alCancelar: () => mostrarDialogoCancelar(context, reserva),
+            alReprogramar: () => mostrarReprogramar(context, reserva),
+          ),
+        )
         ..add(const SizedBox(height: 10));
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: hijos);

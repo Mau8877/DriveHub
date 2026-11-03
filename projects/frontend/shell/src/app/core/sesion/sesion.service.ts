@@ -3,6 +3,7 @@ import { Router } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 
 import { ApiError } from '../api/api.types'
+import { PushWebService } from '../notificaciones/push-web.service'
 import { escucharEvento } from '@drivehub/mf-contract'
 
 import { AuthApiService } from './auth-api.service'
@@ -31,6 +32,7 @@ const CORREO_YA_VERIFICADO = 'ERR_IDE_10'
 export class SesionService {
   private readonly api = inject(AuthApiService)
   private readonly router = inject(Router)
+  private readonly pushWeb = inject(PushWebService)
 
   private readonly accessToken = signal<string | null>(null)
   private readonly _usuario = signal<UsuarioSesion | null>(null)
@@ -129,6 +131,9 @@ export class SesionService {
    * * igual se sale, la sesión renovable vence sola en el servidor.
    */
   async cerrarSesion(): Promise<void> {
+    // * Quita el navegador del push (CU36) antes de olvidar el token: la petición sale ya con él.
+    // * No se espera: el cierre de sesión no depende de esto.
+    void this.pushWeb.desactivar()
     try {
       await firstValueFrom(this.api.cerrar())
     } catch {

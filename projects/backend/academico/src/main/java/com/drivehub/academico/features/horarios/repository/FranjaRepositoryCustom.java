@@ -73,6 +73,13 @@ public interface FranjaRepositoryCustom {
             LocalDate fechaHasta);
 
     /**
+     * Las franjas de esa escuela en esa fecha (CU11), de cualquier estado, cuya hora de inicio está entre
+     * `horaDesde` (inclusive) y `horaHasta` (exclusive), ambas `HH:mm` y opcionales (`null` = sin ese límite).
+     * Sin las borradas.
+     */
+    List<Franja> delDia(UUID escuelaCodigo, LocalDate fecha, String horaDesde, String horaHasta);
+
+    /**
      * Aparta la franja para una reserva (CU14) con un solo `findAndModify` atómico: pasa de `LIBRE` a `RESERVADA`
      * y guarda el `_id` de la reserva, solo si es de esa escuela y todavía no empezó. Devuelve la franja ya
      * actualizada, o vacío si ya no estaba libre (quien llega segundo recibe vacío: dos estudiantes nunca se
@@ -85,4 +92,10 @@ public interface FranjaRepositoryCustom {
      * la reserva de otro). Devuelve si cambió algo.
      */
     boolean liberar(UUID codigoFranja, Long reservaId);
+
+    /**
+     * Deja la franja `BLOQUEADA` y le quita la reserva, solo si sigue `RESERVADA` por esa reserva (CU16: el instructor
+     * canceló la clase porque no puede atender). Nunca toca la franja reservada por otra. Devuelve si cambió algo.
+     */
+    boolean bloquearReservada(UUID codigoFranja, Long reservaId);
 }

@@ -33,6 +33,24 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/autos/screens/autos-gestion').then((m) => m.AutosGestion),
       },
+      // * CU10: dentro del shell es /escuela/asignacion-autos. Una sola ruta: <dh-gestion> maneja por
+      // * dentro el listado, los formularios de asignar y cambiar de instructor, y el historial.
+      {
+        path: 'asignacion-autos',
+        loadComponent: () =>
+          import('./features/asignacion-autos/screens/asignacion-autos-gestion').then(
+            (m) => m.AsignacionAutosGestion
+          ),
+      },
+      // * CU11: dentro del shell es /escuela/disponibilidad. Una sola ruta: <dh-gestion> maneja por dentro el
+      // * listado y los filtros (día, momento del día, disponibilidad y autos).
+      {
+        path: 'disponibilidad',
+        loadComponent: () =>
+          import('./features/disponibilidad/screens/disponibilidad-gestion').then(
+            (m) => m.DisponibilidadGestion
+          ),
+      },
       // * CU09: dentro del shell es /escuela/instructores. Una sola ruta, igual que estudiantes.
       {
         path: 'instructores',

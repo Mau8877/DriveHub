@@ -87,6 +87,19 @@ public class Reserva extends BaseDocument {
     // * marca `marcarParaRevision` del repository. Una reserva vieja sin el campo lee false
     private boolean requiereRevision;
 
+    // * Solo en REPROGRAMACION_PENDIENTE (CU15): _id de la franja a la que se está moviendo la clase. Sin setter: lo
+    // * escriben las operaciones atómicas del repository
+    private Long franjaDestinoId;
+
+    // * Solo en CANCELACION_PENDIENTE (CU15): true si la cancelación es tardía y la hora NO se devuelve. Una reserva
+    // * vieja sin el campo lee false. Sin setter: lo fija `iniciarCancelacion` del repository
+    private boolean sinDevolucion;
+
+    // * Solo en CANCELACION_PENDIENTE y CANCELADA (CU16): true si la canceló el instructor. Le dice al manejador de la
+    // * cancelación que la hora SIEMPRE se devuelve y que la franja se bloquea en vez de liberarse. Una reserva vieja
+    // * sin el campo lee false. Sin setter: lo fija `iniciarCancelacionPorInstructor` del repository
+    private boolean canceladaPorInstructor;
+
     /**
      * Reserva nueva, `PENDIENTE_PAGO` (CU14): la franja ya se apartó pero la hora todavía no se descontó.
      *

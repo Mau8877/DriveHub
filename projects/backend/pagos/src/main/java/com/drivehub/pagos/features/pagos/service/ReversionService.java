@@ -49,6 +49,7 @@ import com.drivehub.pagos.features.pagos.repository.ReversionPagoRepository;
 import com.drivehub.pagos.features.pagos.repository.TransaccionPasarelaRepository;
 import com.drivehub.pagos.features.pagos.service.evento.MotivoCompensacion;
 import com.drivehub.pagos.features.pagos.service.evento.ReembolsoEjecutado;
+import com.drivehub.pagos.features.pagos.service.evento.ReembolsoFallido;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -422,6 +423,7 @@ public class ReversionService {
         cerrarTransaccion(reversion, "FALLIDA");
         if (reversion.getOrigen() == OrigenReversion.ESTUDIANTE) {
             billeteraService.restituirApartadas(pago, pago.getHoras(), reversion.getCodigo());
+            eventos.publishEvent(new ReembolsoFallido(pago.getCodigo(), reversion.getCodigo()));
             LOG.warn("La devolución de un reembolso falló: las horas volvieron al estudiante", kv("module", MODULO),
                 kv("reversionCodigo", reversion.getCodigo()), kv("tipoAviso", aviso.tipo()));
         } else {
