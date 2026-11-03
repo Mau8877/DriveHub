@@ -44,6 +44,8 @@ class CompensadorDeReservaTest {
     private FranjaRepository franjaRepository;
     @Mock
     private ClienteDePagos cliente;
+    @Mock
+    private AvisosReserva avisos;
 
     private final UUID escuela = UUID.randomUUID();
     private final UUID estudiante = UUID.randomUUID();
@@ -56,7 +58,7 @@ class CompensadorDeReservaTest {
 
     @BeforeEach
     void preparar() {
-        compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
+        compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj, avisos);
         franja = new Franja(escuela, 1L, instructor, LocalDate.of(2026, 10, 27), "08:00", "09:00");
         franja.inicializarCodigo();
         ReflectionTestUtils.setField(franja, "id", 7L);
@@ -237,5 +239,46 @@ class CompensadorDeReservaTest {
         verify(cliente).devolver(escuela, estudiante, reserva.getCodigoReserva(), claveDeDevolucion());
         verify(reservaRepository).cambiarEstado(reserva.getCodigoReserva(), estudiante, EstadoReserva.PENDIENTE_PAGO,
             EstadoReserva.CANCELADA, "Sin horas suficientes", AHORA);
+    }
+
+    @Test
+    void cancelarUnaClaseConfirmada_avisaAlEstudianteYAlInstructor() {
+        conLaFranja();
+        when(reservaRepository.cambiarEstado(any(), any(), any(), eq(EstadoReserva.CANCELADA), anyString(), any()))
+            .thenReturn(Optional.of(reserva));
+
+        compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true, "Cancelada", cliente);
+
+        verify(avisos).claseCancelada(reserva, true);
+    }
+
+    @Test
+    void deshacerUnaReservaQueNuncaSeConfirmo_avisaSoloAlEstudiante() {
+        conLaFranja();
+        when(reservaRepository.cambiarEstado(any(), any(), any(), eq(EstadoReserva.CANCELADA), anyString(), any()))
+            .thenReturn(Optional.of(reserva));
+
+        compensador.deshacer(reserva, "Reserva a medias vencida", cliente);
+
+        verify(avisos).claseCancelada(reserva, false);
+    }
+
+    @Test
+    void deshacerApartada_enVivo_noAvisa() {
+        when(reservaRepository.cambiarEstado(any(), any(), any(), eq(EstadoReserva.CANCELADA), anyString(), any()))
+            .thenReturn(Optional.of(reserva));
+
+        compensador.deshacerApartada(reserva, franja, "Sin horas suficientes", cliente);
+
+        verifyNoInteractions(avisos);
+    }
+
+    @Test
+    void siLaReservaYaNoEstabaEnEseEstado_noAvisa() {
+        conLaFranja();
+
+        compensador.deshacer(reserva, EstadoReserva.CANCELACION_PENDIENTE, true, "Cancelada", cliente);
+
+        verifyNoInteractions(avisos);
     }
 }

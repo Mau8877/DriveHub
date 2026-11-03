@@ -57,10 +57,11 @@ public class OrquestadorClases {
     private final ClienteDePagos clienteDeServicio;
     private final OrquestadorProperties propiedades;
     private final Clock clock;
+    private final AvisosReserva avisos;
 
     public OrquestadorClases(List<ManejadorDeOperacion> manejadores, CompensadorDeReserva compensador,
             ReservaRepository reservaRepository, @Qualifier("clienteDeServicio") ClienteDePagos clienteDeServicio,
-            OrquestadorProperties propiedades, Clock clock) {
+            OrquestadorProperties propiedades, Clock clock, AvisosReserva avisos) {
         for (ManejadorDeOperacion manejador : manejadores) {
             for (EstadoReserva estado : manejador.estados()) {
                 ManejadorDeOperacion anterior = manejadorPorEstado.put(estado, manejador);
@@ -77,6 +78,7 @@ public class OrquestadorClases {
         this.clienteDeServicio = clienteDeServicio;
         this.propiedades = propiedades;
         this.clock = clock;
+        this.avisos = avisos;
     }
 
     /** Los estados que algún manejador atiende: lo que el repositorio y el proceso programado tienen que buscar. */
@@ -147,9 +149,10 @@ public class OrquestadorClases {
             compensador.deshacerApartada(reserva, franja, "No se pudo descontar la hora", cliente);
             throw e;
         }
-        Reserva confirmada = reservaRepository.cambiarEstado(reserva.getCodigoReserva(), reserva.getEstudianteCodigo(),
-            EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CONFIRMADA, "Hora descontada", clock.instant())
-            .orElse(reserva);
+        var cambiada = reservaRepository.cambiarEstado(reserva.getCodigoReserva(), reserva.getEstudianteCodigo(),
+            EstadoReserva.PENDIENTE_PAGO, EstadoReserva.CONFIRMADA, "Hora descontada", clock.instant());
+        cambiada.ifPresent(avisos::claseConfirmada);
+        Reserva confirmada = cambiada.orElse(reserva);
         LOG.info("Reserva confirmada", kv("module", MODULO), kv("estudianteCodigo", reserva.getEstudianteCodigo()),
             kv("reservaCodigo", reserva.getCodigoReserva()), kv("franjaCodigo", franja.getCodigoFranja()));
         return new ReservaCompletada(ResultadoReserva.CONFIRMADA, confirmada);

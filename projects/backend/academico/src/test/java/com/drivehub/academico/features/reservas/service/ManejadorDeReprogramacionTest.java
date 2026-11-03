@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -58,7 +59,7 @@ class ManejadorDeReprogramacionTest {
 
     @BeforeEach
     void preparar() {
-        manejador = new ManejadorDeReprogramacion(reservaRepository, franjaRepository, reloj);
+        manejador = new ManejadorDeReprogramacion(reservaRepository, franjaRepository, reloj, mock(AvisosReserva.class));
         anterior = franja(7L, instructor, "08:00", "09:00", EstadoFranja.RESERVADA, 100L);
         destino = franja(8L, otroInstructor, "15:00", "16:00", EstadoFranja.LIBRE, null);
         reserva = new Reserva(estudiante, instructor, 7L, DIA, "08:00", "09:00", 1, AHORA);

@@ -81,11 +81,11 @@ class OrquestadorClasesTest {
 
     private OrquestadorClases orquestadorCon(int maximoIntentos) {
         OrquestadorProperties propiedades = new OrquestadorProperties(60, maximoIntentos, true, "0 * * * * *", 50);
-        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
+        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj, mock(AvisosReserva.class));
         ManejadorDeReserva manejador = new ManejadorDeReserva(reservaRepository, franjaRepository, compensador,
-            propiedades, reloj);
+            propiedades, reloj, mock(AvisosReserva.class));
         return new OrquestadorClases(List.of(manejador), compensador, reservaRepository, servicio, propiedades,
-            reloj);
+            reloj, mock(AvisosReserva.class));
     }
 
     /** Una reserva a medias de {@code minutos} de antigüedad cuya franja es la de este test. */
@@ -267,7 +267,7 @@ class OrquestadorClasesTest {
         when(primero.estados()).thenReturn(PENDIENTES);
 
         OrquestadorClases con = new OrquestadorClases(List.of(primero, otro), null, reservaRepository, servicio,
-            new OrquestadorProperties(60, 5, true, "0 * * * * *", 50), reloj);
+            new OrquestadorProperties(60, 5, true, "0 * * * * *", 50), reloj, mock(AvisosReserva.class));
 
         assertThat(con.estadosTransitorios()).containsExactlyInAnyOrder(EstadoReserva.PENDIENTE_PAGO,
             EstadoReserva.NO_ASISTIO);
@@ -278,7 +278,7 @@ class OrquestadorClasesTest {
         ManejadorDeOperacion nuevo = mock(ManejadorDeOperacion.class);
         when(nuevo.estados()).thenReturn(Set.of(EstadoReserva.NO_ASISTIO));
         OrquestadorClases con = new OrquestadorClases(List.of(nuevo), null, reservaRepository, servicio,
-            new OrquestadorProperties(60, 5, true, "0 * * * * *", 50), reloj);
+            new OrquestadorProperties(60, 5, true, "0 * * * * *", 50), reloj, mock(AvisosReserva.class));
         Reserva reserva = reserva(10, EstadoReserva.NO_ASISTIO);
         when(nuevo.resolver(reserva, delEstudiante)).thenReturn(ResultadoOrquestacion.CANCELADA);
 
@@ -288,15 +288,15 @@ class OrquestadorClasesTest {
     @Test
     void losManejadoresDeCU15ConviveConElDeReservas_sinConflictoDeEstados() {
         OrquestadorProperties propiedades = new OrquestadorProperties(60, 5, true, "0 * * * * *", 50);
-        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
+        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj, mock(AvisosReserva.class));
         ManejadorDeReserva deReservas = new ManejadorDeReserva(reservaRepository, franjaRepository, compensador,
-            propiedades, reloj);
+            propiedades, reloj, mock(AvisosReserva.class));
         ManejadorDeCancelacion deCancelacion = new ManejadorDeCancelacion(compensador);
         ManejadorDeReprogramacion deReprogramacion = new ManejadorDeReprogramacion(reservaRepository,
-            franjaRepository, reloj);
+            franjaRepository, reloj, mock(AvisosReserva.class));
 
         OrquestadorClases con = new OrquestadorClases(List.of(deReservas, deCancelacion, deReprogramacion),
-            compensador, reservaRepository, servicio, propiedades, reloj);
+            compensador, reservaRepository, servicio, propiedades, reloj, mock(AvisosReserva.class));
 
         assertThat(con.estadosTransitorios()).containsExactlyInAnyOrder(EstadoReserva.PENDIENTE_PAGO,
             EstadoReserva.CANCELACION_PENDIENTE, EstadoReserva.REPROGRAMACION_PENDIENTE);
@@ -305,9 +305,9 @@ class OrquestadorClasesTest {
     @Test
     void unaReservaEnCancelacionPendiente_llegaAlManejadorDeCancelacionConElClienteQueSePasa() {
         OrquestadorProperties propiedades = new OrquestadorProperties(60, 5, true, "0 * * * * *", 50);
-        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
+        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj, mock(AvisosReserva.class));
         OrquestadorClases con = new OrquestadorClases(List.of(new ManejadorDeCancelacion(compensador)), compensador,
-            reservaRepository, servicio, propiedades, reloj);
+            reservaRepository, servicio, propiedades, reloj, mock(AvisosReserva.class));
         Reserva reserva = reserva(10, EstadoReserva.CANCELACION_PENDIENTE);
         conLaFranja();
 
@@ -326,7 +326,7 @@ class OrquestadorClasesTest {
         when(b.estados()).thenReturn(PENDIENTES);
 
         assertThatThrownBy(() -> new OrquestadorClases(List.of(a, b), null, reservaRepository, servicio,
-            new OrquestadorProperties(60, 5, true, "0 * * * * *", 50), reloj))
+            new OrquestadorProperties(60, 5, true, "0 * * * * *", 50), reloj, mock(AvisosReserva.class)))
             .isInstanceOf(IllegalStateException.class).hasMessageContaining("PENDIENTE_PAGO");
     }
 

@@ -63,6 +63,7 @@ public class ExamenConduccionService {
     private final ResultadoRepository resultadoRepository;
     private final IdentidadClient identidadClient;
     private final Clock clock;
+    private final AvisosExamen avisos;
 
     @PreAuthorize("hasRole('ADMIN_ESCUELA')")
     public ExamenResponse programar(UUID escuelaCodigo, UUID autorCodigo, String bearer, ProgramarExamenRequest request) {
@@ -99,6 +100,7 @@ public class ExamenConduccionService {
         ExamenConduccion guardado = examenRepository.save(examen);
         LOG.info("Examen de conducción programado", kv("module", MODULO),
             kv("examenCodigo", guardado.getCodigoExamenConduccion()), kv("escuelaCodigo", escuelaCodigo));
+        avisos.programado(guardado);
         return aRespuesta(guardado, nombre);
     }
 
@@ -148,6 +150,7 @@ public class ExamenConduccionService {
 
         ExamenConduccion guardado = examenRepository.save(examen);
         LOG.info("Examen de conducción reprogramado", kv("module", MODULO), kv("examenCodigo", codigo));
+        avisos.reprogramado(guardado);
         return aRespuesta(guardado, null);
     }
 
@@ -157,6 +160,7 @@ public class ExamenConduccionService {
         examen.setEstado(EstadoExamen.CANCELADO);
         ExamenConduccion guardado = examenRepository.save(examen);
         LOG.info("Examen de conducción cancelado", kv("module", MODULO), kv("examenCodigo", codigo));
+        avisos.cancelado(guardado);
         return aRespuesta(guardado, null);
     }
 
@@ -166,6 +170,7 @@ public class ExamenConduccionService {
         examen.setEstado(EstadoExamen.NO_ASISTIO);
         ExamenConduccion guardado = examenRepository.save(examen);
         LOG.info("Examen de conducción sin asistencia", kv("module", MODULO), kv("examenCodigo", codigo));
+        avisos.sinAsistencia(guardado);
         return aRespuesta(guardado, null);
     }
 
@@ -200,6 +205,7 @@ public class ExamenConduccionService {
 
         LOG.info("Resultado del examen de conducción registrado", kv("module", MODULO), kv("examenCodigo", codigo),
             kv("aprobado", aprobado));
+        avisos.conResultado(guardado);
         return aRespuesta(guardado, null);
     }
 

@@ -14,6 +14,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -99,12 +100,12 @@ class ReservaServiceTest {
         Clock reloj = Clock.fixed(AHORA.atZone(ZONA).toInstant(), ZONA);
         // * La saga real (CU44) sobre repositorios y Pagos simulados: reservar y retomar usan el mismo código que el job
         OrquestadorProperties orquestadorProps = new OrquestadorProperties(60, 5, true, "0 * * * * *", 50);
-        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
+        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj, mock(AvisosReserva.class));
         ManejadorDeReserva manejador = new ManejadorDeReserva(reservaRepository, franjaRepository, compensador,
-            orquestadorProps, reloj);
-        reprogramaciones = new ManejadorDeReprogramacion(reservaRepository, franjaRepository, reloj);
+            orquestadorProps, reloj, mock(AvisosReserva.class));
+        reprogramaciones = new ManejadorDeReprogramacion(reservaRepository, franjaRepository, reloj, mock(AvisosReserva.class));
         orquestador = new OrquestadorClases(List.of(manejador, new ManejadorDeCancelacion(compensador),
-            reprogramaciones), compensador, reservaRepository, clienteDeServicio, orquestadorProps, reloj);
+            reprogramaciones), compensador, reservaRepository, clienteDeServicio, orquestadorProps, reloj, mock(AvisosReserva.class));
         ReservasProperties propiedades = new ReservasProperties(1, 10, 2, 12);
         plazo = new PlazoDeClase(propiedades, reloj);
         service = new ReservaService(reservaRepository, franjaRepository, pagosClient,

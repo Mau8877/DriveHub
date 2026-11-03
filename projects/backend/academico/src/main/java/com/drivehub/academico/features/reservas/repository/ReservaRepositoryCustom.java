@@ -65,6 +65,12 @@ public interface ReservaRepositoryCustom {
     Page<Reserva> proximas(UUID estudianteCodigo, LocalDate hoy, String ahora, Pageable pageable);
 
     /**
+     * Las reservas `CONFIRMADA` de TODOS los estudiantes con fecha entre `desde` y `hasta` (ambas incluidas), de la
+     * más próxima a la más lejana, hasta `limite` (CU36: el recordatorio de clase). Quien llama afina por hora.
+     */
+    List<Reserva> confirmadasEnFechas(LocalDate desde, LocalDate hasta, int limite);
+
+    /**
      * El historial: reservas `COMPLETADA` o `NO_ASISTIO`, las `CANCELADA` que alguna vez estuvieron confirmadas
      * (una que nunca logró confirmarse no fue una clase del estudiante), y las `CONFIRMADA` que ya terminaron (lo
      * contrario exacto de {@link #proximas}), de la más reciente a la más antigua. Las `PENDIENTE_PAGO` no

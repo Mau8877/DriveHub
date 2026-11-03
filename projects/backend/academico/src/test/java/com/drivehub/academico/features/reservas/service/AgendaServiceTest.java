@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -90,9 +91,9 @@ class AgendaServiceTest {
     void setUp() {
         Clock reloj = Clock.fixed(AHORA.atZone(ZONA).toInstant(), ZONA);
         OrquestadorProperties orquestadorProps = new OrquestadorProperties(60, 5, true, "0 * * * * *", 50);
-        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj);
+        CompensadorDeReserva compensador = new CompensadorDeReserva(reservaRepository, franjaRepository, reloj, mock(AvisosReserva.class));
         OrquestadorClases orquestador = new OrquestadorClases(List.of(new ManejadorDeCancelacion(compensador)),
-            compensador, reservaRepository, clienteDeServicio, orquestadorProps, reloj);
+            compensador, reservaRepository, clienteDeServicio, orquestadorProps, reloj, mock(AvisosReserva.class));
         PlazoDeClase plazo = new PlazoDeClase(new ReservasProperties(1, 10, 2, 12), reloj);
         service = new AgendaService(reservaRepository, identidadClient, plazo, orquestador, clienteDeServicio,
             claseService, pruebaClaseService, reloj);

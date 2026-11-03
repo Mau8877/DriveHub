@@ -47,6 +47,7 @@ public class ManejadorDeReprogramacion implements ManejadorDeOperacion {
     private final ReservaRepository reservaRepository;
     private final FranjaRepository franjaRepository;
     private final Clock clock;
+    private final AvisosReserva avisos;
 
     @Override
     public Set<EstadoReserva> estados() {
@@ -85,7 +86,7 @@ public class ManejadorDeReprogramacion implements ManejadorDeOperacion {
         }
         reservaRepository.completarReprogramacion(reserva.getCodigoReserva(), reserva.getEstudianteCodigo(),
             destino.getId(), destino.getFecha(), destino.getHoraInicio(), destino.getHoraFin(),
-            destino.getInstructorCodigo(), clock.instant());
+            destino.getInstructorCodigo(), clock.instant()).ifPresent(avisos::claseReprogramada);
         LOG.info("Reprogramación terminada", kv("module", MODULO), kv("reservaCodigo", reserva.getCodigoReserva()),
             kv("franjaDestinoCodigo", destino.getCodigoFranja()));
         return ResultadoOrquestacion.CONFIRMADA;

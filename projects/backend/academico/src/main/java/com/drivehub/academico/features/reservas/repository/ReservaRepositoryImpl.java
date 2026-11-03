@@ -57,6 +57,14 @@ public class ReservaRepositoryImpl implements ReservaRepositoryCustom {
     }
 
     @Override
+    public List<Reserva> confirmadasEnFechas(LocalDate desde, LocalDate hasta, int limite) {
+        Query consulta = Query.query(Criteria.where("estado").is(EstadoReserva.CONFIRMADA)
+            .and("fecha").gte(desde).lte(hasta).and("deletedAt").is(null))
+            .with(Sort.by(Sort.Direction.ASC, "fecha", "horaInicio")).limit(limite);
+        return mongoTemplate.find(consulta, Reserva.class);
+    }
+
+    @Override
     public Page<Reserva> historial(UUID estudianteCodigo, LocalDate hoy, String ahora, Pageable pageable) {
         // * Una CANCELADA solo es del historial si alguna vez estuvo confirmada: la que no logró confirmarse (sin
         // * horas, Pagos caído) nunca fue una clase del estudiante, solo queda como registro del intento
