@@ -183,8 +183,8 @@ class AsignacionVehiculoRepositoryImplTest extends PostgresIntegrationTestBase {
         UUID ana = instructor(escuela, usuarioAna);
         UUID luis = instructor(escuela, usuarioLuis);
         UUID otro = instructor(escuela, usuarioOtro);
-        UUID autoDeAna = vehiculo(escuela, "B-" + placa());
-        UUID segundoDeAna = vehiculo(escuela, "A-" + placa());
+        UUID autoDeAna = vehiculo(escuela, "B" + placa());
+        UUID segundoDeAna = vehiculo(escuela, "A" + placa());
         UUID autoDeLuis = vehiculo(escuela, placa());
         UUID autoDeOtro = vehiculo(escuela, placa());
         UUID autoCerrado = vehiculo(escuela, placa());
