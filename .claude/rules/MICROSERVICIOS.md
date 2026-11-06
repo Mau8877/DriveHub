@@ -36,13 +36,13 @@ el espejo de las rutas de
 
 | Servicio | Recursos (`/api/v1/...`) |
 | --- | --- |
-| `identidad` | `auth`, `usuarios`, `estudiantes`, `roles`, `permisos` |
+| `identidad` | `auth`, `usuarios`, `estudiantes`, `roles`, `permisos`, `registros-whatsapp` |
 | `escuela` | `escuelas`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno`, `disponibilidad-instructores` |
 | `pagos` | `planes-pago`, `pagos`, `comprobantes`, `billeteras-horas`, `horas-alumnos`, `webhooks-stripe` |
 | `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
 | `contenido` | `manuales`, `tutoriales` |
 | `notificaciones` | `notificaciones`, `preferencias-notificacion`, `dispositivos-push` |
-| `asistente-ia` | `sesiones-ia`, `ayudas-tablero`, `agentes-ia` |
+| `asistente-ia` | `sesiones-ia`, `ayudas-tablero`, `agentes-ia` (y el servidor MCP en `/mcp/`, fuera de `/api/v1`) |
 
 **Un recurso nuevo se agrega en el mismo cambio a las dos partes**: al
 predicado `Path=` de su servicio en el gateway, y a esta tabla. Un recurso
@@ -113,6 +113,13 @@ que ya existen son:
 | Académico → Notificaciones | Avisar a estudiante e instructor: clase reservada, cancelada o reprogramada y recordatorio 24 h antes; al estudiante: examen de conducción programado, reprogramado, cancelado, sin asistencia y resultado. De mejor esfuerzo | CU36 |
 | Asistente IA → Contenido | Servidor MCP (`/mcp/`): consultar manuales y tutoriales publicados en nombre de la persona conectada, solo lectura (reenvía su Bearer) | CU46 |
 | Asistente IA → Académico | Servidor MCP: consultar las notas de la persona o las de los alumnos del instructor, solo lectura (reenvía su Bearer) | CU46 |
+| Asistente IA → Pagos y Académico | Chat de WhatsApp: consultar horas, planes, franjas y clases; **escribir** solo al confirmar: reservar clases (`POST /api/v1/reservas`) y crear el pago de una compra (`POST /api/v1/pagos`), con el Bearer de la persona. La escritura exige el código de una confirmación de dos pasos (tabla `ConfirmacionesIA`) | CU49 |
+| n8n → Identidad | Chat de WhatsApp: pedir el código al correo, vincular el número y pedir la sesión corta (5 min) del estudiante, por las rutas internas `/internal/v1/whatsapp/*` con la credencial de servicio (header `X-Service-Key`, variable `IDENTIDAD_CREDENCIAL_N8N`); esas rutas no pasan por el gateway | CU47 |
+
+**n8n** (`infrastructure/n8n/`, puerto 5678, perfil `whatsapp` de Docker Compose) no es un servicio de negocio: es el
+motor de flujos que recibe los mensajes de WhatsApp (Meta Cloud API) y orquesta el chat (CU47 a CU49). No tiene base
+de datos de negocio ni lógica de dominio: habla con Identidad por las rutas internas de arriba y con `asistente-ia`
+por MCP, siempre con el token de la persona.
 
 Las demás se agregan con el primer caso de uso que las necesite, siguiendo esta tabla.
 Esas dos se llaman entre sí: es una dependencia circular aceptada a propósito, porque
