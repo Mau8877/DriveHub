@@ -27,3 +27,17 @@ Las constantes viven en `app/common/error_codes.py`.
 - **Significado:** La ayuda del tablero pedida no existe para quien la pide (CU42). Una ayuda de otra persona o un
   código que no existe se responde igual, para no revelar qué ayudas existen.
 - **Dónde se lanza:** `AyudaTableroService._buscar()`, y a través de él `obtener()` y `marcar_util()`
+
+## `ERR_IA_04`
+
+- **HTTP:** 400 (no llega por HTTP: lo ve el modelo como el mensaje de una herramienta MCP)
+- **Excepción:** `ValidationException`
+- **Significado:** El código de confirmación de `confirmar_reserva` o `confirmar_compra` (CU49) no sirve: no existe, es de otra persona, es de la otra acción, venció (10 minutos) o ya se está procesando. Responde igual en todos los casos para no revelar confirmaciones ajenas. No se ejecuta nada.
+- **Dónde se lanza:** `ConfirmacionesService.ejecutar()`
+
+## `ERR_IA_05`
+
+- **HTTP:** 409 (no llega por HTTP: lo ve el modelo como el mensaje de una herramienta MCP)
+- **Excepción:** `ConflictException`
+- **Significado:** La persona ya ejecutó el máximo de acciones de escritura por chat de ese día (`TOPE_ESCRITURAS_DIARIAS`, 10 por defecto). Limita el daño de un número o un modelo que se equivoque; puede seguir haciéndolo desde la app.
+- **Dónde se lanza:** `ConfirmacionesService.ejecutar()`

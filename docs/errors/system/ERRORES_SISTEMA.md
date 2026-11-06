@@ -37,7 +37,10 @@ gateway), no ligados a ningún servicio de negocio puntual (ver
   [SEGURIDAD_AUTH_BACKEND.md](../../../.claude/rules/backend/SEGURIDAD_AUTH_BACKEND.md#rate-limit)).
 - **Significado:** Se superó el límite de requests por IP configurado en
   `app.ratelimit.capacity` / `app.ratelimit.refill-per-minute`.
-- **Dónde se lanza:** `gateway` — `RateLimitFilter.writeTooManyRequests()`
+- **Dónde se lanza:** `gateway` — `RateLimitFilter.writeTooManyRequests()`.
+  También `identidad`, con `LimiteExcedidoException`, en las rutas internas del chat de WhatsApp
+  (`SolicitarCodigoWhatsappService.solicitar()`, CU47): no pasan por el gateway, así que Identidad limita por su
+  cuenta los pedidos de código (5 por hora por número y por correo).
 
 ## `ERR_SYS_03`
 

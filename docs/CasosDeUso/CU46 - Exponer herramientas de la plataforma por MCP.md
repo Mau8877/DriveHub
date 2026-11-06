@@ -73,7 +73,7 @@ Cada herramienta devuelve como máximo 20 resultados, los más recientes primero
 
 ## Fuera de alcance
 
-- **Herramientas que escriban** (reservar una clase, comprar horas, publicar contenido).
+- **Herramientas que escriban** (reservar una clase, comprar horas, publicar contenido). Reservar y comprar las agrega [CU49](CU49%20-%20Conversar%20por%20WhatsApp.md); lo demás sigue fuera.
 - **Más herramientas de lectura** (clases, pagos, historial del tablero): se suman con su caso de uso.
 - **Autenticación OAuth del propio protocolo MCP:** se usa el access token que ya emite Identidad.
 - **Enrutar `/mcp/` por el gateway** y limitar su uso por persona.

@@ -27,7 +27,7 @@ prefijo del código dice qué servicio lo produjo:
 | `ACA` | Académico | [`academico/`](academico/ERRORES_ACADEMICO.md) |
 | `CON` | Contenido | [`contenido/`](contenido/ERRORES_CONTENIDO.md) |
 | `NOT` | Notificaciones | [`notificaciones/`](notificaciones/ERRORES_NOTIFICACIONES.md) |
-| `IA` | Asistente IA | `asistente-ia/` (sin errores todavía) |
+| `IA` | Asistente IA | [`asistente-ia/`](asistente-ia/ERRORES_ASISTENTE_IA.md) |
 
 ## Índice de errores
 
@@ -67,6 +67,10 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IDE_22`](identidad/ERRORES_IDENTIDAD.md#err_ide_22) — El instructor no existe en la escuela (404)
 - [`ERR_IDE_23`](identidad/ERRORES_IDENTIDAD.md#err_ide_23) — La cuenta del instructor ya se usó y no se revierte (409)
 - [`ERR_IDE_24`](identidad/ERRORES_IDENTIDAD.md#err_ide_24) — Escuela no responde: no se pudo confirmar la escuela o la categoría (503)
+- [`ERR_IDE_25`](identidad/ERRORES_IDENTIDAD.md#err_ide_25) — El código del correo para vincular el WhatsApp no es válido o venció (400)
+- [`ERR_IDE_26`](identidad/ERRORES_IDENTIDAD.md#err_ide_26) — El número de WhatsApp no está vinculado a ninguna cuenta (404)
+- [`ERR_IDE_27`](identidad/ERRORES_IDENTIDAD.md#err_ide_27) — La cuenta vinculada ya no puede usar el chat de WhatsApp (403)
+- [`ERR_IDE_28`](identidad/ERRORES_IDENTIDAD.md#err_ide_28) — El enlace para fijar la contraseña de un registro por WhatsApp no es válido o venció (400)
 
 ### Escuela (`ESC`)
 
@@ -179,6 +183,8 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IA_01`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_01) — La miniatura de la ayuda del tablero no es válida (400)
 - [`ERR_IA_02`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_02) — No se pudo guardar la miniatura: el almacén de archivos no responde (503)
 - [`ERR_IA_03`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_03) — La ayuda del tablero no existe para quien la pide (404)
+- [`ERR_IA_04`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_04) — El código de confirmación de reservar o comprar por chat no sirve (400)
+- [`ERR_IA_05`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_05) — Se superó el tope diario de acciones de escritura por chat (409)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su
