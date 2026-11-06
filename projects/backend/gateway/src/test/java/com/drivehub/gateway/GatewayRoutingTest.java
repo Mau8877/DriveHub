@@ -212,6 +212,33 @@ class GatewayRoutingTest {
         assertThat(RECIBIDAS.values()).allSatisfy(rutas -> assertThat(rutas).noneMatch(r -> r.contains("internal")));
     }
 
+    // * CU48: fijar la contraseña de un registro por WhatsApp es público (no hay sesión todavía) y lo atiende Identidad;
+    // * el resto del recurso sigue exigiendo sesión.
+    @Test
+    void completarRegistroPorWhatsapp_esPublicoYLlegaAIdentidad() throws Exception {
+        HttpResponse<String> sinSesion = post("/api/v1/registros-whatsapp/completar", null);
+        HttpResponse<String> otraRuta = post("/api/v1/registros-whatsapp/otra", null);
+
+        assertThat(sinSesion.statusCode()).isEqualTo(200);
+        assertThat(sinSesion.body()).isEqualTo("identidad:/api/v1/registros-whatsapp/completar");
+        assertThat(otraRuta.statusCode()).isEqualTo(401);
+    }
+
+    // * CU47: las rutas internas del chat de WhatsApp (códigos, vínculos, sesiones, registros) NUNCA se enrutan
+    @Test
+    void rutasInternasDeWhatsapp_noSeReenvianANingunServicio() throws Exception {
+        RECIBIDAS.values().forEach(java.util.List::clear);
+
+        HttpResponse<String> sesiones = postConCredencial("/internal/v1/whatsapp/sesiones");
+        HttpResponse<String> registros = postConCredencial("/internal/v1/whatsapp/registros");
+        HttpResponse<String> conSesion = post("/internal/v1/whatsapp/codigos", TokensDePrueba.valido());
+
+        assertThat(sesiones.statusCode()).isIn(401, 404);
+        assertThat(registros.statusCode()).isIn(401, 404);
+        assertThat(conSesion.statusCode()).isEqualTo(404);
+        assertThat(RECIBIDAS.values()).allSatisfy(rutas -> assertThat(rutas).noneMatch(r -> r.contains("internal")));
+    }
+
     @Test
     void preflightDesdeElShell_loRespondeElGatewayConCabecerasCors() throws Exception {
         HttpRequest preflight = HttpRequest.newBuilder(URI.create("http://localhost:" + puerto + "/api/v1/usuarios"))
