@@ -46,13 +46,18 @@ public class JwtEmisorAdapter implements EmisorTokenAccesoPort {
 
     @Override
     public String emitir(Usuario usuario, Instant emitidoEn) {
+        return emitir(usuario, emitidoEn, accessTtl);
+    }
+
+    @Override
+    public String emitir(Usuario usuario, Instant emitidoEn, Duration vigencia) {
         List<String> roles = usuario.getRoles().stream().map(Rol::getNombre).sorted().toList();
         JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
             .issuer(EMISOR)
             .subject(usuario.getCodigo().toString())
             .claim("roles", roles)
             .issueTime(Date.from(emitidoEn))
-            .expirationTime(Date.from(emitidoEn.plus(accessTtl)))
+            .expirationTime(Date.from(emitidoEn.plus(vigencia)))
             .jwtID(UUID.randomUUID().toString());
         if (usuario.getEscuelaCodigo() != null) {
             claims.claim("escuela", usuario.getEscuelaCodigo().toString());

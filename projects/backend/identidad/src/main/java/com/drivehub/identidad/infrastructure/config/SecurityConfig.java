@@ -1,11 +1,13 @@
 package com.drivehub.identidad.infrastructure.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -25,7 +27,8 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+            @Value("${app.internal.credencial-n8n:}") String credencialN8n) throws Exception {
         RestAuthenticationHandlers manejadores = new RestAuthenticationHandlers();
         http
             .csrf(csrf -> csrf.disable())
@@ -45,6 +48,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/cambiar-correo/confirmar").permitAll()
                 // * Recuperar la contraseña (CU04): se usa sin sesión
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/recuperar", "/api/v1/auth/restablecer").permitAll()
+                // * Fijar la contraseña de un registro por WhatsApp (CU48): el enlace de un solo uso autoriza
+                .requestMatchers(HttpMethod.POST, "/api/v1/registros-whatsapp/completar").permitAll()
+                // * Las rutas internas (CU47): no llevan JWT, las autentica la credencial de servicio de su filtro
+                .requestMatchers("/internal/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth
@@ -55,7 +62,9 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(manejadores)
                 .accessDeniedHandler(manejadores)
-            );
+            )
+            // * Se construye acá y NO es un `@Component`: así corre una sola vez en la cadena de seguridad
+            .addFilterBefore(new CredencialServicioFilter(credencialN8n), BearerTokenAuthenticationFilter.class);
 
         return http.build();
     }

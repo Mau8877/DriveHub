@@ -18,4 +18,7 @@ public interface EnviadorCorreoPort {
 
     /** Aviso informativo al correo ANTERIOR de que el correo de la cuenta cambió; sin enlaces (CU06). */
     void enviarAvisoCambioCorreo(String correoAnterior, String nombres, String correoNuevo);
+
+    /** Correo con el código de 6 dígitos para vincular un número de WhatsApp a la cuenta (CU47). */
+    void enviarCodigoWhatsapp(String destinatario, String nombres, String codigo, int minutosDeVigencia);
 }

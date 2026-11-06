@@ -81,6 +81,19 @@ public class SmtpCorreoAdapter implements EnviadorCorreoPort {
         enviar(correoAnterior, "El correo de tu cuenta de DriveHub cambió", texto, html);
     }
 
+    @Override
+    public void enviarCodigoWhatsapp(String destinatario, String nombres, String codigo, int minutosDeVigencia) {
+        String texto = "Hola " + nombres + ",\n\n"
+            + "Tu código para vincular tu WhatsApp con DriveHub es: " + codigo + "\n\n"
+            + "Escríbelo en el chat. Sirve una sola vez y vence en " + minutosDeVigencia + " minutos.\n\n"
+            + "Si no lo pediste, puedes ignorar este mensaje.\n";
+        String html = PlantillaCorreo.armar("Tu código de WhatsApp", nombres,
+            List.of("Tu código para vincular tu WhatsApp con DriveHub es " + codigo + ".",
+                "Escríbelo en el chat. Sirve una sola vez y vence en " + minutosDeVigencia + " minutos."),
+            null, null, "Si no lo pediste, puedes ignorar este mensaje.");
+        enviar(destinatario, "Tu código de DriveHub para WhatsApp", texto, html);
+    }
+
     private void enviar(String destinatario, String asunto, String texto, String html) {
         try {
             MimeMessage mensaje = sender.createMimeMessage();
