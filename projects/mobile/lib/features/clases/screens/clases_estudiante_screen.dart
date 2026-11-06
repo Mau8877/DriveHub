@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/widgets/estado_vacio.dart';
+import '../../asistente/widgets/boton_microfono.dart';
+import '../../asistente/widgets/panel_asistente.dart';
 import '../../pagos/providers/saldo_horas_provider.dart';
 import '../models/vista_reservas.dart';
 import '../providers/clases_pestana_provider.dart';
@@ -42,7 +44,14 @@ class ClasesEstudianteScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         children: [
-          const HorasDisponiblesBanner(),
+          // * El micrófono del asistente de voz (CU50) va al lado de las horas
+          const Row(
+            children: [
+              Expanded(child: HorasDisponiblesBanner()),
+              SizedBox(width: 12),
+              BotonMicrofono(),
+            ],
+          ),
           const SizedBox(height: 16),
           SegmentedButton<PestanaClases>(
             key: const Key('pestanasClases'),
@@ -83,6 +92,7 @@ class ClasesEstudianteScreen extends ConsumerWidget {
     // * La barra «Confirmar» queda fija abajo, fuera de la lista que se desliza
     return Column(
       children: [
+        const PanelAsistente(),
         Expanded(child: lista),
         if (pestana == PestanaClases.reservar) const BarraConfirmarReserva(),
       ],

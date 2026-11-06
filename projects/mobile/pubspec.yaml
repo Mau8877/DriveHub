@@ -54,6 +54,11 @@ dependencies:
   camera: ^0.12.2
   google_mlkit_face_detection: ^0.15.1
   image: ^4.12.0
+  # * Copia parcheada del plugin (pasa las herramientas al modelo): ver third_party/flutter_litert_lm/PARCHE_DRIVEHUB.md
+  flutter_litert_lm:
+    path: third_party/flutter_litert_lm
+  record: ^7.1.2
+  sherpa_onnx: ^2.0.1
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +70,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
