@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     # Los servicios dueños de lo que expone el servidor MCP (CU46), por la red interna.
     contenido_url: str = "http://localhost:8085"
     academico_url: str = "http://localhost:8084"
+    pagos_url: str = "http://localhost:8083"
+
+    # Reservar y comprar por chat (CU49): minutos que vale una confirmación y tope de
+    # confirmaciones ejecutadas por persona por día (limita el daño de un modelo que se equivoque).
+    confirmacion_ttl_minutos: int = 10
+    tope_escrituras_diarias: int = 10
 
     # Credenciales de MinIO (miniaturas del historial). Sin valor, no se guardan imágenes.
     minio_access_key: str | None = None

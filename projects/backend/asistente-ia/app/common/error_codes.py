@@ -9,6 +9,10 @@ MINIATURA_INVALIDA = "ERR_IA_01"
 ALMACEN_NO_DISPONIBLE = "ERR_IA_02"
 AYUDA_NO_ENCONTRADA = "ERR_IA_03"
 
+# Reservar y comprar por chat (CU49).
+CONFIRMACION_INVALIDA = "ERR_IA_04"
+TOPE_DIARIO_SUPERADO = "ERR_IA_05"
+
 # Transversales del sistema (ERR_SYS), iguales en todos los servicios.
 VALIDACION = "ERR_SYS_01"
 NO_AUTENTICADO = "ERR_SYS_04"

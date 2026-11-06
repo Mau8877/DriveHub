@@ -18,6 +18,7 @@ TABLA_SESIONES = "SesionesIA"
 TABLA_MENSAJES = "MensajesIA"
 TABLA_AYUDAS_TABLERO = "AyudasTablero"
 TABLA_AGENTES = "AgentesIA"
+TABLA_CONFIRMACIONES = "ConfirmacionesIA"
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,10 @@ DEFINICION_TABLAS: list[DefinicionTabla] = [
     ),
     # Ayudas por foto del tablero (CU40, CU42): por usuario y fecha.
     DefinicionTabla(_clave_usuario_y_fecha(TABLA_AYUDAS_TABLERO)),
+    # Confirmaciones de reservar y comprar por chat (CU49): por usuario y fecha. Las pendientes
+    # vencen a los 10 minutos (TTL); las ejecutadas guardan su resultado un par de días
+    # (idempotencia y tope diario).
+    DefinicionTabla(_clave_usuario_y_fecha(TABLA_CONFIRMACIONES), atributo_ttl="ttl"),
     # Agentes y flujos de n8n que expone DriveHub (CU43). n8n guarda su propio
     # estado interno; acá solo se registra qué agentes existen.
     DefinicionTabla(

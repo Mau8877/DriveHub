@@ -1,18 +1,27 @@
-"""Las herramientas que DriveHub expone por MCP (CU46). Todas son de solo lectura.
+"""Las herramientas que DriveHub expone por MCP (CU46 y CU49).
 
-Cada herramienta consulta al servicio dueño del dato con el Bearer de quien la usa, así que respeta
-los mismos permisos que tendría esa persona en la app: un estudiante ve lo suyo, un instructor lo
-de sus alumnos. Ninguna escribe nada.
+Cada herramienta consulta al servicio dueño del dato con el Bearer de quien la usa, así que
+respeta los mismos permisos que tendría esa persona en la app: un estudiante ve lo suyo, un
+instructor lo de sus alumnos.
+
+* Las de CU46 y las de consulta de CU49 son de solo lectura.
+* Las únicas que escriben son `confirmar_reserva` y `confirmar_compra` (CU49), solo para
+  estudiantes y solo con el código de una confirmación que la propia persona preparó con
+  `preparar_reserva` o `preparar_compra`.
 """
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from functools import lru_cache
 from typing import Any
 
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
+from app.common.exceptions import BusinessException
 from app.common.security.usuario import UsuarioAutenticado
+from app.features.compras_chat.services.compra_chat_service import CompraChatService
+from app.features.confirmaciones.services.confirmaciones_service import ConfirmacionesService
+from app.features.reservas_chat.services.reserva_chat_service import ReservaChatService
 from app.mcp.clientes import ClienteServicios, ErrorHerramienta
 from app.mcp.clientes import get_clientes as _crear_clientes
 
@@ -21,8 +30,11 @@ from app.mcp.clientes import get_clientes as _crear_clientes
 mcp = FastMCP(
     "DriveHub",
     instructions=(
-        "Consulta información de DriveHub (manuales, tutoriales y notas) con los permisos de "
-        "la persona que se conectó. Solo lectura: no puede cambiar nada."
+        "Consulta información de DriveHub (manuales, tutoriales, notas, horas, planes, franjas "
+        "y clases) y deja reservar clases y comprar horas, siempre con los permisos de la persona "
+        "que se conectó. Reservar y comprar se hace en dos pasos: preparar_* arma el resumen y "
+        "devuelve un código; solo después de que la persona lo confirme se llama a confirmar_* "
+        "con ese código."
     ),
     stateless_http=True,
     json_response=True,
@@ -35,6 +47,8 @@ INSTRUCTOR = "INSTRUCTOR"
 
 # Se puede sustituir en los tests por uno que no salga a la red.
 get_clientes: Callable[[], ClienteServicios] = lru_cache(_crear_clientes)
+# Se sustituye en los tests por uno con la tabla de confirmaciones en memoria.
+get_confirmaciones: Callable[[], ConfirmacionesService] = lru_cache(ConfirmacionesService)
 
 
 def _persona(ctx: Context, *roles: str) -> tuple[UsuarioAutenticado, str]:
@@ -149,3 +163,178 @@ async def consultar_notas_de_mis_alumnos(
         {"pageSize": 20, "filter[origen]": tipo},
     )
     return [_nota(r) for r in _lista(datos)]
+
+
+# -- CU49: consultas para el chat de WhatsApp
+# ----------------------------------------------------------
+
+
+@mcp.tool()
+async def consultar_mis_horas(ctx: Context) -> dict[str, Any]:
+    """Las horas de clase que el estudiante tiene disponibles para reservar."""
+    _, bearer = _persona(ctx, ESTUDIANTE)
+    saldo = await get_clientes().get("pagos", "/api/v1/billeteras-horas/mia", bearer)
+    return {"horasDisponibles": (saldo or {}).get("horasDisponibles", 0)}
+
+
+@mcp.tool()
+async def listar_planes_de_horas(ctx: Context) -> list[dict[str, Any]]:
+    """Los planes de horas que la escuela del estudiante vende, con su precio en bolivianos y en
+       dólares.
+
+    `codigo` es el que se usa en preparar_compra.
+    """
+    _, bearer = _persona(ctx, ESTUDIANTE)
+    datos = await get_clientes().get("pagos", "/api/v1/planes-pago/disponibles", bearer)
+    return [
+        {
+            "codigo": p.get("codigo"),
+            "nombre": p.get("nombre"),
+            "horas": p.get("horas"),
+            "costoBs": p.get("costoBs"),
+            "costoUsd": p.get("costoUsd"),
+        }
+        for p in _lista(datos)
+    ]
+
+
+@mcp.tool()
+async def listar_franjas_libres(
+    ctx: Context,
+    dia: str | None = None,
+    momento: str | None = None,
+    instructor: str | None = None,
+) -> list[dict[str, Any]]:
+    """Las clases libres que el estudiante puede reservar, de la más próxima a la más lejana (máximo
+       20).
+
+    `dia` es una fecha AAAA-MM-DD; `momento` es MANANA (antes de las 12), TARDE (12 a 18) o NOCHE
+    (desde las 18);
+    `instructor` es el código de un instructor. `codigo` es el que se usa en preparar_reserva.
+    """
+    _, bearer = _persona(ctx, ESTUDIANTE)
+    # * Un agente suele mandar «» en vez de omitir el filtro que no usa
+    dia, momento, instructor = dia or None, momento or None, instructor or None
+    desde, hasta = _horas_del(momento)
+    datos = await get_clientes().get(
+        "academico",
+        "/api/v1/franjas/disponibles",
+        bearer,
+        {
+            "pageSize": 20,
+            "filter[fecha]": dia,
+            "filter[instructor]": instructor,
+            "filter[horaDesde]": desde,
+            "filter[horaHasta]": hasta,
+        },
+    )
+    return [
+        {
+            "codigo": f.get("codigo"),
+            "fecha": f.get("fecha"),
+            "horaInicio": f.get("horaInicio"),
+            "horaFin": f.get("horaFin"),
+            "instructor": f.get("instructorNombre"),
+            "instructorCodigo": f.get("instructorCodigo"),
+        }
+        for f in _lista(datos)
+    ]
+
+
+def _horas_del(momento: str | None) -> tuple[str | None, str | None]:
+    """El rango de horas de «mañana», «tarde» o «noche»; sin momento, sin filtro."""
+    if momento is None:
+        return None, None
+    rangos = {
+        "MANANA": ("00:00", "12:00"),
+        "TARDE": ("12:00", "18:00"),
+        "NOCHE": ("18:00", "23:59"),
+    }
+    clave = momento.strip().upper().replace("Ñ", "N")
+    if clave not in rangos:
+        raise ErrorHerramienta("El momento del día debe ser MANANA, TARDE o NOCHE.")
+    return rangos[clave]
+
+
+@mcp.tool()
+async def listar_mis_clases(ctx: Context) -> list[dict[str, Any]]:
+    """Las clases ya reservadas que aún no terminaron, de la más próxima a la más lejana."""
+    _, bearer = _persona(ctx, ESTUDIANTE)
+    datos = await get_clientes().get(
+        "academico", "/api/v1/reservas", bearer, {"pageSize": 20, "filter[vista]": "proximas"}
+    )
+    return [
+        {
+            "fecha": c.get("fecha"),
+            "horaInicio": c.get("horaInicio"),
+            "horaFin": c.get("horaFin"),
+            "instructor": c.get("instructorNombre"),
+            "estado": c.get("estado"),
+        }
+        for c in _lista(datos)
+    ]
+
+
+# -- CU49: reservar y comprar con confirmación en dos pasos
+# --------------------------------------------
+
+
+async def _con_mensaje(operacion: Awaitable[dict[str, Any]]) -> dict[str, Any]:
+    """Una regla de negocio rechazada (confirmación vencida, tope diario) llega como texto."""
+    try:
+        return await operacion
+    except BusinessException as error:
+        raise ErrorHerramienta(error.message) from error
+
+
+@mcp.tool()
+async def preparar_reserva(ctx: Context, franjas: list[str]) -> dict[str, Any]:
+    """Arma el resumen de las clases que el estudiante quiere reservar. NO reserva nada.
+
+    `franjas` son los `codigo` de listar_franjas_libres (hasta 10). Devuelve el resumen y un
+    `codigoConfirmacion`: muéstrale el resumen a la persona y llama a confirmar_reserva SOLO si ella
+    confirma.
+    """
+    usuario, bearer = _persona(ctx, ESTUDIANTE)
+    servicio = ReservaChatService(get_clientes(), get_confirmaciones())
+    return await _con_mensaje(servicio.preparar(usuario.codigo, bearer, franjas))
+
+
+@mcp.tool()
+async def confirmar_reserva(ctx: Context, codigo_confirmacion: str) -> dict[str, Any]:
+    """Reserva las clases del resumen que la persona confirmó y descuenta una hora por clase.
+
+    Solo sirve con el `codigoConfirmacion` de preparar_reserva, una vez y dentro de 10 minutos.
+    Llamarla otra vez
+    con el mismo código devuelve el mismo resultado sin reservar de nuevo.
+    """
+    usuario, bearer = _persona(ctx, ESTUDIANTE)
+    servicio = ReservaChatService(get_clientes(), get_confirmaciones())
+    return await _con_mensaje(servicio.confirmar(usuario.codigo, bearer, codigo_confirmacion))
+
+
+@mcp.tool()
+async def preparar_compra(ctx: Context, plan: str) -> dict[str, Any]:
+    """Arma el resumen de la compra de un plan de horas. NO crea ningún pago.
+
+    `plan` es el `codigo` de listar_planes_de_horas. Devuelve el resumen y un `codigoConfirmacion`:
+    muéstrale el
+    resumen a la persona y llama a confirmar_compra SOLO si ella confirma.
+    """
+    usuario, bearer = _persona(ctx, ESTUDIANTE)
+    servicio = CompraChatService(get_clientes(), get_confirmaciones())
+    return await _con_mensaje(servicio.preparar(usuario.codigo, bearer, plan))
+
+
+@mcp.tool()
+async def confirmar_compra(ctx: Context, codigo_confirmacion: str) -> dict[str, Any]:
+    """Crea el pago del plan que la persona confirmó y devuelve el enlace de pago de la pasarela.
+
+    El cobro con tarjeta se hace en ese enlace, nunca en el chat; las horas se acreditan al pagar.
+    Solo sirve con el
+    `codigoConfirmacion` de preparar_compra, una vez y dentro de 10 minutos. Repetirla devuelve el
+    mismo enlace.
+    """
+    usuario, bearer = _persona(ctx, ESTUDIANTE)
+    servicio = CompraChatService(get_clientes(), get_confirmaciones())
+    return await _con_mensaje(servicio.confirmar(usuario.codigo, bearer, codigo_confirmacion))
