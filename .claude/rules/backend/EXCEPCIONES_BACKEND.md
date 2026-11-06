@@ -46,6 +46,7 @@ de sumar una excepción más a la lista de 5.
 | `ConflictException` | `409` | Conflicto de estado (recurso duplicado, transición de estado inválida, etc.) |
 | `LockedException` | `423` | El recurso está bloqueado temporalmente por una política de seguridad (ej. cuenta de usuario bloqueada tras superar el máximo de intentos fallidos de login) |
 | `ServicioNoDisponibleException` | `503` | Un servicio del que depende la operación no responde (la pasarela de pago, otro microservicio): se puede reintentar más tarde |
+| `LimiteExcedidoException` | `429` | Se superó un límite de pedidos que el propio servicio controla porque la ruta no pasa por el rate limit del gateway (hoy: los pedidos de código del chat de WhatsApp en Identidad, CU47). Lleva `ERR_SYS_02`, el mismo código del gateway |
 
 > **Nota de nombres:** `UnauthorizedException` → `401` y no `403` a pesar de
 > que en español "no autorizado" suena más a `403`. Se sigue la semántica

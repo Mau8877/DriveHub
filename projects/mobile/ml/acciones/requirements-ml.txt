@@ -1,0 +1,8 @@
+# Solo para AFINAR FunctionGemma (acciones por pantalla). No es parte de la app.
+# Python 3.10 a 3.12. Hace falta GPU (CUDA); en Colab, ver entrenar_acciones.ipynb.
+# Versiones con las que Google probó su notebook de Mobile Actions.
+torch>=2.4
+transformers==4.57.1
+trl==0.25.1
+datasets==4.4.1
+accelerate>=1.0

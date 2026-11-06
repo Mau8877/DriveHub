@@ -1,0 +1,11 @@
+[
+  {
+    "id": "drivehub-openrouter",
+    "name": "OpenRouter DriveHub",
+    "type": "openRouterApi",
+    "data": {
+      "apiKey": "={{ $env.OPENROUTER_API_KEY }}",
+      "url": "https://openrouter.ai/api/v1"
+    }
+  }
+]

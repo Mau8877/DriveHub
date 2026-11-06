@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
+    <!-- El asistente de voz de clases (CU50) graba el micrófono para convertir la voz en texto en el teléfono; el audio no se guarda ni se envía -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:label="mobile"
         android:name="${applicationName}"

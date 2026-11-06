@@ -1,0 +1,4 @@
+# Datos generados, checkpoints y modelos intermedios del fine-tuning (ver README.md)
+datos/
+salida/
+__pycache__/

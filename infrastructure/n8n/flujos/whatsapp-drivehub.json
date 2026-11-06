@@ -1,0 +1,776 @@
+[
+  {
+    "name": "WhatsApp DriveHub",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "GET",
+          "path": "whatsapp",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "id": "1a000000-0000-4000-8000-000000000001",
+        "name": "Webhook verificación",
+        "webhookId": "6e0f3d5e-8f0a-4d52-9c1b-0d6f6f7a0001"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Meta comprueba el webhook con un GET (hub.mode, hub.verify_token, hub.challenge): si el token es el que\n// configuramos, hay que devolver el `challenge` tal cual; si no, 403.\nconst consulta = $input.first().json.query || {};\nconst bueno = consulta['hub.mode'] === 'subscribe'\n  && !!$env.WHATSAPP_VERIFY_TOKEN\n  && consulta['hub.verify_token'] === $env.WHATSAPP_VERIFY_TOKEN;\n\nreturn [{\n  json: {\n    codigo: bueno ? 200 : 403,\n    cuerpo: bueno ? String(consulta['hub.challenge'] || '') : 'Token de verificación incorrecto',\n  },\n}];\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          240,
+          0
+        ],
+        "id": "1a000000-0000-4000-8000-000000000002",
+        "name": "Verificar suscripción"
+      },
+      {
+        "parameters": {
+          "respondWith": "text",
+          "responseBody": "={{ $json.cuerpo }}",
+          "options": {
+            "responseCode": "={{ $json.codigo }}"
+          }
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          480,
+          0
+        ],
+        "id": "1a000000-0000-4000-8000-000000000003",
+        "name": "Responder verificación"
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "whatsapp",
+          "responseMode": "onReceived",
+          "options": {
+            "rawBody": true
+          }
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          400
+        ],
+        "id": "1a000000-0000-4000-8000-000000000004",
+        "name": "Webhook mensajes",
+        "webhookId": "6e0f3d5e-8f0a-4d52-9c1b-0d6f6f7a0002"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Recibe lo que Meta manda al webhook (POST):\n//  1. Comprueba la firma X-Hub-Signature-256 con el App Secret sobre el cuerpo TAL CUAL llegó (por eso el\n//     webhook guarda el cuerpo crudo). Sin firma válida no se procesa nada.\n//  2. Descarta lo que no es un mensaje de una persona (estados de entrega, lecturas...).\n//  3. Descarta los reintentos de Meta (mismo id de mensaje) y limita cuántos mensajes por minuto atiende de\n//     un mismo número, para que nadie gaste el modelo.\n//  4. Entrega un solo formato: { telefono, mensajeId, tipo, texto, botonId, latitud, longitud }.\nconst crypto = require('crypto');\n\nconst entrada = $input.first();\nconst secreto = $env.WHATSAPP_APP_SECRET;\nconst firma = String((entrada.json.headers || {})['x-hub-signature-256'] || '');\n\nlet crudo = null;\nif (entrada.binary && entrada.binary.data) {\n  crudo = Buffer.from(entrada.binary.data.data, 'base64');\n}\nif (!secreto || !crudo || !firma.startsWith('sha256=')) return [];\n\nconst esperada = crypto.createHmac('sha256', secreto).update(crudo).digest();\nlet recibida;\ntry {\n  recibida = Buffer.from(firma.slice('sha256='.length), 'hex');\n} catch (e) {\n  return [];\n}\nif (recibida.length !== esperada.length || !crypto.timingSafeEqual(recibida, esperada)) return [];\n\nlet cuerpo;\ntry {\n  cuerpo = JSON.parse(crudo.toString('utf8'));\n} catch (e) {\n  return [];\n}\n\nconst valor = (((cuerpo.entry || [])[0] || {}).changes || [])[0]?.value || {};\nconst mensaje = (valor.messages || [])[0];\nif (!mensaje || !mensaje.from) return [];\n\nconst estado = $getWorkflowStaticData('global');\nestado.vistos = estado.vistos || [];\nif (estado.vistos.includes(mensaje.id)) return [];\nestado.vistos.push(mensaje.id);\nif (estado.vistos.length > 300) estado.vistos.splice(0, estado.vistos.length - 300);\n\nconst ahora = Date.now();\nestado.ritmo = estado.ritmo || {};\nconst recientes = (estado.ritmo[mensaje.from] || []).filter((t) => ahora - t < 60000);\nrecientes.push(ahora);\nestado.ritmo[mensaje.from] = recientes;\nconst maximo = Number($env.WHATSAPP_MAX_MENSAJES_POR_MINUTO || 12);\nif (recientes.length > maximo) return [];\n\nconst salida = {\n  telefono: mensaje.from,\n  mensajeId: mensaje.id,\n  tipo: mensaje.type,\n  texto: '',\n  botonId: null,\n  latitud: null,\n  longitud: null,\n};\nif (mensaje.type === 'text') {\n  salida.texto = String((mensaje.text || {}).body || '').trim();\n} else if (mensaje.type === 'interactive') {\n  const respuesta = (mensaje.interactive || {}).button_reply || (mensaje.interactive || {}).list_reply || {};\n  salida.botonId = respuesta.id || null;\n  salida.texto = respuesta.title || '';\n} else if (mensaje.type === 'location') {\n  salida.latitud = (mensaje.location || {}).latitude ?? null;\n  salida.longitud = (mensaje.location || {}).longitude ?? null;\n}\nreturn [{ json: salida }];\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          240,
+          400
+        ],
+        "id": "1a000000-0000-4000-8000-000000000005",
+        "name": "Firma y mensaje"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Lo que comparten los nodos Code del flujo «WhatsApp DriveHub». El constructor (construir-flujo.mjs) pega este\n// archivo al comienzo del código de cada nodo: un nodo Code de n8n no puede importar otro archivo.\n//\n// * Todo se lee de variables de entorno ($env), nunca de credenciales guardadas: así el flujo exportado no lleva\n//   ningún secreto y funciona igual en cualquier entorno.\n// * `this.helpers.httpRequest` es la forma que n8n da a un nodo Code para llamar a un servicio.\n\nconst http = (opciones) => this.helpers.httpRequest({ json: true, ignoreHttpStatusErrors: true, ...opciones });\n\nconst API_WHATSAPP = ($env.WHATSAPP_API_URL || 'https://graph.facebook.com/v21.0').replace(/\\/$/, '');\n\n/** Llama a una ruta interna de Identidad con la credencial de servicio. Devuelve { estado, cuerpo }. */\nasync function identidad(ruta, cuerpo) {\n  const respuesta = await http({\n    method: 'POST',\n    url: `${$env.IDENTIDAD_URL.replace(/\\/$/, '')}${ruta}`,\n    headers: { 'X-Service-Key': $env.IDENTIDAD_CREDENCIAL_N8N },\n    body: cuerpo,\n    returnFullResponse: true,\n    timeout: 10000,\n  });\n  return { estado: respuesta.statusCode, cuerpo: respuesta.body || {} };\n}\n\n/** Un mensaje de texto para WhatsApp, listo para enviar. */\nfunction texto(para, cuerpo) {\n  return {\n    json: {\n      mensaje: {\n        messaging_product: 'whatsapp',\n        to: para,\n        type: 'text',\n        text: { body: String(cuerpo).slice(0, 4000), preview_url: true },\n      },\n    },\n  };\n}\n\n/** Un mensaje con hasta 3 botones: lista = [[id, título], ...]. El título admite 20 caracteres. */\nfunction botones(para, cuerpo, lista) {\n  return {\n    json: {\n      mensaje: {\n        messaging_product: 'whatsapp',\n        to: para,\n        type: 'interactive',\n        interactive: {\n          type: 'button',\n          body: { text: String(cuerpo).slice(0, 1000) },\n          action: {\n            buttons: lista.slice(0, 3).map(([id, titulo]) => ({\n              type: 'reply',\n              reply: { id: String(id).slice(0, 256), title: String(titulo).slice(0, 20) },\n            })),\n          },\n        },\n      },\n    },\n  };\n}\n\n// ¿De quién es este número? Le pide a Identidad una sesión corta (5 minutos) del estudiante vinculado.\n//  - 200: el número está vinculado -> `modo: 'agente'` y el token para hablar con el servidor MCP.\n//  - 404 (ERR_IDE_26): nadie lo vinculó -> `modo: 'acceso'` (iniciar sesión o registrarse).\n//  - 403 (ERR_IDE_27): la cuenta ya no puede usar el chat -> se le avisa y no se sigue.\n//  - cualquier otra cosa: Identidad no responde -> se le pide reintentar; nunca se muestra el detalle.\nconst salida = [];\nfor (const item of $input.all()) {\n  const mensaje = item.json;\n\n  // Fotos, notas de voz, documentos...: por ahora solo se entiende texto, botones y la ubicación del registro\n  if (!mensaje.texto && !mensaje.botonId && mensaje.latitud === null) {\n    salida.push({\n      json: {\n        ...mensaje,\n        modo: 'aviso',\n        ...texto(mensaje.telefono, 'Por ahora solo entiendo mensajes de texto. Escríbeme lo que necesitas.').json,\n      },\n    });\n    continue;\n  }\n\n  let respuesta;\n  try {\n    respuesta = await identidad('/internal/v1/whatsapp/sesiones', { telefono: mensaje.telefono });\n  } catch (e) {\n    respuesta = { estado: 0, cuerpo: {} };\n  }\n\n  if (respuesta.estado === 200 && respuesta.cuerpo.data) {\n    salida.push({ json: { ...mensaje, modo: 'agente', accessToken: respuesta.cuerpo.data.accessToken } });\n  } else if (respuesta.estado === 404) {\n    salida.push({ json: { ...mensaje, modo: 'acceso' } });\n  } else if (respuesta.estado === 403) {\n    salida.push({\n      json: {\n        ...mensaje,\n        modo: 'aviso',\n        ...texto(\n          mensaje.telefono,\n          'Tu cuenta no puede usar este chat. Comunícate con tu autoescuela para revisar tu cuenta.'\n        ).json,\n      },\n    });\n  } else {\n    salida.push({\n      json: {\n        ...mensaje,\n        modo: 'aviso',\n        ...texto(mensaje.telefono, 'No pude atenderte ahora. Inténtalo de nuevo en unos minutos.').json,\n      },\n    });\n  }\n}\nreturn salida;\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          480,
+          400
+        ],
+        "id": "1a000000-0000-4000-8000-000000000006",
+        "name": "Reconocer número"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "c0000000-0000-4000-8000-000000000001",
+                "leftValue": "={{ $json.modo }}",
+                "rightValue": "agente",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          720,
+          400
+        ],
+        "id": "1a000000-0000-4000-8000-000000000007",
+        "name": "¿Tiene sesión?"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "c0000000-0000-4000-8000-000000000002",
+                "leftValue": "={{ /^(confirmar|cancelar)\\|/.test($json.botonId || '') }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          960,
+          300
+        ],
+        "id": "1a000000-0000-4000-8000-000000000008",
+        "name": "¿Botón de confirmación?"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Lo que comparten los nodos Code del flujo «WhatsApp DriveHub». El constructor (construir-flujo.mjs) pega este\n// archivo al comienzo del código de cada nodo: un nodo Code de n8n no puede importar otro archivo.\n//\n// * Todo se lee de variables de entorno ($env), nunca de credenciales guardadas: así el flujo exportado no lleva\n//   ningún secreto y funciona igual en cualquier entorno.\n// * `this.helpers.httpRequest` es la forma que n8n da a un nodo Code para llamar a un servicio.\n\nconst http = (opciones) => this.helpers.httpRequest({ json: true, ignoreHttpStatusErrors: true, ...opciones });\n\nconst API_WHATSAPP = ($env.WHATSAPP_API_URL || 'https://graph.facebook.com/v21.0').replace(/\\/$/, '');\n\n/** Llama a una ruta interna de Identidad con la credencial de servicio. Devuelve { estado, cuerpo }. */\nasync function identidad(ruta, cuerpo) {\n  const respuesta = await http({\n    method: 'POST',\n    url: `${$env.IDENTIDAD_URL.replace(/\\/$/, '')}${ruta}`,\n    headers: { 'X-Service-Key': $env.IDENTIDAD_CREDENCIAL_N8N },\n    body: cuerpo,\n    returnFullResponse: true,\n    timeout: 10000,\n  });\n  return { estado: respuesta.statusCode, cuerpo: respuesta.body || {} };\n}\n\n/** Un mensaje de texto para WhatsApp, listo para enviar. */\nfunction texto(para, cuerpo) {\n  return {\n    json: {\n      mensaje: {\n        messaging_product: 'whatsapp',\n        to: para,\n        type: 'text',\n        text: { body: String(cuerpo).slice(0, 4000), preview_url: true },\n      },\n    },\n  };\n}\n\n/** Un mensaje con hasta 3 botones: lista = [[id, título], ...]. El título admite 20 caracteres. */\nfunction botones(para, cuerpo, lista) {\n  return {\n    json: {\n      mensaje: {\n        messaging_product: 'whatsapp',\n        to: para,\n        type: 'interactive',\n        interactive: {\n          type: 'button',\n          body: { text: String(cuerpo).slice(0, 1000) },\n          action: {\n            buttons: lista.slice(0, 3).map(([id, titulo]) => ({\n              type: 'reply',\n              reply: { id: String(id).slice(0, 256), title: String(titulo).slice(0, 20) },\n            })),\n          },\n        },\n      },\n    },\n  };\n}\n\n// La persona tocó «Confirmar» o «Cancelar» en el resumen de una reserva o de una compra (CU49).\n//\n// Esta es la ÚNICA puerta por la que se ejecuta una escritura: el agente de IA no tiene las herramientas\n// confirmar_* y no puede decidir ejecutarlas. Acá se llama directo al servidor MCP con el código que venía en\n// el botón y la sesión corta del estudiante; el servidor además exige que el código sea de esa persona, de esa\n// acción, vigente y de un solo uso.\n//\n// El botón trae el id `confirmar|RESERVA|<codigo>`, `confirmar|COMPRA|<codigo>` o `cancelar|<acción>|<codigo>`.\nconst HERRAMIENTA = { RESERVA: 'confirmar_reserva', COMPRA: 'confirmar_compra' };\n\n/** Llama a una herramienta del servidor MCP (JSON-RPC por HTTP) con la sesión de la persona. */\nasync function herramienta(token, nombre, argumentos) {\n  const respuesta = await http({\n    method: 'POST',\n    url: `${$env.ASISTENTE_IA_URL.replace(/\\/$/, '')}/mcp/`,\n    headers: {\n      Authorization: `Bearer ${token}`,\n      Accept: 'application/json, text/event-stream',\n      'Content-Type': 'application/json',\n    },\n    body: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: nombre, arguments: argumentos } },\n    returnFullResponse: true,\n    timeout: 30000,\n  });\n  const resultado = (respuesta.body || {}).result;\n  if (!resultado) return { error: 'El asistente no respondió.' };\n  const contenido = (resultado.content || []).map((c) => c.text).join(' ');\n  return resultado.isError ? { error: contenido } : { datos: JSON.parse(contenido) };\n}\n\nconst salida = [];\nfor (const item of $input.all()) {\n  const m = item.json;\n  const [accion, tipo, codigo] = String(m.botonId || '').split('|');\n  const nombre = HERRAMIENTA[tipo];\n\n  if (accion === 'cancelar' || !nombre || !codigo) {\n    salida.push(texto(m.telefono, 'Listo, no hice ningún cambio. Cuando quieras, dime qué necesitas.'));\n    continue;\n  }\n\n  let r;\n  try {\n    r = await herramienta(m.accessToken, nombre, { codigo_confirmacion: codigo });\n  } catch (e) {\n    r = { error: 'No pude completar la acción ahora. Inténtalo de nuevo en unos minutos.' };\n  }\n  if (r.error) {\n    salida.push(texto(m.telefono, `No se pudo completar: ${r.error}`));\n    continue;\n  }\n\n  const d = r.datos;\n  if (tipo === 'RESERVA') {\n    const lineas = (d.reservadas || []).map((c) => `• ${c.fecha} ${c.horaInicio}–${c.horaFin} con ${c.instructor}`);\n    let mensaje = lineas.length ? `✅ Reservé tus clases:\\n${lineas.join('\\n')}` : 'No pude reservar ninguna clase.';\n    const fallidas = (d.noSePudieron || []).map((c) => `• ${c.fecha} ${c.horaInicio}: ${c.motivo}`);\n    if (fallidas.length) mensaje += `\\n\\nNo se pudieron reservar:\\n${fallidas.join('\\n')}`;\n    if (d.horasQueQuedan !== null && d.horasQueQuedan !== undefined) mensaje += `\\n\\nTe quedan ${d.horasQueQuedan} hora(s).`;\n    salida.push(texto(m.telefono, mensaje));\n  } else {\n    salida.push(\n      texto(\n        m.telefono,\n        `Para pagar tu plan *${d.plan}* (${d.horas} horas, US$ ${d.montoUsd} ≈ Bs ${d.montoBs}) abre este enlace y paga con tu tarjeta:\\n\\n${d.enlaceDePago}\\n\\n${d.aviso}`\n      )\n    );\n  }\n}\nreturn salida;\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1200,
+          200
+        ],
+        "id": "1a000000-0000-4000-8000-000000000009",
+        "name": "Confirmar"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.texto }}",
+          "options": {
+            "systemMessage": "=Eres el asistente de WhatsApp de una autoescuela de Bolivia (DriveHub). Atiendes a UN estudiante que ya inició sesión; todo lo que consultes o hagas es con SU cuenta.\nHoy es {{ $now.setZone('America/La_Paz').setLocale('es').toFormat(\"cccc d 'de' LLLL 'de' yyyy, HH:mm\") }} (hora de Bolivia).\n\nCómo respondes:\n- Español sencillo y breve, tono amable. Es WhatsApp: mensajes cortos, sin tablas ni markdown pesado (la negrita de WhatsApp es *así*, con un solo asterisco; nunca uses ** ni títulos con #; viñetas con •).\n- Usa SIEMPRE las herramientas para consultar horas, planes, clases libres y clases reservadas. NUNCA inventes horarios, instructores, códigos, precios ni saldos.\n- Los códigos (de franja, de plan, de confirmación) son internos: no se los muestres a la persona.\n- Mientras la persona no toque *Confirmar* no se reservó ni se compró nada: di «preparé el resumen», nunca «reservé» ni «compré».\n\nReservar clases:\n1. Consulta las clases libres con listar_franjas_libres (puedes filtrar por día, momento del día e instructor) y propón opciones claras: fecha, hora e instructor.\n2. Cuando la persona elija, llama a preparar_reserva con los códigos de esas clases. Eso NO reserva nada: devuelve un resumen.\n3. Muestra el resumen (clases, horas que se gastan y horas que quedarían) y termina diciendo que toque *Confirmar* o *Cancelar*. Los botones los agrega el sistema: no los escribas tú.\n\nComprar horas:\n1. Muestra los planes con listar_planes_de_horas (nombre, horas y precio en Bs y en US$).\n2. Cuando la persona elija uno, llama a preparar_compra. Eso NO cobra nada: devuelve un resumen.\n3. Muestra el resumen y pide que toque *Confirmar* o *Cancelar*. El pago con tarjeta se hace en un enlace seguro que se envía después; nunca pidas datos de tarjeta.\n\nReglas:\n- Tú no puedes confirmar nada: solo la persona, tocando el botón. Si dice «sí, confírmalo» por texto, recuérdale que toque el botón *Confirmar* del resumen (si ya no lo ve, prepara el resumen de nuevo).\n- Nunca pidas ni aceptes contraseñas.\n- Cancelar o reprogramar clases, reembolsos y comprobantes se hacen desde la app: explícalo con amabilidad.\n- Si una herramienta devuelve un error, cuéntalo en palabras simples y propón qué hacer.\n- Si te piden algo que no tiene que ver con la autoescuela, di amablemente que solo puedes ayudar con clases y horas.",
+            "returnIntermediateSteps": true,
+            "maxIterations": 8
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3.1,
+        "position": [
+          1200,
+          440
+        ],
+        "id": "1a000000-0000-4000-8000-00000000000a",
+        "name": "Agente"
+      },
+      {
+        "parameters": {
+          "model": "={{ $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini' }}",
+          "options": {
+            "temperature": 0.2
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "typeVersion": 1,
+        "position": [
+          1080,
+          700
+        ],
+        "id": "1a000000-0000-4000-8000-00000000000b",
+        "name": "Modelo OpenRouter",
+        "credentials": {
+          "openRouterApi": {
+            "id": "drivehub-openrouter",
+            "name": "OpenRouter DriveHub"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "sessionIdType": "customKey",
+          "sessionKey": "={{ $json.telefono }}",
+          "contextWindowLength": 8
+        },
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1.3,
+        "position": [
+          1280,
+          700
+        ],
+        "id": "1a000000-0000-4000-8000-00000000000c",
+        "name": "Memoria de la conversación"
+      },
+      {
+        "parameters": {
+          "toolDescription": "Devuelve cuántas horas de clase tiene disponibles el estudiante.",
+          "method": "POST",
+          "url": "={{ $env.ASISTENTE_IA_URL.replace(/\\/$/, '') + '/mcp/' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "={{ 'Bearer ' + $('Reconocer número').first().json.accessToken }}"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'consultar_mis_horas', arguments: {} } }) }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1480,
+          760
+        ],
+        "id": "9c1f0000-0000-4000-8000-000000000001",
+        "name": "Mis horas"
+      },
+      {
+        "parameters": {
+          "toolDescription": "Lista los planes de horas que la autoescuela vende, con su precio en bolivianos y en dólares. Cada plan trae un `codigo` para preparar_compra.",
+          "method": "POST",
+          "url": "={{ $env.ASISTENTE_IA_URL.replace(/\\/$/, '') + '/mcp/' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "={{ 'Bearer ' + $('Reconocer número').first().json.accessToken }}"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'listar_planes_de_horas', arguments: {} } }) }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1480,
+          900
+        ],
+        "id": "9c1f0000-0000-4000-8000-000000000002",
+        "name": "Planes de horas"
+      },
+      {
+        "parameters": {
+          "toolDescription": "Lista las clases libres que el estudiante puede reservar (máximo 20, de la más próxima a la más lejana). Todos los filtros son opcionales; si no se necesitan, déjalos vacíos. Cada clase trae un `codigo` para preparar_reserva.",
+          "method": "POST",
+          "url": "={{ $env.ASISTENTE_IA_URL.replace(/\\/$/, '') + '/mcp/' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "={{ 'Bearer ' + $('Reconocer número').first().json.accessToken }}"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'listar_franjas_libres', arguments: { dia: $fromAI('dia', 'Fecha AAAA-MM-DD; vacío si no importa', 'string', ''), momento: $fromAI('momento', 'MANANA, TARDE o NOCHE; vacío si no importa', 'string', ''), instructor: $fromAI('instructor', 'Codigo del instructor; vacío si no importa', 'string', '') } } }) }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1480,
+          1040
+        ],
+        "id": "9c1f0000-0000-4000-8000-000000000003",
+        "name": "Franjas libres"
+      },
+      {
+        "parameters": {
+          "toolDescription": "Lista las clases que el estudiante ya reservó y todavía no terminaron.",
+          "method": "POST",
+          "url": "={{ $env.ASISTENTE_IA_URL.replace(/\\/$/, '') + '/mcp/' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "={{ 'Bearer ' + $('Reconocer número').first().json.accessToken }}"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'listar_mis_clases', arguments: {} } }) }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1480,
+          1180
+        ],
+        "id": "9c1f0000-0000-4000-8000-000000000004",
+        "name": "Mis clases"
+      },
+      {
+        "parameters": {
+          "toolDescription": "Arma el resumen de las clases que el estudiante eligió. NO reserva nada: la persona debe tocar el botón Confirmar que agrega el sistema. Úsala solo cuando ya eligió clases concretas.",
+          "method": "POST",
+          "url": "={{ $env.ASISTENTE_IA_URL.replace(/\\/$/, '') + '/mcp/' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "={{ 'Bearer ' + $('Reconocer número').first().json.accessToken }}"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'preparar_reserva', arguments: { franjas: $fromAI('franjas', 'Lista JSON con los codigos de las clases elegidas, por ejemplo [\"codigo1\",\"codigo2\"] (hasta 10)', 'json') } } }) }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1480,
+          1320
+        ],
+        "id": "9c1f0000-0000-4000-8000-000000000005",
+        "name": "Preparar reserva"
+      },
+      {
+        "parameters": {
+          "toolDescription": "Arma el resumen de la compra de un plan de horas. NO cobra nada: la persona debe tocar el botón Confirmar que agrega el sistema.",
+          "method": "POST",
+          "url": "={{ $env.ASISTENTE_IA_URL.replace(/\\/$/, '') + '/mcp/' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "={{ 'Bearer ' + $('Reconocer número').first().json.accessToken }}"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'preparar_compra', arguments: { plan: $fromAI('plan', 'Codigo del plan elegido (de Planes de horas)', 'string', '') } } }) }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1480,
+          1460
+        ],
+        "id": "9c1f0000-0000-4000-8000-000000000006",
+        "name": "Preparar compra"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Lo que comparten los nodos Code del flujo «WhatsApp DriveHub». El constructor (construir-flujo.mjs) pega este\n// archivo al comienzo del código de cada nodo: un nodo Code de n8n no puede importar otro archivo.\n//\n// * Todo se lee de variables de entorno ($env), nunca de credenciales guardadas: así el flujo exportado no lleva\n//   ningún secreto y funciona igual en cualquier entorno.\n// * `this.helpers.httpRequest` es la forma que n8n da a un nodo Code para llamar a un servicio.\n\nconst http = (opciones) => this.helpers.httpRequest({ json: true, ignoreHttpStatusErrors: true, ...opciones });\n\nconst API_WHATSAPP = ($env.WHATSAPP_API_URL || 'https://graph.facebook.com/v21.0').replace(/\\/$/, '');\n\n/** Llama a una ruta interna de Identidad con la credencial de servicio. Devuelve { estado, cuerpo }. */\nasync function identidad(ruta, cuerpo) {\n  const respuesta = await http({\n    method: 'POST',\n    url: `${$env.IDENTIDAD_URL.replace(/\\/$/, '')}${ruta}`,\n    headers: { 'X-Service-Key': $env.IDENTIDAD_CREDENCIAL_N8N },\n    body: cuerpo,\n    returnFullResponse: true,\n    timeout: 10000,\n  });\n  return { estado: respuesta.statusCode, cuerpo: respuesta.body || {} };\n}\n\n/** Un mensaje de texto para WhatsApp, listo para enviar. */\nfunction texto(para, cuerpo) {\n  return {\n    json: {\n      mensaje: {\n        messaging_product: 'whatsapp',\n        to: para,\n        type: 'text',\n        text: { body: String(cuerpo).slice(0, 4000), preview_url: true },\n      },\n    },\n  };\n}\n\n/** Un mensaje con hasta 3 botones: lista = [[id, título], ...]. El título admite 20 caracteres. */\nfunction botones(para, cuerpo, lista) {\n  return {\n    json: {\n      mensaje: {\n        messaging_product: 'whatsapp',\n        to: para,\n        type: 'interactive',\n        interactive: {\n          type: 'button',\n          body: { text: String(cuerpo).slice(0, 1000) },\n          action: {\n            buttons: lista.slice(0, 3).map(([id, titulo]) => ({\n              type: 'reply',\n              reply: { id: String(id).slice(0, 256), title: String(titulo).slice(0, 20) },\n            })),\n          },\n        },\n      },\n    },\n  };\n}\n\n// La respuesta del agente de IA, lista para WhatsApp.\n//\n// Si el agente acaba de preparar una reserva o una compra (herramientas preparar_*), el resumen se manda con los\n// botones «Confirmar» y «Cancelar». El código de confirmación viaja dentro del id del botón: lo que ejecuta la\n// acción es el toque de la persona (nodo «Confirmar»), no lo que escriba el modelo.\nconst CODIGO_RE = /codigoConfirmacion\\\\*\"\\s*:\\s*\\\\*\"([0-9a-fA-F-]{36})/;\nconst UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;\nconst TIPOS = { preparar_reserva: 'RESERVA', preparar_compra: 'COMPRA' };\n\nconst salida = [];\nfor (const item of $input.all()) {\n  const telefono = $('Reconocer número').first().json.telefono;\n  // WhatsApp usa *negrita* con un asterisco y no entiende los títulos de markdown: se adapta lo que escriba el modelo\n  const respuesta =\n    String(item.json.output || '')\n      .replace(/\\*\\*(.+?)\\*\\*/g, '*$1*')\n      .replace(/^#{1,6}\\s+/gm, '')\n      // * Los códigos internos (de clase, de plan, de confirmación) no se le muestran a la persona\n      .split('\\n')\n      .filter((linea) => !UUID_RE.test(linea))\n      .join('\\n')\n      .trim() || 'No supe qué responderte. ¿Puedes decirlo de otra forma?';\n\n  let preparado = null;\n  for (const paso of item.json.intermediateSteps || []) {\n    // * n8n nombra la herramienta como el nodo («Preparar_reserva»): se compara sin distinguir mayúsculas\n    const herramienta = String((paso.action || {}).tool || '').toLowerCase();\n    if (!TIPOS[herramienta]) continue;\n    const encontrado = CODIGO_RE.exec(typeof paso.observation === 'string' ? paso.observation : JSON.stringify(paso.observation || ''));\n    // * El último resumen preparado es el que vale\n    if (encontrado) preparado = { tipo: TIPOS[herramienta], codigo: encontrado[1] };\n  }\n\n  if (preparado) {\n    salida.push(\n      botones(telefono, respuesta, [\n        [`confirmar|${preparado.tipo}|${preparado.codigo}`, 'Confirmar'],\n        [`cancelar|${preparado.tipo}|${preparado.codigo}`, 'Cancelar'],\n      ])\n    );\n  } else {\n    salida.push(texto(telefono, respuesta));\n  }\n}\nreturn salida;\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1560,
+          440
+        ],
+        "id": "1a000000-0000-4000-8000-00000000000d",
+        "name": "Formatear respuesta"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "c0000000-0000-4000-8000-000000000003",
+                "leftValue": "={{ $json.modo }}",
+                "rightValue": "acceso",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          960,
+          560
+        ],
+        "id": "1a000000-0000-4000-8000-00000000000e",
+        "name": "¿Necesita acceso?"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Lo que comparten los nodos Code del flujo «WhatsApp DriveHub». El constructor (construir-flujo.mjs) pega este\n// archivo al comienzo del código de cada nodo: un nodo Code de n8n no puede importar otro archivo.\n//\n// * Todo se lee de variables de entorno ($env), nunca de credenciales guardadas: así el flujo exportado no lleva\n//   ningún secreto y funciona igual en cualquier entorno.\n// * `this.helpers.httpRequest` es la forma que n8n da a un nodo Code para llamar a un servicio.\n\nconst http = (opciones) => this.helpers.httpRequest({ json: true, ignoreHttpStatusErrors: true, ...opciones });\n\nconst API_WHATSAPP = ($env.WHATSAPP_API_URL || 'https://graph.facebook.com/v21.0').replace(/\\/$/, '');\n\n/** Llama a una ruta interna de Identidad con la credencial de servicio. Devuelve { estado, cuerpo }. */\nasync function identidad(ruta, cuerpo) {\n  const respuesta = await http({\n    method: 'POST',\n    url: `${$env.IDENTIDAD_URL.replace(/\\/$/, '')}${ruta}`,\n    headers: { 'X-Service-Key': $env.IDENTIDAD_CREDENCIAL_N8N },\n    body: cuerpo,\n    returnFullResponse: true,\n    timeout: 10000,\n  });\n  return { estado: respuesta.statusCode, cuerpo: respuesta.body || {} };\n}\n\n/** Un mensaje de texto para WhatsApp, listo para enviar. */\nfunction texto(para, cuerpo) {\n  return {\n    json: {\n      mensaje: {\n        messaging_product: 'whatsapp',\n        to: para,\n        type: 'text',\n        text: { body: String(cuerpo).slice(0, 4000), preview_url: true },\n      },\n    },\n  };\n}\n\n/** Un mensaje con hasta 3 botones: lista = [[id, título], ...]. El título admite 20 caracteres. */\nfunction botones(para, cuerpo, lista) {\n  return {\n    json: {\n      mensaje: {\n        messaging_product: 'whatsapp',\n        to: para,\n        type: 'interactive',\n        interactive: {\n          type: 'button',\n          body: { text: String(cuerpo).slice(0, 1000) },\n          action: {\n            buttons: lista.slice(0, 3).map(([id, titulo]) => ({\n              type: 'reply',\n              reply: { id: String(id).slice(0, 256), title: String(titulo).slice(0, 20) },\n            })),\n          },\n        },\n      },\n    },\n  };\n}\n\n// Una persona cuyo número no está vinculado: la guía para iniciar sesión (CU47) o registrarse (CU48).\n//\n// El estado de cada conversación (en qué paso va y lo que ya dijo) se guarda en los datos estáticos del flujo,\n// por número, y se descarta a las 24 horas o al cancelar. NUNCA se pide ni se recibe una contraseña: para\n// registrarse, la persona la elige en una página web con un enlace de un solo uso.\nconst VIGENCIA_MS = 24 * 60 * 60 * 1000;\nconst estados = ($getWorkflowStaticData('global').conversaciones ||= {});\n\nconst NOMBRE_RE = /^.{1,80}$/;\nconst CODIGO_RE = /^\\d{6}$/;\nconst CORREO_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n\nconst PASOS_REGISTRO = [\n  { paso: 'reg_nombres', campo: 'nombres', pregunta: '¿Cuáles son tus *nombres*?' },\n  { paso: 'reg_apellidos', campo: 'apellidos', pregunta: '¿Y tus *apellidos*?' },\n  {\n    paso: 'reg_fecha',\n    campo: 'fechaNacimiento',\n    pregunta: '¿Cuál es tu *fecha de nacimiento*? Escríbela como día/mes/año, por ejemplo 25/03/1998.',\n  },\n  { paso: 'reg_sexo', campo: 'sexo', pregunta: null },\n  { paso: 'reg_ci', campo: 'ci', pregunta: '¿Cuál es tu *carnet de identidad* (CI)?' },\n  { paso: 'reg_correo', campo: 'correo', pregunta: '¿Cuál es tu *correo electrónico*?' },\n  {\n    paso: 'reg_ubicacion',\n    campo: 'ubicacion',\n    pregunta:\n      'Por último, envíame tu *ubicación*: toca el clip 📎 → Ubicación → «Enviar tu ubicación actual» (o la de tu casa).',\n  },\n];\n\nconst MENU = (tel, saludo) =>\n  botones(tel, `${saludo}Soy el asistente de tu autoescuela. ¿Ya tienes cuenta o quieres registrarte?`, [\n    ['acceso:login', 'Ya tengo cuenta'],\n    ['acceso:registro', 'Quiero registrarme'],\n  ]);\n\nconst salida = [];\nfor (const item of $input.all()) {\n  const m = item.json;\n  const tel = m.telefono;\n  const dicho = (m.texto || '').trim();\n  const boton = m.botonId;\n\n  // Los estados vencidos se tiran\n  let e = estados[tel];\n  if (e && Date.now() > e.vence) {\n    delete estados[tel];\n    e = undefined;\n  }\n  const guardar = (paso, datos) => {\n    estados[tel] = { paso, datos: datos || {}, vence: Date.now() + VIGENCIA_MS };\n  };\n\n  // -- cancelar, en cualquier paso\n  if (boton === 'acceso:cancelar' || /^(cancelar|salir|menu|menú)$/i.test(dicho)) {\n    delete estados[tel];\n    salida.push(MENU(tel, 'Listo, empezamos de nuevo. '));\n    continue;\n  }\n\n  // -- elegir el camino\n  if (boton === 'acceso:login') {\n    guardar('login_correo');\n    salida.push(texto(tel, 'Escribe el *correo* con el que creaste tu cuenta.'));\n    continue;\n  }\n  if (boton === 'acceso:registro') {\n    guardar(PASOS_REGISTRO[0].paso, {});\n    salida.push(texto(tel, `Vamos a crear tu cuenta. Te haré unas preguntas (puedes escribir *cancelar* cuando quieras).\\n\\n${PASOS_REGISTRO[0].pregunta}`));\n    continue;\n  }\n  if (boton === 'acceso:reenviar' && e && e.datos.correo) {\n    const r = await identidad('/internal/v1/whatsapp/codigos', { telefono: tel, correo: e.datos.correo });\n    salida.push(\n      r.estado === 429\n        ? texto(tel, 'Pediste muchos códigos. Espera un rato e inténtalo de nuevo.')\n        : texto(tel, 'Si el correo tiene una cuenta, te enviamos un código nuevo de 6 dígitos. Escríbelo aquí.')\n    );\n    continue;\n  }\n\n  // -- sin conversación en curso: saludo con las dos opciones\n  if (!e) {\n    salida.push(MENU(tel, '¡Hola! '));\n    continue;\n  }\n\n  // -- iniciar sesión: correo\n  if (e.paso === 'login_correo') {\n    if (!CORREO_RE.test(dicho)) {\n      salida.push(texto(tel, 'Ese correo no parece válido. Escríbelo de nuevo, por ejemplo nombre@gmail.com.'));\n      continue;\n    }\n    const r = await identidad('/internal/v1/whatsapp/codigos', { telefono: tel, correo: dicho });\n    if (r.estado === 429) {\n      salida.push(texto(tel, 'Pediste muchos códigos. Espera un rato e inténtalo de nuevo.'));\n    } else if (r.estado === 202) {\n      guardar('login_codigo', { correo: dicho });\n      salida.push(\n        texto(tel, 'Si ese correo tiene una cuenta, te enviamos un código de 6 dígitos. Revisa tu bandeja (y el spam) y escríbelo aquí.')\n      );\n    } else {\n      salida.push(texto(tel, 'No pude enviar el código ahora. Inténtalo de nuevo en unos minutos.'));\n    }\n    continue;\n  }\n\n  // -- iniciar sesión: código\n  if (e.paso === 'login_codigo') {\n    if (!CODIGO_RE.test(dicho)) {\n      salida.push(\n        botones(tel, 'El código tiene 6 dígitos. Escríbelo aquí o pide uno nuevo.', [\n          ['acceso:reenviar', 'Pedir otro código'],\n          ['acceso:cancelar', 'Cancelar'],\n        ])\n      );\n      continue;\n    }\n    const r = await identidad('/internal/v1/whatsapp/vinculos', { telefono: tel, correo: e.datos.correo, codigo: dicho });\n    if (r.estado === 201) {\n      delete estados[tel];\n      salida.push(\n        texto(tel, '¡Listo! Tu WhatsApp quedó vinculado a tu cuenta ✅\\n\\nYa puedes pedirme tus horas, tus clases, reservar una clase o comprar un plan de horas.')\n      );\n    } else if (r.estado === 400) {\n      salida.push(\n        botones(tel, 'Ese código no es válido o ya venció.', [\n          ['acceso:reenviar', 'Pedir otro código'],\n          ['acceso:cancelar', 'Cancelar'],\n        ])\n      );\n    } else {\n      salida.push(texto(tel, 'No pude comprobar el código ahora. Inténtalo de nuevo en unos minutos.'));\n    }\n    continue;\n  }\n\n  // -- registrarse: confirmar al final\n  if (e.paso === 'reg_confirmar') {\n    if (boton === 'reg:ok') {\n      const d = e.datos;\n      const [lat, lon] = d.ubicacion.split(',').map(Number);\n      const r = await identidad('/internal/v1/whatsapp/registros', {\n        telefono: tel,\n        nombres: d.nombres,\n        apellidos: d.apellidos,\n        fechaNacimiento: d.fechaNacimiento,\n        sexo: d.sexo,\n        ci: d.ci,\n        correo: d.correo,\n        latitud: lat,\n        longitud: lon,\n      });\n      if (r.estado === 201) {\n        delete estados[tel];\n        salida.push(\n          texto(\n            tel,\n            `Casi listo. Para terminar, elige tu contraseña en este enlace (sirve una sola vez y vence en 30 minutos):\\n\\n${r.cuerpo.data.enlace}\\n\\nPor tu seguridad, la contraseña no se escribe en el chat.`\n          )\n        );\n      } else if (r.estado === 409 || r.estado === 400) {\n        salida.push(texto(tel, `${r.cuerpo.message || 'Hay un dato que no se pudo aceptar.'}\\n\\nEscribe *cancelar* para empezar de nuevo.`));\n      } else {\n        salida.push(texto(tel, 'No pude guardar tu registro ahora. Inténtalo de nuevo en unos minutos.'));\n      }\n    } else {\n      salida.push(\n        botones(tel, 'Toca *Confirmar registro* para continuar o *Cancelar* para empezar de nuevo.', [\n          ['reg:ok', 'Confirmar registro'],\n          ['acceso:cancelar', 'Cancelar'],\n        ])\n      );\n    }\n    continue;\n  }\n\n  // -- registrarse: preguntar y validar de a un dato\n  const indice = PASOS_REGISTRO.findIndex((p) => p.paso === e.paso);\n  if (indice === -1) {\n    delete estados[tel];\n    salida.push(MENU(tel, '¡Hola! '));\n    continue;\n  }\n  const actual = PASOS_REGISTRO[indice];\n  let valor = null;\n\n  if (actual.campo === 'sexo') {\n    if (boton === 'sexo:MASCULINO' || boton === 'sexo:FEMENINO') valor = boton.split(':')[1];\n  } else if (actual.campo === 'ubicacion') {\n    if (m.latitud !== null && m.longitud !== null) valor = `${m.latitud},${m.longitud}`;\n  } else if (actual.campo === 'fechaNacimiento') {\n    const partes = dicho.match(/^(\\d{1,2})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{4})$/);\n    valor = partes ? `${partes[3]}-${partes[2].padStart(2, '0')}-${partes[1].padStart(2, '0')}` : null;\n    if (!valor && /^\\d{4}-\\d{2}-\\d{2}$/.test(dicho)) valor = dicho;\n  } else if (dicho) {\n    valor = dicho;\n  }\n\n  if (valor === null) {\n    salida.push(\n      actual.campo === 'sexo'\n        ? botones(tel, 'Toca una de las opciones.', [['sexo:MASCULINO', 'Masculino'], ['sexo:FEMENINO', 'Femenino']])\n        : texto(tel, actual.pregunta || 'No entendí ese dato.')\n    );\n    continue;\n  }\n\n  const comprobacion = await identidad('/internal/v1/whatsapp/registros/validaciones', { campo: actual.campo, valor });\n  if (comprobacion.estado !== 200) {\n    const motivo = comprobacion.cuerpo.message || 'Ese dato no es válido.';\n    const yaExiste = comprobacion.estado === 409;\n    salida.push(\n      yaExiste\n        ? botones(tel, `${motivo}. Si ya tienes cuenta, inicia sesión.`, [\n            ['acceso:login', 'Ya tengo cuenta'],\n            ['acceso:cancelar', 'Cancelar'],\n          ])\n        : texto(tel, `${motivo}\\n\\n${actual.pregunta || 'Inténtalo de nuevo.'}`)\n    );\n    continue;\n  }\n\n  const datos = { ...e.datos, [actual.campo]: valor };\n  const siguiente = PASOS_REGISTRO[indice + 1];\n  if (siguiente) {\n    guardar(siguiente.paso, datos);\n    salida.push(\n      siguiente.campo === 'sexo'\n        ? botones(tel, '¿Cuál es tu *sexo*?', [['sexo:MASCULINO', 'Masculino'], ['sexo:FEMENINO', 'Femenino']])\n        : texto(tel, siguiente.pregunta)\n    );\n  } else {\n    guardar('reg_confirmar', datos);\n    const sexo = datos.sexo === 'FEMENINO' ? 'Femenino' : 'Masculino';\n    salida.push(\n      botones(\n        tel,\n        `Revisa tus datos:\\n\\n• ${datos.nombres} ${datos.apellidos}\\n• Nacimiento: ${datos.fechaNacimiento}\\n• Sexo: ${sexo}\\n• CI: ${datos.ci}\\n• Correo: ${datos.correo}\\n• Ubicación: recibida ✅\\n\\n¿Todo bien?`,\n        [['reg:ok', 'Confirmar registro'], ['acceso:cancelar', 'Cancelar']]\n      )\n    );\n  }\n}\nreturn salida;\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1200,
+          560
+        ],
+        "id": "1a000000-0000-4000-8000-00000000000f",
+        "name": "Acceso"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ ($env.WHATSAPP_API_URL || 'https://graph.facebook.com/v21.0').replace(/\\/$/, '') + '/' + $env.WHATSAPP_PHONE_NUMBER_ID + '/messages' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "={{ 'Bearer ' + $env.WHATSAPP_TOKEN }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.mensaje) }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1860,
+          400
+        ],
+        "id": "1a000000-0000-4000-8000-000000000010",
+        "name": "Enviar por WhatsApp",
+        "onError": "continueRegularOutput"
+      }
+    ],
+    "connections": {
+      "Webhook verificación": {
+        "main": [
+          [
+            {
+              "node": "Verificar suscripción",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Verificar suscripción": {
+        "main": [
+          [
+            {
+              "node": "Responder verificación",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook mensajes": {
+        "main": [
+          [
+            {
+              "node": "Firma y mensaje",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Firma y mensaje": {
+        "main": [
+          [
+            {
+              "node": "Reconocer número",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Reconocer número": {
+        "main": [
+          [
+            {
+              "node": "¿Tiene sesión?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "¿Tiene sesión?": {
+        "main": [
+          [
+            {
+              "node": "¿Botón de confirmación?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "¿Necesita acceso?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "¿Botón de confirmación?": {
+        "main": [
+          [
+            {
+              "node": "Confirmar",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Agente",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Confirmar": {
+        "main": [
+          [
+            {
+              "node": "Enviar por WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Agente": {
+        "main": [
+          [
+            {
+              "node": "Formatear respuesta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Formatear respuesta": {
+        "main": [
+          [
+            {
+              "node": "Enviar por WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "¿Necesita acceso?": {
+        "main": [
+          [
+            {
+              "node": "Acceso",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Enviar por WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Acceso": {
+        "main": [
+          [
+            {
+              "node": "Enviar por WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Modelo OpenRouter": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Agente",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Memoria de la conversación": {
+        "ai_memory": [
+          [
+            {
+              "node": "Agente",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mis horas": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Planes de horas": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Franjas libres": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mis clases": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar reserva": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar compra": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "America/La_Paz"
+    },
+    "pinData": {},
+    "active": false,
+    "meta": {
+      "instanceId": "drivehub"
+    },
+    "id": "whatsappdrivehub01"
+  }
+]

@@ -1,0 +1,187 @@
+{
+  "_comentario": "Copia de la pantalla 'clases' de ml/acciones/acciones_pantallas.json (la fuente del entrenamiento). Si se cambia una acción allá, se cambia acá y se reentrena el modelo (CU50). Un test compara estos nombres con NombreAccion.",
+  "acciones": [
+    {
+      "nombre": "ver_mis_clases",
+      "descripcion": "Mostrar las clases reservadas que el estudiante tiene por venir (pestaña Mis clases). Sirve también para preguntar por la próxima clase, o por las de un día o un instructor.",
+      "parametros": {
+        "dia": {
+          "type": "string",
+          "enum": [
+            "hoy",
+            "manana",
+            "pasado_manana",
+            "lunes",
+            "martes",
+            "miercoles",
+            "jueves",
+            "viernes",
+            "sabado",
+            "domingo"
+          ],
+          "description": "Día de las clases a mostrar."
+        },
+        "instructor": {
+          "type": "string",
+          "description": "Nombre del instructor tal como lo dijo la persona."
+        }
+      },
+      "requeridos": []
+    },
+    {
+      "nombre": "ver_historial",
+      "descripcion": "Mostrar las clases pasadas del estudiante (pestaña Historial).",
+      "parametros": {},
+      "requeridos": []
+    },
+    {
+      "nombre": "buscar_horarios",
+      "descripcion": "Buscar horarios libres para reservar una clase (pestaña Reservar), opcionalmente por día, momento del día e instructor. Se usa también cuando la persona quiere reservar sin decir una hora exacta.",
+      "parametros": {
+        "dia": {
+          "type": "string",
+          "enum": [
+            "hoy",
+            "manana",
+            "pasado_manana",
+            "lunes",
+            "martes",
+            "miercoles",
+            "jueves",
+            "viernes",
+            "sabado",
+            "domingo"
+          ],
+          "description": "Día en que quiere la clase."
+        },
+        "momento": {
+          "type": "string",
+          "enum": [
+            "manana",
+            "tarde",
+            "noche"
+          ],
+          "description": "Momento del día: manana (antes de las 12), tarde (12 a 18) o noche (desde las 18)."
+        },
+        "instructor": {
+          "type": "string",
+          "description": "Nombre del instructor tal como lo dijo la persona."
+        }
+      },
+      "requeridos": []
+    },
+    {
+      "nombre": "seleccionar_horario",
+      "descripcion": "Elegir un horario libre concreto para reservar, cuando la persona dice la hora exacta. Solo lo marca; la reserva se confirma aparte.",
+      "parametros": {
+        "hora": {
+          "type": "string",
+          "description": "Hora de inicio en formato HH:mm de 24 horas, por ejemplo 15:00."
+        },
+        "dia": {
+          "type": "string",
+          "enum": [
+            "hoy",
+            "manana",
+            "pasado_manana",
+            "lunes",
+            "martes",
+            "miercoles",
+            "jueves",
+            "viernes",
+            "sabado",
+            "domingo"
+          ],
+          "description": "Día de la clase."
+        },
+        "instructor": {
+          "type": "string",
+          "description": "Nombre del instructor tal como lo dijo la persona."
+        }
+      },
+      "requeridos": [
+        "hora"
+      ]
+    },
+    {
+      "nombre": "limpiar_filtros",
+      "descripcion": "Quitar los filtros de momento e instructor de la pestaña Reservar y volver a ver todos los horarios.",
+      "parametros": {},
+      "requeridos": []
+    },
+    {
+      "nombre": "cancelar_clase",
+      "descripcion": "Cancelar una clase reservada. Sin datos, se refiere a la próxima clase; con día, hora o instructor, a la que coincida.",
+      "parametros": {
+        "dia": {
+          "type": "string",
+          "enum": [
+            "hoy",
+            "manana",
+            "pasado_manana",
+            "lunes",
+            "martes",
+            "miercoles",
+            "jueves",
+            "viernes",
+            "sabado",
+            "domingo"
+          ],
+          "description": "Día de la clase a cancelar."
+        },
+        "hora": {
+          "type": "string",
+          "description": "Hora de inicio de la clase a cancelar en formato HH:mm de 24 horas."
+        },
+        "instructor": {
+          "type": "string",
+          "description": "Nombre del instructor de la clase a cancelar."
+        }
+      },
+      "requeridos": []
+    },
+    {
+      "nombre": "reprogramar_clase",
+      "descripcion": "Cambiar una clase reservada a otro horario. Sin datos, se refiere a la próxima clase; con día, hora o instructor, a la que coincida. El nuevo horario se elige después.",
+      "parametros": {
+        "dia": {
+          "type": "string",
+          "enum": [
+            "hoy",
+            "manana",
+            "pasado_manana",
+            "lunes",
+            "martes",
+            "miercoles",
+            "jueves",
+            "viernes",
+            "sabado",
+            "domingo"
+          ],
+          "description": "Día de la clase a mover."
+        },
+        "hora": {
+          "type": "string",
+          "description": "Hora de inicio de la clase a mover en formato HH:mm de 24 horas."
+        },
+        "instructor": {
+          "type": "string",
+          "description": "Nombre del instructor de la clase a mover."
+        }
+      },
+      "requeridos": []
+    },
+    {
+      "nombre": "ver_horas_disponibles",
+      "descripcion": "Mostrar cuántas horas de clase le quedan al estudiante para reservar.",
+      "parametros": {},
+      "requeridos": []
+    },
+    {
+      "nombre": "fuera_de_alcance",
+      "descripcion": "La petición no se puede hacer desde la pantalla de clases (otro tema, otra pantalla o conversación general).",
+      "parametros": {},
+      "requeridos": []
+    }
+  ]
+}

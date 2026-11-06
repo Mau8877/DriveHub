@@ -233,3 +233,36 @@ Las constantes viven en `IdentidadErrorCodes` (`common/exception/`).
   gestionar estudiantes (CU08). El Super admin no tiene escuela y no se ve afectado.
 - **Dónde se lanza:** `EscuelaRestAdapter` (`buscarActivaPorSlug()` y `buscarPorCodigo()`) y
   `CategoriaLicenciaRestAdapter.existe()`
+
+## `ERR_IDE_25`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** El código de 6 dígitos para vincular el WhatsApp (CU47) no sirve: es incorrecto, venció, ya se usó,
+  se agotaron sus 5 intentos o no hay un código pedido para esa cuenta y ese número. Responde igual en todos esos casos
+  y cuando el correo no tiene una cuenta válida, para no revelar qué correos existen.
+- **Dónde se lanza:** `ConfirmarCodigoWhatsappService.confirmar()`
+
+## `ERR_IDE_26`
+
+- **HTTP:** 404
+- **Excepción:** `NotFoundException`
+- **Significado:** El número de WhatsApp no está vinculado a ninguna cuenta (CU47). Es la respuesta normal con la que
+  n8n sabe que debe ofrecer iniciar sesión o registrarse.
+- **Dónde se lanza:** `EmitirSesionWhatsappService.emitir()`
+
+## `ERR_IDE_27`
+
+- **HTTP:** 403
+- **Excepción:** `ForbiddenException`
+- **Significado:** El número está vinculado pero la cuenta ya no puede usar el chat de WhatsApp (CU47): está bloqueada
+  o inactiva, ya no es de estudiante o no es de la escuela del chat.
+- **Dónde se lanza:** `EmitirSesionWhatsappService.emitir()`
+
+## `ERR_IDE_28`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** El enlace para fijar la contraseña de un registro por WhatsApp (CU48) no sirve: no existe, venció
+  (dura 30 minutos), ya se usó o fue reemplazado por uno más nuevo del mismo número. La persona pide otro al chat.
+- **Dónde se lanza:** `CompletarRegistroWhatsappService.completar()`

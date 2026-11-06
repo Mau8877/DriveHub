@@ -2,58 +2,23 @@
 
 import json
 import time
-from collections.abc import Callable, Iterator
-from contextlib import asynccontextmanager
-from types import SimpleNamespace
+from collections.abc import Callable
 from typing import Any
 
 import httpx
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.common.security.verificador_jwt import VerificadorJwt
 from app.mcp import herramientas
 from app.mcp.clientes import ClienteServicios
-from app.mcp.herramientas import mcp
-from app.mcp.servidor import crear_app_mcp
 
 EMISOR = "drivehub-identidad"
 CABECERAS_MCP = {
     "Accept": "application/json, text/event-stream",
     "Content-Type": "application/json",
 }
-
-
-class _JwksFalso:
-    def __init__(self, clave_publica: object) -> None:
-        self._clave = clave_publica
-
-    def get_signing_key_from_jwt(self, token: str) -> SimpleNamespace:
-        return SimpleNamespace(key=self._clave)
-
-
-@pytest.fixture(scope="module")
-def clave() -> rsa.RSAPrivateKey:
-    return rsa.generate_private_key(public_exponent=65537, key_size=2048)
-
-
-@pytest.fixture(scope="module")
-def cliente(clave: rsa.RSAPrivateKey) -> Iterator[TestClient]:
-    """Un solo servidor para todo el módulo: el administrador de sesiones de MCP arranca una vez."""
-    verificador = VerificadorJwt("http://identidad/jwks", EMISOR, _JwksFalso(clave.public_key()))
-
-    @asynccontextmanager
-    async def vida(_: FastAPI):
-        async with mcp.session_manager.run():
-            yield
-
-    app = FastAPI(lifespan=vida)
-    app.mount("/mcp", crear_app_mcp(lambda: verificador))
-    with TestClient(app) as c:
-        yield c
 
 
 def _token(clave: rsa.RSAPrivateKey, roles: list[str], **cambios: object) -> str:
@@ -143,7 +108,7 @@ def test_un_rol_sin_acceso_responde_403(cliente: TestClient, clave: rsa.RSAPriva
 # -- herramientas ---------------------------------------------------------------------------------
 
 
-def test_lista_las_cuatro_herramientas_de_solo_lectura(
+def test_lista_las_herramientas_de_lectura_de_cu46_y_las_de_cu49(
     cliente: TestClient, clave: rsa.RSAPrivateKey
 ) -> None:
     respuesta = _llamar(cliente, _token(clave, ["ESTUDIANTE"]), "tools/list")
@@ -155,6 +120,15 @@ def test_lista_las_cuatro_herramientas_de_solo_lectura(
         "listar_tutoriales",
         "consultar_mis_notas",
         "consultar_notas_de_mis_alumnos",
+        # * CU49: consultas y el reservar/comprar de dos pasos del chat de WhatsApp
+        "consultar_mis_horas",
+        "listar_planes_de_horas",
+        "listar_franjas_libres",
+        "listar_mis_clases",
+        "preparar_reserva",
+        "confirmar_reserva",
+        "preparar_compra",
+        "confirmar_compra",
     }
 
 
@@ -320,7 +294,7 @@ def test_si_el_servicio_falla_la_herramienta_lo_cuenta_sin_detalles_tecnicos(
     assert "respondió algo inesperado" in _texto(ilegible)
 
 
-def test_todas_las_consultas_son_get(
+def test_las_herramientas_de_cu46_siguen_haciendo_solo_consultas_get(
     cliente: TestClient, clave: rsa.RSAPrivateKey, servicios: _Servicios
 ) -> None:
     _herramienta(cliente, _token(clave, ["ESTUDIANTE"]), "listar_manuales")

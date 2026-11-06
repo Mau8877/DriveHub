@@ -42,6 +42,8 @@ public class SecurityConfig {
                     "/api/v1/auth/logout", "/api/v1/auth/verificar-correo/confirmar",
                     "/api/v1/auth/recuperar", "/api/v1/auth/restablecer").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/usuarios").permitAll()
+                // * Registro por WhatsApp (CU48): fijar la contrasena con el enlace de un solo uso, sin sesion todavia
+                .requestMatchers(HttpMethod.POST, "/api/v1/registros-whatsapp/completar").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/escuelas/*").permitAll()
                 // * Pagos (CU26): la pagina fija a la que vuelve el estudiante de la pasarela de pago
                 .requestMatchers(HttpMethod.GET, "/api/v1/pagos/retorno").permitAll()

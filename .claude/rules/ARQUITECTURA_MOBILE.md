@@ -101,6 +101,7 @@ se hacen dentro de la app, sin internet; el backend (`asistente-ia`) solo guarda
   (`tflite_flutter`) y una falsa para los tests: `flutter test` nunca carga un modelo ni abre la cámara.
   La cámara/galería también va detrás de un provider (`selectorDeFotoProvider`).
 - El preprocesado pesado (decodificar fotos de varios MB) corre en otro hilo (`Isolate.run`).
+- **Asistente de voz de clases (CU50, `features/asistente/`):** dos modelos en el teléfono, cada uno detrás de una interfaz (`ModeloDeAcciones`, `ReconocedorDeVoz`) con una implementación falsa para los tests: el `.litertlm` de FunctionGemma (`flutter_litert_lm`) elige la acción y Whisper tiny (`sherpa_onnx` + `record`) convierte la voz en texto. Los archivos pesan ~284 MB y ~40 MB, no se versionan y se buscan en `<documentos>/ia/` (`acciones.litertlm` y `whisper/`); en desarrollo se copian con `adb push`. El audio nunca se guarda. El modelo solo elige una acción de un catálogo cerrado (`assets/ml/acciones_clases.json`, copia de `ml/acciones/acciones_pantallas.json`) y la app valida y confirma antes de cambiar nada.
 - Solo Android por ahora. `tflite_flutter` necesita `kotlin.jvm.target.validation.mode=warning` en
   `android/gradle.properties` (su Java está en 11 y Kotlin toma el JDK).
 

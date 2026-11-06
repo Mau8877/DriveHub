@@ -107,27 +107,14 @@ public class AltaCuenta {
     public Usuario crear(Datos datos, Supplier<UUID> escuela, String rol, String categoriaSigla) {
         String email = datos.email().trim().toLowerCase(Locale.ROOT);
 
-        if (edadEnAnios(datos.fechaNacimiento()) < edadMinima) {
-            LOG.warn("Alta rechazada: menor de edad",
-                kv("module", MODULO), kv("errorCode", IdentidadErrorCodes.MENOR_DE_EDAD));
-            throw new ValidationException(IdentidadErrorCodes.MENOR_DE_EDAD,
-                "Debes tener al menos " + edadMinima + " años para registrarte");
-        }
+        verificarEdadMinima(datos.fechaNacimiento());
 
         UUID escuelaCodigo = escuela.get();
 
-        if (usuarioRepository.existePorEmail(email)) {
-            LOG.warn("Alta rechazada: correo en uso",
-                kv("module", MODULO), kv("errorCode", IdentidadErrorCodes.CORREO_EN_USO));
-            throw new ConflictException(IdentidadErrorCodes.CORREO_EN_USO, "Ya existe una cuenta con ese correo");
-        }
+        verificarCorreoLibre(email);
 
         String ci = Ci.normalizar(datos.ci());
-        if (usuarioRepository.existePorCi(ci)) {
-            LOG.warn("Alta rechazada: CI en uso",
-                kv("module", MODULO), kv("errorCode", IdentidadErrorCodes.CI_EN_USO));
-            throw new ConflictException(IdentidadErrorCodes.CI_EN_USO, "Ya existe una cuenta con ese CI");
-        }
+        verificarCiLibre(ci);
 
         if (datos.codigo() != null && usuarioRepository.buscarPorCodigo(datos.codigo()).isPresent()) {
             LOG.warn("Alta rechazada: el código ya existe", kv("module", MODULO));
@@ -162,6 +149,45 @@ public class AltaCuenta {
             .build();
 
         return usuarioRepository.guardar(nuevo);
+    }
+
+    /**
+     * La edad mínima del alta. Es pública porque el registro por WhatsApp (CU48) la comprueba dato por dato,
+     * antes de tener todos los de la cuenta.
+     *
+     * @throws ValidationException `ERR_IDE_02` si es menor de edad
+     */
+    public void verificarEdadMinima(LocalDate fechaNacimiento) {
+        if (edadEnAnios(fechaNacimiento) < edadMinima) {
+            LOG.warn("Alta rechazada: menor de edad",
+                kv("module", MODULO), kv("errorCode", IdentidadErrorCodes.MENOR_DE_EDAD));
+            throw new ValidationException(IdentidadErrorCodes.MENOR_DE_EDAD,
+                "Debes tener al menos " + edadMinima + " años para registrarte");
+        }
+    }
+
+    /**
+     * @param email ya normalizado (sin espacios y en minúsculas)
+     * @throws ConflictException `ERR_IDE_01` si el correo ya está en uso
+     */
+    public void verificarCorreoLibre(String email) {
+        if (usuarioRepository.existePorEmail(email)) {
+            LOG.warn("Alta rechazada: correo en uso",
+                kv("module", MODULO), kv("errorCode", IdentidadErrorCodes.CORREO_EN_USO));
+            throw new ConflictException(IdentidadErrorCodes.CORREO_EN_USO, "Ya existe una cuenta con ese correo");
+        }
+    }
+
+    /**
+     * @param ci ya normalizado (sin espacios y en mayúsculas)
+     * @throws ConflictException `ERR_IDE_19` si el CI ya está en uso
+     */
+    public void verificarCiLibre(String ci) {
+        if (usuarioRepository.existePorCi(ci)) {
+            LOG.warn("Alta rechazada: CI en uso",
+                kv("module", MODULO), kv("errorCode", IdentidadErrorCodes.CI_EN_USO));
+            throw new ConflictException(IdentidadErrorCodes.CI_EN_USO, "Ya existe una cuenta con ese CI");
+        }
     }
 
     private int edadEnAnios(LocalDate fechaNacimiento) {

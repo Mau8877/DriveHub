@@ -83,7 +83,7 @@ Las líneas punteadas son **referencias por código, sin FK**: se validan al esc
 
 ## 2. Identidad — PostgreSQL
 
-Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02), `V20261020120000__correo_verificado_y_tipo_token.sql` (CU04b), `V20261021120000__cambio_de_correo.sql` (CU06), `V20261023100000__crear_perfil.sql` (CU08a), `V20261023120000__extension_unaccent.sql` (CU08).
+Cuentas, roles, permisos y sesiones. Migraciones: `V20261018120000__crear_esquema_identidad.sql`, `V20261019110000__usuario_escuela_y_roles.sql` (CU01), `V20261019120000__usuario_bloqueado_hasta.sql` (CU02), `V20261020120000__correo_verificado_y_tipo_token.sql` (CU04b), `V20261021120000__cambio_de_correo.sql` (CU06), `V20261023100000__crear_perfil.sql` (CU08a), `V20261023120000__extension_unaccent.sql` (CU08), `V20261105100000__crear_vinculo_whatsapp.sql` (CU47), `V20261105110000__crear_solicitud_registro_whatsapp.sql` (CU48).
 
 ```mermaid
 erDiagram
@@ -94,6 +94,8 @@ erDiagram
     usuario ||--o{ refresh_token : "sesiones"
     usuario ||--o{ token_recuperacion : "recuperaciones"
     usuario ||--|| perfil : "datos de la persona"
+    usuario ||--o| vinculo_whatsapp : "su WhatsApp"
+    usuario ||--o{ desafio_whatsapp : "códigos al correo"
 
     usuario {
         bigint id PK
@@ -239,6 +241,49 @@ Enlaces enviados por correo, de un solo uso: verificar el correo (CU04b), restab
 | `token_hash` | `VARCHAR(64) NOT NULL UNIQUE` | |
 | `expira_en` | `TIMESTAMPTZ NOT NULL` | |
 | `usado` | `BOOLEAN NOT NULL DEFAULT FALSE` | |
+
+### `vinculo_whatsapp` (CU47)
+
+El número de WhatsApp de un estudiante, para reconocerlo cuando escribe al chat. **El número no se guarda en claro:** solo su hash.
+
+| Columna | Tipo | Notas |
+| --- | --- | --- |
+| `usuario_id` | `BIGINT NOT NULL UNIQUE REFERENCES usuario(id)` | Una cuenta, un número |
+| `telefono_hash` | `VARCHAR(64) NOT NULL UNIQUE` | HMAC-SHA256 del número (solo dígitos) con `WHATSAPP_HASH_SECRET`. Un número, una cuenta |
+
+Se borra de forma física al reemplazarlo (las columnas únicas seguirían ocupadas con un borrado lógico).
+
+### `desafio_whatsapp` (CU47)
+
+Códigos de 6 dígitos enviados al correo para vincular un número. Solo se guarda el hash del código.
+
+| Columna | Tipo | Notas |
+| --- | --- | --- |
+| `usuario_id` | `BIGINT REFERENCES usuario(id)` | Nulo cuando el correo no tenía una cuenta válida: el pedido se guarda ya descartado (`usado = true`) para que el límite de pedidos cuente igual exista o no la cuenta |
+| `telefono_hash` | `VARCHAR(64) NOT NULL` | Índice `(telefono_hash, created_at)` para el límite por número |
+| `correo_hash` | `VARCHAR(64) NOT NULL` | HMAC del correo normalizado. Índice `(correo_hash, created_at)` para el límite por correo |
+| `codigo_hash` | `VARCHAR(64) NOT NULL` | HMAC del código |
+| `intentos` | `INTEGER NOT NULL DEFAULT 0` | Con 5 intentos fallidos el código deja de servir |
+| `expira_en` | `TIMESTAMPTZ NOT NULL` | 10 minutos después de crearse |
+| `usado` | `BOOLEAN NOT NULL DEFAULT FALSE` | Pedir uno nuevo marca los anteriores de la cuenta como usados |
+
+Índice `(usuario_id, created_at)`.
+
+### `solicitud_registro_whatsapp` (CU48)
+
+Los datos que una persona dictó por el chat para registrarse, a la espera de que fije su contraseña en la web. **No es una cuenta.** La fila se borra de forma física al completar el registro o al vencer el enlace (un proceso programado la limpia); no se conservan datos personales.
+
+| Columna | Tipo | Notas |
+| --- | --- | --- |
+| `telefono` | `VARCHAR(20) NOT NULL` | Solo dígitos, con el código de país. Índice `idx_solicitud_registro_whatsapp_telefono`. Una solicitud nueva del mismo número reemplaza a las anteriores |
+| `nombres`, `apellidos` | `VARCHAR(80) NOT NULL` | |
+| `fecha_nacimiento` | `DATE NOT NULL` | |
+| `sexo` | `VARCHAR(10) NOT NULL` | `CHECK IN ('MASCULINO','FEMENINO')` |
+| `ci` | `VARCHAR(15) NOT NULL` | Normalizado (sin espacios y en mayúsculas) |
+| `correo` | `VARCHAR(120) NOT NULL` | Normalizado |
+| `latitud`, `longitud` | `NUMERIC(9,6) NOT NULL` | La dirección no se guarda: se calcula al crear la cuenta |
+| `token_hash` | `VARCHAR(64) NOT NULL UNIQUE` | Hash del enlace de un solo uso |
+| `expira_en` | `TIMESTAMPTZ NOT NULL` | 30 minutos. Índice `idx_solicitud_registro_whatsapp_expira` |
 
 **Datos sembrados:** los 4 roles (migración). En el perfil `dev`, además, `superadmin@gmail.com` (`SUPER_ADMIN`, sin escuela) y `adminexample@gmail.com` (`ADMIN_ESCUELA` de `escuelaexample`) e `instructorexample@gmail.com` (`INSTRUCTOR` de `escuelaexample`, con código fijo `0198f0a0-0000-7000-8000-000000000002`), todos con contraseña `123123123`.
 
@@ -940,6 +985,7 @@ Las imágenes y audios no se guardan en las tablas: va la **clave del archivo** 
 | `SesionesIA` | `usuarioCodigo` (S) | `sk` (S) = `<fecha ISO>#<codigoSesionIa>` | |
 | `MensajesIA` | `sesionCodigo` (S) | `seq` (N) | Aparte de `SesionesIA` para no pasar el límite de 400 KB por ítem |
 | `AyudasTablero` | `usuarioCodigo` (S) | `sk` (S) = `<fecha ISO>#<codigoAyudaTablero>` | |
+| `ConfirmacionesIA` | `usuarioCodigo` (S) | `sk` (S) = `<fecha ISO>#<codigoConfirmacion>` | TTL en `ttl` |
 | `AgentesIA` | `codigoAgenteIa` (S) | — | |
 
 ### `SesionesIA` (CU39)
@@ -985,6 +1031,22 @@ Ayuda por foto del tablero. **El análisis lo hace el modelo del teléfono** (IA
 | `latenciaMs` | N | |
 | `util` | BOOL | Opinión del estudiante. Opcional |
 | `creadaEn` | S | |
+
+### `ConfirmacionesIA` (CU49)
+
+Las acciones de escritura (reservar clases, comprar horas) que el chat de WhatsApp prepara y la persona debe confirmar. Es lo que impide que el modelo ejecute algo por su cuenta: `confirmar_*` solo acepta el código de una confirmación de esa persona, de esa acción, vigente y de un solo uso.
+
+| Atributo | Tipo | Notas |
+| --- | --- | --- |
+| `usuarioCodigo` | S | Partición: la persona de Identidad |
+| `sk` | S | Orden: `<fecha ISO>#<codigoConfirmacion>` |
+| `codigoConfirmacion` | S | UUID v7; es el código que recibe la persona |
+| `accion` | S | `RESERVA` o `COMPRA` |
+| `estado` | S | `PENDIENTE`, `EN_CURSO` (alguien la está ejecutando) o `EJECUTADA` |
+| `datos` | S | JSON en texto: lo que se ejecutará (las franjas elegidas o el plan) |
+| `resultado` | S | JSON en texto: lo que devolvió la acción. Solo cuando ya se ejecutó; repetir la confirmación devuelve esto |
+| `creadaEn` | S | |
+| `ttl` | N | Epoch en segundos. Pendiente: vence a los 10 minutos. Ejecutada: se conserva 2 días (tope diario e idempotencia) |
 
 ### `AgentesIA` (CU43)
 

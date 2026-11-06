@@ -32,6 +32,12 @@ public final class IdentidadErrorCodes {
     public static final String INSTRUCTOR_NO_ENCONTRADO = "ERR_IDE_22";
     public static final String CUENTA_YA_USADA = "ERR_IDE_23";
     public static final String ESCUELA_NO_RESPONDE = "ERR_IDE_24";
+    public static final String CODIGO_WHATSAPP_INVALIDO = "ERR_IDE_25";
+    public static final String WHATSAPP_NO_VINCULADO = "ERR_IDE_26";
+    public static final String WHATSAPP_CUENTA_NO_HABILITADA = "ERR_IDE_27";
+    public static final String ENLACE_REGISTRO_INVALIDO = "ERR_IDE_28";
+    // * Es el mismo código del rate limit del gateway (ERR_SYS_02): estas rutas internas no pasan por él
+    public static final String LIMITE_EXCEDIDO = "ERR_SYS_02";
 
     private IdentidadErrorCodes() {
     }
