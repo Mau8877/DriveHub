@@ -33,6 +33,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/cuenta/screens/recuperar').then((m) => m.Recuperar),
       },
       {
+        // * Registro por WhatsApp (CU48): el enlace que manda el chat lleva acá para elegir la contraseña
+        path: 'set-password',
+        loadComponent: () =>
+          import('./features/registro-whatsapp/screens/establecer-password').then(
+            (m) => m.EstablecerPassword
+          ),
+      },
+      {
         path: 'reset-password',
         loadComponent: () =>
           import('./features/cuenta/screens/restablecer').then((m) => m.Restablecer),
