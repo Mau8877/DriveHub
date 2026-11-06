@@ -104,6 +104,9 @@ services:
       - SMTP_FROM=${SMTP_FROM:-no-reply@drivehub.local}
       # Web a la que apuntan los enlaces de los correos.
       - APP_WEB_URL=${APP_WEB_URL:-http://localhost:4200}
+      # Chat de WhatsApp (CU47): credencial con la que n8n pasa por /internal/** y clave del HMAC del numero y los codigos.
+      - IDENTIDAD_CREDENCIAL_N8N=${IDENTIDAD_CREDENCIAL_N8N:-}
+      - WHATSAPP_HASH_SECRET=${WHATSAPP_HASH_SECRET:-whatsapp_hash_local_secret_123}
     depends_on:
       postgres:
         condition: service_healthy
@@ -381,9 +384,59 @@ services:
       # Servicios que consulta el servidor MCP (CU46), por la red interna.
       - CONTENIDO_URL=http://drivehub-contenido:8085
       - ACADEMICO_URL=http://drivehub-academico:8084
+      # CU49: consultar horas y planes, y crear el pago de una compra (con el token de la persona).
+      - PAGOS_URL=http://drivehub-pagos:8083
     depends_on:
       dynamodb:
         condition: service_started
+    networks:
+      - drivehub-network
+
+  # =======================================
+  # N8N (chat de WhatsApp, CU47 a CU49) -- perfil `whatsapp`
+  # =======================================
+  # * Recibe los mensajes de WhatsApp (Meta Cloud API) en /webhook/whatsapp y orquesta el chat. El flujo es
+  # * codigo versionado (infrastructure/n8n): al arrancar se importa y se publica; lo que se edite en la interfaz
+  # * de n8n se pierde en el siguiente arranque. Guia: infrastructure/n8n/README.md.
+  # * Para que Meta le entregue mensajes necesita una URL publica (WEBHOOK_URL, un tunel); sin ella funciona
+  # * todo menos recibir mensajes reales.
+  n8n:
+    image: n8nio/n8n:2.46.6
+    container_name: drivehub-n8n
+    mem_limit: 768m
+    profiles: ['whatsapp']
+    # * El entrypoint de la imagen hace `exec n8n "$@"`: para encadenar los comandos hay que reemplazarlo por sh.
+    entrypoint: ['sh', '-c']
+    command:
+      - >-
+        n8n import:credentials --input=/flujos/credenciales.json &&
+        n8n import:workflow --input=/flujos/whatsapp-drivehub.json &&
+        n8n publish:workflow --id=whatsappdrivehub01 &&
+        n8n start
+    ports:
+      - '5678:5678'
+    environment:
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - GENERIC_TIMEZONE=America/La_Paz
+      - TZ=America/La_Paz
+      # Los nodos Code leen las variables de abajo con $env y usan `crypto` para validar la firma de Meta.
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - NODE_FUNCTION_ALLOW_BUILTIN=crypto
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - IDENTIDAD_URL=http://drivehub-identidad:8081
+      - ASISTENTE_IA_URL=http://drivehub-asistente-ia:8087
+      - IDENTIDAD_CREDENCIAL_N8N=${IDENTIDAD_CREDENCIAL_N8N:-}
+      - WHATSAPP_VERIFY_TOKEN=${WHATSAPP_VERIFY_TOKEN:-}
+      - WHATSAPP_APP_SECRET=${WHATSAPP_APP_SECRET:-}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID:-}
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-openai/gpt-4o-mini}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./infrastructure/n8n/flujos:/flujos:ro
     networks:
       - drivehub-network
 
@@ -640,6 +693,8 @@ volumes:
     name: drivehub-rabbitmq_data
   minio_data:
     name: drivehub-minio_data
+  n8n_data:
+    name: drivehub-n8n_data
   contenido_vendor:
     name: drivehub-contenido_vendor
   notificaciones_node_modules_root:
