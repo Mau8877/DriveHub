@@ -167,7 +167,7 @@ for (const item of $input.all()) {
       }
     } else {
       salida.push(
-        botones(tel, 'Toca *Confirmar registro* para continuar o *Cancelar* para empezar de nuevo.', [
+        botones(tel, 'Elige *Confirmar registro* para continuar o *Cancelar* para empezar de nuevo.', [
           ['reg:ok', 'Confirmar registro'],
           ['acceso:cancelar', 'Cancelar'],
         ])
@@ -201,7 +201,7 @@ for (const item of $input.all()) {
   if (valor === null) {
     salida.push(
       actual.campo === 'sexo'
-        ? botones(tel, 'Toca una de las opciones.', [['sexo:MASCULINO', 'Masculino'], ['sexo:FEMENINO', 'Femenino']])
+        ? botones(tel, 'Elige una de las opciones.',[['sexo:MASCULINO', 'Masculino'], ['sexo:FEMENINO', 'Femenino']])
         : texto(tel, actual.pregunta || 'No entendí ese dato.')
     );
     continue;

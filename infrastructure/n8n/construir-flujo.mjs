@@ -21,7 +21,6 @@ const codigo = (nombre, conPrelude = true) => ({
 })
 
 // ---- identificadores estables (n8n los usa para relacionar el flujo y sus webhooks)
-const WEBHOOK_VERIFICACION = '6e0f3d5e-8f0a-4d52-9c1b-0d6f6f7a0001'
 const WEBHOOK_MENSAJES = '6e0f3d5e-8f0a-4d52-9c1b-0d6f6f7a0002'
 const CREDENCIAL_OPENROUTER = { id: 'drivehub-openrouter', name: 'OpenRouter DriveHub' }
 
@@ -34,20 +33,20 @@ Cómo respondes:
 - Español sencillo y breve, tono amable. Es WhatsApp: mensajes cortos, sin tablas ni markdown pesado (la negrita de WhatsApp es *así*, con un solo asterisco; nunca uses ** ni títulos con #; viñetas con •).
 - Usa SIEMPRE las herramientas para consultar horas, planes, clases libres y clases reservadas. NUNCA inventes horarios, instructores, códigos, precios ni saldos.
 - Los códigos (de franja, de plan, de confirmación) son internos: no se los muestres a la persona.
-- Mientras la persona no toque *Confirmar* no se reservó ni se compró nada: di «preparé el resumen», nunca «reservé» ni «compré».
+- Mientras la persona no confirme no se reservó ni se compró nada: di «preparé el resumen», nunca «reservé» ni «compré».
 
 Reservar clases:
 1. Consulta las clases libres con listar_franjas_libres (puedes filtrar por día, momento del día e instructor) y propón opciones claras: fecha, hora e instructor.
 2. Cuando la persona elija, llama a preparar_reserva con los códigos de esas clases. Eso NO reserva nada: devuelve un resumen.
-3. Muestra el resumen (clases, horas que se gastan y horas que quedarían) y termina diciendo que toque *Confirmar* o *Cancelar*. Los botones los agrega el sistema: no los escribas tú.
+3. Muestra el resumen (clases, horas que se gastan y horas que quedarían) y termina diciendo que puede confirmar o cancelar. El sistema agrega al final la pregunta de confirmar o cancelar: no la escribas tú.
 
 Comprar horas:
 1. Muestra los planes con listar_planes_de_horas (nombre, horas y precio en Bs y en US$).
 2. Cuando la persona elija uno, llama a preparar_compra. Eso NO cobra nada: devuelve un resumen.
-3. Muestra el resumen y pide que toque *Confirmar* o *Cancelar*. El pago con tarjeta se hace en un enlace seguro que se envía después; nunca pidas datos de tarjeta.
+3. Muestra el resumen y di que podrá confirmar o cancelar (el sistema agrega la pregunta). El pago con tarjeta se hace en un enlace seguro que se envía después; nunca pidas datos de tarjeta.
 
 Reglas:
-- Tú no puedes confirmar nada: solo la persona, tocando el botón. Si dice «sí, confírmalo» por texto, recuérdale que toque el botón *Confirmar* del resumen (si ya no lo ve, prepara el resumen de nuevo).
+- Tú no puedes confirmar nada: la confirmación la procesa el sistema cuando la persona responde al resumen («sí», «confírmalo», «mejor no»...). No digas que ya quedó hecho. Si la persona quiere cambiar algo o ya pasó un buen rato, prepara el resumen de nuevo.
 - Nunca pidas ni aceptes contraseñas.
 - Cancelar o reprogramar clases, reembolsos y comprobantes se hacen desde la app: explícalo con amabilidad.
 - Si una herramienta devuelve un error, cuéntalo en palabras simples y propón qué hacer.
@@ -130,40 +129,13 @@ const herramientas = [
 
 const nodos = [
   {
-    parameters: { httpMethod: 'GET', path: 'whatsapp', responseMode: 'responseNode', options: {} },
-    type: 'n8n-nodes-base.webhook',
-    typeVersion: 2,
-    position: [0, 0],
-    id: '1a000000-0000-4000-8000-000000000001',
-    name: 'Webhook verificación',
-    webhookId: WEBHOOK_VERIFICACION,
-  },
-  {
-    parameters: codigo('verificar-suscripcion.js', false),
-    type: 'n8n-nodes-base.code',
-    typeVersion: 2,
-    position: [240, 0],
-    id: '1a000000-0000-4000-8000-000000000002',
-    name: 'Verificar suscripción',
-  },
-  {
-    parameters: {
-      respondWith: 'text',
-      responseBody: '={{ $json.cuerpo }}',
-      options: { responseCode: '={{ $json.codigo }}' },
-    },
-    type: 'n8n-nodes-base.respondToWebhook',
-    typeVersion: 1.1,
-    position: [480, 0],
-    id: '1a000000-0000-4000-8000-000000000003',
-    name: 'Responder verificación',
-  },
-  {
+    // * WAHA solo necesita un 200 vacío: la respuesta al usuario sale aparte, por su API de mensajes. rawBody guarda el
+    // * cuerpo tal cual llegó, que es lo que firma WAHA (HMAC-SHA512).
     parameters: {
       httpMethod: 'POST',
       path: 'whatsapp',
       responseMode: 'onReceived',
-      options: { rawBody: true },
+      options: { rawBody: true, responseData: 'noData' },
     },
     type: 'n8n-nodes-base.webhook',
     typeVersion: 2,
@@ -173,12 +145,20 @@ const nodos = [
     webhookId: WEBHOOK_MENSAJES,
   },
   {
-    parameters: codigo('firma-y-mensaje.js', false),
+    parameters: codigo('firma-y-mensaje.js'),
     type: 'n8n-nodes-base.code',
     typeVersion: 2,
     position: [240, 400],
     id: '1a000000-0000-4000-8000-000000000005',
     name: 'Firma y mensaje',
+  },
+  {
+    parameters: codigo('elegir-opcion.js'),
+    type: 'n8n-nodes-base.code',
+    typeVersion: 2,
+    position: [360, 400],
+    id: '1a000000-0000-4000-8000-000000000011',
+    name: 'Elegir opción',
   },
   {
     parameters: codigo('reconocer.js'),
@@ -316,24 +296,12 @@ const nodos = [
     name: 'Acceso',
   },
   {
-    parameters: {
-      method: 'POST',
-      url: "={{ ($env.WHATSAPP_API_URL || 'https://graph.facebook.com/v21.0').replace(/\\/$/, '') + '/' + $env.WHATSAPP_PHONE_NUMBER_ID + '/messages' }}",
-      sendHeaders: true,
-      headerParameters: {
-        parameters: [{ name: 'Authorization', value: "={{ 'Bearer ' + $env.WHATSAPP_TOKEN }}" }],
-      },
-      sendBody: true,
-      specifyBody: 'json',
-      jsonBody: '={{ JSON.stringify($json.mensaje) }}',
-      options: {},
-    },
-    type: 'n8n-nodes-base.httpRequest',
-    typeVersion: 4.2,
+    parameters: codigo('enviar.js'),
+    type: 'n8n-nodes-base.code',
+    typeVersion: 2,
     position: [1860, 400],
     id: '1a000000-0000-4000-8000-000000000010',
     name: 'Enviar por WhatsApp',
-    onError: 'continueRegularOutput',
   },
 ]
 
@@ -341,10 +309,9 @@ const principal = (...destinos) => ({ main: destinos.map((d) => d.map((nombre) =
 const ia = (tipo, destino) => ({ [tipo]: [[{ node: destino, type: tipo, index: 0 }]] })
 
 const conexiones = {
-  'Webhook verificación': principal(['Verificar suscripción']),
-  'Verificar suscripción': principal(['Responder verificación']),
   'Webhook mensajes': principal(['Firma y mensaje']),
-  'Firma y mensaje': principal(['Reconocer número']),
+  'Firma y mensaje': principal(['Elegir opción']),
+  'Elegir opción': principal(['Reconocer número']),
   'Reconocer número': principal(['¿Tiene sesión?']),
   '¿Tiene sesión?': principal(['¿Botón de confirmación?'], ['¿Necesita acceso?']),
   '¿Botón de confirmación?': principal(['Confirmar'], ['Agente']),
