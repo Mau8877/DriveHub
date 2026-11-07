@@ -117,7 +117,7 @@ que ya existen son:
 | n8n → Identidad | Chat de WhatsApp: pedir el código al correo, vincular el número y pedir la sesión corta (5 min) del estudiante, por las rutas internas `/internal/v1/whatsapp/*` con la credencial de servicio (header `X-Service-Key`, variable `IDENTIDAD_CREDENCIAL_N8N`); esas rutas no pasan por el gateway | CU47 |
 
 **n8n** (`infrastructure/n8n/`, puerto 5678, perfil `whatsapp` de Docker Compose) no es un servicio de negocio: es el
-motor de flujos que recibe los mensajes de WhatsApp (Meta Cloud API) y orquesta el chat (CU47 a CU49). No tiene base
+motor de flujos que recibe los mensajes de WhatsApp (por WAHA) y orquesta el chat (CU47 a CU49). No tiene base
 de datos de negocio ni lógica de dominio: habla con Identidad por las rutas internas de arriba y con `asistente-ia`
 por MCP, siempre con el token de la persona.
 
