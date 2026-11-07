@@ -1,8 +1,9 @@
 // La respuesta del agente de IA, lista para WhatsApp.
 //
 // Si el agente acaba de preparar una reserva o una compra (herramientas preparar_*), el resumen se manda con los
-// botones «Confirmar» y «Cancelar». El código de confirmación viaja dentro del id del botón: lo que ejecuta la
-// acción es el toque de la persona (nodo «Confirmar»), no lo que escriba el modelo.
+// opciones «1. Confirmar» y «2. Cancelar». El código de confirmación queda guardado junto a esas opciones (ver
+// `botones` en el prelude): lo que ejecuta la acción es la respuesta de la persona (nodo «Confirmar»), no lo que
+// escriba el modelo.
 const CODIGO_RE = /codigoConfirmacion\\*"\s*:\s*\\*"([0-9a-fA-F-]{36})/;
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 const TIPOS = { preparar_reserva: 'RESERVA', preparar_compra: 'COMPRA' };

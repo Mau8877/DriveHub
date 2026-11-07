@@ -1,11 +1,11 @@
-// La persona tocó «Confirmar» o «Cancelar» en el resumen de una reserva o de una compra (CU49).
+// La persona respondió «Confirmar» o «Cancelar» (1 o 2) al resumen de una reserva o de una compra (CU49).
 //
 // Esta es la ÚNICA puerta por la que se ejecuta una escritura: el agente de IA no tiene las herramientas
 // confirmar_* y no puede decidir ejecutarlas. Acá se llama directo al servidor MCP con el código que venía en
-// el botón y la sesión corta del estudiante; el servidor además exige que el código sea de esa persona, de esa
+// la opción elegida y la sesión corta del estudiante; el servidor además exige que el código sea de esa persona, de esa
 // acción, vigente y de un solo uso.
 //
-// El botón trae el id `confirmar|RESERVA|<codigo>`, `confirmar|COMPRA|<codigo>` o `cancelar|<acción>|<codigo>`.
+// La opción elegida trae el id `confirmar|RESERVA|<codigo>`, `confirmar|COMPRA|<codigo>` o `cancelar|<acción>|<codigo>`.
 const HERRAMIENTA = { RESERVA: 'confirmar_reserva', COMPRA: 'confirmar_compra' };
 
 /** Llama a una herramienta del servidor MCP (JSON-RPC por HTTP) con la sesión de la persona. */

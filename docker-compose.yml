@@ -395,11 +395,10 @@ services:
   # =======================================
   # N8N (chat de WhatsApp, CU47 a CU49) -- perfil `whatsapp`
   # =======================================
-  # * Recibe los mensajes de WhatsApp (Meta Cloud API) en /webhook/whatsapp y orquesta el chat. El flujo es
+  # * Recibe los mensajes de WhatsApp (WAHA) en /webhook/whatsapp y orquesta el chat. El flujo es
   # * codigo versionado (infrastructure/n8n): al arrancar se importa y se publica; lo que se edite en la interfaz
   # * de n8n se pierde en el siguiente arranque. Guia: infrastructure/n8n/README.md.
-  # * Para que Meta le entregue mensajes necesita una URL publica (WEBHOOK_URL, un tunel); sin ella funciona
-  # * todo menos recibir mensajes reales.
+  # * WAHA y n8n se hablan por la red de Docker: no hace falta URL publica ni tunel.
   n8n:
     image: n8nio/n8n:2.46.6
     container_name: drivehub-n8n
@@ -420,7 +419,7 @@ services:
       - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
       - GENERIC_TIMEZONE=America/La_Paz
       - TZ=America/La_Paz
-      # Los nodos Code leen las variables de abajo con $env y usan `crypto` para validar la firma de Meta.
+      # Los nodos Code leen las variables de abajo con $env y usan `crypto` para validar la firma de WAHA.
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
       - NODE_FUNCTION_ALLOW_BUILTIN=crypto
       - N8N_DIAGNOSTICS_ENABLED=false
@@ -428,15 +427,48 @@ services:
       - IDENTIDAD_URL=http://drivehub-identidad:8081
       - ASISTENTE_IA_URL=http://drivehub-asistente-ia:8087
       - IDENTIDAD_CREDENCIAL_N8N=${IDENTIDAD_CREDENCIAL_N8N:-}
-      - WHATSAPP_VERIFY_TOKEN=${WHATSAPP_VERIFY_TOKEN:-}
-      - WHATSAPP_APP_SECRET=${WHATSAPP_APP_SECRET:-}
-      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID:-}
-      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN:-}
+      - WAHA_URL=http://drivehub-waha:3000
+      - WAHA_API_KEY=${WAHA_API_KEY:-}
+      - WAHA_HMAC_KEY=${WAHA_HMAC_KEY:-}
+      - WAHA_SESSION=default
+      - WHATSAPP_NUMEROS_PERMITIDOS=${WHATSAPP_NUMEROS_PERMITIDOS:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-openai/gpt-4o-mini}
+      - OPENROUTER_MODEL_CLASIFICADOR=${OPENROUTER_MODEL_CLASIFICADOR:-}
     volumes:
       - n8n_data:/home/node/.n8n
       - ./infrastructure/n8n/flujos:/flujos:ro
+    depends_on:
+      - waha
+    networks:
+      - drivehub-network
+
+  # =======================================
+  # WAHA (WhatsApp HTTP API) -- perfil `whatsapp`
+  # =======================================
+  # * Enlaza un WhatsApp (un numero SECUNDARIO, no el personal) escaneando un QR y lo expone por HTTP. NO es la API
+  # * oficial de WhatsApp: Meta puede bloquear el numero. Entrega cada mensaje a n8n firmado con WAHA_HMAC_KEY y
+  # * n8n responde por su API (X-Api-Key). Panel y QR en http://localhost:3010/dashboard (el 3000 es de Grafana).
+  # * La sesion `default` arranca sola; el QR se escanea una vez y la sesion queda guardada en el volumen.
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: drivehub-waha
+    mem_limit: 1g
+    profiles: ['whatsapp']
+    restart: unless-stopped
+    ports:
+      - '3010:3000'
+    environment:
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+      - WHATSAPP_START_SESSION=default
+      - WAHA_API_KEY=${WAHA_API_KEY:-}
+      - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME:-admin}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:-admin}
+      - WHATSAPP_HOOK_URL=http://drivehub-n8n:5678/webhook/whatsapp
+      - WHATSAPP_HOOK_EVENTS=message
+      - WHATSAPP_HOOK_HMAC_KEY=${WAHA_HMAC_KEY:-}
+    volumes:
+      - waha_sessions:/app/.sessions
     networks:
       - drivehub-network
 
@@ -695,6 +727,8 @@ volumes:
     name: drivehub-minio_data
   n8n_data:
     name: drivehub-n8n_data
+  waha_sessions:
+    name: drivehub-waha_sessions
   contenido_vendor:
     name: drivehub-contenido_vendor
   notificaciones_node_modules_root:
