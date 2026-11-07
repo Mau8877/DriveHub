@@ -36,7 +36,7 @@ también se publican al host para acceder a cada pieza directo.
 | Backend | `backend` | `gateway`, `identidad`, `escuela`, `pagos`, `academico`, `contenido`, `notificaciones`, `asistente-ia` |
 | Frontend | `frontend` | `frontend` (las 7 apps en un contenedor), `proxy` (nginx) |
 | Observabilidad | `observabilidad` | `prometheus`, `grafana` |
-| Chat de WhatsApp | `whatsapp` | `n8n` (recibe los mensajes de Meta y orquesta el chat, CU47 a CU49) |
+| Chat de WhatsApp | `whatsapp` | `n8n` y `waha` (WAHA enlaza un WhatsApp y le entrega los mensajes a n8n, que orquesta el chat, CU47 a CU49) |
 
 `COMPOSE_PROFILES` en el `.env` (default `backend,frontend,observabilidad`)
 decide qué perfiles se levantan. Para trabajar en un servicio desde el IDE,
@@ -60,7 +60,7 @@ servicio local; los defaults de cada servicio apuntan a `localhost`.
 | `9000` / `9001` | MinIO | API S3 / consola web |
 | `1025` / `8025` | Mailpit | SMTP de desarrollo / bandeja web de los correos |
 | `9090` / `3000` | Prometheus / Grafana | Métricas |
-| `5678` | n8n | Interfaz de n8n y `/webhook/whatsapp` (el que llama Meta, por un túnel público). Guía: [infrastructure/n8n/README.md](../infrastructure/n8n/README.md) |
+| `5678` | n8n | Interfaz de n8n y `/webhook/whatsapp` (el que llama WAHA por la red de Docker, sin túnel). Guía: [infrastructure/n8n/README.md](../infrastructure/n8n/README.md) |
 
 ## 4. Bases de datos
 

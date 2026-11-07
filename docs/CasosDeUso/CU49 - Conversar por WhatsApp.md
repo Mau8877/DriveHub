@@ -40,8 +40,8 @@ n8n recibe el mensaje de WhatsApp, identifica a la persona ([CU47](CU47%20-%20In
 2. n8n resuelve la persona por su número y obtiene su sesión corta ([CU47](CU47%20-%20Iniciar%20sesi%C3%B3n%20por%20WhatsApp.md)).
 3. El agente consulta con las herramientas de lectura y propone opciones por el chat.
 4. La persona elige («la de las 15:00 con Pedro»).
-5. El agente llama a `preparar_reserva` (o `preparar_compra`) y muestra el resumen con los botones «Confirmar» y «Cancelar».
-6. La persona toca «Confirmar». n8n llama a `confirmar_*` con el código de confirmación.
+5. El agente llama a `preparar_reserva` (o `preparar_compra`) y muestra el resumen y pregunta si lo confirma o lo cancela.
+6. La persona confirma con sus palabras («sí», «dale, hazlo»). n8n llama a `confirmar_*` con el código de confirmación.
 7. El sistema ejecuta la acción con las mismas reglas que la app (CU14 o CU26) y el agente informa el resultado: clases reservadas y horas que quedan, o el enlace de pago.
 8. Para una compra, la persona paga en la página de la pasarela. La acreditación de las horas la confirma el sistema como siempre ([CU27](CU27%20-%20Confirmar%20pago%20%28pasarela%29.md)).
 
@@ -52,15 +52,15 @@ n8n recibe el mensaje de WhatsApp, identifica a la persona ([CU47](CU47%20-%20In
 - **A3 (paso 6):** El código de confirmación venció (10 minutos), ya se usó o no es de esa persona → se rechaza y el agente ofrece preparar de nuevo.
 - **A4 (paso 7):** Una franja ya no está libre → se informa por clase con su fecha, hora y motivo, como CU14; las demás se reservan.
 - **A5 (paso 7):** Pagos o Académico no responden → la herramienta contesta con un mensaje legible; la reserva a medias la retoma el proceso de [CU44](CU44%20-%20Orquestar%20clases%20y%20horas.md) y la compra no cobra nada ([CU26](CU26%20-%20Realizar%20pago.md) A4).
-- **A6 (paso 6):** La persona toca «Confirmar» más de una vez → la misma confirmación no ejecuta dos veces (idempotencia).
+- **A6 (paso 6):** La persona confirma más de una vez → la misma confirmación no ejecuta dos veces (idempotencia).
 - **A7 (cualquier paso):** Se supera el tope diario de acciones de escritura por persona → el agente lo informa y no ejecuta.
 - **A8 (cualquier paso):** La persona pide algo que no existe en las herramientas (cancelar una clase, un reembolso) → el agente explica que eso se hace desde la app.
 - **A9 (cualquier paso):** La sesión corta venció a mitad de la conversación → n8n pide otra y continúa sin que la persona lo note.
-- **A10 (cualquier paso):** El mensaje no es de texto, botón o ubicación útil (foto, nota de voz) → el agente pide que lo escriba.
+- **A10 (cualquier paso):** El mensaje no es de texto ni una ubicación útil (foto, nota de voz) → el agente pide que lo escriba.
 
 ## Reglas de negocio
 
-- **Confirmación obligatoria:** `confirmar_reserva` y `confirmar_compra` solo aceptan un código emitido por su `preparar_*`, vinculado a la misma persona y a los mismos datos, de un solo uso y válido 10 minutos. El modelo no puede saltarse la confirmación, aunque lo intente. La confirmación llega como pulsación de un botón de WhatsApp, no como texto interpretado por el modelo.
+- **Confirmación obligatoria:** `confirmar_reserva` y `confirmar_compra` solo aceptan un código emitido por su `preparar_*`, vinculado a la misma persona y a los mismos datos, de un solo uso y válido 10 minutos. El modelo no puede saltarse la confirmación, aunque lo intente. La confirmación es la respuesta de la persona al resumen que el sistema le mostró, en sus propias palabras. La interpreta un clasificador aparte del agente, sin herramientas ni acceso al código, que solo puede decidir confirmar, cancelar u otra cosa; solo un «confirmar» claro ejecuta, y ante cualquier duda no se ejecuta nada. La respuesta vale solo para el último resumen, durante 10 minutos, y se descarta con cualquier otro mensaje. El agente conversacional nunca puede confirmar.
 - **Mismos permisos que en la app:** el servidor MCP reenvía el token de la persona; Pagos y Académico lo validan y aplican sus reglas de rol y de escuela. No hay credenciales de datos propias en MCP ni en n8n más que la de emitir sesiones de [CU47](CU47%20-%20Iniciar%20sesi%C3%B3n%20por%20WhatsApp.md).
 - **Solo Estudiante:** las herramientas nuevas rechazan cualquier otro rol.
 - **Solo estas escrituras:** reservar y comprar. Cancelar, reprogramar, reembolsos y todo lo demás quedan fuera.
@@ -70,7 +70,7 @@ n8n recibe el mensaje de WhatsApp, identifica a la persona ([CU47](CU47%20-%20In
 - **Sin estado de la conversación en el servidor MCP,** salvo los códigos de confirmación con vencimiento. El historial de la charla lo maneja n8n y no guarda datos sensibles.
 - **Resultados resumidos:** como CU46, nunca ids internos ni códigos de otras personas.
 - **Registros:** no se escriben el número, el token ni el enlace de pago ([LOGGING_BACKEND.md](../../.claude/rules/backend/LOGGING_BACKEND.md)).
-- **WhatsApp Business (Meta):** el webhook de n8n valida la firma de Meta; un mensaje con firma inválida se descarta.
+- **WhatsApp por WAHA:** el webhook de n8n valida la firma con la que WAHA firma cada mensaje; un mensaje con firma inválida se descarta. Los mensajes de la propia cuenta enlazada (incluidas las respuestas del bot) se ignoran.
 
 ## Postcondiciones
 
@@ -91,13 +91,13 @@ n8n recibe el mensaje de WhatsApp, identifica a la persona ([CU47](CU47%20-%20In
 - **CA09:** Dado un rol distinto de Estudiante, las herramientas nuevas deben responder que no están disponibles para ese rol.
 - **CA10:** Dado el tope diario superado, el sistema no debe ejecutar más escrituras y debe informarlo.
 - **CA11:** Dado un servicio caído, la herramienta debe responder un mensaje legible sin detalles técnicos.
-- **CA12:** Dado un mensaje de WhatsApp con firma de Meta inválida, el flujo no debe procesarlo.
+- **CA12:** Dado un mensaje de WhatsApp con firma inválida, el flujo no debe procesarlo.
 - **CA13:** Dada cualquier conversación, ningún token, número ni enlace de pago debe aparecer en los registros del sistema.
 
 ## Fuera de alcance
 
 - **Cancelar y reprogramar clases, reembolsos y comprobantes** por chat.
-- **Avisos proactivos por WhatsApp** (horas acreditadas, recordatorio de clase): hoy los avisos son de [CU36](CU36%20-%20Enviar%20notificaci%C3%B3n.md); sumar WhatsApp es otro caso de uso, y requiere plantillas aprobadas por Meta.
+- **Avisos proactivos por WhatsApp** (horas acreditadas, recordatorio de clase): hoy los avisos son de [CU36](CU36%20-%20Enviar%20notificaci%C3%B3n.md); sumar WhatsApp es otro caso de uso, y requiere plantillas aprobadas por WhatsApp.
 - **Instructores y administradores** por WhatsApp.
 - **Notas de voz y fotos.**
 - **Los casos de uso del agente web** (CU41, CU43), que son de otro responsable.

@@ -18,7 +18,7 @@ Hace falta el motor que recibe los mensajes de WhatsApp, reconoce al número y l
 
 ## Objetivo
 
-n8n corre en el compose con el flujo «WhatsApp DriveHub» que valida a Meta, reconoce al número y completa el login por código.
+n8n corre en el compose con el flujo «WhatsApp DriveHub» que valida la firma de WAHA, reconoce al número y completa el login por código.
 
 ## Alcance
 
@@ -26,8 +26,8 @@ n8n corre en el compose con el flujo «WhatsApp DriveHub» que valida a Meta, re
 - `infrastructure/n8n/` (el flujo es **código versionado**, no se edita en la interfaz):
   - `codigo/*.js`: el código de cada nodo Code como archivos revisables (`prelude.js` compartido, `verificar-suscripcion.js`, `firma-y-mensaje.js`, `reconocer.js`, `acceso.js`).
   - `construir-flujo.mjs`: arma `flujos/whatsapp-drivehub.json` a partir de ellos; `flujos/credenciales.json` lleva la credencial del modelo con la clave como `={{ $env.OPENROUTER_API_KEY }}`.
-  - `README.md`: cómo levantarlo, conectarlo con Meta y probarlo sin Meta.
-- Nodos de esta UT: dos *Webhook* en `/webhook/whatsapp` (GET: verificación de Meta, que devuelve el `hub.challenge` si el token coincide o 403; POST: mensajes, con el cuerpo crudo guardado) → `Firma y mensaje` (valida `X-Hub-Signature-256` con el App Secret sobre el cuerpo tal cual llegó; descarta lo que no es mensaje, los reintentos de Meta por id y el exceso de mensajes por minuto de un número) → `Reconocer número` (`POST /internal/v1/whatsapp/sesiones`: 200 → sesión, 404 → acceso, 403 → aviso, otro → «inténtalo más tarde») → `Acceso` (menú «Ya tengo cuenta» / «Quiero registrarme»; pide el correo, `POST /codigos`, pide el código, `POST /vinculos`) → `Enviar por WhatsApp`.
+  - `README.md`: cómo levantarlo, conectarlo con WhatsApp (WAHA) y probarlo sin WhatsApp.
+- Nodos de esta UT: un *Webhook* POST en `/webhook/whatsapp` (mensajes de WAHA, JSON, con el cuerpo crudo guardado; responde 200 vacío) → `Firma y mensaje` (valida `X-Webhook-Hmac`, un HMAC-SHA512 del cuerpo con la clave compartida; descarta lo que no es un mensaje de una persona (los de la propia cuenta, grupos), los reintentos por id de mensaje y el exceso de mensajes por minuto de un número) → `Reconocer número` (`POST /internal/v1/whatsapp/sesiones`: 200 → sesión, 404 → acceso, 403 → aviso, otro → «inténtalo más tarde») → `Acceso` (menú «Ya tengo cuenta» / «Quiero registrarme»; pide el correo, `POST /codigos`, pide el código, `POST /vinculos`) → `Enviar por WhatsApp` (API de WAHA). Antes de `Reconocer número` corre `Elegir opción`, que interpreta frases como «ya tengo cuenta» o «quiero registrarme» (un WhatsApp enlazado con WAHA no tiene botones).
 - Estado de la conversación (paso y datos): datos estáticos del flujo, por número, con vencimiento de 24 h.
 - `docs/INFRAESTRUCTURA.md` (perfil, puerto, volumen), `MICROSERVICIOS.md` (n8n y la llamada n8n → Identidad) y `.env.example`.
 - Secretos: nada en el JSON del flujo, en el compose ni en el repo.
@@ -37,7 +37,7 @@ Archivos esperados (crear/tocar): `docker-compose.yml`, `.env.example`, `infrast
 ## Fuera de alcance (no tocar)
 
 - La rama de registro (CU48) y el agente con herramientas (CU49): sus nodos los agregan sus propias UT.
-- El túnel público y la configuración del webhook en Meta: son pasos manuales de la persona, descritos en el README de n8n.
+- Enlazar el número secundario escaneando el QR de WAHA: es un paso manual de la persona, descrito en el README de n8n.
 - CD y despliegue ([CI_CD.md](../../../../.claude/rules/CI_CD.md)).
 
 ## Resultado esperado
@@ -47,7 +47,7 @@ Un estudiante con cuenta escribe al número de pruebas, recibe el código en Mai
 ## Validación
 
 1. `docker compose --profile whatsapp config` no tiene errores y `docker compose up -d n8n` deja n8n en http://localhost:5678.
-2. `GET /webhook/whatsapp?hub.mode=subscribe&hub.verify_token=<token>&hub.challenge=123` devuelve `123`; con otro token, 403.
+2. Un POST firmado a `/webhook/whatsapp` responde 200 sin cuerpo.
 3. Un POST con firma incorrecta no genera ningún mensaje saliente.
-4. Simulando a Meta (README de n8n): un número nuevo recibe el menú; con «Ya tengo cuenta», el correo y el código del correo queda vinculado; el siguiente mensaje se atiende como estudiante.
+4. Simulando a WAHA (README de n8n): un número nuevo recibe el menú; con «Ya tengo cuenta», el correo y el código del correo queda vinculado; el siguiente mensaje se atiende como estudiante.
 5. `git grep -n "sk-or-"` y `git grep -n "EAA"` no encuentran ninguna clave en el repo.

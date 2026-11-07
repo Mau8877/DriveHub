@@ -45,7 +45,7 @@ La autoescuela tiene su propio número de WhatsApp. Cuando alguien le escribe, n
 
 - **Un número, una cuenta; una cuenta, un número.** Vincular un número nuevo a una cuenta reemplaza el anterior.
 - **Solo estudiantes de esta escuela:** instructores, administradores y el Super administrador no usan el chat. El chat atiende a la escuela de la semilla del proyecto; el número de destino determina la escuela.
-- **El número lo verificó Meta; la cuenta la prueba el código del correo.** Se pide una sola vez por número.
+- **El número lo aporta WhatsApp; la cuenta la prueba el código del correo.** Se pide una sola vez por número.
 - **Sin contraseña en el chat:** el chat nunca pide ni recibe contraseñas.
 - **Código:** 6 dígitos, un solo uso, 10 minutos, máximo 5 intentos; en la base solo se guarda su hash. Pedir uno nuevo invalida el anterior.
 - **Sesión por WhatsApp:** el access token que Identidad emite para el número vinculado dura 5 minutos, lleva los roles reales de la persona y se valida en cada servicio igual que el de la app ([SEGURIDAD_AUTH_BACKEND.md](../../.claude/rules/backend/SEGURIDAD_AUTH_BACKEND.md)). Ningún servicio confía en n8n: valida el token.
