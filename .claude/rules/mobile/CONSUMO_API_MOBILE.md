@@ -11,6 +11,11 @@ La app habla **solo con el gateway** (`API_BASE_URL`, ej.
 microservicio directo: el gateway enruta cada recurso al servicio que
 corresponde (ver [MICROSERVICIOS.md](../MICROSERVICIOS.md#recursos-http-de-cada-servicio)).
 Todos los servicios responden con el mismo sobre, sin importar su stack.
+
+**La dirección del gateway la elige la persona** (CU51): la primera vez que abre la app escribe el servidor y se
+guarda en el teléfono. `ApiClient.baseUrlActual` es lo elegido; sin eso, `API_BASE_URL` del `.env` (que hoy solo es la
+dirección sugerida y la de los tests). `ApiClient.configurarBaseUrl` cambia la dirección del MISMO `Dio` que ya tienen los
+servicios, así que no hay que reiniciar ni volver a crearlos. Nada arma una URL a mano: todo parte de `ApiClient`.
 El refresh token en mobile viaja en el body y se guarda en
 `flutter_secure_storage` (no hay cookies, ver
 [SEGURIDAD_AUTH_BACKEND.md](../backend/SEGURIDAD_AUTH_BACKEND.md)).

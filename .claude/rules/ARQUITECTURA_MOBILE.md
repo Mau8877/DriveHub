@@ -33,6 +33,7 @@ lib/
 │   ├── inicio/      # Pestaña Inicio del shell (saludo, tarjeta de próxima clase, accesos): estado vacío hasta sus casos de uso
 │   ├── clases/      # Pestaña Clases/Agenda del shell: estado vacío hasta los casos de uso de Académico
 │   ├── offline/     # Puente con Riverpod del modo offline (providers/) y `AvisoOffline` (widgets/); el motor está en core/offline/
+│   ├── servidor/    # Pantalla de primera vez para elegir el backend (CU51): validación, almacenamiento, prueba de conexión
 │   ├── health/      # Feature de diagnóstico end-to-end (service+provider+screen) contra el backend real
 │   └── {feature}/   # Un feature de negocio (ver estructura abajo)
 └── main.dart         # Entry point, monta MaterialApp + ProviderScope (sin GoRouter todavía)
