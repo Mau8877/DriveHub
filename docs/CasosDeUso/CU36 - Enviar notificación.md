@@ -89,6 +89,11 @@ Otro servicio (Pagos, Académico...) pide avisar a una persona con un tipo, un t
 - **CA10:** Dada una persona con sesión, el sistema debe registrar su dispositivo como activo; registrar el mismo token otra vez no debe duplicarlo.
 - **CA11:** Dado un dispositivo ajeno o inexistente, el sistema debe responder 404 `ERR_NOT_02` al quitarlo.
 - **CA13:** Dada una persona con sesión en el panel web que concedió el permiso, el sistema debe registrar su navegador como dispositivo `WEB` activo, y un push a esa persona debe llegar también al navegador.
+- **CA14:** Dada una persona con sesión en la app móvil que concedió el permiso de notificaciones, la app debe registrar su teléfono como dispositivo `ANDROID` activo, una sola vez mientras la sesión siga igual, y un push a esa persona debe llegar al teléfono.
+- **CA15:** Dada una persona que cierra sesión en la app móvil, la app debe quitar su teléfono antes de perder la sesión, y si no hay conexión, cerrar sesión igual.
+- **CA16:** Dada una persona que niega el permiso, o un teléfono sin los servicios de Google, o un fallo de red, la app no debe mostrar ningún error, no debe insistir con el permiso y debe seguir funcionando igual; un registro que falló se reintenta en el siguiente cambio de sesión.
+- **CA17:** Dado que Firebase cambia el token del teléfono con la sesión iniciada, la app debe registrar el token nuevo.
+- **CA18:** Dado un aviso push que llega con la app abierta, la app debe actualizar el contador de no leídas y la bandeja y mostrar un aviso breve con su título y mensaje; con la app cerrada o en segundo plano lo muestra el sistema.
 - **CA14:** Dado el cierre de sesión en el panel web, el sistema debe quitar el dispositivo del navegador para que no reciba avisos de otra persona.
 - **CA12:** Dada una falla al leer preferencias o guardar el historial, el sistema no debe dejar el pedido marcado como procesado.
 
@@ -98,7 +103,6 @@ Otro servicio (Pagos, Académico...) pide avisar a una persona con un tipo, un t
 - **Configurar las preferencias** ([CU37](CU37%20-%20Configurar%20preferencias%20de%20notificaci%C3%B3n.md)): este CU solo las lee.
 - **Publicar los pedidos** desde Pagos, Académico, etc.: cada servicio lo agrega en su propio CU.
 - **Reintentos automáticos** de envíos fallidos y recordatorios programados.
-- **Registrar el token desde la app móvil** (`firebase_messaging`): solo se deja listo el endpoint.
 - **La campana con la lista de avisos del panel web:** el historial de [CU38](CU38%20-%20Consultar%20historial%20de%20notificaciones.md) es de la app móvil y no la incluye; aquí solo llega el push.
 - **Mantener al día el correo** de las preferencias a partir de Identidad.
 
