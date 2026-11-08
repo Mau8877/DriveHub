@@ -33,6 +33,7 @@ lib/
 │   ├── inicio/      # Pestaña Inicio del shell (saludo, tarjeta de próxima clase, accesos): estado vacío hasta sus casos de uso
 │   ├── clases/      # Pestaña Clases/Agenda del shell: estado vacío hasta los casos de uso de Académico
 │   ├── offline/     # Puente con Riverpod del modo offline (providers/) y `AvisoOffline` (widgets/); el motor está en core/offline/
+│   ├── push/        # Avisos push de Firebase (CU36): registro del teléfono, aviso en primer plano
 │   ├── servidor/    # Pantalla de primera vez para elegir el backend (CU51): validación, almacenamiento, prueba de conexión
 │   ├── health/      # Feature de diagnóstico end-to-end (service+provider+screen) contra el backend real
 │   └── {feature}/   # Un feature de negocio (ver estructura abajo)
@@ -107,6 +108,27 @@ se hacen dentro de la app, sin internet; el backend (`asistente-ia`) solo guarda
 - **Asistente de voz de clases (CU50, `features/asistente/`):** dos modelos en el teléfono, cada uno detrás de una interfaz (`ModeloDeAcciones`, `ReconocedorDeVoz`) con una implementación falsa para los tests: el `.litertlm` de FunctionGemma (`flutter_litert_lm`) elige la acción y Whisper tiny (`sherpa_onnx` + `record`) convierte la voz en texto. Los archivos pesan ~284 MB y ~40 MB, no se versionan y se buscan en `<documentos>/ia/` (`acciones.litertlm` y `whisper/`); en desarrollo se copian con `adb push`. El audio nunca se guarda. El modelo solo elige una acción de un catálogo cerrado (`assets/ml/acciones_clases.json`, copia de `ml/acciones/acciones_pantallas.json`) y la app valida y confirma antes de cambiar nada.
 - Solo Android por ahora. `tflite_flutter` necesita `kotlin.jvm.target.validation.mode=warning` en
   `android/gradle.properties` (su Java está en 11 y Kotlin toma el JDK).
+
+## Avisos push (`features/push/`, CU36)
+
+El backend (`notificaciones`) manda el push con Firebase Cloud Messaging; la app registra su teléfono para recibirlo.
+
+- **Configuración**: `android/app/google-services.json` (configuración pública del cliente, va al repositorio; el proyecto es el
+  mismo del panel web). El `applicationId` (`com.drivehub.app`) tiene que coincidir con su `package_name`. Cambiarlo hace que
+  Android trate la app como otra distinta: no hereda sus datos (por ejemplo, los modelos de IA de la carpeta privada) y hay que
+  registrarla de nuevo en la consola de Firebase. La clave de la cuenta de servicio del backend NO va en la app ni en el repositorio.
+- **Registrar**: al haber sesión (`conectarPush` escucha la sesión), `RegistroDePush.activar` pide el permiso de notificaciones (una
+  vez por ejecución; si se niega, no se insiste), obtiene el token y lo registra (`registrarDispositivo`, por GraphQL o REST según
+  `NOTIFICACIONES_TRANSPORTE`). Una vez por persona; un token nuevo de Firebase se registra solo.
+- **Quitar**: cerrar sesión lo quita ANTES de perder el token (gancho `antesDeCerrarSesion`, máximo 5 s; un fallo no impide salir).
+- **Nunca bloquea**: sin permiso, sin servicios de Google, sin red o sin token de sesión, el push simplemente no se activa. Sin errores
+  a la vista; un registro que falló se reintenta en el siguiente cambio de sesión.
+- **Con la app abierta** Android no muestra el aviso del sistema: se refrescan el contador y la bandeja y se muestra un aviso breve
+  (`mensajeroGlobal`). Con la app cerrada o en segundo plano lo muestra el sistema solo (el backend manda `notification` con título y mensaje).
+- **Firebase detrás de una interfaz** (`MensajeriaPush`): los tests no tocan Firebase. Se inicia la primera vez que se usa.
+- `getToken` y `onTokenRefresh` figuran como obsoletos en `firebase_messaging` 17 y se mantienen a propósito: el backend manda a
+  tokens de registro de FCM; el reemplazo entrega un ID de instalación para «envío directo».
+- El token de Firebase nunca se guarda ni se escribe en logs: solo se guarda el código del dispositivo que devuelve el servicio.
 
 ## Regla de dependencia
 
