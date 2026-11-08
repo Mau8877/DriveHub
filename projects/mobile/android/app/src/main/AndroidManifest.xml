@@ -9,8 +9,10 @@
     <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
     <!-- El asistente de voz de clases (CU50) graba el micrófono para convertir la voz en texto en el teléfono; el audio no se guarda ni se envía -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- Avisos push (CU36): desde Android 13 mostrar notificaciones pide permiso a la persona -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="mobile"
+        android:label="DriveHub"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -47,6 +47,13 @@ class SesionNotifier extends Notifier<EstadoSesion> {
     'ERR_IDE_09',
   };
 
+  /// Se llama al empezar a cerrar sesión a propósito, ANTES de perder el token: lo que necesita sesión para
+  /// deshacerse (quitar el dispositivo push) todavía puede hacerlo. Se espera como máximo [_esperaMaximaAlCerrar] y
+  /// un fallo no impide salir.
+  Future<void> Function()? antesDeCerrarSesion;
+
+  static const _esperaMaximaAlCerrar = Duration(seconds: 5);
+
   /// Se llama cuando la persona cierra sesión a propósito (no cuando el servidor la pierde): `main()` lo usa para
   /// borrar lo guardado para funcionar sin internet.
   Future<void> Function()? alCerrarSesion;
@@ -130,6 +137,11 @@ class SesionNotifier extends Notifier<EstadoSesion> {
   /// * El borrado local no depende del backend: si falla (red, 429, 5xx) igual
   /// * se sale. El redirect global del router lleva al login.
   Future<void> cerrarSesion() async {
+    try {
+      await antesDeCerrarSesion?.call().timeout(_esperaMaximaAlCerrar);
+    } catch (_) {
+      // * Lo que dependa de la sesión y no alcanzó a deshacerse se resuelve solo: salir no se frena por eso
+    }
     final refresh = _refreshToken;
     if (refresh != null) {
       try {

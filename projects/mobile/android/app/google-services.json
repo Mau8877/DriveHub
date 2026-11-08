@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "394894594583",
+    "project_id": "drivehub-56434",
+    "storage_bucket": "drivehub-56434.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:394894594583:android:999b6461bece3530dc0252",
+        "android_client_info": {
+          "package_name": "com.drivehub.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAD-NqNz99wlXVXdftQxtV5K-h-YNPcTX0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

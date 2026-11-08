@@ -220,6 +220,51 @@ void main() {
     expect(estado().fase, FaseSesion.sinSesion);
   });
 
+  group('antesDeCerrarSesion (quitar el dispositivo push, CU36)', () {
+    test('se llama al cerrar sesión, ANTES de perder el token: lo que pide sesión todavía puede hacerse', () async {
+      await notifier().iniciarSesion('a@gmail.com', 'clave');
+      String? tokenAlLlamar;
+      notifier().antesDeCerrarSesion = () async => tokenAlLlamar = notifier().obtenerToken();
+
+      await notifier().cerrarSesion();
+
+      expect(tokenAlLlamar, 'access-1');
+      expect(notifier().obtenerToken(), isNull);
+      expect(estado().fase, FaseSesion.sinSesion);
+    });
+
+    test('un gancho que falla no impide cerrar sesión', () async {
+      await notifier().iniciarSesion('a@gmail.com', 'clave');
+      notifier().antesDeCerrarSesion = () async => throw Exception('sin red');
+
+      await notifier().cerrarSesion();
+
+      expect(estado().fase, FaseSesion.sinSesion);
+      expect(storage.guardada, isNull);
+      expect(servicio.cerrados, ['refresh-1']);
+    });
+
+    test('sin gancho cerrar sesión funciona como siempre', () async {
+      await notifier().iniciarSesion('a@gmail.com', 'clave');
+
+      await notifier().cerrarSesion();
+
+      expect(estado().fase, FaseSesion.sinSesion);
+    });
+
+    test('perder la sesión porque el servidor la rechaza NO llama al gancho (no fue la persona)', () async {
+      var llamadas = 0;
+      notifier().antesDeCerrarSesion = () async => llamadas++;
+      storage.guardada = const SesionGuardada(refreshToken: 'refresh-viejo', usuario: _usuario);
+      servicio.errorAlRenovar = ApiException(code: 'ERR_IDE_06', message: 'sesión vencida');
+
+      await notifier().restaurar();
+
+      expect(estado().fase, FaseSesion.sinSesion);
+      expect(llamadas, 0);
+    });
+  });
+
   test('verificarCorreo pide el correo al backend', () async {
     await notifier().iniciarSesion('a@gmail.com', 'clave');
 
