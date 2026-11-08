@@ -20,6 +20,7 @@ como ejemplo de referencia vacío):
 lib/
 ├── core/
 │   ├── network/     # ApiClient (Dio + interceptor de sobre), ya implementado (ver CONSUMO_API_MOBILE.md)
+│   ├── offline/     # Modo sin internet: caché de lecturas, cola de acciones, sincronización (ver CONSUMO_API_MOBILE.md)
 │   ├── routing/     # GoRouter único, con el redirect global -- todavía vacío (ver NAVEGACION_MOBILE.md)
 │   └── theme/       # AppColors/AppTheme/CockpitColores (diseño Cockpit, espejo de design-tokens) y temaProvider (apariencia)
 ├── layouts/
@@ -31,6 +32,7 @@ lib/
 ├── features/
 │   ├── inicio/      # Pestaña Inicio del shell (saludo, tarjeta de próxima clase, accesos): estado vacío hasta sus casos de uso
 │   ├── clases/      # Pestaña Clases/Agenda del shell: estado vacío hasta los casos de uso de Académico
+│   ├── offline/     # Puente con Riverpod del modo offline (providers/) y `AvisoOffline` (widgets/); el motor está en core/offline/
 │   ├── health/      # Feature de diagnóstico end-to-end (service+provider+screen) contra el backend real
 │   └── {feature}/   # Un feature de negocio (ver estructura abajo)
 └── main.dart         # Entry point, monta MaterialApp + ProviderScope (sin GoRouter todavía)
