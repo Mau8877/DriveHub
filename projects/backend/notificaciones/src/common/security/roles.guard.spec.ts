@@ -18,6 +18,7 @@ function contexto(metodo: 'conRoles' | 'sinRoles', roles?: string[]): ExecutionC
   return {
     getHandler: () => ControllerDePrueba.prototype[metodo],
     getClass: () => ControllerDePrueba,
+    getType: () => 'http',
     switchToHttp: () => ({ getRequest: () => request }),
   } as unknown as ExecutionContext
 }

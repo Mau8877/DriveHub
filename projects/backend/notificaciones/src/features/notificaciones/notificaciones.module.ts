@@ -8,6 +8,7 @@ import { PreferenciasModule } from '../preferencias/preferencias.module.js'
 import { SolicitudNotificacionConsumer } from './consumers/solicitud-notificacion.consumer.js'
 import { NotificacionesController } from './controllers/notificaciones.controller.js'
 import { NotificacionesInternasController } from './controllers/notificaciones-internas.controller.js'
+import { NotificacionesResolver } from './graphql/notificaciones.resolver.js'
 import { NotificacionesRepository } from './repositories/notificaciones.repository.js'
 import { EnvioNotificacionService } from './services/envio-notificacion.service.js'
 import { HistorialNotificacionesService } from './services/historial-notificaciones.service.js'
@@ -22,6 +23,7 @@ import { PROVEEDOR_PUSH } from './services/proveedor-push.js'
   providers: [
     EnvioNotificacionService,
     HistorialNotificacionesService,
+    NotificacionesResolver,
     SolicitudNotificacionConsumer,
     NotificacionesRepository,
     { provide: PROVEEDOR_CORREO, useClass: NodemailerProveedorCorreo },

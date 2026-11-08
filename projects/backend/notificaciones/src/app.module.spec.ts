@@ -44,4 +44,18 @@ describe('AppModule', () => {
     expect(res.status).toBe(401)
     expect(res.body.error).toBe('ERR_SYS_04')
   })
+
+  it('expone GraphQL en /api/v1/graphql y lo protege con el mismo JWT (CU45)', async () => {
+    const res = await request(app.getHttpServer()).post('/api/v1/graphql').send({ query: '{ conteoNoLeidas }' })
+    expect(res.body.errors[0].extensions.code).toBe('ERR_SYS_04')
+    expect(res.body.data).toBeNull()
+  })
+
+  it('no publica el esquema sin GRAPHQL_INTROSPECTION', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/graphql')
+      .send({ query: '{ __schema { types { name } } }' })
+    expect(res.body.data).toBeUndefined()
+    expect(res.body.errors[0].extensions.code).toBe('ERR_SYS_01')
+  })
 })

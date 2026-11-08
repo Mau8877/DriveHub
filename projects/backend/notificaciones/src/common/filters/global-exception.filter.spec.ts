@@ -1,5 +1,6 @@
 import { BadRequestException, Logger, NotFoundException as NestNotFoundException } from '@nestjs/common'
 import type { ArgumentsHost } from '@nestjs/common'
+import { GraphQLError } from 'graphql'
 
 import { ConflictException } from '../exceptions/business.exception.js'
 import { GlobalExceptionFilter } from './global-exception.filter.js'
@@ -8,9 +9,17 @@ function hostFalso() {
   const res = { status: vi.fn(), json: vi.fn() }
   res.status.mockReturnValue(res)
   const host = {
+    getType: () => 'http',
     switchToHttp: () => ({ getResponse: () => res }),
   } as unknown as ArgumentsHost
   return { host, res }
+}
+
+/** Un host de GraphQL: no tiene respuesta HTTP que escribir. */
+function hostGraphql() {
+  const switchToHttp = vi.fn()
+  const host = { getType: () => 'graphql', switchToHttp } as unknown as ArgumentsHost
+  return { host, switchToHttp }
 }
 
 describe('GlobalExceptionFilter', () => {
@@ -61,5 +70,36 @@ describe('GlobalExceptionFilter', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ error: 'ERR_SYS_00', message: 'Ocurrió un error inesperado' })
     )
+  })
+
+  describe('en GraphQL (CU45)', () => {
+    it('devuelve una BusinessException como GraphQLError con su código en extensions.code', () => {
+      const { host, switchToHttp } = hostGraphql()
+
+      const resultado = filter.catch(new ConflictException('ERR_NOT_01', 'Ya existe'), host)
+
+      expect(resultado).toBeInstanceOf(GraphQLError)
+      expect(resultado?.message).toBe('Ya existe')
+      expect(resultado?.extensions).toEqual({ code: 'ERR_NOT_01' })
+      expect(switchToHttp).not.toHaveBeenCalled()
+    })
+
+    it('traduce un error de validación a ERR_SYS_01', () => {
+      const { host } = hostGraphql()
+
+      const resultado = filter.catch(new BadRequestException({ message: ['El título es obligatorio'] }), host)
+
+      expect(resultado?.extensions).toEqual({ code: 'ERR_SYS_01' })
+      expect(resultado?.message).toBe('El título es obligatorio')
+    })
+
+    it('oculta el detalle de un error no controlado detrás de ERR_SYS_00', () => {
+      const { host } = hostGraphql()
+
+      const resultado = filter.catch(new Error('conexión rechazada a dynamodb'), host)
+
+      expect(resultado?.extensions).toEqual({ code: 'ERR_SYS_00' })
+      expect(resultado?.message).toBe('Ocurrió un error inesperado')
+    })
   })
 })
