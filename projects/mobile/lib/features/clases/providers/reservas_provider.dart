@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../pagos/providers/saldo_horas_provider.dart';
+import '../../../core/offline/modelos_offline.dart';
 import '../models/reservas_resultado.dart';
 import 'clases_service_provider.dart';
 import 'franjas_disponibles_provider.dart';
@@ -23,6 +24,11 @@ class ReservasNotifier extends Notifier<void> {
     final ReservasResultado resultado;
     try {
       resultado = await ref.read(clasesServiceProvider).reservar(codigos);
+    } on AccionEncolada {
+      // * Sin conexion: la reserva quedo en la cola. La seleccion se vacia para no mandarla dos veces; no se
+      // * refresca nada (no hay red y el servidor todavia no decidio).
+      ref.read(franjasSeleccionadasUiProvider.notifier).vaciar();
+      rethrow;
     } catch (_) {
       ref.invalidate(reservasListProvider);
       ref.invalidate(saldoHorasProvider);

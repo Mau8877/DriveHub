@@ -137,7 +137,7 @@ class ClasesDemo extends ClasesService {
   }
 
   @override
-  Future<ReservasResultado> reservar(List<String> franjaCodigos) async {
+  Future<ReservasResultado> reservar(List<String> franjaCodigos, {String? descripcion}) async {
     final nuevas = [for (final c in franjaCodigos) datos.reservaDeFranja(c)];
     datos.proximas
       ..addAll(nuevas)
@@ -150,7 +150,7 @@ class ClasesDemo extends ClasesService {
   }
 
   @override
-  Future<ResultadoCancelacion> cancelar(String codigoReserva) async {
+  Future<ResultadoCancelacion> cancelar(String codigoReserva, {String? descripcion}) async {
     final r = datos.proximas.firstWhere((x) => x.codigo == codigoReserva);
     datos.proximas.remove(r);
     final devuelta = r.cancelacionATiempo;
@@ -163,7 +163,7 @@ class ClasesDemo extends ClasesService {
   }
 
   @override
-  Future<Reserva> reprogramar(String codigoReserva, String franjaCodigo) async {
+  Future<Reserva> reprogramar(String codigoReserva, String franjaCodigo, {String? descripcion}) async {
     final vieja = datos.proximas.firstWhere((x) => x.codigo == codigoReserva);
     final nueva = datos.reservaDeFranja(franjaCodigo);
     datos.proximas

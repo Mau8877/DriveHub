@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/modelos_offline.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/indicador_boton.dart';
+import '../../offline/mensajes_offline.dart';
 import '../models/clase_agenda.dart';
 import '../providers/gestion_agenda_provider.dart';
 import 'formato_clases.dart';
@@ -52,12 +54,20 @@ class _DialogoCancelarClaseAgendaState extends ConsumerState<DialogoCancelarClas
       _error = null;
     });
     try {
-      final resultado = await ref.read(gestionAgendaProvider.notifier).cancelar(widget.clase.codigo);
+      final resultado = await ref.read(gestionAgendaProvider.notifier).cancelar(
+        widget.clase.codigo,
+        descripcion: 'Cancelación de la clase de ${widget.clase.estudianteNombre} (${widget.clase.horaInicio})',
+      );
       if (!mounted || !contexto.mounted) return;
       navegador.pop();
       avisar(contexto, avisoDeResultadoDeCancelacionInstructor(resultado.horaDevuelta));
     } catch (e) {
       if (!mounted) return;
+      if (e is AccionEncolada) {
+        navegador.pop();
+        if (contexto.mounted) avisar(contexto, avisoDeAccionEncolada(e));
+        return;
+      }
       if (e is ApiException && codigosQueCierranLaCancelacionDelInstructor.contains(e.code)) {
         navegador.pop();
         if (contexto.mounted) avisar(contexto, e.message);

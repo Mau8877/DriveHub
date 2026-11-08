@@ -3,6 +3,10 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../offline/interceptor_offline.dart';
+import '../offline/nucleo_offline.dart';
+export '../offline/interceptor_offline.dart' show OpcionesOffline;
+
 /// Excepción tipada para un error de negocio devuelto por el backend
 /// (`status: "failed"`, ver RESPONSES_BACKEND.md) -- nunca se deja propagar
 /// un [DioException] crudo, sin código, hasta la UI.
@@ -41,6 +45,13 @@ class ApiClient {
     _obtenerToken = obtenerToken;
     _renovar = renovar;
   }
+
+  // * El modo offline lo arma `main()`; sin él (y en los tests) el cliente se comporta como siempre
+  static NucleoOffline? _offline;
+
+  /// Conecta el cliente con el núcleo offline: las lecturas se guardan y, sin conexión, se responden desde lo
+  /// guardado; las escrituras marcadas con [OpcionesOffline.escritura] se encolan. La llama `main()` una vez.
+  static void configurarOffline(NucleoOffline? nucleo) => _offline = nucleo;
 
   static Dio get instance {
     _instance ??= _build();
@@ -90,6 +101,9 @@ class ApiClient {
         },
       ),
     );
+
+    // * Último: ve la respuesta ya desempaquetada (la que se guarda en la caché) y los fallos de red sin resolver
+    dio.interceptors.add(InterceptorOffline(() => _offline));
 
     if (dotenv.env['ENABLE_API_LOGS'] == 'true') {
       dio.interceptors.add(

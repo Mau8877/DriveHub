@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/modelos_offline.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/estado_vacio.dart';
 import '../../../shared/widgets/indicador_boton.dart';
+import '../../offline/mensajes_offline.dart';
 import '../models/franja_disponible.dart';
 import '../models/reserva.dart';
 import '../providers/franja_para_reprogramar_provider.dart';
@@ -62,7 +64,13 @@ class _ReprogramarSheetState extends ConsumerState<ReprogramarSheet> {
       _error = null;
     });
     try {
-      final nueva = await ref.read(gestionReservaProvider.notifier).reprogramar(widget.reserva.codigo, franja.codigo);
+      final nueva = await ref.read(gestionReservaProvider.notifier).reprogramar(
+        widget.reserva.codigo,
+        franja.codigo,
+        descripcion:
+            'Reprogramación de la clase del ${tituloDeDia(widget.reserva.fecha, DateTime.now()).toLowerCase()} '
+            'al ${tituloDeDia(franja.fecha, DateTime.now()).toLowerCase()} (${franja.horaInicio})',
+      );
       seleccion.vaciar();
       if (!mounted || !contexto.mounted) return;
       navegador.pop();
@@ -72,6 +80,12 @@ class _ReprogramarSheetState extends ConsumerState<ReprogramarSheet> {
       );
     } catch (e) {
       if (!mounted) return;
+      if (e is AccionEncolada) {
+        seleccion.vaciar();
+        navegador.pop();
+        if (contexto.mounted) avisar(contexto, avisoDeAccionEncolada(e));
+        return;
+      }
       if (e is ApiException && codigosQueCierranLaAccion.contains(e.code)) {
         navegador.pop();
         if (contexto.mounted) avisar(contexto, e.message);

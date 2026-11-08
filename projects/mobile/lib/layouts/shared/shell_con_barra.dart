@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/providers/sesion_provider.dart';
 import '../../features/notificaciones/providers/bandeja_providers.dart';
 import '../../features/notificaciones/widgets/campana_avisos.dart';
+import '../../features/offline/widgets/aviso_offline.dart';
 import '../../features/pagos/widgets/saldo_horas_chip.dart';
 import '../../features/perfil/providers/perfil_provider.dart';
 import '../../shared/widgets/aviso_cockpit.dart';
@@ -166,6 +167,7 @@ class _ShellConBarraState extends ConsumerState<ShellConBarra>
       appBar: _barra(seccionActual),
       body: Column(
         children: [
+          const AvisoOffline(),
           if (mostrarAviso)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),

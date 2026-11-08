@@ -16,10 +16,10 @@ class GestionPruebaClaseNotifier extends Notifier<void> {
   @override
   void build() {}
 
-  Future<PruebaClase> evaluar(EvaluarClaseRequest request) async {
+  Future<PruebaClase> evaluar(EvaluarClaseRequest request, {String? descripcion}) async {
     final PruebaClase prueba;
     try {
-      prueba = await ref.read(clasesServiceProvider).evaluarClase(request);
+      prueba = await ref.read(clasesServiceProvider).evaluarClase(request, descripcion: descripcion);
     } catch (_) {
       _refrescar(request.claseCodigo);
       rethrow;

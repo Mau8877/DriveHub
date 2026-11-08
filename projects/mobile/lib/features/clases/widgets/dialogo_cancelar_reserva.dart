@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/modelos_offline.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/indicador_boton.dart';
+import '../../offline/mensajes_offline.dart';
 import '../models/reserva.dart';
 import '../providers/gestion_reserva_provider.dart';
 import 'formato_clases.dart';
@@ -52,12 +54,22 @@ class _DialogoCancelarReservaState extends ConsumerState<DialogoCancelarReserva>
       _error = null;
     });
     try {
-      final resultado = await ref.read(gestionReservaProvider.notifier).cancelar(widget.reserva.codigo);
+      final resultado = await ref.read(gestionReservaProvider.notifier).cancelar(
+        widget.reserva.codigo,
+        descripcion:
+            'Cancelación de la clase del ${tituloDeDia(widget.reserva.fecha, DateTime.now()).toLowerCase()} '
+            '(${widget.reserva.horaInicio})',
+      );
       if (!mounted || !contexto.mounted) return;
       navegador.pop();
       avisar(contexto, avisoDeResultadoDeCancelacion(resultado.horaDevuelta));
     } catch (e) {
       if (!mounted) return;
+      if (e is AccionEncolada) {
+        navegador.pop();
+        if (contexto.mounted) avisar(contexto, avisoDeCancelacionEncolada(e));
+        return;
+      }
       if (e is ApiException && codigosQueCierranLaAccion.contains(e.code)) {
         navegador.pop();
         if (contexto.mounted) avisar(contexto, e.message);

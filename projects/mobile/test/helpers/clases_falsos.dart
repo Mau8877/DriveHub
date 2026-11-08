@@ -237,7 +237,7 @@ class ClasesServiceFalso extends ClasesService {
   }
 
   @override
-  Future<ReservasResultado> reservar(List<String> franjaCodigos) async {
+  Future<ReservasResultado> reservar(List<String> franjaCodigos, {String? descripcion}) async {
     reservasPedidas.add(List.of(franjaCodigos));
     await antesDeReservar?.call();
     final error = errorAlReservar;
@@ -252,7 +252,7 @@ class ClasesServiceFalso extends ClasesService {
   }
 
   @override
-  Future<ResultadoCancelacion> cancelar(String codigoReserva) async {
+  Future<ResultadoCancelacion> cancelar(String codigoReserva, {String? descripcion}) async {
     cancelacionesPedidas.add(codigoReserva);
     await antesDeCancelar?.call();
     final error = errorAlCancelar;
@@ -267,7 +267,7 @@ class ClasesServiceFalso extends ClasesService {
   }
 
   @override
-  Future<Reserva> reprogramar(String codigoReserva, String franjaCodigo) async {
+  Future<Reserva> reprogramar(String codigoReserva, String franjaCodigo, {String? descripcion}) async {
     reprogramacionesPedidas.add((reserva: codigoReserva, franja: franjaCodigo));
     await antesDeReprogramar?.call();
     final error = errorAlReprogramar;
@@ -312,7 +312,7 @@ class ClasesServiceFalso extends ClasesService {
   final List<({String codigo, ActualizarClaseRequest request})> correccionesPedidas = [];
 
   @override
-  Future<ClaseDictada> cerrarClase(CerrarClaseRequest request) async {
+  Future<ClaseDictada> cerrarClase(CerrarClaseRequest request, {String? descripcion}) async {
     cierresPedidos.add(request);
     await antesDeCerrarClase?.call();
     final error = errorAlCerrarClase;
@@ -337,7 +337,7 @@ class ClasesServiceFalso extends ClasesService {
   }
 
   @override
-  Future<ClaseDictada> actualizarClase(String codigoClase, ActualizarClaseRequest request) async {
+  Future<ClaseDictada> actualizarClase(String codigoClase, ActualizarClaseRequest request, {String? descripcion}) async {
     correccionesPedidas.add((codigo: codigoClase, request: request));
     await antesDeActualizarClase?.call();
     final error = errorAlActualizarClase;
@@ -387,7 +387,7 @@ class ClasesServiceFalso extends ClasesService {
   /// Por defecto, la prueba queda guardada con el puntaje de su primer criterio en todos (los tests lo controlan con
   /// [alEvaluarClase]) y se suma a las pruebas de esa clase.
   @override
-  Future<PruebaClase> evaluarClase(EvaluarClaseRequest request) async {
+  Future<PruebaClase> evaluarClase(EvaluarClaseRequest request, {String? descripcion}) async {
     evaluacionesPedidas.add(request);
     await antesDeEvaluarClase?.call();
     final error = errorAlEvaluarClase;
@@ -413,7 +413,7 @@ class ClasesServiceFalso extends ClasesService {
   }
 
   @override
-  Future<ResultadoCancelacionInstructor> cancelarComoInstructor(String codigoReserva) async {
+  Future<ResultadoCancelacionInstructor> cancelarComoInstructor(String codigoReserva, {String? descripcion}) async {
     cancelacionesDeInstructorPedidas.add(codigoReserva);
     await antesDeCancelarComoInstructor?.call();
     final error = errorAlCancelarComoInstructor;

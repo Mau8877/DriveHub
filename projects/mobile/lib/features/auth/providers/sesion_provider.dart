@@ -47,8 +47,13 @@ class SesionNotifier extends Notifier<EstadoSesion> {
     'ERR_IDE_09',
   };
 
+  /// Se llama cuando la persona cierra sesión a propósito (no cuando el servidor la pierde): `main()` lo usa para
+  /// borrar lo guardado para funcionar sin internet.
+  Future<void> Function()? alCerrarSesion;
+
   String? _accessToken;
   String? _refreshToken;
+  UsuarioSesion? _usuarioGuardado;
   Timer? _temporizador;
   Future<String?>? _renovacionEnCurso;
 
@@ -69,6 +74,7 @@ class SesionNotifier extends Notifier<EstadoSesion> {
       return;
     }
     _refreshToken = guardada.refreshToken;
+    _usuarioGuardado = guardada.usuario;
     await renovar();
   }
 
@@ -133,6 +139,7 @@ class SesionNotifier extends Notifier<EstadoSesion> {
       }
     }
     await _perderSesion(null);
+    await alCerrarSesion?.call();
   }
 
   /// Renueva la sesión; devuelve el token nuevo o `null` si no se pudo.
@@ -157,11 +164,16 @@ class SesionNotifier extends Notifier<EstadoSesion> {
       return null;
     } catch (_) {
       // * Sin red u otro fallo que no es un rechazo del backend: la sesión no se pierde.
-      if (state.fase == FaseSesion.cargando) {
+      // * Al abrir la app sin internet se entra con la persona guardada (sin token: lo que hay en el teléfono se ve
+      // * y las acciones permitidas se encolan) y se reintenta renovar hasta que haya conexión.
+      final guardado = _usuarioGuardado;
+      if (state.fase == FaseSesion.cargando && guardado != null) {
+        state = EstadoSesion.conSesion(guardado);
+      } else if (state.fase == FaseSesion.cargando) {
         state = const EstadoSesion.sinSesion();
-      } else {
-        _programar(_reintentoSinRed);
+        return null;
       }
+      _programar(_reintentoSinRed);
       return null;
     }
   }
@@ -177,6 +189,7 @@ class SesionNotifier extends Notifier<EstadoSesion> {
             usuario: sesion.usuario,
           ),
         );
+    _usuarioGuardado = sesion.usuario;
     state = EstadoSesion.conSesion(sesion.usuario);
     _programar(
       Duration(

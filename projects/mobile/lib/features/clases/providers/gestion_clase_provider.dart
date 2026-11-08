@@ -17,10 +17,11 @@ class GestionClaseNotifier extends Notifier<void> {
   @override
   void build() {}
 
-  Future<ClaseDictada> cerrar(CerrarClaseRequest request) async {
+  /// * [descripcion] es el texto con que figura en la cola si se cierra sin conexión («Cierre de la clase de Ana, 12 nov»).
+  Future<ClaseDictada> cerrar(CerrarClaseRequest request, {String? descripcion}) async {
     final ClaseDictada clase;
     try {
-      clase = await ref.read(clasesServiceProvider).cerrarClase(request);
+      clase = await ref.read(clasesServiceProvider).cerrarClase(request, descripcion: descripcion);
     } catch (_) {
       ref.invalidate(agendaListProvider);
       rethrow;
@@ -29,10 +30,10 @@ class GestionClaseNotifier extends Notifier<void> {
     return clase;
   }
 
-  Future<ClaseDictada> actualizar(String codigoClase, ActualizarClaseRequest request) async {
+  Future<ClaseDictada> actualizar(String codigoClase, ActualizarClaseRequest request, {String? descripcion}) async {
     final ClaseDictada clase;
     try {
-      clase = await ref.read(clasesServiceProvider).actualizarClase(codigoClase, request);
+      clase = await ref.read(clasesServiceProvider).actualizarClase(codigoClase, request, descripcion: descripcion);
     } catch (_) {
       _refrescar(codigoClase);
       rethrow;
