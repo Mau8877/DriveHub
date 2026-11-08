@@ -346,6 +346,10 @@ services:
       - FIREBASE_CREDENCIALES=${FIREBASE_CREDENCIALES:-}
       # Credencial de SERVICIO de la ruta interna /internal/v1/notificaciones (CU36).
       - NOTIFICACIONES_CREDENCIAL_SERVICIOS=${NOTIFICACIONES_CREDENCIAL_SERVICIOS:-}
+      # GraphQL (CU45): POST /api/v1/graphql al lado de REST. GRAPHQL_ENABLED=false lo apaga. La introspección (ver el
+      # esquema) viene encendida acá porque este compose es de desarrollo; en producción queda apagada.
+      - GRAPHQL_ENABLED=${GRAPHQL_ENABLED:-true}
+      - GRAPHQL_INTROSPECTION=${GRAPHQL_INTROSPECTION:-true}
     depends_on:
       dynamodb:
         condition: service_started
