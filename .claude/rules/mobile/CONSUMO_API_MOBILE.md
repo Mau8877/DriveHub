@@ -64,6 +64,13 @@ respuesta): se **descarta** y queda como `AccionRechazada` con el mensaje del se
   acepta quedan como `AccionCompletada`. `AvisoOffline` (arriba de todos los shells) avisa **sin conexión** que
   lo que se haga se enviará al volver internet, y **al volver** cuenta cuántas operaciones se cumplieron y cuántas
   no (la hoja «Ver» las lista con el motivo del servidor) hasta que la persona pulsa «Entendido».
+- **Actualización optimista**: una escritura encolada declara su `efecto` y los `objetivos` (códigos de la reserva,
+  la franja o la clase que toca) y, si hace falta dibujarla, `datos` (`OpcionesOffline.escritura(..., efecto:,
+  objetivos:, datos:)`). Las pantallas leen `offlineProvider` y muestran la clase como «pendiente» (insignia
+  «Cancelación pendiente», «Cierre pendiente»...), apagan los botones que chocarían y dibujan una reserva hecha sin
+  conexión como tarjeta provisional en «Mis clases» (`features/clases/widgets/pendientes_offline.dart`). No se
+  modifica ningún dato: es solo cómo se ve. Si el servidor rechaza la acción, sale de la cola y la pantalla vuelve
+  sola a lo real; si la acepta, las listas se vuelven a pedir.
 - **Rechazo parcial**: reservar varias franjas responde 200 aunque el servidor rechace alguna. Una escritura
   con `tipo` (`OpcionesOffline.escritura(..., tipo: ...)`) tiene un verificador registrado en
   `NucleoOffline.verificadores` que revisa la respuesta y avisa cada parte no cumplida (`verificarReservaOffline`). 401, 429, 5xx o sin red: se conserva y se
