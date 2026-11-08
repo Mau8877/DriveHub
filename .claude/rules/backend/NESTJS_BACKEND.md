@@ -22,6 +22,7 @@ src/
 │   ├── response/           # ApiResponse / ApiResponses (sobre estándar)
 │   ├── exceptions/         # BusinessException + ValidationException, NotFoundException...
 │   ├── filters/            # GlobalExceptionFilter (equivale al GlobalExceptionHandler de Spring)
+│   ├── graphql/            # GraphqlApiModule (CU45): config, límites de consulta, errores catalogados
 │   ├── dynamodb/           # Cliente, definición de tablas (DEFINICION_TABLAS) y CreadorTablasService
 │   └── idempotencia/       # EventoProcesado: idempotencia de los consumidores de RabbitMQ
 ├── health/                 # GET /health
@@ -33,6 +34,7 @@ src/
         ├── repositories/   # Acceso a DynamoDB (DocumentClient), sin lógica
         ├── models/         # Forma del ítem de DynamoDB (interface) + helpers de clave
         ├── dto/            # Request/Response con class-validator
+        ├── graphql/        # Resolvers + tipos/inputs de GraphQL de ESTA feature (CU45); llaman a los mismos services
         └── enums/
 ```
 
@@ -63,6 +65,39 @@ controller/service de esa feature y se importa en `app.module.ts`.
   como dependencia con el primer caso de uso que cree ítems.
 - **Estilo**: el `.prettierrc` de la raíz (sin punto y coma, comillas
   simples). Lint: `oxlint --type-aware` (`pnpm lint`).
+
+## GraphQL (CU45)
+
+`notificaciones` expone GraphQL en `POST /api/v1/graphql` **al lado** de sus rutas REST, que no se tocan. Es código
+primero (`@nestjs/graphql` + Apollo, el esquema se arma en memoria; no se escribe ningún `.gql`).
+
+- **Un resolver por feature, en `{feature}/graphql/`**, que solo traduce entrada y salida y llama al **mismo service**
+  que el controller de REST. La lógica, el logging y los `BusinessException` siguen siendo del service. Los tipos
+  (`@ObjectType`) e inputs (`@InputType`/`@ArgsType`) se declaran en esa misma carpeta.
+- **Mismas reglas que REST**: los inputs repiten las reglas y los mensajes de class-validator de su DTO de REST.
+  Es una copia a propósito (no se decora el DTO de REST) y `reglas-iguales-a-rest.spec.ts` obliga a que coincidan: si
+  se cambia una regla, se cambia en los dos y el test lo comprueba.
+- **Quién es la persona sale del token** (`@UsuarioActual()`), nunca de un argumento. Ninguna consulta o mutación recibe
+  el código de una persona.
+- **Guards y decorador**: `JwtAuthGuard`, `RolesGuard` y `@UsuarioActual()` leen el request con `requestDe(context)`
+  (`common/security/request-de.ts`), que sirve igual para un controller que para un resolver. No se usa
+  `context.switchToHttp()` directo en código compartido.
+- **Errores**: `GlobalExceptionFilter` devuelve un `GraphQLError` con el código catalogado en `extensions.code`, y
+  `errorCatalogado` (`formatError`) garantiza que **ningún** error salga sin un `ERR_...` (los de la propia consulta,
+  como sintaxis o campo inexistente, pasan a `ERR_SYS_01`; cualquier otro, a `ERR_SYS_00`). GraphQL no usa el sobre
+  estándar de [RESPONSES_BACKEND.md](RESPONSES_BACKEND.md): responde `{ data, errors }`.
+- **Límites** (`limites-de-consulta.ts`): `GRAPHQL_MAX_DEPTH` (6) y `GRAPHQL_MAX_ROOT_FIELDS` (10) por operación, sin lotes
+  de consultas. El gateway cuenta peticiones, no consultas, así que estos topes son los que frenan un pedido abusivo.
+  Los campos de introspección (`__schema`, `__type`, `__typename`) no cuentan: la consulta estándar con que las
+  herramientas exploran el esquema tiene unos 15 niveles y, sin esta excepción, la introspección de desarrollo no
+  funcionaría (en producción está apagada y Apollo la rechaza antes).
+- **Esquema oculto en producción**: la introspección solo se activa con `GRAPHQL_INTROSPECTION=true` (desarrollo).
+- **Interruptor**: `GRAPHQL_ENABLED=false` quita el módulo y deja el servicio solo con REST. Se lee al cargar
+  `AppModule`, así que se fija como variable de entorno del proceso (no en un `.env` leído después).
+- **Solo se expone lo que REST ya expone**: sin listado de dispositivos y sin el token de Firebase. Un campo nuevo se
+  suma a REST y a GraphQL a la vez, o se documenta por qué no.
+- **Tests**: `common/graphql/graphql-api.spec.ts` (resolvers contra `POST /api/v1/graphql` con los services mockeados),
+  `limites-de-consulta.spec.ts`, `reglas-iguales-a-rest.spec.ts` y los de `app.module*.spec.ts` (el interruptor).
 
 ## Tests
 

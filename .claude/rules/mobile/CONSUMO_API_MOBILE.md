@@ -37,6 +37,31 @@ escribir el primer `service` que llame al backend, hay que crear:
     éxito, o dejar que el `DioException` crudo (sin el código de negocio)
     se propague tal cual hasta la UI.
 
+## GraphQL (`core/network/graphql_client.dart`, CU45)
+
+Un servicio que ofrece GraphQL junto a REST (hoy `notificaciones`: avisos y preferencias) se puede consumir por
+cualquiera de los dos. REST sigue siendo el valor por defecto de todo lo demás.
+
+- **Un solo cliente**: `GraphqlClient` hace `POST /graphql` con `{ query, variables }` sobre el `ApiClient` de siempre
+  (Bearer, renovación de sesión ante un 401 del gateway, modo offline). Ninguna feature arma esa petición a mano.
+  `consultar` es para lecturas y `mutar` para cambios; ambas devuelven el contenido de `data`.
+- **No usa el sobre estándar**: `ApiClient` deja pasar tal cual lo marcado con `OpcionesGraphql.clave`. Desempaquetarlo
+  como un sobre REST se tragaría los errores (GraphQL responde 200 con `errors` y `data: null`).
+- **Errores**: `errors[0].extensions.code` llega como `ApiException` con su `ERR_...`, igual que en REST, así que las
+  pantallas no cambian. También los de una consulta inválida (400). Un fallo de red se relanza como `DioException`.
+- **Documentos**: los textos de las consultas viven en `features/{feature}/services/documentos_graphql.dart` como
+  constantes `r'''...'''` y piden **solo los campos que leen los modelos**. Tienen que ser válidos contra el esquema del
+  servicio; si se cambia un campo en el backend, se cambia acá.
+- **Subclase del servicio de REST**: `NotificacionesGraphqlService extends NotificacionesService` (y
+  `PreferenciasGraphqlService`) sobrescriben los mismos métodos. El provider elige uno u otro; las pantallas, los
+  providers de datos y los tests de pantalla no se enteran. Los modelos no cambian.
+- **Bandera de transporte**: `NOTIFICACIONES_TRANSPORTE` en el `.env` (`graphql` por defecto, `rest` para volver) se lee en
+  `transporteNotificacionesProvider`. Sirve de vuelta atrás sin recompilar.
+- **Offline**: una *consulta* se guarda en la caché del teléfono (clave = ruta + texto + variables) y sin conexión se
+  responde con lo último guardado, como un `GET`. Una *mutación* nunca se guarda ni se encola (como hoy las de
+  avisos y preferencias). Una respuesta con `errors` no se guarda.
+- Solo se pasa a GraphQL lo que lo justifica; no se migra una feature "porque sí".
+
 ## Modo offline (`core/offline/`)
 
 La app sigue siendo usable sin internet, y al volver la conexión el **servidor valida todo**: nada se da por
