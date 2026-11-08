@@ -17,6 +17,8 @@ import '../../features/pagos/screens/pago_resultado_screen.dart';
 import '../../features/pagos/screens/resumen_compra_screen.dart';
 import '../../features/perfil/screens/cambiar_contrasena_screen.dart';
 import '../../features/resultados/screens/notas_alumnos_screen.dart';
+import '../../features/servidor/providers/servidor_provider.dart';
+import '../../features/servidor/screens/servidor_screen.dart';
 import '../../features/simulacros/screens/rendir_simulacro_screen.dart';
 import '../../features/tablero/screens/historial_ayudas_screen.dart';
 import '../../features/tutoriales/models/tutorial.dart';
@@ -28,17 +30,19 @@ import '../../features/simulacros/screens/resultado_simulacro_screen.dart';
 import '../../features/perfil/screens/cambiar_correo_screen.dart';
 import '../../layouts/inicio_por_rol.dart';
 
-const _rutasPublicas = {'/login', '/register', '/forgot-password'};
+const _rutasPublicas = {'/login', '/register', '/forgot-password', '/servidor'};
 
 /// Router único de la app (ver NAVEGACION_MOBILE.md) con el redirect global
 /// por sesión: el chequeo vive acá una sola vez, no en cada pantalla.
 ///
+/// * Sin servidor elegido (la primera vez que se abre la app) → `/servidor`, antes que cualquier otra cosa.
 /// * Recuperando la sesión → `/cargando`; sin sesión solo `/login` y
 /// * `/register`; con sesión, `/inicio` (y no se vuelve a ver el login).
 final routerProvider = Provider<GoRouter>((ref) {
   // * El router vuelve a evaluar el redirect cada vez que cambia el estado de la sesión
   final cambios = ValueNotifier<int>(0);
   ref.listen(sesionProvider, (_, _) => cambios.value++);
+  ref.listen(servidorProvider, (_, _) => cambios.value++);
   ref.onDispose(cambios.dispose);
 
   return GoRouter(
@@ -46,6 +50,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: cambios,
     redirect: (context, state) {
       final ubicacion = state.matchedLocation;
+      // * Sin saber con qué backend hablar nada más tiene sentido: ni la sesión ni el login
+      if (!ref.read(servidorProvider).configurado) {
+        return ubicacion == '/servidor' ? null : '/servidor';
+      }
       switch (ref.read(sesionProvider).fase) {
         case FaseSesion.cargando:
           return ubicacion == '/cargando' ? null : '/cargando';
@@ -90,6 +98,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/cargando',
         builder: (context, state) => const CargandoScreen(),
+      ),
+      // * El servidor con el que habla la app: obligatorio la primera vez; después, desde «Cambiar servidor» del login
+      GoRoute(
+        path: '/servidor',
+        builder: (context, state) => const ServidorScreen(),
       ),
       GoRoute(
         path: '/login',

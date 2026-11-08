@@ -54,6 +54,23 @@ class ApiClient {
   /// guardado; las escrituras marcadas con [OpcionesOffline.escritura] se encolan. La llama `main()` una vez.
   static void configurarOffline(NucleoOffline? nucleo) => _offline = nucleo;
 
+  // * La dirección del backend que eligió la persona (pantalla de servidor); sin ella, la del `.env`
+  static String? _baseUrl;
+
+  /// La dirección de la API con la que habla la app: la que eligió la persona o, si no eligió ninguna, `API_BASE_URL`
+  /// del `.env` (y como último recurso la del emulador de Android).
+  static String get baseUrlActual =>
+      _baseUrl ??
+      (dotenv.isInitialized ? dotenv.env['API_BASE_URL'] : null) ??
+      'http://10.0.2.2:8080/api/v1';
+
+  /// Fija la dirección de la API. Si el cliente ya se creó, se actualiza el MISMO objeto: los servicios guardan una
+  /// referencia a él, así que cambiar la dirección no deja a ninguno hablando con el servidor anterior.
+  static void configurarBaseUrl(String? url) {
+    _baseUrl = url;
+    _instance?.options.baseUrl = baseUrlActual;
+  }
+
   static Dio get instance {
     _instance ??= _build();
     return _instance!;
@@ -62,7 +79,7 @@ class ApiClient {
   static Dio _build() {
     final dio = Dio(
       BaseOptions(
-        baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8080/api/v1',
+        baseUrl: baseUrlActual,
       ),
     );
 
