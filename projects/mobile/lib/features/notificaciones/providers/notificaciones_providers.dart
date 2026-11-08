@@ -1,13 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/transporte.dart';
 import '../../auth/providers/sesion_provider.dart';
 import '../../perfil/providers/perfil_provider.dart';
 import '../models/preferencias_notificacion.dart';
+import '../services/preferencias_graphql_service.dart';
 import '../services/preferencias_service.dart';
+import 'transporte_provider.dart';
 
 /// Servicio de las preferencias; es un provider aparte para poder sustituirlo en tests.
+///
+/// * Habla GraphQL (CU45) o REST según `NOTIFICACIONES_TRANSPORTE` (ver [transporteNotificacionesProvider]).
 final preferenciasServiceProvider = Provider<PreferenciasService>(
-  (ref) => PreferenciasService(),
+  (ref) => ref.watch(transporteNotificacionesProvider) == Transporte.graphql
+      ? PreferenciasGraphqlService()
+      : PreferenciasService(),
 );
 
 /// Las preferencias guardadas de la persona (CU37), con la acción de guardar.

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../offline/interceptor_offline.dart';
+import 'graphql_client.dart' show OpcionesGraphql;
 import '../offline/nucleo_offline.dart';
 export '../offline/interceptor_offline.dart' show OpcionesOffline;
 
@@ -71,6 +72,12 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onResponse: (response, handler) {
+          // * GraphQL (CU45) responde `{ data, errors }`, no el sobre estándar: desempaquetarlo se tragaría los errores.
+          // * Lo interpreta `GraphqlClient`.
+          if (response.requestOptions.extra[OpcionesGraphql.clave] == true) {
+            handler.next(response);
+            return;
+          }
           // * Una respuesta que no es el sobre JSON (un PDF, CU30) pasa tal cual
           final envelope = response.data;
           if (envelope is Map<String, dynamic>) {
@@ -81,6 +88,10 @@ class ApiClient {
           handler.next(response);
         },
         onError: (error, handler) {
+          if (error.requestOptions.extra[OpcionesGraphql.clave] == true) {
+            handler.next(error);
+            return;
+          }
           final envelope = _sobreDelError(error.response?.data);
           if (envelope is Map<String, dynamic> && envelope['error'] != null) {
             handler.reject(

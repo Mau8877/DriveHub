@@ -2,10 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/transporte.dart';
 import '../../auth/providers/sesion_provider.dart';
 import '../models/notificacion.dart';
 import '../models/preferencias_notificacion.dart';
+import '../services/notificaciones_graphql_service.dart';
 import '../services/notificaciones_service.dart';
+import 'transporte_provider.dart';
 
 const int _tamanoDePagina = 20;
 
@@ -13,8 +16,13 @@ const int _tamanoDePagina = 20;
 const String _avisoNoEncontrado = 'ERR_NOT_04';
 
 /// Servicio de la bandeja; es un provider aparte para poder sustituirlo en tests.
+///
+/// * Habla GraphQL (CU45) o REST según `NOTIFICACIONES_TRANSPORTE` (ver [transporteNotificacionesProvider]); las
+///   pantallas reciben un [NotificacionesService] y no saben cuál.
 final notificacionesServiceProvider = Provider<NotificacionesService>(
-  (ref) => NotificacionesService(),
+  (ref) => ref.watch(transporteNotificacionesProvider) == Transporte.graphql
+      ? NotificacionesGraphqlService()
+      : NotificacionesService(),
 );
 
 /// Qué avisos muestra la bandeja: «No leídas» y/o un tipo. Sin nada, todos.

@@ -17,6 +17,10 @@ class OpcionesOffline {
   static const claveDatos = 'offlineDatos';
   static const claveSinOffline = 'sinOffline';
   static const claveSinCache = 'sinCache';
+
+  /// Marca una petición que es una CONSULTA de GraphQL (un `POST` que solo lee): se guarda como una lectura. Una
+  /// mutación no la lleva y nunca se guarda ni se responde desde lo guardado.
+  static const claveConsultaGraphql = 'graphqlQuery';
   static const claveDesdeCache = 'desdeCache';
 
   /// Opciones de Dio para una escritura que, sin conexión, se guarda y se envía al volver internet. [descripcion]
@@ -64,7 +68,7 @@ class InterceptorOffline extends Interceptor {
     final nucleo = _nucleo();
     if (nucleo != null) {
       nucleo.marcarConexion();
-      if (_esCacheable(response.requestOptions) && _esJson(response.data)) {
+      if (_esCacheable(response.requestOptions) && _esJson(response.data) && !_traeErroresGraphql(response.data)) {
         // * Sin esperar: guardar en disco no frena la pantalla, y un fallo al guardar no es un fallo de la lectura
         nucleo.guardarCache(_clave(response.requestOptions), response.data as Object).catchError((_) {});
       }
@@ -130,12 +134,19 @@ class InterceptorOffline extends Interceptor {
     handler.next(error);
   }
 
-  /// Solo se guardan las lecturas JSON de la API de negocio (no el login, ni descargas de bytes).
+  /// Solo se guardan las lecturas JSON de la API de negocio (no el login, ni descargas de bytes): los `GET` y las
+  /// consultas de GraphQL, que viajan por `POST` pero no cambian nada.
   static bool _esCacheable(RequestOptions o) =>
-      o.method.toUpperCase() == 'GET' &&
+      (o.method.toUpperCase() == 'GET' || _esConsultaGraphql(o)) &&
       o.responseType == ResponseType.json &&
       !o.path.startsWith('/auth/') &&
       o.extra[OpcionesOffline.claveSinCache] != true;
+
+  static bool _esConsultaGraphql(RequestOptions o) =>
+      o.method.toUpperCase() == 'POST' && o.extra[OpcionesOffline.claveConsultaGraphql] == true;
+
+  /// Una respuesta de GraphQL con `errors` no se guarda: sin conexión se serviría un fallo como si fuera un dato.
+  static bool _traeErroresGraphql(Object? datos) => datos is Map && datos['errors'] != null;
 
   static bool _esJson(Object? datos) => datos is Map || datos is List;
 
@@ -160,8 +171,10 @@ class InterceptorOffline extends Interceptor {
     }
   }
 
-  /// La URL completa con los parámetros ordenados: la misma lectura siempre da la misma clave.
+  /// La URL completa con los parámetros ordenados: la misma lectura siempre da la misma clave. En una consulta de
+  /// GraphQL la clave es la ruta más el texto de la consulta y sus variables (cada combinación es otra lectura).
   static String _clave(RequestOptions o) {
+    if (_esConsultaGraphql(o)) return 'POST ${o.uri} ${jsonEncode(o.data)}';
     final uri = o.uri;
     if (uri.queryParameters.isEmpty) return uri.toString();
     final ordenados = Map.fromEntries(
