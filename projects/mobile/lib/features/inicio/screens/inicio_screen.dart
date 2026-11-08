@@ -10,7 +10,9 @@ import '../../clases/models/reserva.dart';
 import '../../clases/models/vista_reservas.dart';
 import '../../clases/providers/franjas_disponibles_provider.dart';
 import '../../clases/widgets/formato_clases.dart';
+import '../../clases/widgets/pendientes_offline.dart';
 import '../../clases/widgets/reserva_card.dart';
+import '../../offline/providers/offline_provider.dart';
 
 /// Cuántas clases se muestran en Inicio: la próxima en la tarjeta y las siguientes debajo.
 const _maxClasesInicio = 3;
@@ -35,9 +37,12 @@ class InicioScreen extends ConsumerWidget {
     final proximas = esInstructor
         ? null
         : ref.watch(reservasListProvider(VistaReservas.proximas));
+    // * Una clase que se canceló sin conexión (y aún no se envió) ya no se ofrece como próxima
+    final offline = ref.watch(offlineProvider);
     final clases =
         proximas?.asData?.value
             .where((r) => !r.terminada)
+            .where((r) => offline.pendienteSobre(r.codigo)?.efecto != EfectoOffline.cancelar)
             .take(_maxClasesInicio)
             .toList() ??
         const <Reserva>[];

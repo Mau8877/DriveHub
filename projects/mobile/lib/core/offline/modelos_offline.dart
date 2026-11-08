@@ -14,6 +14,15 @@ class AccionPendiente {
   /// franjas): el núcleo revisa su respuesta con el verificador de este tipo. `null` = basta con el status HTTP.
   final String? tipo;
 
+  /// Qué hace la acción («cancelar», «reservar»...) y sobre qué códigos (la reserva, la franja...): con esto las
+  /// pantallas muestran lo hecho sin conexión como «pendiente» (actualización optimista) en vez de dejar la lista
+  /// como si nada hubiera pasado. Si el servidor la rechaza, sale de la cola y la lista vuelve sola a lo real.
+  final String? efecto;
+  final List<String> objetivos;
+
+  /// Lo que hace falta para dibujar la acción como pendiente (por ejemplo, las franjas de una reserva). JSON.
+  final Map<String, dynamic>? datos;
+
   const AccionPendiente({
     required this.id,
     required this.metodo,
@@ -22,6 +31,9 @@ class AccionPendiente {
     required this.creadaEn,
     this.cuerpo,
     this.tipo,
+    this.efecto,
+    this.objetivos = const [],
+    this.datos,
   });
 
   Map<String, dynamic> toJson() => {
@@ -32,6 +44,9 @@ class AccionPendiente {
     'descripcion': descripcion,
     'creadaEn': creadaEn.toIso8601String(),
     'tipo': tipo,
+    'efecto': efecto,
+    'objetivos': objetivos,
+    'datos': datos,
   };
 
   factory AccionPendiente.fromJson(Map<String, dynamic> json) => AccionPendiente(
@@ -42,6 +57,9 @@ class AccionPendiente {
     descripcion: json['descripcion'] as String,
     creadaEn: DateTime.parse(json['creadaEn'] as String),
     tipo: json['tipo'] as String?,
+    efecto: json['efecto'] as String?,
+    objetivos: [for (final o in (json['objetivos'] as List<dynamic>? ?? const [])) o as String],
+    datos: json['datos'] == null ? null : Map<String, dynamic>.from(json['datos'] as Map),
   );
 }
 
@@ -142,6 +160,20 @@ class EstadoOffline {
     completadas: completadas ?? this.completadas,
     sincronizando: sincronizando ?? this.sincronizando,
   );
+
+  /// La acción pendiente más reciente que toca a [codigo] (una reserva, una franja, una clase), o `null`.
+  AccionPendiente? pendienteSobre(String codigo) {
+    for (final a in pendientes.reversed) {
+      if (a.objetivos.contains(codigo)) return a;
+    }
+    return null;
+  }
+
+  /// Las acciones pendientes de un [efecto], en el orden en que se hicieron.
+  List<AccionPendiente> pendientesConEfecto(String efecto) => [
+    for (final a in pendientes)
+      if (a.efecto == efecto) a,
+  ];
 
   /// Hay un resultado que mostrarle a la persona: lo que se cumplió y lo que no al volver internet.
   bool get hayResultados => rechazadas.isNotEmpty || completadas.isNotEmpty;

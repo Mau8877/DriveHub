@@ -137,7 +137,7 @@ class ClasesDemo extends ClasesService {
   }
 
   @override
-  Future<ReservasResultado> reservar(List<String> franjaCodigos, {String? descripcion}) async {
+  Future<ReservasResultado> reservar(List<String> franjaCodigos, {String? descripcion, List<FranjaDisponible>? franjas}) async {
     final nuevas = [for (final c in franjaCodigos) datos.reservaDeFranja(c)];
     datos.proximas
       ..addAll(nuevas)

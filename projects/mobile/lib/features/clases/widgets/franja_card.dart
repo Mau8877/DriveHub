@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/insignia.dart';
 import '../models/franja_disponible.dart';
 import 'formato_clases.dart';
 
@@ -14,12 +15,17 @@ class FranjaCard extends StatelessWidget {
   final bool deshabilitada;
   final VoidCallback alTocar;
 
+  /// Si la franja ya tiene una operación hecha sin conexión sin enviar («Reserva pendiente»), su texto: se ve apagada
+  /// y no se puede elegir otra vez.
+  final String? etiquetaPendiente;
+
   const FranjaCard({
     super.key,
     required this.franja,
     required this.elegida,
     required this.deshabilitada,
     required this.alTocar,
+    this.etiquetaPendiente,
   });
 
   @override
@@ -27,7 +33,7 @@ class FranjaCard extends StatelessWidget {
     final tema = Theme.of(context);
     final colores = tema.colorScheme;
     final borde = elegida ? colores.primary : context.cockpit.borde;
-    final apagada = deshabilitada && !elegida;
+    final apagada = (deshabilitada && !elegida) || etiquetaPendiente != null;
 
     return Semantics(
       button: true,
@@ -66,10 +72,13 @@ class FranjaCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Icon(
-                      elegida ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: elegida ? colores.primary : colores.onSurfaceVariant,
-                    ),
+                    if (etiquetaPendiente != null)
+                      Insignia(etiquetaPendiente!, tono: TonoInsignia.advertencia)
+                    else
+                      Icon(
+                        elegida ? Icons.check_circle : Icons.radio_button_unchecked,
+                        color: elegida ? colores.primary : colores.onSurfaceVariant,
+                      ),
                   ],
                 ),
               ),

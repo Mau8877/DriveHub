@@ -237,7 +237,7 @@ class ClasesServiceFalso extends ClasesService {
   }
 
   @override
-  Future<ReservasResultado> reservar(List<String> franjaCodigos, {String? descripcion}) async {
+  Future<ReservasResultado> reservar(List<String> franjaCodigos, {String? descripcion, List<FranjaDisponible>? franjas}) async {
     reservasPedidas.add(List.of(franjaCodigos));
     await antesDeReservar?.call();
     final error = errorAlReservar;

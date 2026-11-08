@@ -162,6 +162,9 @@ class NucleoOffline {
     required String descripcion,
     Object? cuerpo,
     String? tipo,
+    String? efecto,
+    List<String> objetivos = const [],
+    Map<String, dynamic>? datos,
   }) async {
     final ahora = _ahora();
     final accion = AccionPendiente(
@@ -172,6 +175,9 @@ class NucleoOffline {
       descripcion: descripcion,
       creadaEn: ahora,
       tipo: tipo,
+      efecto: efecto,
+      objetivos: objetivos,
+      datos: datos,
     );
     _cola = [..._cola, accion];
     await _persistir();

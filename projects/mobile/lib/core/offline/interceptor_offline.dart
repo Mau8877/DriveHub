@@ -12,6 +12,9 @@ import 'nucleo_offline.dart';
 class OpcionesOffline {
   static const claveDescripcion = 'offline';
   static const claveTipo = 'offlineTipo';
+  static const claveEfecto = 'offlineEfecto';
+  static const claveObjetivos = 'offlineObjetivos';
+  static const claveDatos = 'offlineDatos';
   static const claveSinOffline = 'sinOffline';
   static const claveSinCache = 'sinCache';
   static const claveDesdeCache = 'desdeCache';
@@ -21,8 +24,24 @@ class OpcionesOffline {
   ///
   /// * [tipo] solo hace falta si el servidor puede responder 200 habiendo rechazado una parte: el núcleo revisa la
   /// * respuesta con el verificador registrado para ese tipo (ver `NucleoOffline.verificadores`).
-  static Options escritura(String descripcion, {String? tipo}) =>
-      Options(extra: {claveDescripcion: descripcion, claveTipo: ?tipo});
+  ///
+  /// * [efecto], [objetivos] y [datos] son lo que las pantallas usan para mostrar la acción como «pendiente»
+  /// * mientras no se envía (ver `AccionPendiente.efecto`).
+  static Options escritura(
+    String descripcion, {
+    String? tipo,
+    String? efecto,
+    List<String> objetivos = const [],
+    Map<String, dynamic>? datos,
+  }) => Options(
+    extra: {
+      claveDescripcion: descripcion,
+      claveTipo: ?tipo,
+      claveEfecto: ?efecto,
+      if (objetivos.isNotEmpty) claveObjetivos: objetivos,
+      claveDatos: ?datos,
+    },
+  );
 
   /// Opciones para una lectura que nunca debe responderse desde lo guardado (un dato que cambia a cada rato).
   static Options sinCache() => Options(extra: {claveSinCache: true});
@@ -94,6 +113,9 @@ class InterceptorOffline extends Interceptor {
         descripcion: descripcion,
         cuerpo: opciones.data,
         tipo: opciones.extra[OpcionesOffline.claveTipo] as String?,
+        efecto: opciones.extra[OpcionesOffline.claveEfecto] as String?,
+        objetivos: (opciones.extra[OpcionesOffline.claveObjetivos] as List<String>?) ?? const [],
+        datos: opciones.extra[OpcionesOffline.claveDatos] as Map<String, dynamic>?,
       );
       handler.reject(
         DioException(

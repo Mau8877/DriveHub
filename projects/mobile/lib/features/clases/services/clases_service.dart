@@ -5,6 +5,7 @@ import '../../../core/network/pagina.dart';
 import '../../../core/offline/modelos_offline.dart';
 import '../../horarios/models/fechas.dart';
 import '../models/actualizar_clase_request.dart';
+import '../widgets/pendientes_offline.dart';
 import '../models/catalogo_pruebas.dart';
 import '../models/cerrar_clase_request.dart';
 import '../models/clase_agenda.dart';
@@ -93,7 +94,11 @@ class ClasesService {
   /// * Se puede hacer sin conexión ([tipoReservarClases]): queda en la cola y el servidor decide al volver internet
   /// * cuáles franjas siguen libres; lo que rechace se avisa (el verificador revisa la respuesta, porque un rechazo
   /// * parcial llega como 200).
-  Future<ReservasResultado> reservar(List<String> franjaCodigos, {String? descripcion}) {
+  Future<ReservasResultado> reservar(
+    List<String> franjaCodigos, {
+    String? descripcion,
+    List<FranjaDisponible>? franjas,
+  }) {
     return _llamar(() async {
       final response = await _dio.post<Map<String, dynamic>>(
         '/reservas',
@@ -101,6 +106,9 @@ class ClasesService {
         options: OpcionesOffline.escritura(
           descripcion ?? (franjaCodigos.length == 1 ? 'Reserva de 1 clase' : 'Reserva de ${franjaCodigos.length} clases'),
           tipo: tipoReservarClases,
+          efecto: EfectoOffline.reservar,
+          objetivos: franjaCodigos,
+          datos: franjas == null ? null : {'franjas': franjas.map(datosDeFranja).toList()},
         ),
       );
       return ReservasResultado.fromJson(response.data!);
@@ -115,7 +123,11 @@ class ClasesService {
     return _llamar(() async {
       final response = await _dio.post<Map<String, dynamic>>(
         '/reservas/$codigoReserva/cancelar',
-        options: OpcionesOffline.escritura(descripcion ?? 'Cancelación de clase'),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Cancelación de clase',
+          efecto: EfectoOffline.cancelar,
+          objetivos: [codigoReserva],
+        ),
       );
       return ResultadoCancelacion.fromJson(response.data!);
     });
@@ -133,7 +145,11 @@ class ClasesService {
       final response = await _dio.post<Map<String, dynamic>>(
         '/reservas/$codigoReserva/reprogramar',
         data: ReprogramarRequest(franjaCodigo: franjaCodigo).toJson(),
-        options: OpcionesOffline.escritura(descripcion ?? 'Reprogramación de clase'),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Reprogramación de clase',
+          efecto: EfectoOffline.reprogramar,
+          objetivos: [codigoReserva, franjaCodigo],
+        ),
       );
       return Reserva.fromJson(response.data!);
     });
@@ -161,7 +177,11 @@ class ClasesService {
     return _llamar(() async {
       final response = await _dio.post<Map<String, dynamic>>(
         '/reservas/$codigoReserva/cancelar-por-instructor',
-        options: OpcionesOffline.escritura(descripcion ?? 'Cancelación de clase'),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Cancelación de clase',
+          efecto: EfectoOffline.cancelar,
+          objetivos: [codigoReserva],
+        ),
       );
       return ResultadoCancelacionInstructor.fromJson(response.data!);
     });
@@ -178,7 +198,11 @@ class ClasesService {
       final response = await _dio.post<Map<String, dynamic>>(
         '/clases',
         data: request.toJson(),
-        options: OpcionesOffline.escritura(descripcion ?? 'Cierre de clase'),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Cierre de clase',
+          efecto: EfectoOffline.cerrar,
+          objetivos: [request.reservaCodigo],
+        ),
       );
       return ClaseDictada.fromJson(response.data!);
     });
@@ -204,7 +228,11 @@ class ClasesService {
       final response = await _dio.patch<Map<String, dynamic>>(
         '/clases/$codigoClase',
         data: request.toJson(),
-        options: OpcionesOffline.escritura(descripcion ?? 'Corrección de clase'),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Corrección de clase',
+          efecto: EfectoOffline.corregir,
+          objetivos: [codigoClase],
+        ),
       );
       return ClaseDictada.fromJson(response.data!);
     });
@@ -227,7 +255,11 @@ class ClasesService {
       final response = await _dio.post<Map<String, dynamic>>(
         '/pruebas-clase',
         data: request.toJson(),
-        options: OpcionesOffline.escritura(descripcion ?? 'Evaluación de clase'),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Evaluación de clase',
+          efecto: EfectoOffline.evaluar,
+          objetivos: [request.claseCodigo],
+        ),
       );
       return PruebaClase.fromJson(response.data!);
     });

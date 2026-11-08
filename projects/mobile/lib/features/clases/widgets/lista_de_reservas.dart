@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/offline/modelos_offline.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/estado_vacio.dart';
 import '../models/reserva.dart';
@@ -8,7 +9,9 @@ import '../models/vista_reservas.dart';
 import '../providers/franjas_disponibles_provider.dart';
 import 'acciones_reserva.dart';
 import 'dialogo_cancelar_reserva.dart';
+import '../../offline/providers/offline_provider.dart';
 import 'formato_clases.dart';
+import 'pendientes_offline.dart';
 import 'reprogramar_sheet.dart';
 import 'reserva_card.dart';
 
@@ -31,6 +34,9 @@ class ListaDeReservas extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reservas = ref.watch(reservasListProvider(vista));
+    final offline = ref.watch(offlineProvider);
+    // * Las reservas hechas sin conexión se ven ya en «Mis clases», marcadas como pendientes
+    final provisionales = _esHistorial ? const <Reserva>[] : reservasPendientes(offline);
 
     return reservas.when(
       loading: () => const Padding(
@@ -47,7 +53,7 @@ class ListaDeReservas extends ConsumerWidget {
         ),
       ),
       data: (lista) {
-        if (lista.isEmpty) {
+        if (lista.isEmpty && provisionales.isEmpty) {
           return Card(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -55,7 +61,7 @@ class ListaDeReservas extends ConsumerWidget {
             ),
           );
         }
-        return _esHistorial ? _Historial(lista) : _ProximasPorDia(lista);
+        return _esHistorial ? _Historial(lista) : _ProximasPorDia(lista, provisionales: provisionales, offline: offline);
       },
     );
   }
@@ -81,8 +87,10 @@ class _Historial extends StatelessWidget {
 
 class _ProximasPorDia extends StatelessWidget {
   final List<Reserva> reservas;
+  final List<Reserva> provisionales;
+  final EstadoOffline offline;
 
-  const _ProximasPorDia(this.reservas);
+  const _ProximasPorDia(this.reservas, {required this.provisionales, required this.offline});
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +98,19 @@ class _ProximasPorDia extends StatelessWidget {
     final ahora = DateTime.now();
     final hijos = <Widget>[];
     DateTime? diaActual;
-    for (final reserva in reservas) {
+    final codigosProvisionales = {for (final r in provisionales) r.codigo};
+    final todas = [...reservas, ...provisionales];
+    // * Solo se reordena si hay provisionales: el orden de las reales lo pone el backend
+    if (provisionales.isNotEmpty) {
+      todas.sort((a, b) {
+        final porFecha = a.fecha.compareTo(b.fecha);
+        return porFecha != 0 ? porFecha : a.horaInicio.compareTo(b.horaInicio);
+      });
+    }
+    for (final reserva in todas) {
+      final esProvisional = codigosProvisionales.contains(reserva.codigo);
+      final pendiente = esProvisional ? null : offline.pendienteSobre(reserva.codigo);
+      final etiqueta = esProvisional ? 'Reserva pendiente' : (pendiente == null ? null : etiquetaDePendiente(pendiente));
       if (diaActual == null || reserva.fecha != diaActual) {
         diaActual = reserva.fecha;
         hijos.add(
@@ -103,16 +123,18 @@ class _ProximasPorDia extends StatelessWidget {
           ),
         );
       }
-      hijos
-        ..add(ReservaCard(key: Key('reserva-${reserva.codigo}'), reserva: reserva))
-        ..add(
+      hijos.add(ReservaCard(key: Key('reserva-${reserva.codigo}'), reserva: reserva, etiquetaPendiente: etiqueta));
+      // * Con una operación pendiente encima (o sin reserva real todavía) no se ofrece cancelar ni reprogramar
+      if (etiqueta == null) {
+        hijos.add(
           AccionesReserva(
             reserva: reserva,
             alCancelar: () => mostrarDialogoCancelar(context, reserva),
             alReprogramar: () => mostrarReprogramar(context, reserva),
           ),
-        )
-        ..add(const SizedBox(height: 10));
+        );
+      }
+      hijos.add(const SizedBox(height: 10));
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: hijos);
   }
