@@ -16,10 +16,10 @@ class GestionReservaNotifier extends Notifier<void> {
   @override
   void build() {}
 
-  Future<ResultadoCancelacion> cancelar(String codigoReserva) async {
+  Future<ResultadoCancelacion> cancelar(String codigoReserva, {String? descripcion}) async {
     final ResultadoCancelacion resultado;
     try {
-      resultado = await ref.read(clasesServiceProvider).cancelar(codigoReserva);
+      resultado = await ref.read(clasesServiceProvider).cancelar(codigoReserva, descripcion: descripcion);
     } catch (_) {
       // * El saldo también: si la cancelación llegó a hacerse, la hora pudo haberse devuelto
       _refrescarClasesYFranjas();
@@ -31,10 +31,10 @@ class GestionReservaNotifier extends Notifier<void> {
     return resultado;
   }
 
-  Future<Reserva> reprogramar(String codigoReserva, String franjaCodigo) async {
+  Future<Reserva> reprogramar(String codigoReserva, String franjaCodigo, {String? descripcion}) async {
     final Reserva reserva;
     try {
-      reserva = await ref.read(clasesServiceProvider).reprogramar(codigoReserva, franjaCodigo);
+      reserva = await ref.read(clasesServiceProvider).reprogramar(codigoReserva, franjaCodigo, descripcion: descripcion);
     } catch (_) {
       _refrescarClasesYFranjas();
       rethrow;

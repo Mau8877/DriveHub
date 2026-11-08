@@ -35,6 +35,7 @@ class GatewayRoutingTest {
     private static final HttpServer IDENTIDAD_FALSA = levantarServicioFalso("identidad");
     private static final HttpServer ESCUELA_FALSA = levantarServicioFalso("escuela");
     private static final HttpServer PAGOS_FALSO = levantarServicioFalso("pagos");
+    private static final HttpServer NOTIFICACIONES_FALSA = levantarServicioFalso("notificaciones");
     private static final HttpClient CLIENTE = HttpClient.newHttpClient();
 
     @LocalServerPort
@@ -46,6 +47,7 @@ class GatewayRoutingTest {
         registry.add("IDENTIDAD_URL", () -> "http://localhost:" + IDENTIDAD_FALSA.getAddress().getPort());
         registry.add("ESCUELA_URL", () -> "http://localhost:" + ESCUELA_FALSA.getAddress().getPort());
         registry.add("PAGOS_URL", () -> "http://localhost:" + PAGOS_FALSO.getAddress().getPort());
+        registry.add("NOTIFICACIONES_URL", () -> "http://localhost:" + NOTIFICACIONES_FALSA.getAddress().getPort());
         // * Puerto 1: nadie escucha, simula un servicio caído
         registry.add("CONTENIDO_URL", () -> "http://localhost:1");
     }
@@ -55,6 +57,7 @@ class GatewayRoutingTest {
         IDENTIDAD_FALSA.stop(0);
         ESCUELA_FALSA.stop(0);
         PAGOS_FALSO.stop(0);
+        NOTIFICACIONES_FALSA.stop(0);
     }
 
     @Test
@@ -161,6 +164,27 @@ class GatewayRoutingTest {
 
         assertThat(lista.body()).isEqualTo("pagos:/api/v1/horas-alumnos");
         assertThat(detalle.body()).isEqualTo("pagos:/api/v1/horas-alumnos/0198f0a0-0000-7000-8000-000000000001");
+    }
+
+    // * CU45: GraphQL es una sola ruta, atendida por Notificaciones; exige la misma sesión que el resto de la API
+    @Test
+    void graphql_seReenviaANotificacionesConLaMismaRuta() throws Exception {
+        HttpResponse<String> consulta = post("/api/v1/graphql", TokensDePrueba.valido());
+        HttpResponse<String> avisos = get("/api/v1/notificaciones", TokensDePrueba.valido());
+
+        assertThat(consulta.statusCode()).isEqualTo(200);
+        assertThat(consulta.body()).isEqualTo("notificaciones:/api/v1/graphql");
+        assertThat(avisos.body()).isEqualTo("notificaciones:/api/v1/notificaciones");
+    }
+
+    @Test
+    void graphql_sinSesion_loRechazaElGatewayAntesDeLlegarANotificaciones() throws Exception {
+        int antes = RECIBIDAS.getOrDefault("notificaciones", java.util.List.of()).size();
+
+        HttpResponse<String> respuesta = post("/api/v1/graphql", null);
+
+        assertThat(respuesta.statusCode()).isEqualTo(401);
+        assertThat(RECIBIDAS.getOrDefault("notificaciones", java.util.List.of())).hasSize(antes);
     }
 
     // * CU26: no hay cuotas ni inscripciones a un plan; Pagos ya no las tiene y el gateway no las enruta

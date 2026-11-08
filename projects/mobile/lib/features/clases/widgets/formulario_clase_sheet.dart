@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/modelos_offline.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/indicador_boton.dart';
+import '../../offline/mensajes_offline.dart';
 import '../models/actualizar_clase_request.dart';
 import '../models/asistencia_clase.dart';
 import '../models/cerrar_clase_request.dart';
@@ -219,15 +221,28 @@ class _CuerpoFormularioState extends ConsumerState<_CuerpoFormulario> {
     try {
       final gestion = ref.read(gestionClaseProvider.notifier);
       if (cierre != null) {
-        await gestion.cerrar(cierre);
+        await gestion.cerrar(
+          cierre,
+          descripcion: 'Cierre de la clase de ${widget.clase.estudianteNombre} (${widget.clase.horaInicio})',
+        );
       } else {
-        await gestion.actualizar(widget.inicial!.codigo, correccion!);
+        await gestion.actualizar(
+          widget.inicial!.codigo,
+          correccion!,
+          descripcion: 'Corrección de la clase de ${widget.clase.estudianteNombre} (${widget.clase.horaInicio})',
+        );
       }
       if (!mounted || !contexto.mounted) return;
       navegador.pop();
       avisar(contexto, cierre != null ? avisoDeResultadoDeCierre(cierre.asistencia) : avisoDeCorreccionGuardada);
     } catch (e) {
       if (!mounted) return;
+      if (e is AccionEncolada) {
+        // * Sin conexión: el cierre quedó guardado y se envía solo al volver internet
+        navegador.pop();
+        if (contexto.mounted) avisar(contexto, avisoDeAccionEncolada(e));
+        return;
+      }
       if (e is ApiException && codigosQueCierranElCierre.contains(e.code)) {
         navegador.pop();
         if (contexto.mounted) avisar(contexto, e.message);

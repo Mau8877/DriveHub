@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 
 import { DynamoDbModule } from './common/dynamodb/dynamodb.module.js'
+import { modulosGraphql } from './common/graphql/graphql-api.module.js'
 import { DispositivosModule } from './features/dispositivos/dispositivos.module.js'
 import { NotificacionesModule } from './features/notificaciones/notificaciones.module.js'
 import { PreferenciasModule } from './features/preferencias/preferencias.module.js'
@@ -18,6 +19,8 @@ import { HealthController } from './health/health.controller.js'
     DispositivosModule,
     NotificacionesModule,
     PreferenciasModule,
+    // * CU45: GraphQL al lado de REST; GRAPHQL_ENABLED=false lo apaga sin tocar nada más
+    ...modulosGraphql(),
   ],
   controllers: [HealthController],
 })

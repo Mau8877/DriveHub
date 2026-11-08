@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core'
 
 import { ForbiddenException } from '../exceptions/business.exception.js'
 import { ErrorCodes } from '../exceptions/error-codes.js'
-import type { RequestAutenticado } from './jwt-auth.guard.js'
+import { requestDe } from './request-de.js'
 import { CLAVE_ROLES } from './roles.decorator.js'
 
 /**
@@ -23,7 +23,7 @@ export class RolesGuard implements CanActivate {
     ])
     if (!permitidos || permitidos.length === 0) return true
 
-    const usuario = context.switchToHttp().getRequest<RequestAutenticado>().usuario
+    const usuario = requestDe(context).usuario
     if (usuario?.roles.some((rol) => permitidos.includes(rol))) return true
 
     throw new ForbiddenException(ErrorCodes.SIN_PERMISO, 'No tienes permiso para realizar esta acción')

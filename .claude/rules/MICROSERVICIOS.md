@@ -41,8 +41,12 @@ el espejo de las rutas de
 | `pagos` | `planes-pago`, `pagos`, `comprobantes`, `billeteras-horas`, `horas-alumnos`, `webhooks-stripe` |
 | `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
 | `contenido` | `manuales`, `tutoriales` |
-| `notificaciones` | `notificaciones`, `preferencias-notificacion`, `dispositivos-push` |
+| `notificaciones` | `notificaciones`, `preferencias-notificacion`, `dispositivos-push`, `graphql` (CU45: `POST /api/v1/graphql`) |
 | `asistente-ia` | `sesiones-ia`, `ayudas-tablero`, `agentes-ia` (y el servidor MCP en `/mcp/`, fuera de `/api/v1`) |
+
+`graphql` es un único punto de entrada, no un recurso con subrutas: hoy lo atiende `notificaciones` (GraphQL al lado
+de sus rutas REST, ver [NESTJS_BACKEND.md](backend/NESTJS_BACKEND.md#graphql-cu45)). Si las consultas que juntan datos de
+varios servicios pasan a un servicio propio, esa ruta se mueve a su predicado del gateway.
 
 **Un recurso nuevo se agrega en el mismo cambio a las dos partes**: al
 predicado `Path=` de su servicio en el gateway, y a esta tabla. Un recurso

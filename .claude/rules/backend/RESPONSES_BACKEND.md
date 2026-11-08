@@ -8,7 +8,8 @@ Todo endpoint del backend responde con el mismo sobre (envelope) JSON. No se
 devuelven respuestas "crudas" (un array pelado, un objeto de dominio sin
 envolver, texto plano, etc.) salvo los endpoints de infraestructura que ya
 existen fuera de este contrato (`/health`, `/prometheus`, `/swagger-ui/**`,
-`/v3/api-docs/**`) y la página HTML a la que vuelve el estudiante de la pasarela
+`/v3/api-docs/**`), `POST /api/v1/graphql` (CU45: GraphQL responde `{ data, errors }` y cada error lleva su código
+`ERR_...` en `extensions.code`, ver [NESTJS_BACKEND.md](NESTJS_BACKEND.md#graphql-cu45)) y la página HTML a la que vuelve el estudiante de la pasarela
 de pago (`GET /api/v1/pagos/retorno`, de Pagos, CU26) y el PDF de un comprobante
 (`GET /api/v1/comprobantes/{codigo}/pdf`, de Pagos, CU30), que responde el archivo; sus errores sí usan el sobre.
 

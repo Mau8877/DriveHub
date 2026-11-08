@@ -14,10 +14,10 @@ class GestionAgendaNotifier extends Notifier<void> {
   @override
   void build() {}
 
-  Future<ResultadoCancelacionInstructor> cancelar(String codigoReserva) async {
+  Future<ResultadoCancelacionInstructor> cancelar(String codigoReserva, {String? descripcion}) async {
     final ResultadoCancelacionInstructor resultado;
     try {
-      resultado = await ref.read(clasesServiceProvider).cancelarComoInstructor(codigoReserva);
+      resultado = await ref.read(clasesServiceProvider).cancelarComoInstructor(codigoReserva, descripcion: descripcion);
     } catch (_) {
       ref.invalidate(agendaListProvider);
       rethrow;

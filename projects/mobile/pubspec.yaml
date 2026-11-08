@@ -45,6 +45,8 @@ dependencies:
   geolocator: ^14.1.2
   url_launcher: ^6.3.3
   path_provider: ^2.1.6
+  # * Avisa cuándo cambia la red (modo offline): la conexión de verdad la confirma una petición, ver core/offline/
+  connectivity_plus: ^7.0.0
   open_filex: ^5.0.0
   web: ^1.1.1
   file_picker: ^13.3.0

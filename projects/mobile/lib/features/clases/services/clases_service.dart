@@ -2,8 +2,10 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/pagina.dart';
+import '../../../core/offline/modelos_offline.dart';
 import '../../horarios/models/fechas.dart';
 import '../models/actualizar_clase_request.dart';
+import '../widgets/pendientes_offline.dart';
 import '../models/catalogo_pruebas.dart';
 import '../models/cerrar_clase_request.dart';
 import '../models/clase_agenda.dart';
@@ -21,6 +23,10 @@ import '../models/resultado_cancelacion_instructor.dart';
 import '../models/reservas_resultado.dart';
 import '../models/vista_reservas.dart';
 
+/// El tipo de la acción «reservar clases» en la cola offline: su respuesta se revisa porque un rechazo parcial
+/// (una franja ya tomada) llega como 200. Ver `verificarReservaOffline`.
+const tipoReservarClases = 'reservar-clases';
+
 /// Llamadas a la API de las clases del estudiante (CU14): ver las franjas libres de los instructores de su escuela,
 /// confirmar reservas y listar sus clases.
 ///
@@ -37,6 +43,7 @@ class ClasesService {
     } on DioException catch (e) {
       final error = e.error;
       if (error is ApiException) throw error;
+      if (error is AccionEncolada) throw error;
       rethrow;
     }
   }
@@ -83,11 +90,26 @@ class ClasesService {
 
   /// Confirma las franjas elegidas, una hora de la billetera por cada una. La respuesta dice cuáles quedaron
   /// reservadas y cuáles no (con su motivo): un rechazo parcial NO es un error.
-  Future<ReservasResultado> reservar(List<String> franjaCodigos) {
+  ///
+  /// * Se puede hacer sin conexión ([tipoReservarClases]): queda en la cola y el servidor decide al volver internet
+  /// * cuáles franjas siguen libres; lo que rechace se avisa (el verificador revisa la respuesta, porque un rechazo
+  /// * parcial llega como 200).
+  Future<ReservasResultado> reservar(
+    List<String> franjaCodigos, {
+    String? descripcion,
+    List<FranjaDisponible>? franjas,
+  }) {
     return _llamar(() async {
       final response = await _dio.post<Map<String, dynamic>>(
         '/reservas',
         data: ReservarFranjasRequest(franjaCodigos: franjaCodigos).toJson(),
+        options: OpcionesOffline.escritura(
+          descripcion ?? (franjaCodigos.length == 1 ? 'Reserva de 1 clase' : 'Reserva de ${franjaCodigos.length} clases'),
+          tipo: tipoReservarClases,
+          efecto: EfectoOffline.reservar,
+          objetivos: franjaCodigos,
+          datos: franjas == null ? null : {'franjas': franjas.map(datosDeFranja).toList()},
+        ),
       );
       return ReservasResultado.fromJson(response.data!);
     });
@@ -95,19 +117,39 @@ class ClasesService {
 
   /// Cancela una clase (CU15). A tiempo se devuelve la hora; tarde, la cancelación se permite pero la hora se pierde;
   /// si Pagos no responde, la cancelación se acepta y la hora se devuelve sola ([ResultadoCancelacion.horaDevuelta]).
-  Future<ResultadoCancelacion> cancelar(String codigoReserva) {
+  ///
+  /// * Se puede hacer sin conexión: el servidor decide al recibirla si fue a tiempo (y si la hora se devuelve).
+  Future<ResultadoCancelacion> cancelar(String codigoReserva, {String? descripcion}) {
     return _llamar(() async {
-      final response = await _dio.post<Map<String, dynamic>>('/reservas/$codigoReserva/cancelar');
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/reservas/$codigoReserva/cancelar',
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Cancelación de clase',
+          efecto: EfectoOffline.cancelar,
+          objetivos: [codigoReserva],
+        ),
+      );
       return ResultadoCancelacion.fromJson(response.data!);
     });
   }
 
   /// Mueve una clase a otra franja libre (CU15), sin tocar las horas. Devuelve la clase ya en la franja nueva.
-  Future<Reserva> reprogramar(String codigoReserva, String franjaCodigo) {
+  ///
+  /// * Se puede hacer sin conexión: el servidor revisa al recibirla que la franja nueva siga libre.
+  Future<Reserva> reprogramar(
+    String codigoReserva,
+    String franjaCodigo, {
+    String? descripcion,
+  }) {
     return _llamar(() async {
       final response = await _dio.post<Map<String, dynamic>>(
         '/reservas/$codigoReserva/reprogramar',
         data: ReprogramarRequest(franjaCodigo: franjaCodigo).toJson(),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Reprogramación de clase',
+          efecto: EfectoOffline.reprogramar,
+          objetivos: [codigoReserva, franjaCodigo],
+        ),
       );
       return Reserva.fromJson(response.data!);
     });
@@ -126,18 +168,42 @@ class ClasesService {
 
   /// Cancela una clase como instructor (CU16): sin plazo, el estudiante siempre recupera su hora y la franja queda
   /// bloqueada. Si Pagos no responde, la cancelación se acepta y la hora queda «en proceso».
-  Future<ResultadoCancelacionInstructor> cancelarComoInstructor(String codigoReserva) {
+  ///
+  /// * Se puede hacer sin conexión.
+  Future<ResultadoCancelacionInstructor> cancelarComoInstructor(
+    String codigoReserva, {
+    String? descripcion,
+  }) {
     return _llamar(() async {
-      final response = await _dio.post<Map<String, dynamic>>('/reservas/$codigoReserva/cancelar-por-instructor');
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/reservas/$codigoReserva/cancelar-por-instructor',
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Cancelación de clase',
+          efecto: EfectoOffline.cancelar,
+          objetivos: [codigoReserva],
+        ),
+      );
       return ResultadoCancelacionInstructor.fromJson(response.data!);
     });
   }
 
   /// Cierra una clase que ya empezó (CU17): la asistencia y, si asistió, el tema, las observaciones y los kilómetros.
   /// La reserva queda completada o con inasistencia; la hora del estudiante nunca se devuelve.
-  Future<ClaseDictada> cerrarClase(CerrarClaseRequest request) {
+  ///
+  /// * Se puede hacer sin conexión: si la petición no sale, queda en la cola con [descripcion] (lo que ve la persona
+  /// * en la lista de pendientes) y se lanza [AccionEncolada]. Al volver internet el servidor la valida igual que
+  /// * si se hubiera enviado en el momento.
+  Future<ClaseDictada> cerrarClase(CerrarClaseRequest request, {String? descripcion}) {
     return _llamar(() async {
-      final response = await _dio.post<Map<String, dynamic>>('/clases', data: request.toJson());
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/clases',
+        data: request.toJson(),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Cierre de clase',
+          efecto: EfectoOffline.cerrar,
+          objetivos: [request.reservaCodigo],
+        ),
+      );
       return ClaseDictada.fromJson(response.data!);
     });
   }
@@ -151,9 +217,23 @@ class ClasesService {
   }
 
   /// Corrige el tema, las observaciones o los kilómetros de una clase cerrada (CU17). Solo viaja lo que cambió.
-  Future<ClaseDictada> actualizarClase(String codigoClase, ActualizarClaseRequest request) {
+  ///
+  /// * Se puede hacer sin conexión.
+  Future<ClaseDictada> actualizarClase(
+    String codigoClase,
+    ActualizarClaseRequest request, {
+    String? descripcion,
+  }) {
     return _llamar(() async {
-      final response = await _dio.patch<Map<String, dynamic>>('/clases/$codigoClase', data: request.toJson());
+      final response = await _dio.patch<Map<String, dynamic>>(
+        '/clases/$codigoClase',
+        data: request.toJson(),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Corrección de clase',
+          efecto: EfectoOffline.corregir,
+          objetivos: [codigoClase],
+        ),
+      );
       return ClaseDictada.fromJson(response.data!);
     });
   }
@@ -168,9 +248,19 @@ class ClasesService {
 
   /// Evalúa una clase ya cerrada con asistencia (CU18): el puntaje de cada criterio del tipo elegido. La nota entra
   /// en el historial del estudiante.
-  Future<PruebaClase> evaluarClase(EvaluarClaseRequest request) {
+  ///
+  /// * Se puede hacer sin conexión.
+  Future<PruebaClase> evaluarClase(EvaluarClaseRequest request, {String? descripcion}) {
     return _llamar(() async {
-      final response = await _dio.post<Map<String, dynamic>>('/pruebas-clase', data: request.toJson());
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/pruebas-clase',
+        data: request.toJson(),
+        options: OpcionesOffline.escritura(
+          descripcion ?? 'Evaluación de clase',
+          efecto: EfectoOffline.evaluar,
+          objetivos: [request.claseCodigo],
+        ),
+      );
       return PruebaClase.fromJson(response.data!);
     });
   }

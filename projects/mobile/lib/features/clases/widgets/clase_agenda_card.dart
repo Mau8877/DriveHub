@@ -23,6 +23,10 @@ class ClaseAgendaCard extends StatelessWidget {
   final VoidCallback? alEvaluar;
   final VoidCallback? alVerPrueba;
 
+  /// Si la clase tiene una operación hecha sin conexión sin enviar («Cierre pendiente»), su texto: se muestra y se
+  /// apagan las acciones que chocarían con ella (no se cancela dos veces, no se evalúa una clase por cerrar).
+  final String? etiquetaPendiente;
+
   const ClaseAgendaCard({
     super.key,
     required this.clase,
@@ -31,9 +35,15 @@ class ClaseAgendaCard extends StatelessWidget {
     this.alEditar,
     this.alEvaluar,
     this.alVerPrueba,
+    this.etiquetaPendiente,
   });
 
   bool get _cancelada => clase.estado == EstadoReserva.cancelada;
+
+  bool get _libre => etiquetaPendiente == null;
+  bool get _puedeEditar => _libre && clase.claseCodigo != null && alEditar != null;
+  bool get _puedeEvaluar => _libre && clase.evaluable && alEvaluar != null;
+  bool get _puedeVerPrueba => clase.conPrueba && alVerPrueba != null;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +82,12 @@ class ClaseAgendaCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (clase.cancelable && alCancelar != null)
+            if (etiquetaPendiente != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Insignia(etiquetaPendiente!, tono: TonoInsignia.advertencia),
+              ),
+            if (_libre && clase.cancelable && alCancelar != null)
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -82,7 +97,7 @@ class ClaseAgendaCard extends StatelessWidget {
                   child: const Text('Cancelar'),
                 ),
               ),
-            if (clase.cerrable && alCerrar != null)
+            if (_libre && clase.cerrable && alCerrar != null)
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.tonal(
@@ -92,24 +107,22 @@ class ClaseAgendaCard extends StatelessWidget {
                   child: const Text('Cerrar clase'),
                 ),
               ),
-            if ((clase.claseCodigo != null && alEditar != null) ||
-                (clase.conPrueba && alVerPrueba != null) ||
-                (clase.evaluable && alEvaluar != null))
+            if (_puedeEditar || _puedeVerPrueba || _puedeEvaluar)
               Align(
                 alignment: Alignment.centerRight,
                 child: Wrap(
                   alignment: WrapAlignment.end,
                   spacing: 4,
                   children: [
-                    if (clase.claseCodigo != null && alEditar != null)
+                    if (_puedeEditar)
                       TextButton(key: Key('editar-${clase.codigo}'), onPressed: alEditar, child: const Text('Editar')),
-                    if (clase.conPrueba && alVerPrueba != null)
+                    if (_puedeVerPrueba)
                       TextButton(
                         key: Key('ver-prueba-${clase.codigo}'),
                         onPressed: alVerPrueba,
                         child: const Text('Ver prueba'),
                       ),
-                    if (clase.evaluable && alEvaluar != null)
+                    if (_puedeEvaluar)
                       FilledButton.tonal(
                         key: Key('evaluar-${clase.codigo}'),
                         onPressed: alEvaluar,

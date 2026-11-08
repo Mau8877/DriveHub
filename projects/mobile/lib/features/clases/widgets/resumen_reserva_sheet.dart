@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/offline/modelos_offline.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
+import '../../../shared/widgets/aviso_snack.dart';
+import '../../offline/mensajes_offline.dart';
 import '../../../shared/widgets/indicador_boton.dart';
 import '../../pagos/providers/saldo_horas_provider.dart';
 import '../models/franja_disponible.dart';
@@ -56,6 +59,12 @@ class _ResumenReservaSheetState extends ConsumerState<ResumenReservaSheet> {
       await mostrarResultadoReserva(contexto, resultado, elegidas);
     } catch (e) {
       if (!mounted) return;
+      if (e is AccionEncolada) {
+        // * Sin conexion: la reserva quedo guardada y el servidor decide al volver internet
+        navegador.pop();
+        if (contexto.mounted) avisar(contexto, avisoDeAccionEncolada(e));
+        return;
+      }
       setState(() {
         _enviando = false;
         _error = e is Exception ? mensajeDeError(e) : 'No pudimos confirmar. Inténtalo de nuevo.';

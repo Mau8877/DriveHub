@@ -9,6 +9,7 @@ packages:
 # autoricen explícitamente. Estos son binarios nativos del toolchain
 # (esbuild de Angular/Vite, watcher y caché del builder de Angular).
 allowBuilds:
+  '@apollo/protobufjs': false
   '@firebase/util': false
   '@parcel/watcher': true
   esbuild: true

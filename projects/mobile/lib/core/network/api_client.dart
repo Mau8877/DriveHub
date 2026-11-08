@@ -3,6 +3,11 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../offline/interceptor_offline.dart';
+import 'graphql_client.dart' show OpcionesGraphql;
+import '../offline/nucleo_offline.dart';
+export '../offline/interceptor_offline.dart' show OpcionesOffline;
+
 /// Excepción tipada para un error de negocio devuelto por el backend
 /// (`status: "failed"`, ver RESPONSES_BACKEND.md) -- nunca se deja propagar
 /// un [DioException] crudo, sin código, hasta la UI.
@@ -42,6 +47,13 @@ class ApiClient {
     _renovar = renovar;
   }
 
+  // * El modo offline lo arma `main()`; sin él (y en los tests) el cliente se comporta como siempre
+  static NucleoOffline? _offline;
+
+  /// Conecta el cliente con el núcleo offline: las lecturas se guardan y, sin conexión, se responden desde lo
+  /// guardado; las escrituras marcadas con [OpcionesOffline.escritura] se encolan. La llama `main()` una vez.
+  static void configurarOffline(NucleoOffline? nucleo) => _offline = nucleo;
+
   static Dio get instance {
     _instance ??= _build();
     return _instance!;
@@ -60,6 +72,12 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onResponse: (response, handler) {
+          // * GraphQL (CU45) responde `{ data, errors }`, no el sobre estándar: desempaquetarlo se tragaría los errores.
+          // * Lo interpreta `GraphqlClient`.
+          if (response.requestOptions.extra[OpcionesGraphql.clave] == true) {
+            handler.next(response);
+            return;
+          }
           // * Una respuesta que no es el sobre JSON (un PDF, CU30) pasa tal cual
           final envelope = response.data;
           if (envelope is Map<String, dynamic>) {
@@ -70,6 +88,10 @@ class ApiClient {
           handler.next(response);
         },
         onError: (error, handler) {
+          if (error.requestOptions.extra[OpcionesGraphql.clave] == true) {
+            handler.next(error);
+            return;
+          }
           final envelope = _sobreDelError(error.response?.data);
           if (envelope is Map<String, dynamic> && envelope['error'] != null) {
             handler.reject(
@@ -90,6 +112,9 @@ class ApiClient {
         },
       ),
     );
+
+    // * Último: ve la respuesta ya desempaquetada (la que se guarda en la caché) y los fallos de red sin resolver
+    dio.interceptors.add(InterceptorOffline(() => _offline));
 
     if (dotenv.env['ENABLE_API_LOGS'] == 'true') {
       dio.interceptors.add(

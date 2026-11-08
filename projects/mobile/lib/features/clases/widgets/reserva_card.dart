@@ -15,7 +15,10 @@ class ReservaCard extends StatelessWidget {
   /// En el historial se muestra la insignia con el estado; en «Mis clases» no hace falta (todas están confirmadas).
   final bool conEstado;
 
-  const ReservaCard({super.key, required this.reserva, this.conEstado = false});
+  /// Si la clase tiene una operación hecha sin conexión que todavía no se envió («Cancelación pendiente»), su texto.
+  final String? etiquetaPendiente;
+
+  const ReservaCard({super.key, required this.reserva, this.conEstado = false, this.etiquetaPendiente});
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +62,10 @@ class ReservaCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (conEstado) Insignia(etiquetaDeEstado(reserva), tono: _tono(reserva)),
+            if (etiquetaPendiente != null)
+              Insignia(etiquetaPendiente!, tono: TonoInsignia.advertencia)
+            else if (conEstado)
+              Insignia(etiquetaDeEstado(reserva), tono: _tono(reserva)),
           ],
         ),
       ),

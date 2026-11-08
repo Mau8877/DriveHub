@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/offline/modelos_offline.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/estado_vacio.dart';
+import '../../offline/providers/offline_provider.dart';
 import '../../pagos/providers/saldo_horas_provider.dart';
 import '../models/franja_disponible.dart';
 import '../models/momento_dia.dart';
@@ -14,6 +16,7 @@ import '../providers/franjas_seleccionadas_provider.dart';
 import 'filtros_reservar.dart';
 import 'formato_clases.dart';
 import 'franja_card.dart';
+import 'pendientes_offline.dart';
 
 /// La pestaña «Reservar» (CU14): los horarios libres de los instructores de la escuela, con filtros de día, momento e
 /// instructor, para elegir las franjas que el estudiante quiere.
@@ -95,6 +98,7 @@ class _ListaDeFranjas extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final elegidas = ref.watch(franjasSeleccionadasUiProvider);
+    final offline = ref.watch(offlineProvider);
     // * Mientras el saldo carga o falla no se deja elegir: sin saber las horas no se sabe cuántas caben
     final horas = ref.watch(saldoHorasProvider).maybeWhen(data: (h) => h, orElse: () => 0);
     final tope = math.min(horas, maximoPorConfirmacion);
@@ -117,7 +121,12 @@ class _ListaDeFranjas extends ConsumerWidget {
             franja: franja,
             elegida: elegidas.containsKey(franja.codigo),
             deshabilitada: alLimite,
+            etiquetaPendiente: _etiqueta(offline, franja),
             alTocar: () {
+              if (_etiqueta(offline, franja) != null) {
+                avisar(context, 'Ese horario ya tiene una operación pendiente de enviar.');
+                return;
+              }
               final pudo = ref
                   .read(franjasSeleccionadasUiProvider.notifier)
                   .alternar(franja, horasDisponibles: horas);
@@ -128,6 +137,11 @@ class _ListaDeFranjas extends ConsumerWidget {
         ],
       ],
     );
+  }
+
+  static String? _etiqueta(EstadoOffline offline, FranjaDisponible franja) {
+    final pendiente = offline.pendienteSobre(franja.codigo);
+    return pendiente == null ? null : etiquetaDePendiente(pendiente);
   }
 
   static String _motivoDelLimite(int horas) {

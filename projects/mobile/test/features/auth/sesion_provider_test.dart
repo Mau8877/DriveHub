@@ -141,6 +141,53 @@ void main() {
     expect(storage.guardada!.refreshToken, 'refresh-nuevo');
   });
 
+  test('restaurar sin internet entra con la persona guardada, sin token, y conserva la sesión (modo offline)', () async {
+    storage.guardada = const SesionGuardada(refreshToken: 'refresh-guardado', usuario: _usuario);
+    servicio.errorAlRenovar = DioException(
+      requestOptions: RequestOptions(path: '/auth/refresh'),
+      type: DioExceptionType.connectionError,
+    );
+
+    await notifier().restaurar();
+
+    expect(estado().fase, FaseSesion.conSesion);
+    expect(estado().usuario!.nombres, 'Ana');
+    expect(notifier().obtenerToken(), isNull);
+    expect(storage.guardada!.refreshToken, 'refresh-guardado');
+    expect(storage.borrados, 0);
+  });
+
+  test('restaurar sin internet y sin sesión guardada deja sinSesion', () async {
+    servicio.errorAlRenovar = Exception('sin red');
+
+    await notifier().restaurar();
+
+    expect(estado().fase, FaseSesion.sinSesion);
+  });
+
+  test('restaurar con la sesión rechazada por el backend NO entra en modo offline', () async {
+    storage.guardada = const SesionGuardada(refreshToken: 'refresh-viejo', usuario: _usuario);
+    servicio.errorAlRenovar = ApiException(code: 'ERR_IDE_06', message: 'sesión vencida');
+
+    await notifier().restaurar();
+
+    expect(estado().fase, FaseSesion.sinSesion);
+    expect(storage.guardada, isNull);
+  });
+
+  test('cerrarSesion avisa a alCerrarSesion; perder la sesión por el servidor, no', () async {
+    var avisos = 0;
+    notifier().alCerrarSesion = () async => avisos++;
+    storage.guardada = const SesionGuardada(refreshToken: 'refresh-viejo', usuario: _usuario);
+    servicio.errorAlRenovar = ApiException(code: 'ERR_IDE_06', message: 'sesión vencida');
+    await notifier().restaurar();
+    expect(avisos, 0);
+
+    await notifier().cerrarSesion();
+
+    expect(avisos, 1);
+  });
+
   test('cerrarSesion avisa al backend con el refresh vigente y deja sinSesion sin motivo', () async {
     await notifier().iniciarSesion('a@gmail.com', 'clave');
 

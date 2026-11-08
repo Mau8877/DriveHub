@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/modelos_offline.dart';
 import '../../../shared/widgets/aviso_cockpit.dart';
 import '../../../shared/widgets/aviso_snack.dart';
 import '../../../shared/widgets/indicador_boton.dart';
+import '../../offline/mensajes_offline.dart';
 import '../models/catalogo_pruebas.dart';
 import '../models/clase_agenda.dart';
 import '../models/evaluar_clase_request.dart';
@@ -203,12 +205,20 @@ class _CuerpoEvaluarState extends ConsumerState<_CuerpoEvaluar> {
       _error = null;
     });
     try {
-      final PruebaClase prueba = await ref.read(gestionPruebaClaseProvider.notifier).evaluar(pedido);
+      final PruebaClase prueba = await ref.read(gestionPruebaClaseProvider.notifier).evaluar(
+        pedido,
+        descripcion: 'Evaluación de la clase de ${widget.clase.estudianteNombre} (${widget.clase.horaInicio})',
+      );
       if (!mounted || !contexto.mounted) return;
       navegador.pop();
       avisar(contexto, avisoDePruebaRegistrada(prueba));
     } catch (e) {
       if (!mounted) return;
+      if (e is AccionEncolada) {
+        navegador.pop();
+        if (contexto.mounted) avisar(contexto, avisoDeAccionEncolada(e));
+        return;
+      }
       if (e is ApiException && codigosQueCierranLaPrueba.contains(e.code)) {
         navegador.pop();
         if (contexto.mounted) avisar(contexto, e.message);

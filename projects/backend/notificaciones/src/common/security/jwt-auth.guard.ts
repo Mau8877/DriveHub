@@ -3,6 +3,7 @@ import type { Request } from 'express'
 
 import { UnauthorizedException } from '../exceptions/business.exception.js'
 import { ErrorCodes } from '../exceptions/error-codes.js'
+import { requestDe } from './request-de.js'
 import { type UsuarioAutenticado, VerificadorJwt } from './verificador-jwt.js'
 
 export type RequestAutenticado = Request & { usuario?: UsuarioAutenticado }
@@ -19,7 +20,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(private readonly verificador: VerificadorJwt) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<RequestAutenticado>()
+    const request = requestDe(context)
     const cabecera = request.header('authorization') ?? ''
     const token = cabecera.startsWith('Bearer ') ? cabecera.slice(7).trim() : ''
     const usuario = token ? await this.verificador.verificar(token) : null

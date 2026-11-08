@@ -23,11 +23,14 @@ gateway), no ligados a ningún servicio de negocio puntual (ver
 - **Significado:** Falló la validación de formato de un request (campo
   obligatorio faltante, formato inválido, etc.: Bean Validation, ValidationPipe
   de Nest, pydantic, validación de Laravel) — no una regla de negocio, esa
-  se cataloga con su propio código en el servicio que corresponda.
+  se cataloga con su propio código en el servicio que corresponda. En GraphQL (CU45) también cubre la consulta mal
+  escrita (sintaxis, campo o argumento inexistente) y la que supera los límites de profundidad o de campos; en ese
+  caso el código va en `errors[].extensions.code` de una respuesta 400 (o 200 si falló un argumento ya dentro del
+  resolver) y el mensaje de la propia consulta lo escribe la librería, en inglés.
 - **Dónde se lanza:** handler global de cada servicio — Spring
   `GlobalExceptionHandler.handleValidationException()`, NestJS
-  `GlobalExceptionFilter.catch()`, FastAPI `_validacion`, Laravel
-  `bootstrap/app.php`.
+  `GlobalExceptionFilter.catch()` y, en GraphQL, `errorCatalogado()` (`graphql-api.module.ts`), FastAPI `_validacion`,
+  Laravel `bootstrap/app.php`.
 
 ## `ERR_SYS_02`
 
