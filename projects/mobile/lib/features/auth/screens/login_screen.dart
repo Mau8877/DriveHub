@@ -213,6 +213,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ],
                   ),
+                  // * Una dirección mal escrita no puede dejar a la persona sin salida
+                  TextButton.icon(
+                    key: const Key('botonCambiarServidor'),
+                    onPressed: () => context.go('/servidor'),
+                    icon: const Icon(Icons.dns_outlined, size: 18),
+                    label: const Text('Cambiar servidor'),
+                  ),
                 ],
               ),
             ),

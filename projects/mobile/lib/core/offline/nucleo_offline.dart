@@ -1,5 +1,3 @@
-// ignore_for_file: prefer_initializing_formals
-// * Los parámetros son nombrados y los campos privados: Dart no permite `this._x` en un parámetro nombrado.
 import 'dart:async';
 
 import 'package:dio/dio.dart';
@@ -53,18 +51,13 @@ class NucleoOffline {
   /// * [hayToken]: sin token no se sincroniza (arranque sin internet): se espera a que la sesión se renueve.
   /// * [sondeo]: pregunta si el servidor responde; mientras no hay conexión se repite cada [cadaSondeo].
   NucleoOffline({
-    required AlmacenOffline almacen,
-    required Dio Function() dio,
-    required bool Function() hayToken,
-    required Future<bool> Function() sondeo,
-    Duration cadaSondeo = const Duration(seconds: 15),
+    required this._almacen,
+    required this._dio,
+    required this._hayToken,
+    required this._sondeo,
+    this._cadaSondeo = const Duration(seconds: 15),
     DateTime Function()? ahora,
-  }) : _almacen = almacen,
-       _dio = dio,
-       _hayToken = hayToken,
-       _sondeo = sondeo,
-       _cadaSondeo = cadaSondeo,
-       _ahora = ahora ?? DateTime.now;
+  }) : _ahora = ahora ?? DateTime.now;
 
   bool get sinConexion => estado.value.sinConexion;
 

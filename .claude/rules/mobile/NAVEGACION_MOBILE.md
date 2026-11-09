@@ -32,6 +32,17 @@ Mismo concepto que el guard de rutas del frontend web (ver
 la lógica de "¿puede entrar acá?" vive en **un solo lugar**, no se
 reimplementa un `if` de sesión al principio de cada pantalla.
 
+## Primero el servidor (CU51)
+
+Antes que la sesión, el `redirect` global pregunta si la app ya sabe con qué backend habla
+(`servidorProvider.configurado`). La primera vez que se abre la app no lo sabe y **solo deja `/servidor`**: ni el login ni el
+registro ni la recuperación de contraseña tienen a quién llamar. Con un servidor guardado (lo lee `main()` del teléfono
+antes de crear la sesión) el flujo es el de siempre. `/servidor` también es una ruta pública: el login ofrece «Cambiar
+servidor» y, con sesión iniciada, vuelve al inicio.
+
+- El estado inicial por defecto es «configurado»: los tests de las demás pantallas no pasan por la configuración. `main()` lo
+  sustituye con lo leído del teléfono, y los tests del flujo lo fijan en `configurado: false`.
+
 ## Fuente del estado de sesión
 
 El `redirect` necesita leer si hay sesión válida — esto se resuelve contra
