@@ -55,6 +55,7 @@ Otro servicio (Pagos, Académico...) pide avisar a una persona con un tipo, un t
 - **B1:** Sin sesión válida → 401 `ERR_SYS_04`.
 - **B2:** Se quita un dispositivo que no existe o es de otra persona → 404 `ERR_NOT_02`.
 - **B3:** La persona no concede el permiso de notificaciones en el navegador → no se registra ningún dispositivo web y el resto de los canales sigue igual.
+- **B4:** El token que se registra ya estaba registrado por otra persona (otra cuenta usó ese mismo teléfono o navegador y su sesión se perdió sin quitarlo) → el sistema lo quita de esa persona y lo registra a la nueva.
 
 ## Reglas de negocio
 
@@ -74,6 +75,7 @@ Otro servicio (Pagos, Académico...) pide avisar a una persona con un tipo, un t
 - Por cada canal intentado existe una notificación en el historial de la persona con su estado.
 - El pedido queda marcado como procesado (salvo la falla de A9).
 - Los dispositivos con token inválido quedan inactivos.
+- Un token de dispositivo pertenece a una sola persona a la vez: registrarlo lo quita de cualquier otra.
 
 ## Criterios de aceptación
 
@@ -84,6 +86,7 @@ Otro servicio (Pagos, Académico...) pide avisar a una persona con un tipo, un t
 - **CA05:** Dado un fallo en el envío del correo, el sistema debe registrarlo como `FALLIDA` y completar los demás canales.
 - **CA06:** Dada una hora dentro de la franja de silencio, el sistema no debe enviar el push y sí el correo y el historial.
 - **CA07:** Dado un token que Firebase rechaza como inválido, el sistema debe desactivar ese dispositivo.
+- **CA15:** Dado un token que ya estaba registrado por otra persona, cuando una persona lo registra, el sistema debe quitarlo de la otra y los avisos de esa otra no deben llegar a ese dispositivo.
 - **CA08:** Dado un pedido directo sin la credencial de servicio correcta, el sistema debe responder 401 `ERR_NOT_01` y no enviar nada.
 - **CA09:** Dado un pedido mal formado, el sistema debe responder 400 `ERR_SYS_01` (pedido directo) y no enviar nada.
 - **CA10:** Dada una persona con sesión, el sistema debe registrar su dispositivo como activo; registrar el mismo token otra vez no debe duplicarlo.

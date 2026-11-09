@@ -69,7 +69,7 @@ Variables: `GRAPHQL_ENABLED`, `GRAPHQL_INTROSPECTION`, `GRAPHQL_MAX_DEPTH`, `GRA
 ## Follow-ups (no se implementan en estas UT)
 
 - **Consultas que juntan datos de varios servicios** (detalle de un alumno del instructor: Escuela + Identidad + Pagos + Académico). Es el uso que el diseño original le da a GraphQL; necesita decidir dónde vive el agregador (servicio propio o uno existente) y se documenta en un caso de uso nuevo.
-- La app móvil ya consume avisos y preferencias por GraphQL: ver [UT-MOBILE](../UT-MOBILE/README.md). El panel web no (solo registra y quita el dispositivo push).
+- La app móvil ya consume avisos y preferencias por GraphQL: ver [UT-MOBILE](../UT-MOBILE/README.md). El panel web solo registra y quita el dispositivo push, y también lo hace por GraphQL (`GraphqlClient` del shell).
 - Límite de complejidad por costo de campo, si el esquema crece.
 - Acceso del Administrador cuando exista un dato suyo que exponer.
 
