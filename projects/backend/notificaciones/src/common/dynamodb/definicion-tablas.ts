@@ -23,6 +23,7 @@ export const TABLA_PREFERENCIAS = 'PreferenciasNotificacion'
 export const TABLA_DISPOSITIVOS = 'DispositivosPush'
 export const TABLA_EVENTOS_PROCESADOS = 'EventosProcesados'
 export const INDICE_NO_LEIDAS = 'NoLeidas'
+export const INDICE_POR_TOKEN = 'PorToken'
 
 export const DEFINICION_TABLAS: DefinicionTabla[] = [
   {
@@ -71,10 +72,20 @@ export const DEFINICION_TABLAS: DefinicionTabla[] = [
       AttributeDefinitions: [
         { AttributeName: 'usuarioCodigo', AttributeType: 'S' },
         { AttributeName: 'codigoDispositivoPush', AttributeType: 'S' },
+        { AttributeName: 'tokenFcm', AttributeType: 'S' },
       ],
       KeySchema: [
         { AttributeName: 'usuarioCodigo', KeyType: 'HASH' },
         { AttributeName: 'codigoDispositivoPush', KeyType: 'RANGE' },
+      ],
+      // Quién tiene registrado un token: un token de Firebase es de UN teléfono, y al registrarlo una
+      // persona se quita de las demás (dos personas en el mismo teléfono).
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: INDICE_POR_TOKEN,
+          KeySchema: [{ AttributeName: 'tokenFcm', KeyType: 'HASH' }],
+          Projection: { ProjectionType: 'KEYS_ONLY' },
+        },
       ],
     },
   },

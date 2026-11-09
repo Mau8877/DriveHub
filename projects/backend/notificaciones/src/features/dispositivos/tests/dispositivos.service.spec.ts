@@ -18,13 +18,20 @@ function dispositivo(parcial: Partial<DispositivoPush> = {}): DispositivoPush {
   }
 }
 
-function crear(existentes: DispositivoPush[] = []) {
+function crear(
+  existentes: DispositivoPush[] = [],
+  porToken: Pick<DispositivoPush, 'usuarioCodigo' | 'codigoDispositivoPush'>[] = []
+) {
   const repository = {
     listarPorUsuario: vi.fn().mockResolvedValue(existentes),
+    listarPorToken: vi.fn().mockResolvedValue(porToken),
     guardar: vi.fn().mockResolvedValue(undefined),
     eliminar: vi.fn().mockResolvedValue(undefined),
   }
-  return { repository, service: new DispositivosService(repository as unknown as DispositivosRepository) }
+  return {
+    repository,
+    service: new DispositivosService(repository as unknown as DispositivosRepository),
+  }
 }
 
 describe('DispositivosService', () => {
@@ -51,6 +58,45 @@ describe('DispositivosService', () => {
     expect(resultado.codigoDispositivoPush).toBe('d1')
     expect(resultado.activo).toBe(true)
     expect(repository.guardar.mock.calls[0][0].ultimoUso).not.toBe('2026-01-01T00:00:00.000Z')
+  })
+
+  it('quita el token de otra persona que lo tenía en el mismo teléfono', async () => {
+    const { repository, service } = crear(
+      [],
+      [{ usuarioCodigo: 'u2', codigoDispositivoPush: 'd9' }]
+    )
+    await service.registrar('u1', { tokenFcm: 'token-1', plataforma: Plataforma.ANDROID })
+
+    expect(repository.listarPorToken).toHaveBeenCalledWith('token-1')
+    expect(repository.eliminar).toHaveBeenCalledWith('u2', 'd9')
+    expect(repository.guardar).toHaveBeenCalledOnce()
+  })
+
+  it('no toca el dispositivo propio al reasignar (solo los de otras personas)', async () => {
+    const { repository, service } = crear(
+      [dispositivo()],
+      [
+        { usuarioCodigo: 'u1', codigoDispositivoPush: 'd1' },
+        { usuarioCodigo: 'u2', codigoDispositivoPush: 'd9' },
+      ]
+    )
+    await service.registrar('u1', { tokenFcm: 'token-1', plataforma: Plataforma.ANDROID })
+
+    expect(repository.eliminar).toHaveBeenCalledOnce()
+    expect(repository.eliminar).toHaveBeenCalledWith('u2', 'd9')
+  })
+
+  it('no guarda el token nuevo si no se pudo quitar de la otra persona', async () => {
+    const { repository, service } = crear(
+      [],
+      [{ usuarioCodigo: 'u2', codigoDispositivoPush: 'd9' }]
+    )
+    repository.eliminar.mockRejectedValue(new Error('dynamo'))
+
+    await expect(
+      service.registrar('u1', { tokenFcm: 'token-1', plataforma: Plataforma.ANDROID })
+    ).rejects.toThrow()
+    expect(repository.guardar).not.toHaveBeenCalled()
   })
 
   it('quita un dispositivo propio', async () => {
