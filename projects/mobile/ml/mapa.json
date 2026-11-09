@@ -1,0 +1,23 @@
+{
+  "Anti Lock Braking System": "abs",
+  "Braking System Issue": "frenos",
+  "Charging System Issue": "bateria",
+  "Check Engine": "check_engine",
+  "Electronic Stability Problem -ESP-": "control_traccion",
+  "Engine Overheating Warning Light": "temperatura",
+  "Low Engine Oil Warning Light": "aceite",
+  "Low Tire Pressure Warning Light": "presion_neumaticos",
+  "SRS-Airbag": "airbag",
+  "Airbag Indicator Light": "airbag",
+  "Anti-lock Braking System -ABS- Warning Light": "abs",
+  "Battery Alert Light": "bateria",
+  "Brake Warning Light": "frenos",
+  "Engine Temperature Warning Light": "temperatura",
+  "Engine Warning Light -Check Engine Light-": "check_engine",
+  "Low Fuel Indicator Light": "nivel_combustible",
+  "Oil Pressure Warning Light": "aceite",
+  "Seat Belt Reminder Light": "cinturon",
+  "Tire Pressure Warning Light": "presion_neumaticos",
+  "Traction Control Light": "control_traccion",
+  "Washer Fluid Indicator Light": "liquido_limpiaparabrisas"
+}

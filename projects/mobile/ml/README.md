@@ -3,10 +3,11 @@
 El clasificador que corre **dentro del teléfono** para reconocer una luz del tablero a partir de
 una foto. Se entrena aquí y se empaqueta en `assets/ml/`:
 
-> **Estado:** el código de la app y el pipeline de entrenamiento están completos y probados
-> (`prueba_humo.py`), pero **`tablero.tflite` y `tablero_labels.json` todavía no están en el
-> repositorio**: falta descargar los datasets (pasos 1 y 2) y entrenar. Mientras tanto, «Estudio >
-> Tablero» muestra «El análisis no está disponible» (A4 de CU40).
+> **Estado:** modelo entrenado y empaquetado (`tablero-v1`). Reconoce **9 luces**: `abs`,
+> `aceite`, `airbag`, `bateria`, `check_engine`, `control_traccion`, `frenos`,
+> `presion_neumaticos` y `temperatura`. Exactitud en validación: **0,992** (ver «Resultado del
+> entrenamiento»). Las demás luces del catálogo no tienen fotos suficientes y el modelo no las
+> conoce.
 
 | Archivo | Qué es | ¿Va al repositorio? |
 | --- | --- | --- |
@@ -14,6 +15,8 @@ una foto. Se entrena aquí y se empaqueta en `assets/ml/`:
 | `assets/ml/tablero.tflite` | El modelo entrenado (unos pocos MB) | Sí, una vez entrenado |
 | `assets/ml/tablero_labels.json` | Orden de las clases del modelo y tamaño de entrada | Sí, junto al modelo |
 | `ml/datos/` | Fotos de entrenamiento | **No** (está en `.gitignore`) |
+| `ml/descargas/` | Datasets descargados de Roboflow | **No** (está en `.gitignore`) |
+| `ml/mapa.json` | Clases de los datasets → códigos del catálogo | Sí |
 
 ## 1. Conseguir las fotos
 
@@ -40,7 +43,13 @@ ml/datos/
 
 | Dataset | Licencia | Luces que aportó |
 | --- | --- | --- |
-| _(completar al descargarlos)_ | | |
+| [Car Dashboard Icons v1](https://universe.roboflow.com/ts-rek4f/car-dashboard-icons-gsrxy/dataset/1) (ts-rek4f, 1622 imágenes, 3 versiones aumentadas por imagen de entrenamiento) | CC BY 4.0 | `abs`, `aceite`, `airbag`, `bateria`, `check_engine`, `control_traccion`, `frenos`, `presion_neumaticos`, `temperatura` (950 a 1000 recortes cada una) |
+| [Dashboard icons v1](https://universe.roboflow.com/shourya-chambial-axqy0/dashboard-icons/dataset/1) (shourya-chambial, 36 imágenes) | CC BY 4.0 | Unos pocos recortes de las mismas luces; `cinturon`, `nivel_combustible` y `liquido_limpiaparabrisas` quedaron con 2 fotos y se omiten |
+
+El mapeo de las clases de los datasets a los códigos del catálogo está en `mapa.json`. Se
+ignoraron las clases sin equivalente en el catálogo: «Master warning light», «Automatic Shift
+Lock», «Fog Lamp», «Lane Departure», «Security», «Traction Control Malfunction» y «Transmission
+Temperature».
 
 ### Preparar las fotos con `preparar_datos.py`
 
@@ -89,6 +98,35 @@ python entrenar_tablero.py --datos datos --salida ../assets/ml
 El script entrena (MobileNetV3-Small con transfer learning), imprime la **exactitud en validación
 y los aciertos por luz**, y solo exporta `tablero.tflite` y `tablero_labels.json` si la exactitud
 llega al mínimo (`--minimo`, 0.85 por defecto).
+
+- La validación (20 %) se separa **por foto de origen**, no por recorte: Roboflow exporta tres
+  versiones aumentadas de cada foto y, repartidas al azar, copias casi iguales caerían en
+  entrenamiento y en validación e inflarían la exactitud.
+- Las luces con menos de `--min-fotos` (60 por defecto) se omiten y se avisan.
+
+### Resultado del entrenamiento (`tablero-v1`)
+
+Con `python entrenar_tablero.py --datos datos --salida ../assets/ml` (12 épocas de cabeza + 6 de
+afinado, CPU, `tensorflow/tensorflow:2.19.0`): 7004 fotos de entrenamiento y 1801 de validación.
+
+| Luz | Aciertos en validación |
+| --- | --- |
+| `abs` | 207/210 |
+| `aceite` | 192/194 |
+| `airbag` | 198/202 |
+| `bateria` | 200/200 |
+| `check_engine` | 201/201 |
+| `control_traccion` | 194/196 |
+| `frenos` | 204/204 |
+| `presion_neumaticos` | 196/196 |
+| `temperatura` | 195/198 |
+| **Exactitud** | **0,992** |
+
+Límite conocido: la mayoría de las imágenes de Car Dashboard Icons son íconos renderizados sobre
+fondos de color (archivos `Pantone-Cool-Gray…`, `Purple…`, `Blue…`); solo una minoría son
+capturas o fotos de tableros (`Screenshot…`, `istockphoto…`). La exactitud real en «Estudio >
+Tablero» puede ser menor: conviene probarla con fotos propias y, si falla, sumar fotos reales de
+tableros a `datos/` y volver a entrenar.
 
 ### Con Docker (si tu Python es más nuevo que 3.12)
 

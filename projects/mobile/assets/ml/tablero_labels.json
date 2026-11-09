@@ -1,0 +1,14 @@
+{
+  "tamano": 224,
+  "clases": [
+    "abs",
+    "aceite",
+    "airbag",
+    "bateria",
+    "check_engine",
+    "control_traccion",
+    "frenos",
+    "presion_neumaticos",
+    "temperatura"
+  ]
+}
