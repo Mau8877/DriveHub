@@ -1,10 +1,10 @@
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http'
+import { HttpClient, HttpContext, provideHttpClient, withInterceptors } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
 import { firstValueFrom } from 'rxjs'
 
 import { API_BASE_URL } from '../config'
-import { apiInterceptor } from './api.interceptor'
+import { SIN_SOBRE, apiInterceptor } from './api.interceptor'
 import { ApiError } from './api.types'
 
 describe('apiInterceptor', () => {
@@ -33,6 +33,16 @@ describe('apiInterceptor', () => {
     })
 
     expect(await respuesta).toEqual({ titulo: 'Señales' })
+  })
+
+  it('con SIN_SOBRE deja el cuerpo tal cual (GraphQL)', async () => {
+    const respuesta = firstValueFrom(
+      http.post(`${API_BASE_URL}/graphql`, {}, { context: new HttpContext().set(SIN_SOBRE, true) })
+    )
+
+    backend.expectOne(`${API_BASE_URL}/graphql`).flush({ data: { a: 1 } })
+
+    expect(await respuesta).toEqual({ data: { a: 1 } })
   })
 
   it('en listados conserva data y meta', async () => {

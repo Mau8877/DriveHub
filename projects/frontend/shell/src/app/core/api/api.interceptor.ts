@@ -18,6 +18,12 @@ import { ApiError, type ApiEnvelope } from './api.types'
 const REINTENTADA = new HttpContextToken<boolean>(() => false)
 
 /**
+ * Una petición cuya respuesta NO viene en el sobre estándar (GraphQL responde `{ data, errors }`): el
+ * interceptor le pone el Bearer y renueva la sesión, pero no desempaqueta el cuerpo.
+ */
+export const SIN_SOBRE = new HttpContextToken<boolean>(() => false)
+
+/**
  * Interceptor único de HttpClient para la API de DriveHub (equivalente al
  * apiClient de los remotos React, ver TANSTACK_QUERY_FRONTEND.md).
  *
@@ -44,7 +50,7 @@ function enviar(
 
   return next(conToken).pipe(
     map((evento) => {
-      if (!(evento instanceof HttpResponse)) return evento
+      if (!(evento instanceof HttpResponse) || req.context.get(SIN_SOBRE)) return evento
       const sobre = evento.body as ApiEnvelope<unknown>
       return evento.clone({
         body: sobre.meta ? { data: sobre.data, meta: sobre.meta } : sobre.data,
