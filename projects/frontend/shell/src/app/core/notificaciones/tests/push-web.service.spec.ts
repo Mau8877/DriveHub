@@ -1,8 +1,7 @@
 import '@angular/compiler'
-import { HttpClient } from '@angular/common/http'
 import { Injector, runInInjectionContext } from '@angular/core'
-import { of, throwError } from 'rxjs'
 
+import { GraphqlClient } from '../../api/graphql.client'
 import { FirebaseWeb } from '../firebase-web'
 import { PushWebService } from '../push-web.service'
 
@@ -16,14 +15,14 @@ const CONFIG_COMPLETA = {
 }
 
 describe('PushWebService', () => {
-  let http: { post: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> }
+  let graphql: { ejecutar: ReturnType<typeof vi.fn> }
   let firebase: { obtenerToken: ReturnType<typeof vi.fn> }
   let notificacion: { permission: string; requestPermission: ReturnType<typeof vi.fn> }
 
   const crear = () => {
     const injector = Injector.create({
       providers: [
-        { provide: HttpClient, useValue: http },
+        { provide: GraphqlClient, useValue: graphql },
         { provide: FirebaseWeb, useValue: firebase },
       ],
     })
@@ -36,9 +35,10 @@ describe('PushWebService', () => {
 
   beforeEach(() => {
     localStorage.clear()
-    http = {
-      post: vi.fn().mockReturnValue(of({ codigoDispositivoPush: 'd1' })),
-      delete: vi.fn().mockReturnValue(of(null)),
+    graphql = {
+      ejecutar: vi
+        .fn()
+        .mockResolvedValue({ registrarDispositivo: { codigoDispositivoPush: 'd1' } }),
     }
     firebase = { obtenerToken: vi.fn().mockResolvedValue('token-fcm') }
     notificacion = { permission: 'granted', requestPermission: vi.fn() }
@@ -54,9 +54,8 @@ describe('PushWebService', () => {
   it('registra el navegador como WEB y guarda el código para quitarlo luego', async () => {
     await crear().activar()
 
-    expect(http.post).toHaveBeenCalledWith(expect.stringContaining('/dispositivos-push'), {
-      tokenFcm: 'token-fcm',
-      plataforma: 'WEB',
+    expect(graphql.ejecutar).toHaveBeenCalledWith(expect.stringContaining('registrarDispositivo'), {
+      entrada: { tokenFcm: 'token-fcm', plataforma: 'WEB' },
     })
     expect(localStorage.getItem('dh.push.dispositivo')).toBe('d1')
   })
@@ -73,7 +72,7 @@ describe('PushWebService', () => {
     await crear().activar()
 
     expect(notificacion.requestPermission).toHaveBeenCalledOnce()
-    expect(http.post).toHaveBeenCalledOnce()
+    expect(graphql.ejecutar).toHaveBeenCalledOnce()
   })
 
   it('no registra si la persona niega el permiso al pedírselo', async () => {
@@ -83,7 +82,7 @@ describe('PushWebService', () => {
     await crear().activar()
 
     expect(firebase.obtenerToken).not.toHaveBeenCalled()
-    expect(http.post).not.toHaveBeenCalled()
+    expect(graphql.ejecutar).not.toHaveBeenCalled()
   })
 
   it('no hace nada si el permiso ya estaba negado, sin volver a pedirlo', async () => {
@@ -92,7 +91,7 @@ describe('PushWebService', () => {
     await crear().activar()
 
     expect(notificacion.requestPermission).not.toHaveBeenCalled()
-    expect(http.post).not.toHaveBeenCalled()
+    expect(graphql.ejecutar).not.toHaveBeenCalled()
   })
 
   it('no hace nada con la configuración de Firebase vacía o incompleta', async () => {
@@ -102,13 +101,13 @@ describe('PushWebService', () => {
     await crear().activar()
 
     expect(firebase.obtenerToken).not.toHaveBeenCalled()
-    expect(http.post).not.toHaveBeenCalled()
+    expect(graphql.ejecutar).not.toHaveBeenCalled()
   })
 
   it('no hace nada si el navegador no soporta notificaciones', async () => {
     vi.stubGlobal('Notification', undefined)
     await crear().activar()
-    expect(http.post).not.toHaveBeenCalled()
+    expect(graphql.ejecutar).not.toHaveBeenCalled()
   })
 
   it('no se registra dos veces en la misma página', async () => {
@@ -117,11 +116,11 @@ describe('PushWebService', () => {
     await servicio.activar()
     await Promise.all([servicio.activar(), servicio.activar()])
 
-    expect(http.post).toHaveBeenCalledOnce()
+    expect(graphql.ejecutar).toHaveBeenCalledOnce()
   })
 
   it('un error del backend o de Firebase no se propaga', async () => {
-    http.post.mockReturnValue(throwError(() => new Error('500')))
+    graphql.ejecutar.mockRejectedValue(new Error('500'))
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     await expect(crear().activar()).resolves.toBeUndefined()
 
@@ -134,18 +133,20 @@ describe('PushWebService', () => {
 
     await crear().desactivar()
 
-    expect(http.delete).toHaveBeenCalledWith(expect.stringContaining('/dispositivos-push/d1'))
+    expect(graphql.ejecutar).toHaveBeenCalledWith(expect.stringContaining('quitarDispositivo'), {
+      codigo: 'd1',
+    })
     expect(localStorage.getItem('dh.push.dispositivo')).toBeNull()
   })
 
   it('desactivar sin dispositivo registrado no llama al backend', async () => {
     await crear().desactivar()
-    expect(http.delete).not.toHaveBeenCalled()
+    expect(graphql.ejecutar).not.toHaveBeenCalled()
   })
 
   it('desactivar no lanza si el backend falla y igual limpia el código', async () => {
     localStorage.setItem('dh.push.dispositivo', 'd1')
-    http.delete.mockReturnValue(throwError(() => new Error('401')))
+    graphql.ejecutar.mockRejectedValue(new Error('401'))
 
     await expect(crear().desactivar()).resolves.toBeUndefined()
     expect(localStorage.getItem('dh.push.dispositivo')).toBeNull()
@@ -157,6 +158,6 @@ describe('PushWebService', () => {
     await servicio.desactivar()
     await servicio.activar()
 
-    expect(http.post).toHaveBeenCalledTimes(2)
+    expect(graphql.ejecutar).toHaveBeenCalledTimes(3)
   })
 })

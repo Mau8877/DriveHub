@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/lib-dynamodb'
 
 import { DYNAMODB_DOCUMENT_CLIENT } from '../../../common/dynamodb/dynamodb.constants.js'
-import { TABLA_DISPOSITIVOS } from '../../../common/dynamodb/definicion-tablas.js'
+import { INDICE_POR_TOKEN, TABLA_DISPOSITIVOS } from '../../../common/dynamodb/definicion-tablas.js'
 import type { DispositivoPush } from '../models/dispositivo-push.model.js'
 
 /** Acceso a la tabla DispositivosPush: sin lógica de negocio. */
@@ -25,6 +25,24 @@ export class DispositivosRepository {
       })
     )
     return (respuesta.Items ?? []) as DispositivoPush[]
+  }
+
+  /** Las claves (persona + dispositivo) de todos los que tienen registrado ese token, de cualquier persona. */
+  async listarPorToken(
+    tokenFcm: string
+  ): Promise<Pick<DispositivoPush, 'usuarioCodigo' | 'codigoDispositivoPush'>[]> {
+    const respuesta = await this.db.send(
+      new QueryCommand({
+        TableName: TABLA_DISPOSITIVOS,
+        IndexName: INDICE_POR_TOKEN,
+        KeyConditionExpression: 'tokenFcm = :t',
+        ExpressionAttributeValues: { ':t': tokenFcm },
+      })
+    )
+    return (respuesta.Items ?? []) as Pick<
+      DispositivoPush,
+      'usuarioCodigo' | 'codigoDispositivoPush'
+    >[]
   }
 
   async listarActivos(usuarioCodigo: string): Promise<DispositivoPush[]> {
@@ -48,7 +66,10 @@ export class DispositivosRepository {
 
   async eliminar(usuarioCodigo: string, codigoDispositivoPush: string): Promise<void> {
     await this.db.send(
-      new DeleteCommand({ TableName: TABLA_DISPOSITIVOS, Key: { usuarioCodigo, codigoDispositivoPush } })
+      new DeleteCommand({
+        TableName: TABLA_DISPOSITIVOS,
+        Key: { usuarioCodigo, codigoDispositivoPush },
+      })
     )
   }
 }

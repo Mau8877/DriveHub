@@ -1,17 +1,26 @@
-import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { firstValueFrom } from 'rxjs'
 
-import { API_BASE_URL } from '../config'
+import { GraphqlClient } from '../api/graphql.client'
 import { type ConfigFirebaseWeb, FirebaseWeb } from './firebase-web'
 
 /** Dónde se guarda el dispositivo registrado, para quitarlo al cerrar sesión. */
 const CLAVE_DISPOSITIVO = 'dh.push.dispositivo'
 const URL_CONFIG = '/firebase.config.json'
 
+// ! Tienen que ser válidos contra el esquema de `notificaciones` (features/dispositivos/graphql/)
+const MUTACION_REGISTRAR = `
+mutation RegistrarDispositivo($entrada: RegistrarDispositivoInput!) {
+  registrarDispositivo(entrada: $entrada) { codigoDispositivoPush }
+}`
+const MUTACION_QUITAR = `
+mutation QuitarDispositivo($codigo: ID!) {
+  quitarDispositivo(codigo: $codigo)
+}`
+
 /**
  * Push web (CU36): registra el navegador de la persona en Notificaciones para que reciba los
- * avisos aunque no tenga el panel abierto, y lo quita al cerrar sesión.
+ * avisos aunque no tenga el panel abierto, y lo quita al cerrar sesión. Habla con Notificaciones por GraphQL
+ * (CU45).
  *
  * * Solo el shell lo usa: es el dueño de la sesión. Los remotos no registran nada.
  * * Si falta la configuración de Firebase, el navegador no lo soporta o la persona niega el
@@ -21,7 +30,7 @@ const URL_CONFIG = '/firebase.config.json'
  */
 @Injectable({ providedIn: 'root' })
 export class PushWebService {
-  private readonly http = inject(HttpClient)
+  private readonly graphql = inject(GraphqlClient)
   private readonly firebase = inject(FirebaseWeb)
   private enCurso: Promise<void> | null = null
   private registrado = false
@@ -41,7 +50,7 @@ export class PushWebService {
     this.registrado = false
     if (!codigo) return
     try {
-      await firstValueFrom(this.http.delete(`${API_BASE_URL}/dispositivos-push/${codigo}`))
+      await this.graphql.ejecutar(MUTACION_QUITAR, { codigo })
     } catch {
       // * Si falla (red, sesión vencida), el token queda inactivo cuando Firebase lo rechace
     } finally {
@@ -59,13 +68,10 @@ export class PushWebService {
       }
       const token = await this.firebase.obtenerToken(config)
       if (!token) return
-      const dispositivo = await firstValueFrom(
-        this.http.post<{ codigoDispositivoPush: string }>(`${API_BASE_URL}/dispositivos-push`, {
-          tokenFcm: token,
-          plataforma: 'WEB',
-        })
-      )
-      this.guardarCodigo(dispositivo.codigoDispositivoPush)
+      const { registrarDispositivo } = await this.graphql.ejecutar<{
+        registrarDispositivo: { codigoDispositivoPush: string }
+      }>(MUTACION_REGISTRAR, { entrada: { tokenFcm: token, plataforma: 'WEB' } })
+      this.guardarCodigo(registrarDispositivo.codigoDispositivoPush)
       this.registrado = true
     } catch {
       console.warn('No se pudo activar el push web')

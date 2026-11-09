@@ -917,7 +917,7 @@ Todo se consulta por usuario y fecha: partición `usuarioCodigo` (la persona de 
 | --- | --- | --- | --- | --- |
 | `Notificaciones` | `usuarioCodigo` (S) | `sk` (S) | `ttl` — 180 días | GSI `NoLeidas`: `usuarioCodigo` + `noLeidaTs` (proyección `ALL`, **disperso**) |
 | `PreferenciasNotificacion` | `usuarioCodigo` (S) | — | — | — |
-| `DispositivosPush` | `usuarioCodigo` (S) | `codigoDispositivoPush` (S) | — | — |
+| `DispositivosPush` | `usuarioCodigo` (S) | `codigoDispositivoPush` (S) | — | GSI `PorToken`: `tokenFcm` (proyección `KEYS_ONLY`) |
 | `EventosProcesados` | `eventoCodigo` (S) | — | `ttl` — 7 días | — |
 
 ### `Notificaciones` (CU36, CU38)
@@ -959,7 +959,7 @@ Tokens de la app móvil.
 | Atributo | Tipo | Notas |
 | --- | --- | --- |
 | `usuarioCodigo`, `codigoDispositivoPush` | S | Clave |
-| `tokenFcm` | S | |
+| `tokenFcm` | S | Clave del GSI `PorToken`: un token es de un solo teléfono, así que al registrarlo una persona se quita de las demás |
 | `plataforma` | S (enum) | `ANDROID`, `IOS`, `WEB` (el navegador del panel) |
 | `activo` | BOOL | |
 | `ultimoUso` | S | |
