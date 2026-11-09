@@ -11,13 +11,22 @@ import 'core/offline/sondeo_servidor.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/tema_provider.dart';
+import 'shared/widgets/mensajero_global.dart';
 import 'features/auth/providers/sesion_provider.dart';
 import 'features/offline/providers/arranque_offline.dart';
 import 'features/offline/providers/offline_provider.dart';
+import 'features/push/providers/arranque_push.dart';
+import 'features/servidor/providers/servidor_provider.dart';
+import 'features/servidor/services/servidor_storage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
+
+  // * El servidor que eligió la persona la primera vez; si no hay ninguno, el router lleva a /servidor.
+  // * Va antes que todo lo demás: la sesión y el modo offline ya tienen que hablar con ese servidor.
+  final servidorGuardado = await ServidorStorageSegura().leer();
+  if (servidorGuardado != null) ApiClient.configurarBaseUrl(servidorGuardado);
 
   // * Se crea el container antes de runApp para conectar el cliente HTTP con la
   // * sesión (Bearer y renovación ante un 401) y recuperar la sesión guardada.
@@ -30,7 +39,12 @@ Future<void> main() async {
   );
   final registro = RegistroDeDatos();
   container = ProviderContainer(
-    overrides: [nucleoOfflineProvider.overrideWithValue(nucleo)],
+    overrides: [
+      nucleoOfflineProvider.overrideWithValue(nucleo),
+      servidorInicialProvider.overrideWithValue(
+        EstadoServidor(configurado: servidorGuardado != null, url: servidorGuardado),
+      ),
+    ],
     observers: [registro],
   );
   final sesion = container.read(sesionProvider.notifier);
@@ -40,6 +54,7 @@ Future<void> main() async {
   );
   ApiClient.configurarOffline(nucleo);
   conectarOffline(container, nucleo, registro);
+  conectarPush(container, mensajeroGlobal);
   unawaited(sesion.restaurar());
 
   runApp(UncontrolledProviderScope(container: container, child: const MyApp()));
@@ -56,6 +71,7 @@ class MyApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ref.watch(temaProvider),
+      scaffoldMessengerKey: mensajeroGlobal,
       routerConfig: ref.watch(routerProvider),
     );
   }

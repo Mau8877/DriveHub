@@ -90,7 +90,7 @@ El Estudiante o el Instructor abre «Notificaciones» desde la app. El sistema m
 - **Borrar avisos** o marcar como no leído.
 - **Actualización en vivo de la bandeja** mientras está abierta (la lista se refresca al volver a ella o al deslizar para actualizar).
 - **Mostrar los envíos fallidos o la constancia de correo y push.**
-- **Registrar el token de Firebase** y mostrar la notificación push del sistema ([CU36](CU36%20-%20Enviar%20notificaci%C3%B3n.md), parte móvil pendiente).
+- **Registrar el token de Firebase** y mostrar la notificación push del sistema: es de [CU36](CU36%20-%20Enviar%20notificaci%C3%B3n.md) (parte móvil).
 
 ## Desarrollador
 
