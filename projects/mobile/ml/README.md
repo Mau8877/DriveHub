@@ -3,6 +3,11 @@
 El clasificador que corre **dentro del teléfono** para reconocer una luz del tablero a partir de
 una foto. Se entrena aquí y se empaqueta en `assets/ml/`:
 
+> **Estado:** el código de la app y el pipeline de entrenamiento están completos y probados
+> (`prueba_humo.py`), pero **`tablero.tflite` y `tablero_labels.json` todavía no están en el
+> repositorio**: falta descargar los datasets (pasos 1 y 2) y entrenar. Mientras tanto, «Estudio >
+> Tablero» muestra «El análisis no está disponible» (A4 de CU40).
+
 | Archivo | Qué es | ¿Va al repositorio? |
 | --- | --- | --- |
 | `assets/ml/luces_tablero.json` | Catálogo: nombre, severidad, qué significa y qué hacer por luz | Sí |
@@ -84,6 +89,32 @@ python entrenar_tablero.py --datos datos --salida ../assets/ml
 El script entrena (MobileNetV3-Small con transfer learning), imprime la **exactitud en validación
 y los aciertos por luz**, y solo exporta `tablero.tflite` y `tablero_labels.json` si la exactitud
 llega al mínimo (`--minimo`, 0.85 por defecto).
+
+### Con Docker (si tu Python es más nuevo que 3.12)
+
+TensorFlow 2.19 no publica ruedas para Python 3.13 o superior. Con Docker no hace falta instalar
+otro Python: la imagen oficial `tensorflow/tensorflow:2.19.0` (Python 3.11) ya trae TensorFlow.
+Desde `projects/mobile` (en Git Bash, antepón `MSYS_NO_PATHCONV=1` y usa `$(pwd -W)`):
+
+```bash
+docker run --rm -v "$(pwd)":/app -w /app/ml tensorflow/tensorflow:2.19.0 \
+  sh -c "pip install -q 'pillow>=10,<13' pyyaml && python entrenar_tablero.py --datos datos --salida ../assets/ml"
+```
+
+El volumen es `projects/mobile`, así que el modelo queda directamente en `assets/ml/`.
+
+### Prueba de humo del pipeline (sin fotos)
+
+`prueba_humo.py` genera imágenes sintéticas de tres luces, entrena dos épocas sin exactitud mínima
+y abre el `.tflite` como lo hace la app (entrada `[1, 224, 224, 3]` float32 con píxeles de 0 a
+255, salida con una probabilidad por clase, `tablero_labels.json` con `tamano` y `clases`). Todo
+ocurre en una carpeta temporal: no toca `assets/ml/` y el modelo que produce no sirve para la app.
+Úsala después de cambiar `entrenar_tablero.py`, el preprocesado o las versiones de TensorFlow:
+
+```bash
+docker run --rm -v "$(pwd)":/app -w /app/ml tensorflow/tensorflow:2.19.0 \
+  sh -c "pip install -q 'pillow>=10,<13' && python prueba_humo.py"
+```
 
 ## 3. Probar en la app
 

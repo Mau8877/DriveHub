@@ -4,6 +4,11 @@
 | ---- | ------------------------- | -------------- | --------- | ------ |
 | CU40 | Analizar foto del tablero | P8. Asistente IA | Media   | Hecho  |
 
+> **Pendiente para la entrega:** la app, el backend y el pipeline de entrenamiento están completos y
+> probados, pero el modelo entrenado (`assets/ml/tablero.tflite` y `tablero_labels.json`) aún no
+> está en el repositorio: mientras falte, la app sigue siempre el flujo A4 («el análisis no está
+> disponible»). Pasos para cerrarlo: [`projects/mobile/ml/README.md`](../../projects/mobile/ml/README.md).
+
 **Actor principal:** Estudiante
 **Actores secundarios:** —
 **Objetivo:** Saber qué significa una luz encendida del tablero de un auto y qué hacer, a partir de una foto.
