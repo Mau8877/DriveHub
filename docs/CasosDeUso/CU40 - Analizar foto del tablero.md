@@ -4,10 +4,10 @@
 | ---- | ------------------------- | -------------- | --------- | ------ |
 | CU40 | Analizar foto del tablero | P8. Asistente IA | Media   | Hecho  |
 
-> **Pendiente para la entrega:** la app, el backend y el pipeline de entrenamiento están completos y
-> probados, pero el modelo entrenado (`assets/ml/tablero.tflite` y `tablero_labels.json`) aún no
-> está en el repositorio: mientras falte, la app sigue siempre el flujo A4 («el análisis no está
-> disponible»). Pasos para cerrarlo: [`projects/mobile/ml/README.md`](../../projects/mobile/ml/README.md).
+> **Modelo empaquetado (`tablero-v1`):** reconoce 9 de las 17 luces del catálogo (`abs`, `aceite`,
+> `airbag`, `bateria`, `check_engine`, `control_traccion`, `frenos`, `presion_neumaticos` y
+> `temperatura`), con exactitud 0,992 en validación. Las demás no tenían fotos suficientes en los
+> datasets públicos. Datasets, licencias y límites: [`projects/mobile/ml/README.md`](../../projects/mobile/ml/README.md).
 
 **Actor principal:** Estudiante
 **Actores secundarios:** —

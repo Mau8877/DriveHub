@@ -12,12 +12,16 @@ Uso (desde projects/mobile/ml, con Python 3.10 a 3.12 y `pip install -r requirem
 
 * Se exige una exactitud mínima en validación (`--minimo`, 0.85 por defecto); si no se alcanza no se
 * exporta el modelo para no empaquetar uno malo.
-* Las clases se leen de las carpetas que existan: si faltan fotos de una luz, se entrena sin ella
-* y el catálogo la ignora.
+* Las clases se leen de las carpetas que existan: si faltan fotos de una luz (menos de
+* `--min-fotos`, 60 por defecto), se entrena sin ella y el catálogo la ignora.
+* La validación (20 %) se separa por foto de origen, no por recorte: Roboflow exporta varias
+* versiones aumentadas de cada foto y, repartidas al azar, inflarían la exactitud.
 """
 
 import argparse
+import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -28,20 +32,65 @@ TAMANO = 224
 SEMILLA = 42
 
 
-def cargar(datos: Path, lote: int) -> tuple[tf.data.Dataset, tf.data.Dataset, list[str]]:
-    comun = dict(
-        directory=str(datos),
-        validation_split=0.2,
-        seed=SEMILLA,
-        image_size=(TAMANO, TAMANO),
-        batch_size=lote,
-        label_mode="int",
-    )
-    entrenamiento = tf.keras.utils.image_dataset_from_directory(subset="training", **comun)
-    validacion = tf.keras.utils.image_dataset_from_directory(subset="validation", **comun)
-    clases = list(entrenamiento.class_names)
-    autotune = tf.data.AUTOTUNE
-    return entrenamiento.prefetch(autotune), validacion.prefetch(autotune), clases
+EXTENSIONES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+# Roboflow nombra cada versión aumentada `<foto>_jpg.rf.<hash>.jpg`; preparar_datos.py agrega
+# `<dataset>_` delante y `_<n>` (número de caja) detrás.
+_SUFIJO_ROBOFLOW = re.compile(r"\.rf\.[0-9a-f]+(_\d+)?$")
+
+
+def foto_de_origen(archivo: Path) -> str:
+    """Qué foto original produjo este recorte: las versiones aumentadas de una foto comparten la clave.
+
+    * Separar entrenamiento y validación por esta clave evita que copias casi iguales de una misma
+    * foto (Roboflow genera varias por imagen) caigan en los dos lados e inflen la exactitud.
+    """
+    return _SUFIJO_ROBOFLOW.sub("", archivo.stem)
+
+
+def es_validacion(clave: str, porcentaje: float) -> bool:
+    """Reparto estable por foto de origen: la misma foto cae siempre del mismo lado."""
+    valor = int(hashlib.md5(f"{SEMILLA}:{clave}".encode()).hexdigest()[:8], 16)
+    return valor / 0xFFFFFFFF < porcentaje
+
+
+def cargar(
+    datos: Path, lote: int, minimo_fotos: int, porcentaje_validacion: float = 0.2
+) -> tuple[tf.data.Dataset, tf.data.Dataset, list[str]]:
+    """Las fotos de `datos/<clase>/`, separadas por foto de origen. Omite las luces con pocas fotos."""
+    clases: list[str] = []
+    por_clase: list[list[Path]] = []
+    for carpeta in sorted(c for c in datos.iterdir() if c.is_dir()):
+        fotos = sorted(f for f in carpeta.iterdir() if f.suffix.lower() in EXTENSIONES)
+        if len(fotos) < minimo_fotos:
+            print(f"Se omite «{carpeta.name}»: {len(fotos)} fotos (mínimo {minimo_fotos}).")
+            continue
+        clases.append(carpeta.name)
+        por_clase.append(fotos)
+
+    rutas: dict[bool, list[str]] = {True: [], False: []}
+    etiquetas: dict[bool, list[int]] = {True: [], False: []}
+    for indice, fotos in enumerate(por_clase):
+        for foto in fotos:
+            lado = es_validacion(foto_de_origen(foto), porcentaje_validacion)
+            rutas[lado].append(str(foto))
+            etiquetas[lado].append(indice)
+    print(f"Entrenamiento: {len(rutas[False])} fotos; validación: {len(rutas[True])} fotos "
+          "(separadas por foto de origen).")
+
+    def leer(ruta: tf.Tensor, etiqueta: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
+        imagen = tf.io.decode_image(tf.io.read_file(ruta), channels=3, expand_animations=False)
+        # * float32 de 0 a 255 y antialias al achicar, como `procesar_imagen.dart` (Interpolation.average)
+        imagen = tf.image.resize(imagen, (TAMANO, TAMANO), antialias=True)
+        return imagen, etiqueta
+
+    def armar(validacion: bool) -> tf.data.Dataset:
+        conjunto = tf.data.Dataset.from_tensor_slices((rutas[validacion], etiquetas[validacion]))
+        if not validacion:
+            conjunto = conjunto.shuffle(len(rutas[validacion]), seed=SEMILLA)
+        conjunto = conjunto.map(leer, num_parallel_calls=tf.data.AUTOTUNE)
+        return conjunto.batch(lote).prefetch(tf.data.AUTOTUNE)
+
+    return armar(False), armar(True), clases
 
 
 def construir(n_clases: int) -> tuple[tf.keras.Model, tf.keras.Model]:
@@ -130,10 +179,12 @@ def main() -> int:
     parser.add_argument("--epocas", type=int, default=12)
     parser.add_argument("--lote", type=int, default=32)
     parser.add_argument("--minimo", type=float, default=0.85)
+    parser.add_argument("--min-fotos", type=int, default=60,
+                        help="las luces con menos fotos se omiten: no alcanzan para aprenderlas")
     args = parser.parse_args()
 
     tf.keras.utils.set_random_seed(SEMILLA)
-    train, val, clases = cargar(args.datos, args.lote)
+    train, val, clases = cargar(args.datos, args.lote, args.min_fotos)
     print(f"Luces encontradas ({len(clases)}): {', '.join(clases)}")
 
     catalogo = json.loads((args.salida / "luces_tablero.json").read_text(encoding="utf-8"))

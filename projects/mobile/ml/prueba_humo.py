@@ -65,7 +65,8 @@ def main() -> int:
 
         resultado = subprocess.run(
             [sys.executable, str(AQUI / "entrenar_tablero.py"), "--datos", str(datos),
-             "--salida", str(salida), "--epocas", "2", "--lote", "8", "--minimo", "0"],
+             "--salida", str(salida), "--epocas", "2", "--lote", "8", "--minimo", "0",
+             "--min-fotos", "1"],
             check=False,
         )
         assert resultado.returncode == 0, f"entrenar_tablero.py terminó con {resultado.returncode}"

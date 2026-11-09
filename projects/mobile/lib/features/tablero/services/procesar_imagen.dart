@@ -28,6 +28,9 @@ class ImagenProcesada {
 /// Decodifica la foto, corrige su orientación, la lleva al tamaño del modelo y arma la miniatura.
 ///
 /// * El modelo se entrenó con la imagen estirada a 224 × 224 (sin recortar), así que acá se hace igual.
+/// * Se reduce promediando píxeles (`average`), como el entrenamiento (bilineal con antialias): el
+///   valor por defecto de `copyResize` es el vecino más cercano, que al achicar una foto de cámara
+///   deja un serrucho que el modelo nunca vio.
 /// * Una foto de cámara pesa varios MB: usa [procesarImagenAparte] para no congelar la pantalla.
 ImagenProcesada procesarImagen(Uint8List bytes) {
   final original = img.decodeImage(bytes);
@@ -38,6 +41,7 @@ ImagenProcesada procesarImagen(Uint8List bytes) {
     derecha,
     width: ladoModelo,
     height: ladoModelo,
+    interpolation: img.Interpolation.average,
   );
   final entrada = Float32List(ladoModelo * ladoModelo * 3);
   var i = 0;
