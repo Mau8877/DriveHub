@@ -113,8 +113,8 @@ que ya existen son:
 | Académico → Escuela | Consultar los alumnos asignados al instructor, para listar las notas de esos alumnos (reenvía el Bearer del instructor) | CU23 |
 | Escuela → Académico | Consultar cuántas franjas tiene cada instructor de la escuela en un día (`GET /api/v1/franjas/resumen`), para calcular su disponibilidad (reenvía el Bearer del Administrador) | CU11 |
 | Cualquier servicio → Notificaciones | Pedir un aviso sin pasar por el bus: `POST /internal/v1/notificaciones` con la credencial de servicio (header `X-Service-Key`, variable `NOTIFICACIONES_CREDENCIAL_SERVICIOS`); esa ruta no pasa por el gateway | CU36 |
-| Pagos → Notificaciones | Avisar al estudiante: compra confirmada o no acreditada, pago vencido, reembolso ejecutado o fallido. De mejor esfuerzo, después del commit: un fallo se registra y no frena la operación | CU36 |
-| Académico → Notificaciones | Avisar a estudiante e instructor: clase reservada, cancelada o reprogramada y recordatorio 24 h antes; al estudiante: examen de conducción programado, reprogramado, cancelado, sin asistencia y resultado. De mejor esfuerzo | CU36 |
+| Pagos → Notificaciones | Avisar al estudiante: compra confirmada o no acreditada, pago vencido, reembolso ejecutado o fallido; y a la bandeja de la escuela (`escuelaCodigo` en vez de `usuarioCodigo`): compra confirmada y reembolso ejecutado. De mejor esfuerzo, después del commit: un fallo se registra y no frena la operación | CU36, CU53 |
+| Académico → Notificaciones | Avisar a estudiante e instructor: clase reservada, cancelada o reprogramada y recordatorio 24 h antes; al estudiante: examen de conducción programado, reprogramado, cancelado, sin asistencia y resultado; a la bandeja de la escuela: clase confirmada cancelada. De mejor esfuerzo | CU36, CU53 |
 | Asistente IA → Contenido | Servidor MCP (`/mcp/`): consultar manuales y tutoriales publicados en nombre de la persona conectada, solo lectura (reenvía su Bearer) | CU46 |
 | Asistente IA → Académico | Servidor MCP: consultar las notas de la persona o las de los alumnos del instructor, solo lectura (reenvía su Bearer) | CU46 |
 | Asistente IA → Pagos y Académico | Chat de WhatsApp: consultar horas, planes, franjas y clases; **escribir** solo al confirmar: reservar clases (`POST /api/v1/reservas`) y crear el pago de una compra (`POST /api/v1/pagos`), con el Bearer de la persona. La escritura exige el código de una confirmación de dos pasos (tabla `ConfirmacionesIA`) | CU49 |
@@ -171,7 +171,7 @@ Detalle en [ARQUITECTURA_FRONTEND.md](ARQUITECTURA_FRONTEND.md). Mapa:
 
 | App | Framework | Tipo | Puerto | Casos de uso | Rule |
 | --- | --- | --- | --- | --- | --- |
-| `shell` | Angular 22 | Host (Native Federation) | 4200 | CU02 login, layout, menú por rol, avisos | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
+| `shell` | Angular 22 | Host (Native Federation) | 4200 | CU02 login, layout, menú por rol, avisos (CU53) | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
 | `identidad` | Angular 22 | Remoto (Native Federation) | 4201 | CU01, CU06 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
 | `escuela` | Angular 22 | Remoto (Native Federation) | 4202 | CU05, CU07 a CU11 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
 | `pagos` | Angular 22 | Remoto (Native Federation) | 4203 | CU25 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
