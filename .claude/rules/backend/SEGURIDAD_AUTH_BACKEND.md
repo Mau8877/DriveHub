@@ -130,8 +130,10 @@ un único límite por IP para toda la API, los servicios no lo repiten.
   (default 100/100) → `RATE_LIMIT_CAPACITY` / `RATE_LIMIT_REFILL_PER_MINUTE`.
 - **Respuesta**: `429` con el sobre estándar y código `ERR_SYS_02`, escrito
   a mano (el filtro corre antes de cualquier handler de Spring MVC).
-- **IP del cliente**: `request.getRemoteAddr()`; alcanza porque nginx es el
-  único proxy delante. Con más proxies, `X-Forwarded-For` (el primer valor).
+- **IP del cliente**: `request.getRemoteAddr()`, que ya es la IP real aunque haya proxies delante (nginx en
+  desarrollo, el ingress en Kubernetes): con `server.forward-headers-strategy=native`, Tomcat la toma de
+  `X-Forwarded-For` solo si la request viene de un proxy de la red interna, recorriendo la lista de derecha a
+  izquierda (un cliente no puede hacerse pasar por otro escribiendo el header). Lo prueba `RateLimitIpRealTest`.
 
 > **Limitación conocida, aceptada:** el bucket vive en memoria del
 > gateway. Con más de una réplica cada una tendría su propio límite; para
