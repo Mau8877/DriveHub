@@ -24,6 +24,7 @@ Se puede repetir `--origen`; el resultado se acumula en `datos/`. Correrlo otra 
 
 import argparse
 import json
+import random
 import re
 import sys
 import unicodedata
@@ -35,6 +36,8 @@ import yaml
 from PIL import Image, ImageOps
 
 EXTENSIONES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+# Clase extra (no está en el catálogo): zonas de las fotos sin ninguna luz.
+NINGUNA = "ninguna"
 # Menos fotos que esto por luz no alcanzan para un modelo confiable.
 MINIMO_RECOMENDADO = 60
 
@@ -123,10 +126,33 @@ def abrir(ruta: Path) -> Image.Image | None:
         return None
 
 
+def se_cruzan(a: tuple[float, ...], b: tuple[float, ...]) -> bool:
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+def zona_sin_luces(
+    cajas: list[tuple[float, ...]], azar: random.Random
+) -> tuple[float, float, float, float] | None:
+    """Un cuadrado de la foto (15 a 50 % del lado) que no toca ninguna caja; None si no hay sitio."""
+    for _ in range(30):
+        lado = azar.uniform(0.15, 0.5)
+        x0, y0 = azar.uniform(0, 1 - lado), azar.uniform(0, 1 - lado)
+        zona = (x0, y0, x0 + lado, y0 + lado)
+        if not any(se_cruzan(zona, c) for c in cajas):
+            return zona
+    return None
+
+
 def procesar_yolo(
     origen: Path, mapa: dict[str, str], destino: Path, margen: float, lado_minimo: int
 ) -> tuple[Counter[str], Counter[str]]:
-    """Recorta las cajas de un dataset YOLO. Devuelve (fotos nuevas por luz, clases ignoradas)."""
+    """Recorta las cajas de un dataset YOLO. Devuelve (fotos nuevas por luz, clases ignoradas).
+
+    * Por cada luz guarda el recorte ajustado y hasta tres con contexto (de 0,5 a 4 veces la caja
+    * alrededor, sin alcanzar otra luz distinta), y la foto entera si todas sus cajas son de esa misma luz: en el teléfono la foto
+    * trae el tablero, no el icono recortado, y un modelo que solo vio recortes falla con ella.
+    * Una zona sin cajas de cada foto va a `ninguna/`: así el modelo puede decir «no es una luz».
+    """
     clases = leer_clases_yolo(origen)
     nuevas: Counter[str] = Counter()
     ignoradas: Counter[str] = Counter()
@@ -134,20 +160,47 @@ def procesar_yolo(
         etiquetas = archivo_de_cajas(imagen)
         if etiquetas is None:
             continue
-        foto = None
-        for i, (clase, *caja) in enumerate(leer_cajas(etiquetas)):
+        cajas = list(leer_cajas(etiquetas))
+        if not cajas:
+            continue
+        foto = abrir(imagen)
+        if foto is None:
+            continue
+        azar = random.Random(imagen.stem)
+        base = f"{origen.name}_{imagen.stem}"
+        codigos: set[str | None] = set()
+        for i, (clase, *caja) in enumerate(cajas):
             nombre = clases[clase] if 0 <= clase < len(clases) else f"#{clase}"
             codigo = mapa.get(normalizar(nombre))
+            codigos.add(codigo)
             if codigo is None:
                 ignoradas[nombre] += 1
                 continue
-            foto = foto or abrir(imagen)
-            if foto is None:
-                break
-            recorte = recortar(foto, tuple(caja), margen, lado_minimo)  # type: ignore[arg-type]
-            archivo = destino / codigo / f"{origen.name}_{imagen.stem}_{i}.jpg"
-            if recorte is not None and guardar(recorte, archivo):
-                nuevas[codigo] += 1
+            variantes = {f"{base}_{i}.jpg": margen}
+            x0, y0, x1, y1 = caja
+            for k, (desde, hasta) in enumerate([(0.5, 1.2), (1.2, 2.2), (2.2, 4.0)]):
+                amplio = azar.uniform(desde, hasta)
+                mx, my = (x1 - x0) * amplio, (y1 - y0) * amplio
+                zona = (x0 - mx, y0 - my, x1 + mx, y1 + my)
+                # * Si el contexto alcanza otra luz distinta, la etiqueta sería ambigua: no se guarda
+                if not any(
+                    j != i and c != clase and se_cruzan(zona, tuple(otra))
+                    for j, (c, *otra) in enumerate(cajas)
+                ):
+                    variantes[f"{base}_{i}_ctx{k}.jpg"] = amplio
+            for archivo, m in variantes.items():
+                recorte = recortar(foto, tuple(caja), m, lado_minimo)  # type: ignore[arg-type]
+                if recorte is not None and guardar(recorte, destino / codigo / archivo):
+                    nuevas[codigo] += 1
+        if len(codigos) == 1 and None not in codigos:
+            (codigo,) = codigos
+            if guardar(foto, destino / codigo / f"{base}_completa.jpg"):  # type: ignore[operator]
+                nuevas[codigo] += 1  # type: ignore[index]
+        zona = zona_sin_luces([tuple(c) for _, *c in cajas], azar)
+        if zona is not None:
+            fondo = recortar(foto, zona, 0, lado_minimo)
+            if fondo is not None and guardar(fondo, destino / NINGUNA / f"{base}_fondo.jpg"):
+                nuevas[NINGUNA] += 1
     return nuevas, ignoradas
 
 
@@ -248,8 +301,8 @@ def main() -> int:
 
     print(f"\nFotos por luz en {args.destino}/ (nuevas en esta corrida entre paréntesis):")
     pocas = []
-    for codigo in sorted(codigos):
-        total = sum(1 for _ in imagenes_de(args.destino / codigo)) if (args.destino / codigo).is_dir() else 0
+    for codigo in sorted(codigos | {NINGUNA}):
+        total =sum(1 for _ in imagenes_de(args.destino / codigo)) if (args.destino / codigo).is_dir() else 0
         marca = "" if total >= MINIMO_RECOMENDADO else "  <- pocas" if total else "  <- sin fotos"
         print(f"  {codigo:28s} {total:5d}  (+{nuevas[codigo]}){marca}")
         if total < MINIMO_RECOMENDADO:

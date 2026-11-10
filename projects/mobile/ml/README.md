@@ -3,9 +3,9 @@
 El clasificador que corre **dentro del teléfono** para reconocer una luz del tablero a partir de
 una foto. Se entrena aquí y se empaqueta en `assets/ml/`:
 
-> **Estado:** modelo entrenado y empaquetado (`tablero-v1`). Reconoce **9 luces**: `abs`,
+> **Estado:** modelo entrenado y empaquetado (`tablero-v2`). Reconoce **9 luces** (más `ninguna`, «no es una luz»): `abs`,
 > `aceite`, `airbag`, `bateria`, `check_engine`, `control_traccion`, `frenos`,
-> `presion_neumaticos` y `temperatura`. Exactitud en validación: **0,992** (ver «Resultado del
+> `presion_neumaticos` y `temperatura`. Exactitud en validación: **0,932** (ver «Resultado del
 > entrenamiento»). Las demás luces del catálogo no tienen fotos suficientes y el modelo no las
 > conoce.
 
@@ -104,23 +104,27 @@ llega al mínimo (`--minimo`, 0.85 por defecto).
   entrenamiento y en validación e inflarían la exactitud.
 - Las luces con menos de `--min-fotos` (60 por defecto) se omiten y se avisan.
 
-### Resultado del entrenamiento (`tablero-v1`)
+### Resultado del entrenamiento (`tablero-v2`)
+
+`tablero-v1` solo vio recortes ajustados del icono: con ellos acertaba 0,992, pero con la foto del
+tablero entero (lo que toma el teléfono) se equivocaba con mucha confianza, casi siempre con `abs`,
+y como no tenía clase «no es una luz» elegía una aunque la foto no tuviera ninguna. `tablero-v2`
+se entrena además con recortes con contexto (0,5 a 4 veces la caja), la foto entera cuando solo
+tiene una luz y la clase `ninguna` (zonas sin luces). `ninguna` no está en el catálogo a propósito:
+la app la descarta y la foto queda «no segura».
 
 Con `python entrenar_tablero.py --datos datos --salida ../assets/ml` (12 épocas de cabeza + 6 de
-afinado, CPU, `tensorflow/tensorflow:2.19.0`): 7004 fotos de entrenamiento y 1801 de validación.
+afinado, CPU, `tensorflow/tensorflow:2.19.0`): 11446 fotos de entrenamiento y 2868 de validación.
+Exactitud en validación: **0,932** (ahora incluye fotos con contexto y `ninguna`).
 
-| Luz | Aciertos en validación |
-| --- | --- |
-| `abs` | 207/210 |
-| `aceite` | 192/194 |
-| `airbag` | 198/202 |
-| `bateria` | 200/200 |
-| `check_engine` | 201/201 |
-| `control_traccion` | 194/196 |
-| `frenos` | 204/204 |
-| `presion_neumaticos` | 196/196 |
-| `temperatura` | 195/198 |
-| **Exactitud** | **0,992** |
+Sobre fotos de validación que el modelo no vio, con el umbral de 0,6 de la app
+(acierta seguro / se equivoca seguro / no seguro):
+
+| Fotos | `tablero-v1` | `tablero-v2` |
+| --- | --- | --- |
+| Con contexto (852) | 509 / 180 / 163 | 613 / 84 / 155 |
+| Foto entera (23) | 9 / 10 / 4 | 7 / 3 / 13 |
+| Sin luces (192) | 0 / 45 / 147 | 0 / 3 / 189 |
 
 Límite conocido: la mayoría de las imágenes de Car Dashboard Icons son íconos renderizados sobre
 fondos de color (archivos `Pantone-Cool-Gray…`, `Purple…`, `Blue…`); solo una minoría son

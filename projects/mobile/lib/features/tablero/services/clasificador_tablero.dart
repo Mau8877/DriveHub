@@ -47,7 +47,7 @@ class ClasificadorTflite implements ClasificadorTablero {
   List<String> _clases = const [];
 
   @override
-  String get modelo => 'tablero-v1';
+  String get modelo => 'tablero-v2';
 
   Future<void> _cargar() async {
     if (_interprete != null) return;
