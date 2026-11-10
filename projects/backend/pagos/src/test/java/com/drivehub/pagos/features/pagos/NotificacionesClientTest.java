@@ -71,6 +71,13 @@ class NotificacionesClientTest {
     }
 
     @Test
+    void avisarEscuela_mandaLaEscuelaComoDestinoYNoUnaPersona() {
+        cliente("clave-secreta").avisarEscuela(EVENTO, USUARIO, "PAGO", "Nueva compra de horas", "m", null);
+
+        assertThat(cuerpo.get()).contains("\"escuelaCodigo\":\"" + USUARIO + "\"").doesNotContain("usuarioCodigo");
+    }
+
+    @Test
     void avisar_sinCredencial_noHaceNingunaPeticion() {
         cliente("").avisar(EVENTO, USUARIO, "PAGO", "t", "m", null);
 
