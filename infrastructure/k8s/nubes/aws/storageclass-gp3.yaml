@@ -1,0 +1,14 @@
+# EKS trae la clase gp2 pero no la marca como predeterminada: sin esto los discos de los StatefulSet quedan en Pending.
+# gp3 cuesta menos que gp2 por GB y da 3000 IOPS de base.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete

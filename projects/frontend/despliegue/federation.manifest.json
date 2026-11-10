@@ -1,0 +1,5 @@
+{
+  "identidad": "/remotos/identidad/remoteEntry.json",
+  "escuela": "/remotos/escuela/remoteEntry.json",
+  "pagos": "/remotos/pagos/remoteEntry.json"
+}

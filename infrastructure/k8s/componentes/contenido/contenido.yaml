@@ -1,0 +1,108 @@
+# Contenido (Laravel): manuales y tutoriales. Base `contenido` en el Mongo de su clúster; archivos en su MinIO.
+apiVersion: v1
+kind: Service
+metadata:
+  name: contenido
+spec:
+  selector:
+    app: contenido
+  ports:
+    - name: http
+      port: 8085
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contenido
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: contenido
+  template:
+    metadata:
+      labels:
+        app: contenido
+    spec:
+      # * Antes de arrancar crea las colecciones y los índices (las migraciones de Laravel). Es idempotente: si no hay
+      # * nada nuevo, no hace nada. En producción no se siembran datos de ejemplo.
+      initContainers:
+        - name: migrar
+          image: drivehub-contenido
+          command: ['php', 'artisan', 'migrate', '--force']
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: CONTENIDO_APP_KEY }
+            - name: MONGODB_URI
+              value: mongodb://mongo:27017/contenido?replicaSet=rs0
+            - name: MONGODB_DATABASE
+              value: contenido
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_USER }
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_PASSWORD }
+            - name: MINIO_URL
+              value: http://minio:9000
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_USER }
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_PASSWORD }
+            - name: IDENTIDAD_URL
+              value: http://identidad:8081
+          envFrom:
+            - configMapRef:
+                name: drivehub-entorno
+      containers:
+        - name: contenido
+          image: drivehub-contenido
+          ports:
+            - containerPort: 8085
+          envFrom:
+            - configMapRef:
+                name: drivehub-entorno
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: CONTENIDO_APP_KEY }
+            - name: MONGODB_URI
+              value: mongodb://mongo:27017/contenido?replicaSet=rs0
+            - name: MONGODB_DATABASE
+              value: contenido
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_USER }
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_PASSWORD }
+            - name: MINIO_URL
+              value: http://minio:9000
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_USER }
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_PASSWORD }
+            - name: IDENTIDAD_URL
+              value: http://identidad:8081
+          startupProbe:
+            tcpSocket: { port: 8085 }
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            tcpSocket: { port: 8085 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health, port: 8085 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }

@@ -1,0 +1,12 @@
+# Enlace de Tailscale hacia asistente-ia cuando corre en otra nube. Ver README.md de esta carpeta.
+apiVersion: v1
+kind: Service
+metadata:
+  name: asistente-ia
+  annotations:
+    tailscale.com/tailnet-fqdn: dh-asistente-ia.tail9b7a35.ts.net
+spec:
+  type: ExternalName
+  externalName: lo-reemplaza-tailscale
+  ports:
+    - { name: http, port: 8087, protocol: TCP }

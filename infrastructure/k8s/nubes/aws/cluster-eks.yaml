@@ -1,0 +1,38 @@
+# Clúster de EKS de DriveHub (AWS): notificaciones, asistente-ia, contenido, rabbitmq, mongo y minio.
+# Se crea con:   eksctl create cluster -f infrastructure/k8s/nubes/aws/cluster-eks.yaml
+# Se borra con:  eksctl delete cluster -f infrastructure/k8s/nubes/aws/cluster-eks.yaml
+# Bajar los nodos a 0 sin borrar (el plano de control se sigue cobrando):
+#   eksctl scale nodegroup --cluster drivehub --region us-east-1 --name nodos-m7i --nodes 0
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: drivehub
+  region: us-east-1
+  tags:
+    proyecto: drivehub
+
+# * Una sola NAT Gateway para todo el VPC (la opción por defecto crea una por zona y cuesta el doble).
+vpc:
+  nat:
+    gateway: Single
+
+addons:
+  - name: vpc-cni
+  - name: coredns
+  - name: kube-proxy
+  - name: eks-pod-identity-agent
+  # * Discos de Postgres, Mongo, RabbitMQ y MinIO. Sin este complemento los PersistentVolumeClaim quedan en Pending.
+  - name: aws-ebs-csi-driver
+    useDefaultPodIdentityAssociations: true
+
+managedNodeGroups:
+  # * m7i-flex.large (2 vCPU, 8 GB): una cuenta en el plan gratuito de AWS solo puede lanzar los tipos "elegibles para
+  # * la capa gratuita" (aws ec2 describe-instance-types --filters Name=free-tier-eligible,Values=true); con otro tipo,
+  # * el grupo queda en CREATING sin máquinas. Dos nodos son 4 vCPU: la cuota de una cuenta nueva es de 5.
+  - name: nodos-m7i
+    instanceType: m7i-flex.large
+    desiredCapacity: 2
+    minSize: 0
+    maxSize: 3
+    volumeSize: 30

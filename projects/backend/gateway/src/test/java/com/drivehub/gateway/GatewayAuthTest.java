@@ -246,6 +246,15 @@ class GatewayAuthTest {
         assertThat(enviar("GET", "/health", null).statusCode()).isNotEqualTo(401);
     }
 
+    @Test
+    void probesDeKubernetes_respondenUpSinToken() throws Exception {
+        for (String ruta : new String[] {"/health/liveness", "/health/readiness"}) {
+            var r = enviar("GET", ruta, null);
+            assertThat(r.statusCode()).as(ruta).isEqualTo(200);
+            assertThat(r.body()).as(ruta).contains("\"status\":\"UP\"");
+        }
+    }
+
     private HttpResponse<String> enviar(String metodo, String ruta, String token) throws IOException, InterruptedException {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create("http://localhost:" + puerto + ruta))
             .method(metodo, metodo.equals("POST") ? HttpRequest.BodyPublishers.ofString("{}") : HttpRequest.BodyPublishers.noBody());

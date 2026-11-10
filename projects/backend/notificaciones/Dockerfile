@@ -21,5 +21,8 @@ ENV NODE_ENV=production
 # Práctica de seguridad: no correr como root.
 USER node
 COPY --from=builder --chown=node:node /out ./
+# * `pnpm deploy` copia el paquete como si se publicara y deja afuera dist/ (está en el .gitignore): sin esta línea
+# * la imagen no tiene el código compilado y el contenedor termina con "Cannot find module '/app/dist/main'".
+COPY --from=builder --chown=node:node /app/projects/backend/notificaciones/dist ./dist
 EXPOSE 8086
 CMD ["node", "dist/main"]

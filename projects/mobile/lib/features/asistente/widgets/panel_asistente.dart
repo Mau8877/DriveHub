@@ -9,6 +9,7 @@ import '../../clases/widgets/reprogramar_sheet.dart';
 import '../models/estado_asistente.dart';
 import '../models/preparacion_de_cambio.dart';
 import '../providers/asistente_provider.dart';
+import '../services/modelos_de_ia.dart';
 
 /// Lo que dice y pide el asistente de voz, en la sección «Clases» (CU50). No se dibuja mientras está inactivo.
 ///
@@ -105,6 +106,41 @@ class _Contenido extends ConsumerWidget {
             tono: TonoAviso.advertencia,
           ),
           cerrarBoton(),
+        ],
+      ),
+      FaltanModelos() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AvisoCockpit(
+            texto: 'Para hablarle al asistente hay que descargarlo una vez en tu teléfono (unos $megasDeModelosIa MB). '
+                'Conviene hacerlo con wifi. Después funciona sin internet.',
+            tono: TonoAviso.info,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(key: const Key('cerrarAsistente'), onPressed: cerrar, child: const Text('Ahora no')),
+              const SizedBox(width: 8),
+              FilledButton(
+                key: const Key('descargarModelos'),
+                // * El tema pide botones de ancho completo: en una fila hay que acotarlo (como en los diálogos)
+                style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                onPressed: ref.read(asistenteProvider.notifier).descargarModelos,
+                child: const Text('Descargar'),
+              ),
+            ],
+          ),
+        ],
+      ),
+      DescargandoModelos(:final progreso) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          titulo('Descargando el asistente… ${(progreso * 100).floor()} %'),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(key: const Key('progresoModelos'), value: progreso),
+          const SizedBox(height: 4),
+          cerrarBoton('Seguir en segundo plano'),
         ],
       ),
       Fallo(:final mensaje) => Column(

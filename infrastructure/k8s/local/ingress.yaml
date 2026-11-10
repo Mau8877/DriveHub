@@ -1,0 +1,36 @@
+# Entrada local por Traefik (en la nube, el mismo controlador con el dominio y HTTPS de cada una).
+#   http://localhost            -> web,  http://localhost/api -> gateway
+#   http://archivos.localhost   -> MinIO (las URLs prefirmadas de fotos y manuales)
+#   http://correo.localhost     -> Mailpit (solo local)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: drivehub
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service: { name: gateway, port: { number: 8080 } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: web, port: { number: 80 } }
+    - host: archivos.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: minio, port: { number: 9000 } }
+    - host: correo.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: mailpit, port: { number: 8025 } }

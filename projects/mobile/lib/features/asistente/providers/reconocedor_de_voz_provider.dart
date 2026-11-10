@@ -9,8 +9,8 @@ import '../services/transcriptor_whisper.dart';
 
 /// Dónde busca la app los archivos de Whisper: `<documentos>/ia/whisper/`.
 ///
-/// * Pesan ~40 MB y no se versionan. En desarrollo se copian con `adb push` a esa carpeta; cómo llegan al usuario
-///   final queda pendiente (ver las UT del CU50).
+/// * Pesan ~100 MB y no se versionan. En desarrollo se copian con `adb push` a esa carpeta; en producción la app los
+///   descarga la primera vez (`modelosDeIaProvider`, `MODELOS_IA_URL`).
 final carpetaDeWhisperProvider = FutureProvider<String>((ref) async {
   final documentos = await getApplicationDocumentsDirectory();
   final s = Platform.pathSeparator;

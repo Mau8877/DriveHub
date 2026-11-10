@@ -1,0 +1,11 @@
+# Ignorado del build de projects/frontend/Dockerfile (contexto = raíz del repo).
+# Los node_modules del host (con enlaces de Windows o del contenedor de desarrollo) nunca entran: se instalan adentro.
+**/node_modules
+**/dist
+**/.angular
+**/coverage
+.git
+projects/backend
+projects/mobile
+docs
+infrastructure

@@ -1,0 +1,54 @@
+# Entrada pública por Traefik (IP del balanceador de GKE), con HTTPS de Let's Encrypt (cert-manager, emisor
+# letsencrypt de emisor-letsencrypt.yaml). IP_PUBLICA: la IP con guiones (34-1-2-3).
+#   https://drivehub.34-11-98-15.sslip.io            -> web,  /api -> gateway
+#   https://archivos.34-11-98-15.sslip.io            -> MinIO (URLs prefirmadas de las fotos de perfil)
+#   https://correo.34-11-98-15.sslip.io              -> Mailpit (correos de la demo)
+#   https://archivos-aws.34-11-98-15.sslip.io        -> MinIO de AWS por Tailscale (manuales, tutoriales, fotos del tablero)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: drivehub
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: traefik
+  tls:
+    - secretName: drivehub-tls
+      hosts:
+        - drivehub.34-11-98-15.sslip.io
+        - archivos.34-11-98-15.sslip.io
+        - correo.34-11-98-15.sslip.io
+        - archivos-aws.34-11-98-15.sslip.io
+  rules:
+    - host: drivehub.34-11-98-15.sslip.io
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service: { name: gateway, port: { number: 8080 } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: web, port: { number: 80 } }
+    - host: archivos.34-11-98-15.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: minio, port: { number: 9000 } }
+    - host: correo.34-11-98-15.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: mailpit, port: { number: 8025 } }
+    - host: archivos-aws.34-11-98-15.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: minio-aws, port: { number: 9000 } }

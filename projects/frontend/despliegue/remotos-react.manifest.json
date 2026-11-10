@@ -1,0 +1,5 @@
+{
+  "examenes": "/remotos/examenes/remoteEntry.js",
+  "contenido": "/remotos/contenido/remoteEntry.js",
+  "asistente_ia": "/remotos/asistente-ia/remoteEntry.js"
+}

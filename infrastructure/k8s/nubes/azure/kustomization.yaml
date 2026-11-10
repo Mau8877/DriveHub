@@ -1,0 +1,48 @@
+# DriveHub en Azure (AKS): pagos y academico (la saga de horas queda dentro de una sola nube), con su Postgres
+# (base pagos), Mongo (base academico) y MinIO (comprobantes).
+# Se aplica con:  kubectl --context azure-drivehub apply -k infrastructure/k8s/nubes/azure
+# Antes: los secretos drivehub-secretos y ghcr-descarga (ver docs/DESPLIEGUE_KUBERNETES.md) y el operador de Tailscale.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: drivehub
+
+resources:
+  - ../../componentes/namespace
+  - ../../componentes/postgres
+  - ../../componentes/mongo
+  - ../../componentes/minio
+  - ../../componentes/pagos
+  - ../../componentes/academico
+  # Lo que corre en las otras nubes y estos servicios llaman.
+  - ../../enlaces/identidad
+  - ../../enlaces/escuela
+  - ../../enlaces/notificaciones
+  - ../../enlaces/rabbitmq
+
+patches:
+  # Lo que las otras nubes llaman de Azure se publica en la red privada de Tailscale como dh-<servicio>.
+  - target: { kind: Service, name: pagos }
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-pagos }
+  - target: { kind: Service, name: academico }
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-academico }
+  # Las imágenes de GHCR son privadas: cada Deployment descarga con la credencial ghcr-descarga.
+  - target: { kind: Deployment }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value: [{ name: ghcr-descarga }]
+
+configMapGenerator:
+  - name: drivehub-entorno
+    envs:
+      - entorno.env
+
+images:
+  - { name: drivehub-pagos, newName: ghcr.io/leonelbm123/drivehub-pagos, newTag: 20261109-1 }
+  - { name: drivehub-academico, newName: ghcr.io/leonelbm123/drivehub-academico, newTag: 20261109-1 }

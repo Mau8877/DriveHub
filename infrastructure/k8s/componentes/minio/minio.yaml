@@ -1,0 +1,118 @@
+# MinIO (almacenamiento S3): fotos de perfil, comprobantes, manuales y fotos del tablero.
+# * Cada clúster crea solo los buckets de los servicios que corre (MINIO_BUCKETS, en la ConfigMap de su entorno).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-init
+data:
+  # Versión de infrastructure/minio/create-buckets.sh que recibe la lista de buckets.
+  crear-buckets.sh: |
+    #!/bin/sh
+    set -e
+    mc alias set myminio http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+    for bucket in $MINIO_BUCKETS; do
+      mc mb "myminio/drivehub-$bucket" --ignore-existing
+    done
+    # De lectura pública: el contenido de la escuela (manuales y tutoriales publicados) y los modelos de IA que la
+    # app móvil descarga la primera vez (CU50).
+    case " $MINIO_BUCKETS " in
+      *" contenido "*) mc anonymous set download myminio/drivehub-contenido ;;
+    esac
+    case " $MINIO_BUCKETS " in
+      *" modelos-ia "*) mc anonymous set download myminio/drivehub-modelos-ia ;;
+    esac
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: api
+      port: 9000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: cgr.dev/chainguard/minio:latest
+          args: ['server', '/data', '--console-address', ':9001']
+          securityContext:
+            # Igual que en docker-compose: la imagen necesita escribir en el disco recién creado.
+            runAsUser: 0
+          ports:
+            - containerPort: 9000
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_USER }
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_PASSWORD }
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: 9000
+            periodSeconds: 15
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - name: datos
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: datos
+      spec:
+        accessModes: ['ReadWriteOnce']
+        resources:
+          requests:
+            storage: 20Gi
+---
+# Crea los buckets. Reintenta solo mientras MinIO arranca; volver a correrlo no rompe nada (--ignore-existing).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-crear-buckets
+spec:
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: bitnamilegacy/minio-client:latest
+          command: ['sh', '/scripts/crear-buckets.sh']
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_USER }
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_PASSWORD }
+            - name: MINIO_BUCKETS
+              valueFrom:
+                configMapKeyRef: { name: drivehub-entorno, key: MINIO_BUCKETS }
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: minio-init

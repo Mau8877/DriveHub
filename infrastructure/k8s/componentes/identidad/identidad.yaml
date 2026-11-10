@@ -1,0 +1,94 @@
+# Identidad (Spring Boot, hexagonal): cuentas, sesión y JWT. Base `identidad` en el Postgres de su clúster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: identidad
+spec:
+  selector:
+    app: identidad
+  ports:
+    - name: http
+      port: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identidad
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identidad
+  template:
+    metadata:
+      labels:
+        app: identidad
+    spec:
+      containers:
+        - name: identidad
+          image: drivehub-identidad
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: drivehub-entorno
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=70 -XX:+UseSerialGC
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/identidad
+            - name: SPRING_DATASOURCE_USERNAME
+              value: identidad
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: IDENTIDAD_DB_PASSWORD }
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq
+            - name: SPRING_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_USER }
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_PASSWORD }
+            - name: ESCUELA_URL
+              value: http://escuela:8082
+            - name: MINIO_URL
+              value: http://minio:9000
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_USER }
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_PASSWORD }
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: SMTP_USER, optional: true }
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: SMTP_PASSWORD, optional: true }
+            # * Par de claves RSA con que firma los JWT. Fuera de dev son obligatorias (ver ClavesJwt).
+            - name: APP_AUTH_JWT_PRIVATE_KEY_PEM
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: JWT_PRIVATE_KEY_PEM, optional: true }
+            - name: APP_AUTH_JWT_PUBLIC_KEY_PEM
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: JWT_PUBLIC_KEY_PEM, optional: true }
+            - name: IDENTIDAD_CREDENCIAL_N8N
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: IDENTIDAD_CREDENCIAL_N8N, optional: true }
+            - name: WHATSAPP_HASH_SECRET
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: WHATSAPP_HASH_SECRET }
+          startupProbe:
+            httpGet: { path: /health/liveness, port: 8081 }
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /health/liveness, port: 8081 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health/readiness, port: 8081 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 320Mi }
+            limits: { memory: 640Mi }

@@ -58,6 +58,18 @@ class NoEntendi extends EstadoAsistente {
   const NoEntendi({this.texto, required this.mensaje});
 }
 
+/// El teléfono no tiene los modelos del asistente y se pueden descargar: la persona decide si hacerlo ahora.
+class FaltanModelos extends EstadoAsistente {
+  const FaltanModelos();
+}
+
+/// Descargando los modelos; [progreso] va de 0 a 1.
+class DescargandoModelos extends EstadoAsistente {
+  final double progreso;
+
+  const DescargandoModelos(this.progreso);
+}
+
 /// La persona no concedió el permiso de micrófono.
 class SinPermiso extends EstadoAsistente {
   const SinPermiso();

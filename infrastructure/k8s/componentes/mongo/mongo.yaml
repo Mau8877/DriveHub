@@ -1,0 +1,62 @@
+# MongoDB 8 (Académico y Contenido): replica set de un nodo (rs0), necesario para las transacciones de Académico.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+spec:
+  # * Headless y con las direcciones publicadas antes de estar listo: el replica set se declara con el host
+  # * mongo:27017, y mongod tiene que poder resolverlo a sí mismo ANTES de que exista el replica set.
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: mongo
+  ports:
+    - name: mongo
+      port: 27017
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+spec:
+  serviceName: mongo
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:8
+          args: ['mongod', '--replSet', 'rs0', '--bind_ip_all', '--wiredTigerCacheSizeGB', '0.25']
+          ports:
+            - containerPort: 27017
+          # * Igual que el healthcheck de docker-compose: la primera vez inicia el replica set; después solo lo consulta.
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - name: datos
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: datos
+      spec:
+        accessModes: ['ReadWriteOnce']
+        resources:
+          requests:
+            storage: 10Gi

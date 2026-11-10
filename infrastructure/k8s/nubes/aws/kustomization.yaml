@@ -1,0 +1,85 @@
+# DriveHub en AWS (EKS): notificaciones, asistente-ia y contenido, con RabbitMQ (el bus de todos), Mongo y MinIO, y el
+# chat de WhatsApp (n8n y WAHA).
+# Se aplica con:  kubectl --context aws-drivehub apply -k infrastructure/k8s/nubes/aws
+# Antes: el secreto drivehub-secretos (ver docs/DESPLIEGUE_KUBERNETES.md) y el operador de Tailscale.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: drivehub
+
+resources:
+  - ../../componentes/namespace
+  - storageclass-gp3.yaml
+  - serviceaccount-dynamodb.yaml
+  - ../../componentes/rabbitmq
+  - ../../componentes/mongo
+  - ../../componentes/minio
+  - ../../componentes/notificaciones
+  - ../../componentes/asistente-ia
+  - ../../componentes/contenido
+  # Chat de WhatsApp (CU47 a CU49): junto a asistente-ia, cuyo servidor MCP usa. Antes: el ConfigMap n8n-flujos.
+  - ../../componentes/n8n
+  - ../../componentes/waha
+  # Lo que corre en las otras nubes y estos servicios llaman.
+  - ../../enlaces/identidad
+  - ../../enlaces/pagos
+  - ../../enlaces/academico
+
+# Lo que las otras nubes llaman de AWS se publica en la red privada de Tailscale como dh-<servicio>.
+patches:
+  - target: { kind: Service, name: notificaciones }
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-notificaciones }
+  - target: { kind: Service, name: asistente-ia }
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-asistente-ia }
+  - target: { kind: Service, name: contenido }
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-contenido }
+  - target: { kind: Service, name: rabbitmq }
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-rabbitmq }
+  # MinIO de AWS (manuales, tutoriales, fotos del tablero) no tiene entrada pública propia: GCP lo publica como
+  # archivos-aws.<IP de GCP>.sslip.io a través de la red de Tailscale (ver nubes/gcp/enlace-minio-aws.yaml).
+  - target: { kind: Service, name: minio }
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-minio-aws }
+  # Notificaciones y Asistente IA usan DynamoDB real con la identidad de la cuenta de servicio (EKS Pod Identity):
+  # ninguna clave de AWS dentro del clúster.
+  - target: { kind: Deployment, name: notificaciones }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: drivehub-dynamodb
+  - target: { kind: Deployment, name: asistente-ia }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: drivehub-dynamodb
+
+  # Las imágenes de GHCR son privadas: cada Deployment descarga con la credencial ghcr-descarga (creada a mano
+  # con `kubectl create secret docker-registry`, ver docs/DESPLIEGUE_KUBERNETES.md).
+  - target: { kind: Deployment }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value: [{ name: ghcr-descarga }]
+
+configMapGenerator:
+  - name: drivehub-entorno
+    envs:
+      - entorno.env
+
+images:
+  - { name: drivehub-contenido, newName: ghcr.io/leonelbm123/drivehub-contenido, newTag: 20261109-1 }
+  - { name: drivehub-notificaciones, newName: ghcr.io/leonelbm123/drivehub-notificaciones, newTag: 20261109-1 }
+  - { name: drivehub-asistente-ia, newName: ghcr.io/leonelbm123/drivehub-asistente-ia, newTag: 20261109-1 }

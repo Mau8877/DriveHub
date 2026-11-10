@@ -74,11 +74,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
         return Bucket.builder().addLimit(limit).build();
     }
 
-    // * request.getRemoteAddr() alcanza hoy porque nginx es el único proxy
-    // * delante del gateway dentro de la red de Docker. Si en el futuro hay
-    // * más de un proxy en la cadena, esto necesita leer X-Forwarded-For
-    // * con cuidado (el primer valor de la lista, no el último, para no
-    // * confiar en un header que el propio cliente puede falsificar).
+    // * request.getRemoteAddr() ya es la IP real del cliente aunque haya proxies delante (nginx, el ingress de
+    // * Kubernetes): con server.forward-headers-strategy=native, Tomcat la toma de X-Forwarded-For solo si la
+    // * request viene de un proxy interno de confianza (ver application.properties).
     private String resolveClientIp(HttpServletRequest request) {
         return request.getRemoteAddr();
     }

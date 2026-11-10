@@ -93,6 +93,8 @@ flutter:
   # flutter_dotenv no puede bundlear el archivo y falla en runtime.
   assets:
     - .env
+    # * La configuración de la nube (sin secretos, sí se commitea): la usa el build de release con DH_ENV.
+    - .env.produccion
     # * Modelo de luces del tablero que corre en el teléfono (CU40): catálogo, etiquetas y .tflite (ver ml/README.md)
     - assets/ml/
 
