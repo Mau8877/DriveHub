@@ -5,10 +5,17 @@ import type { AccionUsuario, DetalleAccion, DetalleNavegar, UsuarioShell } from 
 import '@drivehub/ui'
 import { filter, map } from 'rxjs'
 
+import { AvisosService } from '../core/notificaciones/avisos.service'
 import { PushWebService } from '../core/notificaciones/push-web.service'
 import { ROLES } from '../core/sesion/roles'
 import { SesionService } from '../core/sesion/sesion.service'
 import { migasDeRuta, navItemsDeRoles } from './nav-items'
+
+const ROLES_CON_BANDEJA: readonly string[] = [
+  ROLES.ADMIN_ESCUELA,
+  ROLES.INSTRUCTOR,
+  ROLES.ESTUDIANTE,
+]
 
 const ROLES_LEGIBLES: Record<string, string> = {
   [ROLES.SUPER_ADMIN]: 'Super admin',
@@ -29,9 +36,8 @@ const ACCIONES_USUARIO: AccionUsuario[] = [
  * * El aspecto vive en @drivehub/ui (`<dh-shell>`): acá solo se decide QUÉ mostrar (el menú del rol,
  * * las migas, el usuario) y se traducen sus eventos a la navegación del router y a la sesión.
  * * Lo propio del shell entra por los slots: "Verificar correo" en la cabecera y la banda de aviso.
- *
- * TODO: la campana de avisos se conecta con Notificaciones en CU38 (hoy es solo el lugar
- * TODO: reservado en la cabecera). El push del navegador ya se registra acá (CU36).
+ * * La campana muestra los avisos sin leer de la bandeja (CU53) y lleva a /avisos. El Super admin no tiene
+ * * bandeja: no la ve. El push del navegador se registra acá (CU36).
  */
 @Component({
   selector: 'app-shell-layout',
@@ -45,8 +51,9 @@ const ACCIONES_USUARIO: AccionUsuario[] = [
       [etiquetaGrupo]="grupo()"
       [usuario]="usuarioShell()"
       [accionesUsuario]="acciones"
-      [avisos]="true"
+      [avisos]="campana()"
       (dh-navegar)="navegar($event)"
+      (dh-avisos)="abrirAvisos()"
       (dh-accion)="accion($event)"
     >
       @if (mostrarVerificarCorreo()) {
@@ -79,6 +86,7 @@ export class ShellLayout {
   private readonly sesion = inject(SesionService)
   private readonly router = inject(Router)
   private readonly pushWeb = inject(PushWebService)
+  private readonly avisos = inject(AvisosService)
 
   protected readonly acciones = ACCIONES_USUARIO
   protected readonly verificando = signal(false)
@@ -104,6 +112,13 @@ export class ShellLayout {
     const rol = u.roles.map((r) => ROLES_LEGIBLES[r] ?? r)[0]
     return { nombres: u.nombres, apellidos: u.apellidos, fotoUrl: u.fotoUrl, rol }
   })
+  // * Tienen bandeja el Administrador de escuela (la de su escuela), el Instructor y el Estudiante (la suya)
+  protected readonly tieneBandeja = computed(() =>
+    (this.sesion.usuario()?.roles ?? []).some((r) => ROLES_CON_BANDEJA.includes(r))
+  )
+  protected readonly campana = computed(() =>
+    this.tieneBandeja() ? this.avisos.noLeidas() : false
+  )
   // * El botón solo se muestra mientras la sesión diga que el correo no está verificado (CU04b)
   protected readonly mostrarVerificarCorreo = computed(
     () => this.sesion.usuario()?.correoVerificado === false
@@ -115,6 +130,15 @@ export class ShellLayout {
     effect(() => {
       if (this.sesion.usuario()) void this.pushWeb.activar()
     })
+    // * El contador de la campana se refresca al entrar y cada vez que se navega por el panel (CU53)
+    effect(() => {
+      this.ruta()
+      if (this.tieneBandeja()) void this.avisos.refrescarConteo()
+    })
+  }
+
+  protected abrirAvisos(): void {
+    void this.router.navigateByUrl('/avisos')
   }
 
   protected navegar(evento: Event): void {

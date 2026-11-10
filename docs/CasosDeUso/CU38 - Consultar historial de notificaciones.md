@@ -85,7 +85,7 @@ El Estudiante o el Instructor abre «Notificaciones» desde la app. El sistema m
 ## Fuera de alcance
 
 - **Enviar avisos** ([CU36](CU36%20-%20Enviar%20notificaci%C3%B3n.md)) y **configurar las preferencias** ([CU37](CU37%20-%20Configurar%20preferencias%20de%20notificaci%C3%B3n.md)).
-- **La campana del panel web:** la lista de avisos de la cabecera del panel de la escuela (hoy un lugar reservado en el shell, ver `TODO` de `shell-layout.ts`). Este CU es solo de la app móvil, como lo define el diseño; si se quiere en la web, se documenta en un caso de uso aparte.
+- **La campana del panel web:** la lista de avisos de la cabecera del panel de la escuela Este CU es solo de la app móvil, como lo define el diseño; la campana del panel es [CU53: Consultar avisos de la escuela](CU53%20-%20Consultar%20avisos%20de%20la%20escuela.md).
 - **Ir a la pantalla relacionada** (la clase, el pago, el examen) desde un aviso a partir de sus datos de contexto: el aviso se lee completo, pero no navega.
 - **Borrar avisos** o marcar como no leído.
 - **Actualización en vivo de la bandeja** mientras está abierta (la lista se refresca al volver a ella o al deslizar para actualizar).

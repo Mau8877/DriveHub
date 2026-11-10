@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Avisa al estudiante lo que le pasó a su pago (CU36): acreditado, no acreditado, vencido y reembolso ejecutado o
- * fallido.
+ * fallido. La compra acreditada y el reembolso ejecutado también quedan en la bandeja de la escuela (CU53).
  *
  * * Escucha los eventos internos DESPUÉS del commit: si la operación se deshace, no se avisa nada.
  * * Nunca propaga un error: el aviso es de mejor esfuerzo y la operación que lo originó ya terminó.
@@ -48,6 +48,9 @@ public class AvisosPagoListener {
         avisar("pago.confirmado", evento.pagoCodigo(), "Compra confirmada",
             pago -> "Acreditamos %d hora(s) de tu plan %s. Ya puedes reservar tus clases."
                 .formatted(pago.getHoras(), pago.getPlanNombre()));
+        avisarEscuela("pago.confirmado", evento.pagoCodigo(), "Nueva compra de horas",
+            pago -> "%s compró %d hora(s) del plan %s."
+                .formatted(estudiante(pago), pago.getHoras(), pago.getPlanNombre()));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -69,6 +72,8 @@ public class AvisosPagoListener {
         avisar("pago.reembolsado", evento.pagoCodigo(), "Reembolso realizado",
             pago -> "Devolvimos el dinero de tu plan %s. Puede tardar unos días en reflejarse en tu tarjeta."
                 .formatted(pago.getPlanNombre()));
+        avisarEscuela("pago.reembolsado", evento.pagoCodigo(), "Reembolso realizado",
+            pago -> "Se devolvió a %s la compra del plan %s.".formatted(estudiante(pago), pago.getPlanNombre()));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -76,6 +81,29 @@ public class AvisosPagoListener {
         avisar("pago.reembolso-fallido", evento.pagoCodigo(), "No pudimos reembolsarte",
             pago -> "La devolución de tu plan %s falló y tus horas volvieron a tu billetera. Inténtalo más tarde."
                 .formatted(pago.getPlanNombre()));
+    }
+
+    /** El nombre que se copió al crear el pago; sin él, un genérico (el aviso no consulta a Identidad). */
+    private static String estudiante(Pago pago) {
+        String nombre = pago.getEstudianteNombre();
+        return nombre == null || nombre.isBlank() ? "Un estudiante" : nombre;
+    }
+
+    /** Aviso a la bandeja de la escuela del pago (CU53); `.escuela` en el evento: no choca con el del estudiante. */
+    private void avisarEscuela(String evento, UUID pagoCodigo, String titulo, Function<Pago, String> mensaje) {
+        String eventoEscuela = evento + ".escuela";
+        try {
+            Pago pago = pagoRepository.findByCodigo(pagoCodigo).orElse(null);
+            if (pago == null) {
+                return;
+            }
+            notificaciones.avisarEscuela(NotificacionesClient.eventoCodigo(eventoEscuela, pagoCodigo),
+                pago.getEscuelaCodigo(), TIPO, titulo, mensaje.apply(pago),
+                Map.of("pagoCodigo", pagoCodigo.toString(), "evento", eventoEscuela));
+        } catch (RuntimeException e) {
+            LOG.warn("No se pudo armar un aviso de pago para la escuela (tipo {})", e.getClass().getSimpleName(),
+                kv("module", "pagos"), kv("pagoCodigo", pagoCodigo), kv("evento", eventoEscuela));
+        }
     }
 
     private void avisar(String evento, UUID pagoCodigo, String titulo, Function<Pago, String> mensaje) {

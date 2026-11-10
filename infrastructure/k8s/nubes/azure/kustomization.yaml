@@ -1,5 +1,5 @@
 # DriveHub en Azure (AKS): pagos y academico (la saga de horas queda dentro de una sola nube), con su Postgres
-# (base pagos), Mongo (base academico) y MinIO (comprobantes).
+# (base pagos) y Mongo (base academico). Los comprobantes van a S3 de AWS (ver entorno.env).
 # Se aplica con:  kubectl --context azure-drivehub apply -k infrastructure/k8s/nubes/azure
 # Antes: los secretos drivehub-secretos y ghcr-descarga (ver docs/DESPLIEGUE_KUBERNETES.md) y el operador de Tailscale.
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -10,7 +10,6 @@ resources:
   - ../../componentes/namespace
   - ../../componentes/postgres
   - ../../componentes/mongo
-  - ../../componentes/minio
   - ../../componentes/pagos
   - ../../componentes/academico
   # Lo que corre en las otras nubes y estos servicios llaman.

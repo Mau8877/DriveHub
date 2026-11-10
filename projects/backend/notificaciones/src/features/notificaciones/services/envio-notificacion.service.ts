@@ -13,9 +13,15 @@ import {
   skNotificacion,
 } from '../models/notificacion.model.js'
 import { NotificacionesRepository } from '../repositories/notificaciones.repository.js'
-import { decidirCanales } from './politica-envio.js'
+import { type DecisionEnvio, decidirCanales } from './politica-envio.js'
 import { construirHtmlCorreo, PROVEEDOR_CORREO, type ProveedorCorreo } from './proveedor-correo.js'
 import { PROVEEDOR_PUSH, type ProveedorPush } from './proveedor-push.js'
+
+/** El pedido ya con su bandeja resuelta: la de la persona o, si va a una escuela (CU53), la de la escuela. */
+type Pedido = SolicitudNotificacionRequest & { usuarioCodigo: string }
+
+/** Un aviso a la escuela solo se deja en su bandeja: sin correo, sin push y sin preferencias (son de cada persona). */
+const SOLO_BANDEJA: DecisionEnvio = { inApp: true, email: false, push: false }
 
 export type ResultadoEnvio = 'PROCESADA' | 'DUPLICADA' | 'OMITIDA'
 
@@ -33,6 +39,8 @@ export interface ResumenEnvio {
  * * error, para poder reintentar. Desde que se intenta el primer envío ya no
  * * se lanzan excepciones: un canal que falla queda FALLIDA y los demás
  * * siguen (reintentar acá duplicaría correos y pushes).
+ * * Un aviso a una escuela (CU53) se guarda en la bandeja cuya clave es el `escuelaCodigo` (un UUID, no choca con
+ * * ninguna persona): la leen los Administradores de esa escuela.
  * ! Nunca se loguean los tokens de los dispositivos ni el texto del aviso.
  */
 @Injectable()
@@ -48,7 +56,11 @@ export class EnvioNotificacionService {
     @Inject(PROVEEDOR_PUSH) private readonly push: ProveedorPush
   ) {}
 
-  async enviar(solicitud: SolicitudNotificacionRequest, ahora = new Date()): Promise<ResumenEnvio> {
+  async enviar(pedido: SolicitudNotificacionRequest, ahora = new Date()): Promise<ResumenEnvio> {
+    const paraEscuela = pedido.usuarioCodigo === undefined
+    // * El DTO ya validó que viene exactamente uno de los dos: la bandeja es la persona o la escuela
+    pedido.usuarioCodigo ??= pedido.escuelaCodigo
+    const solicitud = pedido as Pedido
     if (!(await this.eventos.registrar(solicitud.eventoCodigo))) {
       this.logger.log({
         message: 'Pedido de notificación repetido: no se envía de nuevo',
@@ -62,8 +74,14 @@ export class EnvioNotificacionService {
     const creadaEn = ahora.toISOString()
     let decision
     try {
-      const preferencias = await this.preferencias.obtener(solicitud.usuarioCodigo)
-      decision = decidirCanales(preferencias, solicitud.tipo, ahora, solicitud.email)
+      decision = paraEscuela
+        ? SOLO_BANDEJA
+        : decidirCanales(
+            await this.preferencias.obtener(solicitud.usuarioCodigo),
+            solicitud.tipo,
+            ahora,
+            solicitud.email
+          )
       if (decision.inApp) {
         const fila = this.armarFila(solicitud, CanalNotificacion.IN_APP, EstadoNotificacion.ENVIADA, creadaEn)
         await this.historial.guardar(fila)
@@ -102,7 +120,7 @@ export class EnvioNotificacionService {
   }
 
   private async enviarCorreo(
-    solicitud: SolicitudNotificacionRequest,
+    solicitud: Pedido,
     para: string,
     creadaEn: string,
     resumen: ResumenEnvio
@@ -123,7 +141,7 @@ export class EnvioNotificacionService {
   }
 
   private async enviarPush(
-    solicitud: SolicitudNotificacionRequest,
+    solicitud: Pedido,
     creadaEn: string,
     resumen: ResumenEnvio
   ): Promise<void> {
@@ -159,7 +177,7 @@ export class EnvioNotificacionService {
 
   /** Guarda la fila de un canal ya intentado; si no se puede guardar, solo se avisa en el log. */
   private async guardarConstancia(
-    solicitud: SolicitudNotificacionRequest,
+    solicitud: Pedido,
     canal: CanalNotificacion,
     estado: EstadoNotificacion,
     creadaEn: string,
@@ -182,7 +200,7 @@ export class EnvioNotificacionService {
   }
 
   private armarFila(
-    solicitud: SolicitudNotificacionRequest,
+    solicitud: Pedido,
     canal: CanalNotificacion,
     estado: EstadoNotificacion,
     creadaEn: string
@@ -239,7 +257,7 @@ export class EnvioNotificacionService {
     }
   }
 
-  private registrarFalla(canal: string, solicitud: SolicitudNotificacionRequest, error: unknown): void {
+  private registrarFalla(canal: string, solicitud: Pedido, error: unknown): void {
     this.logger.warn({
       message: 'Falló el envío de un canal',
       module: 'notificaciones',

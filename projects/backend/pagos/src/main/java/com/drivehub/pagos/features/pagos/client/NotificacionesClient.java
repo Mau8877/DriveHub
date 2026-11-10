@@ -62,6 +62,20 @@ public class NotificacionesClient {
      */
     public void avisar(UUID eventoCodigo, UUID usuarioCodigo, String tipo, String titulo, String mensaje,
             Map<String, Object> datos) {
+        enviar("usuarioCodigo", usuarioCodigo, eventoCodigo, tipo, titulo, mensaje, datos);
+    }
+
+    /**
+     * Deja un aviso en la bandeja de la escuela, que leen sus Administradores en el panel web (CU53). Solo bandeja:
+     * Notificaciones no lo manda por correo ni por push.
+     */
+    public void avisarEscuela(UUID eventoCodigo, UUID escuelaCodigo, String tipo, String titulo, String mensaje,
+            Map<String, Object> datos) {
+        enviar("escuelaCodigo", escuelaCodigo, eventoCodigo, tipo, titulo, mensaje, datos);
+    }
+
+    private void enviar(String campoDestino, UUID destino, UUID eventoCodigo, String tipo, String titulo,
+            String mensaje, Map<String, Object> datos) {
         if (credencial.isBlank()) {
             LOG.warn("No hay credencial de servicio para Notificaciones: no se envía el aviso",
                 kv("module", "pagos"), kv("tipo", tipo));
@@ -69,7 +83,7 @@ public class NotificacionesClient {
         }
         Map<String, Object> cuerpo = new LinkedHashMap<>();
         cuerpo.put("eventoCodigo", eventoCodigo);
-        cuerpo.put("usuarioCodigo", usuarioCodigo);
+        cuerpo.put(campoDestino, destino);
         cuerpo.put("tipo", tipo);
         cuerpo.put("titulo", titulo);
         cuerpo.put("mensaje", mensaje);

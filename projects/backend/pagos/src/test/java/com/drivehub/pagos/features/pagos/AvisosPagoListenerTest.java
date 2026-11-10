@@ -26,12 +26,13 @@ import com.drivehub.pagos.features.pagos.service.evento.ReembolsoEjecutado;
 import com.drivehub.pagos.features.pagos.service.evento.ReembolsoFallido;
 
 /**
- * Los avisos al estudiante por lo que le pasa a su pago (CU36).
+ * Los avisos al estudiante por lo que le pasa a su pago (CU36) y a la bandeja de su escuela (CU53).
  */
 class AvisosPagoListenerTest {
 
     private static final UUID PAGO = UUID.fromString("0198f0a0-0000-7000-8000-0000000000a1");
     private static final UUID ESTUDIANTE = UUID.fromString("0198f0a0-0000-7000-8000-0000000000b2");
+    private static final UUID ESCUELA = UUID.fromString("0198f0a0-0000-7000-8000-0000000000c3");
 
     private PagoRepository pagoRepository;
     private NotificacionesClient notificaciones;
@@ -46,6 +47,8 @@ class AvisosPagoListenerTest {
         when(pago.getEstudianteCodigo()).thenReturn(ESTUDIANTE);
         when(pago.getPlanNombre()).thenReturn("Plan 10 horas");
         when(pago.getHoras()).thenReturn((short) 10);
+        when(pago.getEscuelaCodigo()).thenReturn(ESCUELA);
+        when(pago.getEstudianteNombre()).thenReturn("Ana Pérez");
         when(pagoRepository.findByCodigo(PAGO)).thenReturn(Optional.of(pago));
     }
 
@@ -56,6 +59,31 @@ class AvisosPagoListenerTest {
         verify(notificaciones).avisar(eq(NotificacionesClient.eventoCodigo("pago.confirmado", PAGO)), eq(ESTUDIANTE),
             eq("PAGO"), eq("Compra confirmada"), eq("Acreditamos 10 hora(s) de tu plan Plan 10 horas. "
                 + "Ya puedes reservar tus clases."), any());
+    }
+
+    @Test
+    void alConfirmarseElPago_avisaALaEscuelaQuienComproYCuantasHoras() {
+        listener.alConfirmarseElPago(new PagoConfirmado(PAGO));
+
+        verify(notificaciones).avisarEscuela(eq(NotificacionesClient.eventoCodigo("pago.confirmado.escuela", PAGO)),
+            eq(ESCUELA), eq("PAGO"), eq("Nueva compra de horas"),
+            eq("Ana Pérez compró 10 hora(s) del plan Plan 10 horas."), any());
+    }
+
+    @Test
+    void alEjecutarseElReembolso_avisaALaEscuela() {
+        listener.alEjecutarseElReembolso(new ReembolsoEjecutado(PAGO, UUID.randomUUID()));
+
+        verify(notificaciones).avisarEscuela(eq(NotificacionesClient.eventoCodigo("pago.reembolsado.escuela", PAGO)),
+            eq(ESCUELA), eq("PAGO"), eq("Reembolso realizado"),
+            eq("Se devolvió a Ana Pérez la compra del plan Plan 10 horas."), any());
+    }
+
+    @Test
+    void alVencerElPago_noAvisaALaEscuela() {
+        listener.alVencerElPago(new PagoVencido(PAGO));
+
+        verify(notificaciones, never()).avisarEscuela(any(), any(), any(), any(), any(), any());
     }
 
     @Test

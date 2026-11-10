@@ -8,6 +8,7 @@
     "check_engine",
     "control_traccion",
     "frenos",
+    "ninguna",
     "presion_neumaticos",
     "temperatura"
   ]

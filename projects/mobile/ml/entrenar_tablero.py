@@ -35,7 +35,12 @@ SEMILLA = 42
 EXTENSIONES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 # Roboflow nombra cada versión aumentada `<foto>_jpg.rf.<hash>.jpg`; preparar_datos.py agrega
 # `<dataset>_` delante y `_<n>` (número de caja) detrás.
-_SUFIJO_ROBOFLOW = re.compile(r"\.rf\.[0-9a-f]+(_\d+)?$")
+# `preparar_datos.py` agrega además `_<n>_ctx`, `_completa` y `_fondo`: todo lo que va después del
+# hash es de la misma foto.
+_SUFIJO_ROBOFLOW = re.compile(r"\.rf\.[0-9a-f]+(_.*)?$")
+# Clase extra de `preparar_datos.py` (zonas sin luces): no está en el catálogo a propósito; la app
+# descarta lo que no está en el catálogo, así que una foto sin luz queda por debajo del umbral.
+NINGUNA = "ninguna"
 
 
 def foto_de_origen(archivo: Path) -> str:
@@ -189,7 +194,7 @@ def main() -> int:
 
     catalogo = json.loads((args.salida / "luces_tablero.json").read_text(encoding="utf-8"))
     conocidas = {luz["codigo"] for luz in catalogo["luces"]}
-    desconocidas = [c for c in clases if c not in conocidas]
+    desconocidas = [c for c in clases if c not in conocidas | {NINGUNA}]
     if desconocidas:
         print(f"Carpetas que no están en el catálogo luces_tablero.json: {desconocidas}")
         return 2

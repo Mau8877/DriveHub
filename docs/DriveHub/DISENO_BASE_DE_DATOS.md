@@ -924,6 +924,8 @@ Todo se consulta por usuario y fecha: partición `usuarioCodigo` (la persona de 
 
 CU36 guarda **una fila por canal intentado** (`canal` es un solo valor): la de `IN_APP` es la bandeja de la persona y la única con `noLeidaTs` (alimenta el índice `NoLeidas`); las de `EMAIL` y `PUSH` son la constancia de ese envío, con su `estado`. Un tipo desactivado en las preferencias no deja ninguna fila.
 
+**Bandeja de la escuela (CU53):** un aviso dirigido a una escuela se guarda con `usuarioCodigo` = el `codigoEscuela` (un UUID, no choca con ninguna persona), solo la fila `IN_APP`. La leen los Administradores de esa escuela, que comparten su estado de leído. No cambia el esquema: misma clave, mismo índice y mismo TTL.
+
 | Atributo | Tipo | Notas |
 | --- | --- | --- |
 | `usuarioCodigo`, `sk` | S | Clave |

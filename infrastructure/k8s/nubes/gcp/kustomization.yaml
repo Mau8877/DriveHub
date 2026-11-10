@@ -1,5 +1,5 @@
 # DriveHub en Google Cloud (GKE): la entrada pública (gateway y web), identidad y escuela, con su Postgres (bases
-# identidad y escuela) y MinIO (fotos de perfil). Mailpit atrapa los correos mientras no haya un SMTP real.
+# identidad y escuela). Los archivos van a S3 de AWS (ver entorno.env). Mailpit atrapa los correos mientras no haya un SMTP real.
 # Se aplica con:  kubectl --context gcp-drivehub apply -k infrastructure/k8s/nubes/gcp
 # Antes: los secretos drivehub-secretos y ghcr-descarga (ver docs/DESPLIEGUE_KUBERNETES.md), Traefik y el operador de
 # Tailscale.
@@ -10,7 +10,6 @@ namespace: drivehub
 resources:
   - ../../componentes/namespace
   - ../../componentes/postgres
-  - ../../componentes/minio
   - ../../componentes/gateway
   - ../../componentes/web
   - ../../componentes/identidad
@@ -25,7 +24,6 @@ resources:
   - ../../enlaces/notificaciones
   - ../../enlaces/asistente-ia
   - ../../enlaces/rabbitmq
-  - enlace-minio-aws.yaml
 
 patches:
   # Lo que las otras nubes llaman de GCP se publica en la red privada de Tailscale como dh-<servicio>.

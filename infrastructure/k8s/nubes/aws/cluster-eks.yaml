@@ -1,4 +1,4 @@
-# Clúster de EKS de DriveHub (AWS): notificaciones, asistente-ia, contenido, rabbitmq, mongo y minio.
+# Clúster de EKS de DriveHub (AWS): notificaciones, asistente-ia, contenido, rabbitmq y mongo (los archivos van a S3).
 # Se crea con:   eksctl create cluster -f infrastructure/k8s/nubes/aws/cluster-eks.yaml
 # Se borra con:  eksctl delete cluster -f infrastructure/k8s/nubes/aws/cluster-eks.yaml
 # Bajar los nodos a 0 sin borrar (el plano de control se sigue cobrando):
@@ -22,7 +22,7 @@ addons:
   - name: coredns
   - name: kube-proxy
   - name: eks-pod-identity-agent
-  # * Discos de Postgres, Mongo, RabbitMQ y MinIO. Sin este complemento los PersistentVolumeClaim quedan en Pending.
+  # * Discos de Postgres, Mongo y RabbitMQ. Sin este complemento los PersistentVolumeClaim quedan en Pending.
   - name: aws-ebs-csi-driver
     useDefaultPodIdentityAssociations: true
 
