@@ -1,4 +1,4 @@
-# DriveHub en AWS (EKS): notificaciones, asistente-ia y contenido, con RabbitMQ (el bus de todos), Mongo y MinIO, y el
+# DriveHub en AWS (EKS): notificaciones, asistente-ia y contenido, con RabbitMQ (el bus de todos) y Mongo (los archivos van a S3), y el
 # chat de WhatsApp (n8n y WAHA).
 # Se aplica con:  kubectl --context aws-drivehub apply -k infrastructure/k8s/nubes/aws
 # Antes: el secreto drivehub-secretos (ver docs/DESPLIEGUE_KUBERNETES.md) y el operador de Tailscale.
@@ -12,7 +12,6 @@ resources:
   - serviceaccount-dynamodb.yaml
   - ../../componentes/rabbitmq
   - ../../componentes/mongo
-  - ../../componentes/minio
   - ../../componentes/notificaciones
   - ../../componentes/asistente-ia
   - ../../componentes/contenido
@@ -48,13 +47,6 @@ patches:
       - op: add
         path: /metadata/annotations
         value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-rabbitmq }
-  # MinIO de AWS (manuales, tutoriales, fotos del tablero) no tiene entrada pública propia: GCP lo publica como
-  # archivos-aws.<IP de GCP>.sslip.io a través de la red de Tailscale (ver nubes/gcp/enlace-minio-aws.yaml).
-  - target: { kind: Service, name: minio }
-    patch: |-
-      - op: add
-        path: /metadata/annotations
-        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-minio-aws }
   # Notificaciones y Asistente IA usan DynamoDB real con la identidad de la cuenta de servicio (EKS Pod Identity):
   # ninguna clave de AWS dentro del clúster.
   - target: { kind: Deployment, name: notificaciones }

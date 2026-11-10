@@ -46,8 +46,6 @@ spec:
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_PASSWORD }
-            - name: MINIO_URL
-              value: http://minio:9000
             - name: MINIO_ROOT_USER
               valueFrom:
                 secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_USER }
@@ -83,8 +81,6 @@ spec:
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_PASSWORD }
-            - name: MINIO_URL
-              value: http://minio:9000
             - name: MINIO_ROOT_USER
               valueFrom:
                 secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_USER }

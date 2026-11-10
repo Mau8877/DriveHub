@@ -57,12 +57,6 @@ spec:
               value: http://escuela:8082
             - name: NOTIFICACIONES_URL
               value: http://notificaciones:8086
-            - name: MINIO_URL
-              value: http://minio:9000
-            - name: MINIO_ENDPOINT
-              value: http://minio:9000
-            - name: MINIO_BUCKET_COMPROBANTES
-              value: drivehub-pagos
             - name: MINIO_ROOT_USER
               valueFrom:
                 secretKeyRef: { name: drivehub-secretos, key: MINIO_ROOT_USER }

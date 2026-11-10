@@ -1,4 +1,4 @@
-# Clúster de AKS de DriveHub (Azure): pagos y academico, con su Postgres, Mongo y MinIO.
+# Clúster de AKS de DriveHub (Azure): pagos y academico, con su Postgres y Mongo (los archivos van a S3).
 # Se corre con la sesión de `az login` iniciada:  .\infrastructure\k8s\nubes\azure\crear-cluster.ps1
 # Borrar todo (clúster, discos e IP):             az group delete -n drivehub --yes
 # Apagar sin borrar (no se cobran los nodos):      az aks stop -g drivehub -n drivehub   (y az aks start para volver)
