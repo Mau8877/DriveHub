@@ -26,22 +26,23 @@ comunican entre sí por una **red privada de Tailscale**. Se busca la forma **m�
  ┌──────────────────────────── GOOGLE CLOUD · GKE ────────────────────────────┐
  │  ingress público:  /api → gateway      / → web (shell + 6 remotos)         │
  │  identidad ⇄ escuela                                                       │
- │  postgres (bases identidad, escuela) · minio (fotos de perfil)             │
+ │  postgres (bases identidad, escuela)                                       │
  └───────────┬──────────────────────────────────────────────┬────────────────┘
              │              red privada de Tailscale         │
  ┌───────────▼──────────── AZURE · AKS ──────┐   ┌────────────▼──────────── AWS · EKS ─────────────┐
  │  pagos ⇄ academico  (saga de horas)       │   │  notificaciones · asistente-ia · contenido      │
  │  postgres (base pagos) · mongo (academico)│◀─▶│  rabbitmq (bus de eventos de todos)             │
- │  minio (comprobantes)                     │   │  mongo (contenido) · minio (manuales, tablero)  │
+ │                                           │   │  mongo (contenido)                              │
  └───────────────────────────────────────────┘   │  DynamoDB (servicio de AWS)                     │
                                                  └─────────────────────────────────────────────────┘
+          Archivos de las tres nubes: S3 de AWS (bucket amz-drivehub, ver §4.1)
 ```
 
 | Nube | Servicios | Datos y apoyo (contenedores en el clúster) | Por qué juntos |
 | --- | --- | --- | --- |
-| **Google Cloud (GKE)** | `gateway`, `web`, `identidad`, `escuela` | `postgres` (bases `identidad` y `escuela`), `minio` (bucket `drivehub-identidad`) | Es la entrada pública. Identidad y Escuela se llaman entre sí todo el tiempo, y el login no sale de GCP |
-| **Azure (AKS)** | `pagos`, `academico` | `postgres` (base `pagos`), `mongo` (base `academico`, replica set), `minio` (bucket `drivehub-pagos`) | Reservar una clase descuenta una hora de la billetera dentro de la misma request (CU14) y el orquestador retoma reservas a medias (CU44): esa saga queda dentro de una sola nube |
-| **AWS (EKS)** | `notificaciones`, `asistente-ia`, `contenido` | `rabbitmq`, `mongo` (base `contenido`), `minio` (buckets `drivehub-contenido` y `drivehub-asistente-ia`), **DynamoDB** (servicio de AWS) | DynamoDB solo existe en AWS. El asistente consulta Contenido (CU46) sin salir de AWS. Notificaciones consume la cola de RabbitMQ |
+| **Google Cloud (GKE)** | `gateway`, `web`, `identidad`, `escuela` | `postgres` (bases `identidad` y `escuela`) | Es la entrada pública. Identidad y Escuela se llaman entre sí todo el tiempo, y el login no sale de GCP |
+| **Azure (AKS)** | `pagos`, `academico` | `postgres` (base `pagos`), `mongo` (base `academico`, replica set) | Reservar una clase descuenta una hora de la billetera dentro de la misma request (CU14) y el orquestador retoma reservas a medias (CU44): esa saga queda dentro de una sola nube |
+| **AWS (EKS)** | `notificaciones`, `asistente-ia`, `contenido` | `rabbitmq`, `mongo` (base `contenido`), **DynamoDB** (servicio de AWS) | DynamoDB solo existe en AWS. El asistente consulta Contenido (CU46) sin salir de AWS. Notificaciones consume la cola de RabbitMQ |
 
 DynamoDB es la única pieza que no es un contenedor: no hay una versión para producción que corra en un
 contenedor (`dynamodb-local` es solo un emulador de pruebas). Como `notificaciones` y `asistente-ia` corren en AWS,
@@ -100,7 +101,6 @@ está el otro, y mover un servicio de nube es mover su `Service` de egress, no c
 | `notificaciones` (8086) | AWS | GCP (gateway), Azure (pagos, academico) |
 | `asistente-ia` (8087) | AWS | GCP (gateway) |
 | `rabbitmq` (5672) | AWS | GCP y Azure (los servicios que publican eventos) |
-| `minio` de AWS (9000), publicado como `dh-minio-aws` | AWS | GCP (Service `minio-aws`): la entrada pública `archivos-aws.<IP>.sslip.io` sirve por ahí las URLs prefirmadas de manuales, tutoriales y fotos del tablero |
 
 Las variables de los servicios quedan iguales a las de Docker Compose sin el prefijo del contenedor:
 `PAGOS_URL=http://pagos:8083`, `IDENTIDAD_URL=http://identidad:8081`, `SPRING_RABBITMQ_HOST=rabbitmq`... **en las
@@ -137,18 +137,18 @@ infrastructure/k8s/
 ├── componentes/                  # Una carpeta por pieza, igual en cualquier nube
 │   ├── gateway/  identidad/  escuela/  pagos/  academico/
 │   ├── contenido/  notificaciones/  asistente-ia/  web/
-│   └── postgres/  mongo/  rabbitmq/  minio/
+│   └── postgres/  mongo/  rabbitmq/  minio/ (minio solo en el overlay local)
 ├── enlaces/                      # Un Service de egress de Tailscale por servicio (§3.1, punto 2)
 │   └── identidad.yaml  escuela.yaml  pagos.yaml  academico.yaml  contenido.yaml
 │       notificaciones.yaml  asistente-ia.yaml  rabbitmq.yaml
 └── nubes/
-    ├── gcp/kustomization.yaml    # componentes: gateway, web, identidad, escuela, postgres, minio
+    ├── gcp/kustomization.yaml    # componentes: gateway, web, identidad, escuela, postgres
     │                             # + publicar identidad y escuela en Tailscale (parche con las anotaciones)
     │                             # + enlaces: pagos, academico, contenido, notificaciones, asistente-ia, rabbitmq
     │                             # + ingress público
-    ├── azure/kustomization.yaml  # componentes: pagos, academico, postgres, mongo, minio
+    ├── azure/kustomization.yaml  # componentes: pagos, academico, postgres, mongo
     │                             # + publicar pagos y academico · enlaces: identidad, escuela, notificaciones, rabbitmq
-    └── aws/kustomization.yaml    # componentes: notificaciones, asistente-ia, contenido, rabbitmq, mongo, minio
+    └── aws/kustomization.yaml    # componentes: notificaciones, asistente-ia, contenido, rabbitmq, mongo
                                   # + publicar los cuatro · enlaces: identidad, pagos, academico
 ```
 
@@ -161,7 +161,21 @@ desde ahí y ajustar qué nubes llevan su enlace. No cambia ninguna variable de 
 | `postgres` | `StatefulSet` `postgres:18-alpine` + disco de 10 Gi. El script de `infrastructure/postgres/init/` en un ConfigMap, adaptado para crear solo las bases de esa nube |
 | `mongo` | `StatefulSet` `mongo:8` replica set de un nodo (`rs0`) + disco de 10 Gi; su readiness inicia el replica set la primera vez (como el healthcheck de docker-compose) |
 | `rabbitmq` | `StatefulSet` + disco de 2 Gi |
-| `minio` | `StatefulSet` + disco de 20 Gi y un Job con `create-buckets.sh`, adaptado para crear solo los buckets de esa nube |
+| Archivos | **S3 de AWS**, fuera de los clústeres (§4.1). `componentes/minio` queda solo para el overlay local |
+
+### 4.1 Archivos en S3
+
+Los cuatro servicios con archivos ya usaban el cliente S3 contra MinIO; en la nube apuntan a S3 y comparten el bucket
+`amz-drivehub` (`us-east-1`), una carpeta por servicio: `usuarios/` (identidad, privada), `comprobantes/` (pagos,
+privada), `escuelas/` (contenido, pública), `ayudas-tablero/` (asistente-ia, pública) y `modelos-ia/` (los modelos que
+descarga la app móvil, pública). Lo privado se lee con URLs prefirmadas.
+
+- **Política del bucket**: `infrastructure/k8s/nubes/aws/politica-s3-archivos.json` (lectura pública solo de las tres
+  carpetas públicas). Para aplicarla hay que desactivar en el bucket el bloqueo de acceso público por políticas.
+- **Credenciales**: la access key y la secret key de un usuario IAM con acceso al bucket van en `drivehub-secretos` de
+  cada nube como `MINIO_ROOT_USER` y `MINIO_ROOT_PASSWORD` (los nombres de siempre, así los servicios no cambian).
+- **Bucket de cada servicio**, en el `entorno.env` de su nube: `APP_MINIO_BUCKETNAME` (identidad),
+  `MINIO_BUCKET_COMPROBANTES` (pagos) y `MINIO_BUCKET` (contenido y asistente-ia).
 
 **Ingress público** (Traefik + cert-manager con Let's Encrypt), lo único con nombre en internet. Se usa Traefik y
 no `ingress-nginx` porque este último se retiró en marzo de 2026 y ya no recibe parches de seguridad; Traefik
@@ -170,8 +184,6 @@ acepta los mismos recursos `Ingress` estándar:
 | Nombre | Va a |
 | --- | --- |
 | `drivehub.<dominio>` | `/api` → gateway, `/` → web (GKE) |
-| `archivos.gcp.<dominio>` | minio de GKE (las URLs prefirmadas de las fotos de perfil incluyen el host, por eso va en un subdominio propio) |
-| `archivos.aws.<dominio>` | minio de EKS (manuales, tutoriales y fotos del tablero) |
 
 **Secretos**: no se commitean. En cada clúster se crean desde un archivo local con las claves que esa nube
 necesita (mismo formato que `.env`):
@@ -191,7 +203,7 @@ clave de RabbitMQ) llevan **el mismo valor** en los archivos de las nubes que la
 | 2 | **IP real en el gateway** | El rate limit usa `getRemoteAddr()`, que detrás del ingress es la IP del ingress: todos los usuarios compartirían un cupo de 100 pedidos por minuto | `server.forward-headers-strategy=native` con los rangos del clúster como proxies confiables, y `externalTrafficPolicy: Local` en el ingress (Traefik) |
 | 3 | **Salud sin depender de otra nube** | En Spring, `/health` incluye RabbitMQ. En GCP y Azure el broker está en AWS: si el túnel falla, Kubernetes sacaría de servicio a identidad, pagos, etc., aunque puedan seguir atendiendo | `management.endpoint.health.probes.enabled=true` y que la readiness solo mire la base propia del servicio, no RabbitMQ |
 | 4 | **Contenido** | La imagen `prod` sirve con `php artisan serve` | Para empezar se acepta (una réplica). Recomendado: FrankenPHP. La migración como Job antes del Deployment |
-| 5 | **Variables de producción** | Hoy apuntan a `localhost`, a los contenedores `drivehub-*` y a Mailpit | URLs internas sin prefijo (`http://pagos:8083`...); `app.cookies.secure=true`; `APP_WEB_URL=https://drivehub.<dominio>`; `PAGOS_URL_RETORNO=https://drivehub.<dominio>/api/v1/pagos/retorno`; `MINIO_PUBLIC_URL` con `archivos.gcp` o `archivos.aws` según el servicio; `DYNAMODB_ENDPOINT` vacío y `AWS_REGION=us-east-1`; SMTP real; webhook de Stripe en `https://drivehub.<dominio>/api/v1/webhooks-stripe` |
+| 5 | **Variables de producción** | Hoy apuntan a `localhost`, a los contenedores `drivehub-*` y a Mailpit | URLs internas sin prefijo (`http://pagos:8083`...); `app.cookies.secure=true`; `APP_WEB_URL=https://drivehub.<dominio>`; `PAGOS_URL_RETORNO=https://drivehub.<dominio>/api/v1/pagos/retorno`; `MINIO_URL`, `MINIO_ENDPOINT` y `MINIO_PUBLIC_URL` en `https://s3.us-east-1.amazonaws.com` (§4.1); `DYNAMODB_ENDPOINT` vacío y `AWS_REGION=us-east-1`; SMTP real; webhook de Stripe en `https://drivehub.<dominio>/api/v1/webhooks-stripe` |
 
 Con **una réplica** por servicio no hace falta resolver todavía los procesos programados duplicados (los
 `@Scheduled` de Académico, Pagos e Identidad) ni repartir el rate limit entre réplicas del gateway.
@@ -202,7 +214,7 @@ Con **una réplica** por servicio no hace falta resolver todavía los procesos p
 
 1. Crear la cuenta (la *tailnet*) y activar **MagicDNS** (los nombres `*.ts.net`).
 2. En la política de acceso, declarar las etiquetas `tag:k8s-operator` y `tag:k8s` (dueña la primera de la
-   segunda) y la regla de §3.3: `tag:k8s` → `tag:k8s` solo en los puertos 5672, 8081–8087 y 9000 (MinIO de AWS).
+   segunda) y la regla de §3.3: `tag:k8s` → `tag:k8s` solo en los puertos 5672 y 8081–8087.
 3. Crear un **cliente OAuth** con permiso para crear dispositivos y claves, etiquetado `tag:k8s-operator`. Su id y
    su secreto se usan al instalar el operador en los tres clústeres; **nunca se commitean**.
 
@@ -231,8 +243,7 @@ helm install cert-manager jetstack/cert-manager -n cert-manager --create-namespa
 helm install tailscale-operator tailscale/tailscale-operator -n tailscale --create-namespace --set-string oauth.clientId=<id> --set-string oauth.clientSecret=<secreto> --wait
 ```
 
-En AKS y EKS el ingress público no hace falta si no publican nada (AKS no publica nada; EKS publica
-`archivos.aws`).
+En AKS y EKS el ingress público no hace falta: no publican nada (los archivos se sirven directo desde S3).
 
 **DynamoDB** (en AWS): un usuario IAM `drivehub-dynamodb` con permiso solo sobre las 8 tablas, y su clave en el
 secreto de EKS. Las tablas las crean los servicios al arrancar la primera vez (`DYNAMODB_CREAR_TABLAS=true`), en
@@ -248,7 +259,7 @@ y cada clúster descarga solo las que corre.
 | 1 | Cambios de §5 y publicar las imágenes en GHCR | Las 9 imágenes arrancan con `docker run` y responden `/health` |
 | 2 | Escribir `infrastructure/k8s/` y probar los componentes **en un solo clúster local** (Kubernetes de Docker Desktop, sin los enlaces: todos los servicios están en el mismo clúster y se encuentran por nombre) | Todo en `Running` y el login funciona en local |
 | 3 | Tailscale (§6.1) y los tres clústeres con Traefik, cert-manager y el operador (§6.2) | Los tres operadores aparecen como dispositivos en la consola de Tailscale |
-| 4 | DNS: registros `A` de `drivehub`, `archivos.gcp` y `archivos.aws` hacia el ingress de su nube | `nslookup drivehub.<dominio>` devuelve la IP del ingress de GKE |
+| 4 | DNS: registro `A` de `drivehub` hacia el ingress de GKE | `nslookup drivehub.<dominio>` devuelve la IP del ingress de GKE |
 | 5 | Desplegar **AWS** primero (RabbitMQ y Notificaciones), después **GCP** (Identidad publica las claves del JWT) y por último **Azure**: `kubectl apply -k infrastructure/k8s/nubes/{nube}` | `kubectl -n drivehub get pods` en `Running` en las tres, y los servicios publicados aparecen en la consola de Tailscale |
 | 6 | Comprobar la comunicación | Desde un pod de Azure, `curl http://identidad:8081/health` responde `UP`; desde internet, ningún nombre de servicio existe |
 | 7 | Webhook de Stripe y prueba de humo | Registrarse y entrar (GCP), comprar horas con `4242 4242 4242 4242` (Azure), reservar una clase (Azure), recibir el aviso (AWS), ver un manual (AWS) y preguntar al asistente por las horas (AWS → Azure) |
@@ -274,7 +285,9 @@ nube) es el siguiente paso natural.
   (`gcloud container clusters resize`, `az aks scale`, `eksctl scale nodegroup`); los discos se conservan.
 - **Plano de control**: GKE da un crédito mensual que cubre un clúster zonal; AKS en nivel `free` no lo cobra;
   **EKS lo cobra siempre**, aunque los nodos estén en 0.
-- **Load balancers públicos**: uno en GKE y uno en EKS (`archivos.aws`).
+- **Load balancers públicos**: uno en GKE.
+- **S3**: almacenamiento y descargas del bucket `amz-drivehub` (los modelos de IA, ~370 MB por teléfono, son lo que
+  más pesa).
 - **Tailscale**: gratis en este tamaño.
 - **Tráfico entre nubes**: la salida de datos hacia otra nube se cobra por GB. Con poco uso es un monto chico, y
   las llamadas más frecuentes ya quedaron dentro de una misma nube.
