@@ -75,5 +75,5 @@ configMapGenerator:
 
 images:
   - { name: drivehub-contenido, newName: ghcr.io/leonelbm123/drivehub-contenido, newTag: 20261109-1 }
-  - { name: drivehub-notificaciones, newName: ghcr.io/leonelbm123/drivehub-notificaciones, newTag: 20261109-1 }
-  - { name: drivehub-asistente-ia, newName: ghcr.io/leonelbm123/drivehub-asistente-ia, newTag: 20261109-1 }
+  - { name: drivehub-notificaciones, newName: ghcr.io/leonelbm123/drivehub-notificaciones, newTag: 20261110-2 }
+  - { name: drivehub-asistente-ia, newName: ghcr.io/leonelbm123/drivehub-asistente-ia, newTag: 20261110-1 }
