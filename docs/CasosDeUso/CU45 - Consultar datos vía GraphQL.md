@@ -95,7 +95,7 @@ El sistema ofrece una segunda forma de pedir datos, además de las rutas de siem
 ## Fuera de alcance
 
 - **Consultas que juntan datos de varios servicios** (por ejemplo, el detalle de un alumno del instructor con su nombre, sus horas y sus notas): es lo que el diseño menciona para GraphQL y necesita decidir dónde vive el agregador (un servicio propio o uno existente). Se documenta y se implementa aparte; esta entrega deja la base (esquema, seguridad, errores, límites y ruta) para reutilizarla.
-- **Pantallas de avisos y preferencias en el panel web:** el panel solo registra y quita el dispositivo push (lo hace por GraphQL, con `registrarDispositivo` y `quitarDispositivo`); no tiene pantalla de avisos ni de preferencias. Si algún día la tiene, se documenta en un caso de uso aparte.
+- **Pantallas de avisos y preferencias en el panel web:** el panel solo registra y quita el dispositivo push (lo hace por GraphQL, con `registrarDispositivo` y `quitarDispositivo`); la pantalla de avisos del panel es [CU53](CU53%20-%20Consultar%20avisos%20de%20la%20escuela.md) y usa estas mismas consultas; no hay pantalla de preferencias.
 - **Registrar el dispositivo push desde la app móvil:** la app no lo hace todavía.
 - **Encolar sin conexión** marcar un aviso como leído o guardar preferencias.
 - **Borrar las rutas de siempre.**

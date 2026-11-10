@@ -37,7 +37,7 @@ Leer [`.claude/rules/`](../../../../.claude/rules/): [ARQUITECTURA_FRONTEND.md](
 
 ## Follow-ups (no se implementan en estas UT)
 
-- La campana con la lista de avisos del panel (CU38).
+- La campana con la lista de avisos del panel: hecha en CU53.
 - Preferencias de notificación en la web (CU37 es móvil).
 - Abrir la pantalla concreta según los `datos` del aviso.
 
