@@ -1,0 +1,12 @@
+# Enlace de Tailscale hacia contenido cuando corre en otra nube. Ver README.md de esta carpeta.
+apiVersion: v1
+kind: Service
+metadata:
+  name: contenido
+  annotations:
+    tailscale.com/tailnet-fqdn: dh-contenido.tail9b7a35.ts.net
+spec:
+  type: ExternalName
+  externalName: lo-reemplaza-tailscale
+  ports:
+    - { name: http, port: 8085, protocol: TCP }

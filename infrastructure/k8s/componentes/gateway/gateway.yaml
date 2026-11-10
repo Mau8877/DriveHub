@@ -1,0 +1,65 @@
+# API Gateway: única entrada a la API. Enruta por recurso a cada servicio por su nombre (http://pagos:8083...),
+# esté el servicio en este clúster o en otra nube (en ese caso el nombre es un enlace de Tailscale).
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+spec:
+  selector:
+    app: gateway
+  ports:
+    - name: http
+      port: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: drivehub-gateway
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: drivehub-entorno
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=70 -XX:+UseSerialGC
+            - name: IDENTIDAD_URL
+              value: http://identidad:8081
+            - name: ESCUELA_URL
+              value: http://escuela:8082
+            - name: PAGOS_URL
+              value: http://pagos:8083
+            - name: ACADEMICO_URL
+              value: http://academico:8084
+            - name: CONTENIDO_URL
+              value: http://contenido:8085
+            - name: NOTIFICACIONES_URL
+              value: http://notificaciones:8086
+            - name: ASISTENTE_IA_URL
+              value: http://asistente-ia:8087
+          startupProbe:
+            httpGet: { path: /health/liveness, port: 8080 }
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /health/liveness, port: 8080 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health/readiness, port: 8080 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 512Mi }

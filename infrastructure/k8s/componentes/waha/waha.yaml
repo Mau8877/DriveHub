@@ -1,0 +1,70 @@
+# WAHA (WhatsApp HTTP API): enlaza el WhatsApp del bot escaneando un QR y le entrega cada mensaje a n8n, firmado con
+# WAHA_HMAC_KEY. NO es la API oficial de WhatsApp: usar un número secundario (ver infrastructure/n8n/README.md).
+# Sin entrada pública: el panel (y el QR) se abre con
+#   kubectl -n drivehub port-forward svc/waha 3010:3000      ->  http://localhost:3010/dashboard
+apiVersion: v1
+kind: Service
+metadata:
+  name: waha
+spec:
+  selector:
+    app: waha
+  ports:
+    - name: http
+      port: 3000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: waha
+spec:
+  serviceName: waha
+  replicas: 1
+  selector:
+    matchLabels:
+      app: waha
+  template:
+    metadata:
+      labels:
+        app: waha
+    spec:
+      containers:
+        - name: waha
+          # ? Fijar una versión ya probada en lugar de latest (README de n8n, «Límites conocidos»).
+          image: devlikeapro/waha:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: WHATSAPP_DEFAULT_ENGINE
+              value: WEBJS
+            - name: WHATSAPP_START_SESSION
+              value: default
+            - name: WHATSAPP_HOOK_URL
+              value: http://n8n:5678/webhook/whatsapp
+            - name: WHATSAPP_HOOK_EVENTS
+              value: message
+            - name: WAHA_API_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: WAHA_API_KEY }
+            - name: WHATSAPP_HOOK_HMAC_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: WAHA_HMAC_KEY }
+            - name: WAHA_DASHBOARD_USERNAME
+              value: admin
+            - name: WAHA_DASHBOARD_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: WAHA_DASHBOARD_PASSWORD }
+          # La sesión enlazada (el QR escaneado) se guarda acá: reiniciar no obliga a escanear de nuevo.
+          volumeMounts:
+            - { name: sesiones, mountPath: /app/.sessions }
+          resources:
+            requests: { cpu: 100m, memory: 512Mi }
+            limits: { memory: 1536Mi }
+  volumeClaimTemplates:
+    - metadata:
+        name: sesiones
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi

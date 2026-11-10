@@ -1,0 +1,123 @@
+# n8n: el chat de WhatsApp (CU47 a CU49). Recibe los mensajes de WAHA y habla con Identidad (rutas internas) y con el
+# servidor MCP de asistente-ia. Sin entrada pública: su interfaz se abre con
+#   kubectl -n drivehub port-forward svc/n8n 5678
+# El flujo y la credencial (sin la clave) vienen del ConfigMap n8n-flujos, que se crea desde infrastructure/n8n/flujos
+# (ver docs/DESPLIEGUE_KUBERNETES.md): al arrancar se importan y se publican, igual que en Docker Compose.
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n
+spec:
+  selector:
+    app: n8n
+  ports:
+    - name: http
+      port: 5678
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: n8n
+spec:
+  serviceName: n8n
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+    spec:
+      # * Sin las variables automáticas de los Services: el Service `n8n` crearía N8N_PORT=tcp://..., que n8n lee
+      # * como su propio puerto.
+      enableServiceLinks: false
+      # * La imagen corre como el usuario node (1000): el volumen tiene que ser suyo.
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: n8n
+          image: n8nio/n8n:2.46.6
+          # * El entrypoint de la imagen hace `exec n8n "$@"`: para encadenar los comandos se reemplaza por sh.
+          command: ['sh', '-c']
+          args:
+            - >-
+              n8n import:credentials --input=/flujos/credenciales.json &&
+              n8n import:workflow --input=/flujos/whatsapp-drivehub.json &&
+              n8n publish:workflow --id=whatsappdrivehub01 &&
+              n8n start
+          ports:
+            - containerPort: 5678
+          env:
+            - name: WEBHOOK_URL
+              value: http://n8n:5678/
+            - name: GENERIC_TIMEZONE
+              value: America/La_Paz
+            - name: TZ
+              value: America/La_Paz
+            # Los nodos Code leen estas variables con $env y usan `crypto` para validar la firma de WAHA.
+            - name: N8N_BLOCK_ENV_ACCESS_IN_NODE
+              value: 'false'
+            - name: NODE_FUNCTION_ALLOW_BUILTIN
+              value: crypto
+            - name: N8N_DIAGNOSTICS_ENABLED
+              value: 'false'
+            - name: N8N_PERSONALIZATION_ENABLED
+              value: 'false'
+            - name: IDENTIDAD_URL
+              value: http://identidad:8081
+            - name: ASISTENTE_IA_URL
+              value: http://asistente-ia:8087
+            - name: WAHA_URL
+              value: http://waha:3000
+            - name: WAHA_SESSION
+              value: default
+            - name: WHATSAPP_NUMEROS_PERMITIDOS
+              valueFrom:
+                configMapKeyRef: { name: drivehub-entorno, key: WHATSAPP_NUMEROS_PERMITIDOS, optional: true }
+            - name: OPENROUTER_MODEL
+              valueFrom:
+                configMapKeyRef: { name: drivehub-entorno, key: OPENROUTER_MODEL, optional: true }
+            - name: OPENROUTER_MODEL_CLASIFICADOR
+              valueFrom:
+                configMapKeyRef: { name: drivehub-entorno, key: OPENROUTER_MODEL_CLASIFICADOR, optional: true }
+            - name: N8N_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: N8N_ENCRYPTION_KEY }
+            - name: IDENTIDAD_CREDENCIAL_N8N
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: IDENTIDAD_CREDENCIAL_N8N }
+            - name: WAHA_API_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: WAHA_API_KEY }
+            - name: WAHA_HMAC_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: WAHA_HMAC_KEY }
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: OPENROUTER_API_KEY }
+          volumeMounts:
+            - { name: datos, mountPath: /home/node/.n8n }
+            - { name: flujos, mountPath: /flujos, readOnly: true }
+          startupProbe:
+            httpGet: { path: /healthz, port: 5678 }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /healthz, port: 5678 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 384Mi }
+            limits: { memory: 1Gi }
+      volumes:
+        - name: flujos
+          configMap:
+            name: n8n-flujos
+  volumeClaimTemplates:
+    - metadata:
+        name: datos
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 2Gi

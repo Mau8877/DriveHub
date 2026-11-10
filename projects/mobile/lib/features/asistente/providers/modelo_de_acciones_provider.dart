@@ -12,8 +12,8 @@ final catalogoAccionesProvider = FutureProvider<CatalogoAcciones>((ref) => Catal
 
 /// Dónde busca la app el modelo de acciones: `<documentos>/ia/acciones.litertlm`.
 ///
-/// * El modelo pesa ~284 MB y no se versiona. En desarrollo se copia con `adb push` a esa carpeta; cómo llega al
-///   usuario final queda pendiente (ver las UT del CU50).
+/// * El modelo pesa ~284 MB y no se versiona. En desarrollo se copia con `adb push` a esa carpeta; en producción la
+///   app lo descarga la primera vez (`modelosDeIaProvider`, `MODELOS_IA_URL`).
 const nombreDelModeloDeAcciones = 'acciones.litertlm';
 
 final rutaModeloDeAccionesProvider = FutureProvider<String>((ref) async {

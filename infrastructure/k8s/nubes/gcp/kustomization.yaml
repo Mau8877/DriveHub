@@ -1,0 +1,58 @@
+# DriveHub en Google Cloud (GKE): la entrada pública (gateway y web), identidad y escuela, con su Postgres (bases
+# identidad y escuela) y MinIO (fotos de perfil). Mailpit atrapa los correos mientras no haya un SMTP real.
+# Se aplica con:  kubectl --context gcp-drivehub apply -k infrastructure/k8s/nubes/gcp
+# Antes: los secretos drivehub-secretos y ghcr-descarga (ver docs/DESPLIEGUE_KUBERNETES.md), Traefik y el operador de
+# Tailscale.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: drivehub
+
+resources:
+  - ../../componentes/namespace
+  - ../../componentes/postgres
+  - ../../componentes/minio
+  - ../../componentes/gateway
+  - ../../componentes/web
+  - ../../componentes/identidad
+  - ../../componentes/escuela
+  - mailpit.yaml
+  - ingress.yaml
+  - emisor-letsencrypt.yaml
+  # Lo que corre en las otras nubes y estos servicios llaman (el gateway llama a todos).
+  - ../../enlaces/pagos
+  - ../../enlaces/academico
+  - ../../enlaces/contenido
+  - ../../enlaces/notificaciones
+  - ../../enlaces/asistente-ia
+  - ../../enlaces/rabbitmq
+  - enlace-minio-aws.yaml
+
+patches:
+  # Lo que las otras nubes llaman de GCP se publica en la red privada de Tailscale como dh-<servicio>.
+  - target: { kind: Service, name: identidad }
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-identidad }
+  - target: { kind: Service, name: escuela }
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value: { tailscale.com/expose: "true", tailscale.com/hostname: dh-escuela }
+  # Las imágenes de GHCR son privadas: cada Deployment descarga con la credencial ghcr-descarga.
+  - target: { kind: Deployment }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value: [{ name: ghcr-descarga }]
+
+configMapGenerator:
+  - name: drivehub-entorno
+    envs:
+      - entorno.env
+
+images:
+  - { name: drivehub-gateway, newName: ghcr.io/leonelbm123/drivehub-gateway, newTag: 20261109-1 }
+  - { name: drivehub-web, newName: ghcr.io/leonelbm123/drivehub-web, newTag: 20261109-1 }
+  - { name: drivehub-identidad, newName: ghcr.io/leonelbm123/drivehub-identidad, newTag: 20261109-1 }
+  - { name: drivehub-escuela, newName: ghcr.io/leonelbm123/drivehub-escuela, newTag: 20261109-1 }

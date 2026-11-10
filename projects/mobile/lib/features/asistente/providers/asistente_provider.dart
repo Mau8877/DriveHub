@@ -9,6 +9,7 @@ import '../services/modelo_de_acciones.dart';
 import '../services/preparador_de_cambios.dart';
 import '../services/reconocedor_de_voz.dart';
 import 'modelo_de_acciones_provider.dart';
+import 'modelos_de_ia_provider.dart';
 import 'reconocedor_de_voz_provider.dart';
 
 /// El asistente de voz de clases (CU50): encadena la voz, el modelo y los ejecutores, y expone el [EstadoAsistente]
@@ -32,6 +33,11 @@ class AsistenteNotifier extends Notifier<EstadoAsistente> {
     state = const Escuchando();
     _iniciando = true;
     _soltado = false;
+    if (await _faltanModelos()) {
+      _iniciando = false;
+      state = const FaltanModelos();
+      return;
+    }
     try {
       final voz = await ref.read(reconocedorDeVozProvider.future);
       await voz.empezar();
@@ -90,6 +96,43 @@ class AsistenteNotifier extends Notifier<EstadoAsistente> {
       NadaQueCambiar(:final mensaje) => Resultado(texto: actual.texto, mensaje: mensaje, exito: false),
       VariasPosibles() => actual,
     };
+  }
+
+  /// Descarga los modelos que faltan ([FaltanModelos]) mostrando el avance. Si la persona cierra el panel, la descarga
+  /// sigue y al terminar no cambia nada en pantalla.
+  Future<void> descargarModelos() async {
+    if (state is DescargandoModelos) return;
+    state = const DescargandoModelos(0);
+    var ultimo = 0;
+    try {
+      final modelos = await ref.read(modelosDeIaProvider.future);
+      await modelos.descargar((progreso) {
+        // * Un estado nuevo por cada punto porcentual, no por cada bloque recibido
+        final porcentaje = (progreso * 100).floor();
+        if (porcentaje == ultimo || state is! DescargandoModelos) return;
+        ultimo = porcentaje;
+        state = DescargandoModelos(progreso);
+      });
+      if (state is! DescargandoModelos) return;
+      state = const Resultado(
+        texto: '',
+        mensaje: 'Listo: el asistente ya está en tu teléfono. Mantén pulsado el micrófono y habla.',
+        exito: true,
+      );
+    } catch (_) {
+      if (state is! DescargandoModelos) return;
+      state = const Fallo('No se pudo descargar el asistente. Revisa tu conexión e inténtalo de nuevo.');
+    }
+  }
+
+  /// Faltan los modelos y se pueden descargar. Si no se puede saber, sigue como siempre: el error aparece al usarlos.
+  Future<bool> _faltanModelos() async {
+    try {
+      final modelos = await ref.read(modelosDeIaProvider.future);
+      return modelos.descargables && !await modelos.instalados();
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Vuelve a [Inactivo]; si estaba grabando, descarta el audio.

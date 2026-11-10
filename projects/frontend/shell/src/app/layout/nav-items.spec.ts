@@ -19,7 +19,7 @@ describe('navItemsDeRoles', () => {
     expect(navItemsDeRoles([ROLES.SUPER_ADMIN]).some((i) => i.hijos)).toBe(false)
   })
 
-  it('el Administrador de escuela ve Inicio y cinco grupos de gestión', () => {
+  it('el Administrador de escuela ve Inicio, cinco grupos de gestión y Reportes', () => {
     expect(navItemsDeRoles([ROLES.ADMIN_ESCUELA]).map((i) => i.etiqueta)).toEqual([
       'Inicio',
       'Gestionar usuarios',
@@ -27,7 +27,15 @@ describe('navItemsDeRoles', () => {
       'Gestionar pagos',
       'Gestionar exámenes',
       'Gestionar contenido',
+      'Reportes',
     ])
+  })
+
+  it('Reportes (CU52) solo lo ve el Administrador de escuela', () => {
+    expect(rutas([ROLES.ADMIN_ESCUELA])).toContain('/asistente-ia/reportes')
+    for (const rol of [ROLES.SUPER_ADMIN, ROLES.INSTRUCTOR, ROLES.ESTUDIANTE]) {
+      expect(rutas([rol])).not.toContain('/asistente-ia/reportes')
+    }
   })
 
   it('cada grupo del Administrador reúne solo opciones que ya tienen pantalla', () => {

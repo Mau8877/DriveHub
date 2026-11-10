@@ -134,6 +134,13 @@ export const NAV_ITEMS: NavItem[] = [
       },
     ],
   },
+  {
+    ruta: '/asistente-ia/reportes',
+    etiqueta: 'Reportes',
+    descripcion: 'Reportes en PDF o Excel pedidos por texto o por voz (CU52)',
+    icono: 'file-text',
+    roles: [ROLES.ADMIN_ESCUELA],
+  },
 ]
 
 const verPor = (item: NavItem, roles: readonly string[]) =>

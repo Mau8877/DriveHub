@@ -1,0 +1,86 @@
+# Notificaciones (NestJS): avisos por correo, push y bandeja, y consumidor de la cola de RabbitMQ. DynamoDB.
+apiVersion: v1
+kind: Service
+metadata:
+  name: notificaciones
+spec:
+  selector:
+    app: notificaciones
+  ports:
+    - name: http
+      port: 8086
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notificaciones
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notificaciones
+  template:
+    metadata:
+      labels:
+        app: notificaciones
+    spec:
+      containers:
+        - name: notificaciones
+          image: drivehub-notificaciones
+          ports:
+            - containerPort: 8086
+          envFrom:
+            - configMapRef:
+                name: drivehub-entorno
+          env:
+            - name: NODE_OPTIONS
+              value: --max-old-space-size=256
+            - name: PORT
+              value: '8086'
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: AWS_ACCESS_KEY_ID, optional: true }
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: AWS_SECRET_ACCESS_KEY, optional: true }
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_USER }
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_PASSWORD }
+            # * Kubernetes arma la URL con las dos variables de arriba. La contraseña no puede llevar caracteres
+            # * reservados de una URL (@ : / ? #) o hay que escribirlos codificados.
+            - name: RABBITMQ_URL
+              value: amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@rabbitmq:5672
+            - name: IDENTIDAD_URL
+              value: http://identidad:8081
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: SMTP_USER, optional: true }
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: SMTP_PASSWORD, optional: true }
+            - name: FIREBASE_CREDENCIALES
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: FIREBASE_CREDENCIALES, optional: true }
+            - name: NOTIFICACIONES_CREDENCIAL_SERVICIOS
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: NOTIFICACIONES_CREDENCIAL_SERVICIOS, optional: true }
+            - name: GRAPHQL_ENABLED
+              value: 'true'
+          # * /health incluye sus dependencias: decide si recibe tráfico, pero no reinicia el proceso
+          # * (la liveness solo comprueba que el puerto responde).
+          startupProbe:
+            tcpSocket: { port: 8086 }
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            tcpSocket: { port: 8086 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health, port: 8086 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 192Mi }
+            limits: { memory: 384Mi }

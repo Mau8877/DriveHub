@@ -41,3 +41,31 @@ Las constantes viven en `app/common/error_codes.py`.
 - **Excepción:** `ConflictException`
 - **Significado:** La persona ya ejecutó el máximo de acciones de escritura por chat de ese día (`TOPE_ESCRITURAS_DIARIAS`, 10 por defecto). Limita el daño de un número o un modelo que se equivoque; puede seguir haciéndolo desde la app.
 - **Dónde se lanza:** `ConfirmacionesService.ejecutar()`
+
+## `ERR_IA_06`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** El modelo no pudo relacionar el pedido del Administrador con ninguna fuente del catálogo de reportes (CU52): pidió algo que no es clases, pagos, exámenes, notas, estudiantes ni vehículos.
+- **Dónde se lanza:** `ReporteService.limpiar()`
+
+## `ERR_IA_07`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** La especificación que mandó la pantalla para generar un reporte (CU52) nombra algo que no existe en el catálogo (fuente, columna, estado o tipo), repite columnas, filtra por fecha una fuente sin fecha u ordena por una columna desconocida, o tiene el rango de fechas invertido.
+- **Dónde se lanza:** `ReporteService.validar()`
+
+## `ERR_IA_08`
+
+- **HTTP:** 503
+- **Excepción:** `ServicioNoDisponibleException`
+- **Significado:** El modelo de OpenRouter que interpreta los pedidos de reportes (CU52) no está configurado (`OPENROUTER_API_KEY` vacía), no respondió o respondió algo que no es un objeto JSON. El reporte se puede armar a mano.
+- **Dónde se lanza:** `InterpreteOpenRouter.interpretar()`
+
+## `ERR_IA_09`
+
+- **HTTP:** 503
+- **Excepción:** `ServicioNoDisponibleException`
+- **Significado:** El servicio dueño de los datos de un reporte (CU52: Académico, Pagos, Escuela o Identidad) no respondió o respondió un error que no es de permisos.
+- **Dónde se lanza:** `LectorDatosHttp._pagina()`

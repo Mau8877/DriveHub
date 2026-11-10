@@ -20,6 +20,9 @@
     "./desarrollo": {
       "types": "./src/desarrollo.d.ts",
       "default": "./src/desarrollo.js"
+    },
+    "./react": {
+      "types": "./react.d.ts"
     }
   },
   "dependencies": {
@@ -27,6 +30,7 @@
     "lit": "^3.3.0"
   },
   "devDependencies": {
+    "@types/react": "^19.3.0",
     "jsdom": "^30.0.0",
     "vitest": "^5.0.0"
   }

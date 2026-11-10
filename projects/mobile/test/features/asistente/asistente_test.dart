@@ -9,8 +9,10 @@ import 'package:mobile/features/asistente/models/preparacion_de_cambio.dart';
 import 'package:mobile/features/asistente/models/resultado_interpretacion.dart';
 import 'package:mobile/features/asistente/providers/asistente_provider.dart';
 import 'package:mobile/features/asistente/providers/modelo_de_acciones_provider.dart';
+import 'package:mobile/features/asistente/providers/modelos_de_ia_provider.dart';
 import 'package:mobile/features/asistente/providers/reconocedor_de_voz_provider.dart';
 import 'package:mobile/features/asistente/services/modelo_de_acciones.dart';
+import 'package:mobile/features/asistente/services/modelos_de_ia.dart';
 import 'package:mobile/features/asistente/services/reconocedor_de_voz.dart';
 import 'package:mobile/features/clases/models/reserva.dart';
 
@@ -65,17 +67,41 @@ class ModeloFalso implements ModeloDeAcciones {
   Future<void> liberar() async {}
 }
 
+class ModelosDeIaFalsos implements ModelosDeIa {
+  bool hayModelos = true;
+  Object? errorAlDescargar;
+  int descargas = 0;
+
+  @override
+  bool get descargables => true;
+
+  @override
+  Future<bool> instalados() async => hayModelos;
+
+  @override
+  Future<void> descargar(void Function(double progreso) alAvanzar) async {
+    descargas++;
+    alAvanzar(0.5);
+    final e = errorAlDescargar;
+    if (e != null) throw e;
+    alAvanzar(1);
+    hayModelos = true;
+  }
+}
+
 void main() {
   late VozFalsa voz;
   late ModeloFalso modelo;
   late ClasesServiceFalso servicio;
   late PagosServiceFalso pagos;
+  late ModelosDeIaFalsos modelosIa;
 
   setUp(() {
     voz = VozFalsa();
     modelo = ModeloFalso();
     servicio = ClasesServiceFalso();
     pagos = PagosServiceFalso()..saldo = 3;
+    modelosIa = ModelosDeIaFalsos();
   });
 
   ProviderContainer crear() {
@@ -85,6 +111,7 @@ void main() {
         pagosServiceFalso(pagos),
         reconocedorDeVozProvider.overrideWith((ref) async => voz),
         modeloDeAccionesProvider.overrideWith((ref) async => modelo),
+        modelosDeIaProvider.overrideWith((ref) async => modelosIa),
       ],
     );
     addTearDown(container.dispose);
@@ -312,6 +339,53 @@ void main() {
 
       expect(estado, isA<Resultado>());
       expect(voz.empezadas, 2);
+    });
+  });
+
+  group('descarga de los modelos', () {
+    test('si faltan, no escucha y ofrece descargarlos', () async {
+      modelosIa.hayModelos = false;
+      final c = crear();
+
+      await c.read(asistenteProvider.notifier).empezarAEscuchar();
+
+      expect(c.read(asistenteProvider), isA<FaltanModelos>());
+      expect(voz.empezadas, 0);
+    });
+
+    test('al descargar muestra el avance y termina con un resultado exitoso', () async {
+      modelosIa.hayModelos = false;
+      final c = crear();
+      final estados = <EstadoAsistente>[];
+      c.listen(asistenteProvider, (_, e) => estados.add(e));
+
+      await c.read(asistenteProvider.notifier).descargarModelos();
+
+      expect(estados.whereType<DescargandoModelos>().map((e) => e.progreso), containsAll([0, 0.5]));
+      expect((c.read(asistenteProvider) as Resultado).exito, isTrue);
+      expect(modelosIa.hayModelos, isTrue);
+    });
+
+    test('si la descarga falla queda un fallo con un mensaje para la persona', () async {
+      modelosIa
+        ..hayModelos = false
+        ..errorAlDescargar = Exception('sin red');
+      final c = crear();
+
+      await c.read(asistenteProvider.notifier).descargarModelos();
+
+      final f = c.read(asistenteProvider) as Fallo;
+      expect(f.mensaje, contains('No se pudo descargar'));
+      expect(f.mensaje, isNot(contains('sin red')));
+    });
+
+    test('con los modelos instalados escucha como siempre', () async {
+      final c = crear();
+
+      await c.read(asistenteProvider.notifier).empezarAEscuchar();
+
+      expect(c.read(asistenteProvider), isA<Escuchando>());
+      expect(voz.empezadas, 1);
     });
   });
 }

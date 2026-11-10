@@ -26,6 +26,9 @@ public final class PagosErrorCodes {
     public static final String SERVICIO_DEPENDIENTE_NO_DISPONIBLE = "ERR_PAG_15";
     public static final String AVISO_FIRMA_INVALIDA = "ERR_PAG_08";
     public static final String CREDENCIAL_INVALIDA = "ERR_PAG_19";
+
+    // * CU52: reportes del Administrador
+    public static final String RANGO_DE_FECHAS_INVALIDO = "ERR_PAG_20";
     public static final String HORAS_INSUFICIENTES = "ERR_PAG_09";
     public static final String CONSUMO_NO_ENCONTRADO = "ERR_PAG_16";
     public static final String COMPRA_EN_CURSO = "ERR_PAG_17";

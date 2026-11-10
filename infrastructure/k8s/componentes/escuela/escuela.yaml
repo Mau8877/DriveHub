@@ -1,0 +1,78 @@
+# Escuela (Spring Boot, clean): escuelas, instructores, vehículos. Base `escuela` en el Postgres de su clúster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: escuela
+spec:
+  selector:
+    app: escuela
+  ports:
+    - name: http
+      port: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: escuela
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: escuela
+  template:
+    metadata:
+      labels:
+        app: escuela
+    spec:
+      containers:
+        - name: escuela
+          image: drivehub-escuela
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: drivehub-entorno
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=70 -XX:+UseSerialGC
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/escuela
+            - name: SPRING_DATASOURCE_USERNAME
+              value: escuela
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: ESCUELA_DB_PASSWORD }
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq
+            - name: SPRING_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_USER }
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_PASSWORD }
+            - name: IDENTIDAD_URL
+              value: http://identidad:8081
+            - name: ACADEMICO_URL
+              value: http://academico:8084
+            - name: CLOUDINARY_CLOUD_NAME
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: CLOUDINARY_CLOUD_NAME, optional: true }
+            - name: CLOUDINARY_API_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: CLOUDINARY_API_KEY, optional: true }
+            - name: CLOUDINARY_API_SECRET
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: CLOUDINARY_API_SECRET, optional: true }
+          startupProbe:
+            httpGet: { path: /health/liveness, port: 8082 }
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /health/liveness, port: 8082 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health/readiness, port: 8082 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 320Mi }
+            limits: { memory: 640Mi }

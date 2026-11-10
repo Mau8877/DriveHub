@@ -1,0 +1,74 @@
+# Académico (Spring Boot, capas): horarios, reservas, clases y exámenes. Base `academico` en el Mongo de su clúster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: academico
+spec:
+  selector:
+    app: academico
+  ports:
+    - name: http
+      port: 8084
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: academico
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: academico
+  template:
+    metadata:
+      labels:
+        app: academico
+    spec:
+      containers:
+        - name: academico
+          image: drivehub-academico
+          ports:
+            - containerPort: 8084
+          envFrom:
+            - configMapRef:
+                name: drivehub-entorno
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=70 -XX:+UseSerialGC
+            - name: SPRING_MONGODB_URI
+              value: mongodb://mongo:27017/academico?replicaSet=rs0
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq
+            - name: SPRING_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_USER }
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: RABBITMQ_PASSWORD }
+            - name: IDENTIDAD_URL
+              value: http://identidad:8081
+            - name: ESCUELA_URL
+              value: http://escuela:8082
+            - name: PAGOS_URL
+              value: http://pagos:8083
+            - name: NOTIFICACIONES_URL
+              value: http://notificaciones:8086
+            - name: PAGOS_CREDENCIAL_ACADEMICO
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: PAGOS_CREDENCIAL_ACADEMICO }
+            - name: NOTIFICACIONES_CREDENCIAL_SERVICIOS
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: NOTIFICACIONES_CREDENCIAL_SERVICIOS, optional: true }
+          startupProbe:
+            httpGet: { path: /health/liveness, port: 8084 }
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /health/liveness, port: 8084 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health/readiness, port: 8084 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 320Mi }
+            limits: { memory: 640Mi }

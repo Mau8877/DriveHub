@@ -116,6 +116,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_PAG_17`](pagos/ERRORES_PAGOS.md#err_pag_17) — La compra con esa clave todavía se está procesando (409)
 - [`ERR_PAG_18`](pagos/ERRORES_PAGOS.md#err_pag_18) — La clave de compra ya se usó para otra compra (409)
 - [`ERR_PAG_19`](pagos/ERRORES_PAGOS.md#err_pag_19) — La credencial de servicio de una ruta interna falta o es inválida (401)
+- [`ERR_PAG_20`](pagos/ERRORES_PAGOS.md#err_pag_20) — Rango de fechas invertido en el reporte de pagos (400)
 
 ### Académico (`ACA`)
 
@@ -160,6 +161,7 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_ACA_39`](academico/ERRORES_ACADEMICO.md#err_aca_39) — La clase no se puede evaluar (409)
 - [`ERR_ACA_40`](academico/ERRORES_ACADEMICO.md#err_aca_40) — La clase ya tiene una prueba de ese tipo (409)
 - [`ERR_ACA_41`](academico/ERRORES_ACADEMICO.md#err_aca_41) — Datos de la prueba no válidos (400)
+- [`ERR_ACA_42`](academico/ERRORES_ACADEMICO.md#err_aca_42) — Rango de fechas invertido en el reporte de clases (400)
 
 ### Contenido (`CON`)
 
@@ -185,6 +187,10 @@ prefijo del código dice qué servicio lo produjo:
 - [`ERR_IA_03`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_03) — La ayuda del tablero no existe para quien la pide (404)
 - [`ERR_IA_04`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_04) — El código de confirmación de reservar o comprar por chat no sirve (400)
 - [`ERR_IA_05`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_05) — Se superó el tope diario de acciones de escritura por chat (409)
+- [`ERR_IA_06`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_06) — El pedido de reporte no corresponde a ninguna fuente del catálogo (400)
+- [`ERR_IA_07`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_07) — La especificación del reporte no es válida (400)
+- [`ERR_IA_08`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_08) — El modelo de reportes no está disponible (503)
+- [`ERR_IA_09`](asistente-ia/ERRORES_ASISTENTE_IA.md#err_ia_09) — El servicio dueño de los datos del reporte no respondió (503)
 
 <!--
   A medida que cada servicio lance su primer error de negocio, suma acá su

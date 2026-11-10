@@ -17,6 +17,7 @@ from app.core.config import get_settings
 from app.features.ayudas_tablero.routers.ayuda_tablero_router import (
     router as ayudas_tablero_router,
 )
+from app.features.reportes.routers.reporte_router import router as reportes_router
 from app.features.sesiones.routers.sesion_router import router as sesiones_router
 from app.health.router import router as health_router
 from app.mcp.herramientas import mcp
@@ -41,5 +42,6 @@ registrar_exception_handlers(app)
 app.include_router(health_router)
 app.include_router(ayudas_tablero_router)
 app.include_router(sesiones_router)
+app.include_router(reportes_router)
 # * Servidor MCP (CU46): URL /mcp/, con el mismo JWT. Sin /api/v1: no es API de negocio
 app.mount("/mcp", app_mcp)

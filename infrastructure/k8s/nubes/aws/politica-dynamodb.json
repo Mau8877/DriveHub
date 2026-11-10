@@ -1,0 +1,53 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TablasDeDriveHub",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:UpdateTable",
+        "dynamodb:DescribeTimeToLive",
+        "dynamodb:UpdateTimeToLive",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:TransactGetItems",
+        "dynamodb:TransactWriteItems"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:us-east-1:*:table/Notificaciones",
+        "arn:aws:dynamodb:us-east-1:*:table/Notificaciones/index/*",
+        "arn:aws:dynamodb:us-east-1:*:table/PreferenciasNotificacion",
+        "arn:aws:dynamodb:us-east-1:*:table/PreferenciasNotificacion/index/*",
+        "arn:aws:dynamodb:us-east-1:*:table/DispositivosPush",
+        "arn:aws:dynamodb:us-east-1:*:table/DispositivosPush/index/*",
+        "arn:aws:dynamodb:us-east-1:*:table/EventosProcesados",
+        "arn:aws:dynamodb:us-east-1:*:table/EventosProcesados/index/*",
+        "arn:aws:dynamodb:us-east-1:*:table/SesionesIA",
+        "arn:aws:dynamodb:us-east-1:*:table/SesionesIA/index/*",
+        "arn:aws:dynamodb:us-east-1:*:table/MensajesIA",
+        "arn:aws:dynamodb:us-east-1:*:table/MensajesIA/index/*",
+        "arn:aws:dynamodb:us-east-1:*:table/AyudasTablero",
+        "arn:aws:dynamodb:us-east-1:*:table/AyudasTablero/index/*",
+        "arn:aws:dynamodb:us-east-1:*:table/AgentesIA",
+        "arn:aws:dynamodb:us-east-1:*:table/AgentesIA/index/*",
+        "arn:aws:dynamodb:us-east-1:*:table/ConfirmacionesIA",
+        "arn:aws:dynamodb:us-east-1:*:table/ConfirmacionesIA/index/*"
+      ]
+    },
+    {
+      "Sid": "ListarTablasAlArrancar",
+      "Effect": "Allow",
+      "Action": "dynamodb:ListTables",
+      "Resource": "*"
+    }
+  ]
+}

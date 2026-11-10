@@ -1,0 +1,102 @@
+# PostgreSQL 18 (Identidad, Escuela y Pagos): una base y un usuario dueño por servicio, como en docker-compose.
+# * Solo se crean las bases cuya contraseña está en el secreto: en GCP las de identidad y escuela, en Azure la de pagos.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+data:
+  # Copia de infrastructure/postgres/init/01-crear-bases.sh que salta las bases sin contraseña.
+  # Corre una sola vez, cuando el disco está vacío.
+  01-crear-bases.sh: |
+    #!/bin/sh
+    set -e
+    crear_base() {
+      nombre="$1"
+      password="$2"
+      if [ -z "$password" ]; then
+        echo "Sin contraseña para '$nombre': esta base no corre en este clúster"
+        return 0
+      fi
+      echo "Creando base y usuario '$nombre'"
+      psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres <<-SQL
+        CREATE USER $nombre WITH PASSWORD '$password';
+        CREATE DATABASE $nombre OWNER $nombre;
+        REVOKE ALL ON DATABASE $nombre FROM PUBLIC;
+    SQL
+    }
+    crear_base identidad "$IDENTIDAD_DB_PASSWORD"
+    crear_base escuela "$ESCUELA_DB_PASSWORD"
+    crear_base pagos "$PAGOS_DB_PASSWORD"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: drivehub_admin
+            - name: POSTGRES_DB
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: POSTGRES_PASSWORD }
+            - name: IDENTIDAD_DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: IDENTIDAD_DB_PASSWORD, optional: true }
+            - name: ESCUELA_DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: ESCUELA_DB_PASSWORD, optional: true }
+            - name: PAGOS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: PAGOS_DB_PASSWORD, optional: true }
+          readinessProbe:
+            exec:
+              command: ['sh', '-c', 'pg_isready -U drivehub_admin -d postgres']
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - name: datos
+              mountPath: /var/lib/postgresql
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: init
+          configMap:
+            name: postgres-init
+  volumeClaimTemplates:
+    - metadata:
+        name: datos
+      spec:
+        accessModes: ['ReadWriteOnce']
+        resources:
+          requests:
+            storage: 10Gi

@@ -13,6 +13,9 @@ const __dirname = dirname(__filename)
 const PUERTO = 4205
 
 export default defineConfig({
+  // * Ruta desde la que se sirve el remoto compilado. En producción las 7 apps comparten dominio y cada remoto
+  // * vive en /remotos/{app}/ (ver projects/frontend/Dockerfile); sin la variable (dev, tests) queda en la raíz.
+  base: process.env.DH_BASE ?? '/',
   plugins: [
     // tanstackRouter() va antes que react(): genera routeTree.gen.ts a partir
     // de src/routes/ y el plugin de React necesita verlo ya generado.

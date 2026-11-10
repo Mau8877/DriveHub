@@ -21,7 +21,9 @@ import 'features/servidor/services/servidor_storage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
+  // * Qué configuración se empaqueta: `.env` en desarrollo y `.env.produccion` al compilar para la nube
+  // * (`flutter build apk --release --dart-define=DH_ENV=.env.produccion`).
+  await dotenv.load(fileName: const String.fromEnvironment('DH_ENV', defaultValue: '.env'));
 
   // * El servidor que eligió la persona la primera vez; si no hay ninguno, el router lleva a /servidor.
   // * Va antes que todo lo demás: la sesión y el modo offline ya tienen que hablar con ese servidor.

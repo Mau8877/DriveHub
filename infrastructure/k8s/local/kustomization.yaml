@@ -1,0 +1,48 @@
+# Todo DriveHub en UN solo clúster local (Kubernetes de Docker Desktop), para probar los manifiestos antes de
+# repartirlos en las tres nubes. Se aplica con:  kubectl apply -k infrastructure/k8s/local
+# Además de los componentes de producción, trae lo que en la nube no existe: DynamoDB local y Mailpit.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: drivehub
+
+resources:
+  - ../componentes/namespace
+  - ../componentes/postgres
+  - ../componentes/mongo
+  - ../componentes/rabbitmq
+  - ../componentes/minio
+  - ../componentes/gateway
+  - ../componentes/identidad
+  - ../componentes/escuela
+  - ../componentes/pagos
+  - ../componentes/academico
+  - ../componentes/contenido
+  - ../componentes/notificaciones
+  - ../componentes/asistente-ia
+  - ../componentes/web
+  - dynamodb.yaml
+  - mailpit.yaml
+  - ingress.yaml
+
+configMapGenerator:
+  - name: drivehub-entorno
+    envs:
+      - entorno.env
+
+# * Valores de DESARROLLO (los mismos de .env.example): nunca se usan en la nube, donde el secreto se crea a mano.
+secretGenerator:
+  - name: drivehub-secretos
+    envs:
+      - secretos.env
+
+# Imágenes construidas en esta PC con construir-imagenes.ps1 (Docker Desktop las comparte con su Kubernetes).
+images:
+  - { name: drivehub-gateway, newTag: local }
+  - { name: drivehub-identidad, newTag: local }
+  - { name: drivehub-escuela, newTag: local }
+  - { name: drivehub-pagos, newTag: local }
+  - { name: drivehub-academico, newTag: local }
+  - { name: drivehub-contenido, newTag: local }
+  - { name: drivehub-notificaciones, newTag: local }
+  - { name: drivehub-asistente-ia, newTag: local }
+  - { name: drivehub-web, newTag: local }

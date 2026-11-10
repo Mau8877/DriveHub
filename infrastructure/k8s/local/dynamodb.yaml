@@ -1,0 +1,39 @@
+# ! Solo local: emulador de DynamoDB. En la nube Notificaciones y Asistente IA usan DynamoDB real (AWS).
+apiVersion: v1
+kind: Service
+metadata:
+  name: dynamodb
+spec:
+  selector:
+    app: dynamodb
+  ports:
+    - name: http
+      port: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dynamodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dynamodb
+  template:
+    metadata:
+      labels:
+        app: dynamodb
+    spec:
+      containers:
+        - name: dynamodb
+          image: amazon/dynamodb-local:latest
+          # En memoria: al borrar el pod se pierden las tablas (los servicios las vuelven a crear al arrancar).
+          args: ['-jar', 'DynamoDBLocal.jar', '-sharedDb', '-inMemory']
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -Xmx192m -XX:+UseSerialGC
+          ports:
+            - containerPort: 8000
+          resources:
+            requests: { cpu: 50m, memory: 192Mi }
+            limits: { memory: 384Mi }
