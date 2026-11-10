@@ -30,7 +30,7 @@ const mediodia = new Date('2026-11-02T12:00:00-04:00')
 
 function dispositivo(token: string, codigo = `d-${token}`): DispositivoPush {
   return {
-    usuarioCodigo: solicitud.usuarioCodigo,
+    usuarioCodigo: solicitud.usuarioCodigo!,
     codigoDispositivoPush: codigo,
     tokenFcm: token,
     plataforma: Plataforma.ANDROID,
@@ -95,6 +95,21 @@ describe('EnvioNotificacionService', () => {
       'Ya tienes 10 horas',
       expect.objectContaining({ pagoCodigo: 'p1', tipo: 'PAGO' })
     )
+  })
+
+  it('CU53: un aviso a la escuela queda solo en la bandeja de la escuela, sin correo, push ni preferencias', async () => {
+    const escuelaCodigo = '0192f7a0-0000-7000-8000-0000000000e1'
+    const { usuarioCodigo: _persona, email: _correo, ...resto } = solicitud
+    const r = await service.enviar({ ...resto, escuelaCodigo }, mediodia)
+
+    expect(r.resultado).toBe('PROCESADA')
+    expect(canales()).toEqual(['IN_APP:ENVIADA'])
+    expect(guardadas[0].usuarioCodigo).toBe(escuelaCodigo)
+    expect(guardadas[0].noLeidaTs).toBe(mediodia.toISOString())
+    expect(preferencias.obtener).not.toHaveBeenCalled()
+    expect(dispositivos.listarActivos).not.toHaveBeenCalled()
+    expect(correo.enviar).not.toHaveBeenCalled()
+    expect(push.enviar).not.toHaveBeenCalled()
   })
 
   it('CA02: un pedido repetido no envía nada', async () => {
