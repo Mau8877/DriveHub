@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.drivehub.academico.common.notificaciones.NotificacionesClient;
+import com.drivehub.academico.features.horarios.model.Franja;
+import com.drivehub.academico.features.horarios.repository.FranjaRepository;
 import com.drivehub.academico.features.reservas.model.Reserva;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,8 @@ import lombok.RequiredArgsConstructor;
  * * Cada aviso usa un `eventoCodigo` determinista por (evento, reserva, destinatario), así repetirlo no lo duplica.
  * * Una cancelación de una reserva que nunca llegó a confirmarse (`PENDIENTE_PAGO`) no avisa al instructor, que no
  * * llegó a saber de ella.
+ * * La cancelación de una clase confirmada también queda en la bandeja de la escuela (CU53). La reserva no guarda la
+ * * escuela: sale de su franja (mismo acceso que `CompensadorDeReserva`).
  * ! Los códigos de la clase viajan en `datos`; nunca ids internos ni datos de pago.
  */
 @Component
@@ -34,6 +38,7 @@ public class AvisosReserva {
     private static final String TIPO_RECORDATORIO = "RECORDATORIO";
 
     private final NotificacionesClient notificaciones;
+    private final FranjaRepository franjaRepository;
 
     /** La clase quedó confirmada: avisa al estudiante y al instructor de la franja. */
     public void claseConfirmada(Reserva reserva) {
@@ -54,6 +59,7 @@ public class AvisosReserva {
         if (reserva.isCanceladaPorInstructor()) {
             avisar("clase.cancelada", reserva, reserva.getEstudianteCodigo(), "Tu instructor canceló la clase",
                 "Tu clase del " + cuando + " fue cancelada por tu instructor y no se te descontó la hora.");
+            avisarEscuela(reserva, "El instructor canceló la clase del " + cuando + ".");
             return;
         }
         if (!conoceElInstructor) {
@@ -65,6 +71,7 @@ public class AvisosReserva {
             "Tu clase del " + cuando + " fue cancelada.");
         avisar("clase.cancelada", reserva, reserva.getInstructorCodigo(), "Clase cancelada",
             "El estudiante canceló la clase del " + cuando + ".");
+        avisarEscuela(reserva, "El estudiante canceló la clase del " + cuando + ".");
     }
 
     /** La clase se movió a otra franja: avisa al estudiante y al instructor de la franja nueva. */
@@ -87,6 +94,23 @@ public class AvisosReserva {
 
     private static String cuando(Reserva reserva) {
         return reserva.getFecha() + " a las " + reserva.getHoraInicio();
+    }
+
+    /** Aviso «Clase cancelada» en la bandeja de la escuela de la clase (CU53). */
+    private void avisarEscuela(Reserva reserva, String mensaje) {
+        String evento = "clase.cancelada.escuela";
+        try {
+            UUID escuela = franjaRepository.findById(reserva.getFranjaId()).map(Franja::getEscuelaCodigo).orElse(null);
+            if (escuela == null) {
+                return;
+            }
+            notificaciones.avisarEscuela(NotificacionesClient.eventoCodigo(evento, reserva.getCodigoReserva()),
+                escuela, TIPO, "Clase cancelada", mensaje,
+                Map.of("reservaCodigo", reserva.getCodigoReserva().toString(), "evento", evento));
+        } catch (RuntimeException e) {
+            LOG.warn("No se pudo armar el aviso de clase para la escuela (tipo {})", e.getClass().getSimpleName(),
+                kv("module", "reservas"), kv("reservaCodigo", reserva.getCodigoReserva()), kv("evento", evento));
+        }
     }
 
     private void avisar(String evento, Reserva reserva, UUID destinatario, String titulo, String mensaje) {
