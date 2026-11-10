@@ -162,3 +162,10 @@ Las constantes viven en `PagosErrorCodes` (`common/exception/`).
 - **Excepción:** ninguna de negocio (la escribe `CredencialServicioFilter` a mano, antes de llegar a un controller)
 - **Significado:** Una llamada a las rutas internas de Pagos (`/internal/**`, CU44) no trae la credencial de servicio en el header `X-Service-Key`, no coincide con la configurada, o Pagos no tiene ninguna credencial configurada (en ese caso rechaza todo). No se cambia nada. Quien llama es otro servicio, nunca un estudiante.
 - **Dónde se lanza:** `CredencialServicioFilter.doFilterInternal()`
+
+## `ERR_PAG_20`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** El reporte de pagos del Administrador (CU52) pidió un rango con la fecha inicial posterior a la final.
+- **Dónde se lanza:** `ReportePagosService.listar()`

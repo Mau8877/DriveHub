@@ -390,6 +390,10 @@ services:
       - ACADEMICO_URL=http://drivehub-academico:8084
       # CU49: consultar horas y planes, y crear el pago de una compra (con el token de la persona).
       - PAGOS_URL=http://drivehub-pagos:8083
+      # CU52: reportes del Administrador (vehículos de Escuela; el pedido lo interpreta OpenRouter).
+      - ESCUELA_URL=http://drivehub-escuela:8082
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-openai/gpt-4o-mini}
     depends_on:
       dynamodb:
         condition: service_started

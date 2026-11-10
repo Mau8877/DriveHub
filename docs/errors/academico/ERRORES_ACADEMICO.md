@@ -352,3 +352,10 @@ Las constantes viven en `AcademicoErrorCodes` (`common/exception/`).
   o no es de medio en medio punto. Las observaciones de más de 500 caracteres o un cuerpo incompleto caen en
   `ERR_SYS_01`.
 - **Dónde se lanza:** `ReglasDePrueba.validarYArmarCriterios()`, desde `PruebaClaseService.evaluar()`
+
+## `ERR_ACA_42`
+
+- **HTTP:** 400
+- **Excepción:** `ValidationException`
+- **Significado:** El reporte de clases del Administrador (CU52) pidió un rango con la fecha inicial posterior a la final.
+- **Dónde se lanza:** `ReporteClasesService.listar()`

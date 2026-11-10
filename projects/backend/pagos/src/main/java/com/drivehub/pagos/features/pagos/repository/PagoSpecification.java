@@ -1,5 +1,6 @@
 package com.drivehub.pagos.features.pagos.repository;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.data.jpa.domain.Specification;
@@ -31,6 +32,25 @@ public final class PagoSpecification {
     public static Specification<Pago> deEstudiante(UUID escuelaCodigo, UUID estudianteCodigo) {
         return (pagos, consulta, cb) -> cb.and(cb.equal(pagos.get("escuelaCodigo"), escuelaCodigo),
             cb.equal(pagos.get("estudianteCodigo"), estudianteCodigo));
+    }
+
+    /** Todos los pagos de la escuela, de cualquier estudiante: el reporte del Administrador (CU52). */
+    public static Specification<Pago> deEscuela(UUID escuelaCodigo) {
+        return (pagos, consulta, cb) -> cb.equal(pagos.get("escuelaCodigo"), escuelaCodigo);
+    }
+
+    /** Creados en `[desde, hasta)`. Un extremo nulo no limita ese lado. */
+    public static Specification<Pago> creadosEntre(Instant desde, Instant hasta) {
+        return (pagos, consulta, cb) -> {
+            Predicate condicion = cb.conjunction();
+            if (desde != null) {
+                condicion = cb.and(condicion, cb.greaterThanOrEqualTo(pagos.get("createdAt"), desde));
+            }
+            if (hasta != null) {
+                condicion = cb.and(condicion, cb.lessThan(pagos.get("createdAt"), hasta));
+            }
+            return condicion;
+        };
     }
 
     public static Specification<Pago> deConcepto(ConceptoPago concepto) {

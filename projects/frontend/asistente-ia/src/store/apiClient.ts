@@ -67,8 +67,23 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+/**
+ * El sobre de error que el backend manda dentro de una respuesta pedida como archivo (`responseType: 'blob'`):
+ * axios entrega un Blob y hay que leerlo como JSON. Si no es un sobre, null.
+ */
+async function sobreDeBlob(datos: unknown): Promise<ApiEnvelope<unknown> | null> {
+  if (!(datos instanceof Blob)) return null
+  try {
+    return JSON.parse(await datos.text()) as ApiEnvelope<unknown>
+  } catch {
+    return null
+  }
+}
+
 apiClient.interceptors.response.use(
   (response) => {
+    // * Un archivo (PDF, Excel) no viene en el sobre: se entrega tal cual
+    if (response.config.responseType === 'blob') return response
     const envelope = response.data as ApiEnvelope<unknown>
     response.data = envelope.meta ? { data: envelope.data, meta: envelope.meta } : envelope.data
     return response
@@ -90,7 +105,9 @@ apiClient.interceptors.response.use(
         return apiClient.request(config)
       }
     }
-    const envelope = error.response?.data as ApiEnvelope<unknown> | undefined
+    const envelope =
+      (await sobreDeBlob(error.response?.data)) ??
+      (error.response?.data as ApiEnvelope<unknown> | undefined)
     if (envelope?.error) {
       return Promise.reject(new ApiError(envelope.error, envelope.message))
     }

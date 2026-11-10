@@ -38,6 +38,24 @@ describe('apiClient', () => {
 
     await expect(apiClient.get('/manuales/9')).rejects.toEqual(new ApiError('ERR_CON_01', 'No existe'))
   })
+
+  it('un archivo pedido como blob llega tal cual, sin desempaquetar', async () => {
+    const pdf = new Blob(['%PDF-1.4'], { type: 'application/pdf' })
+    backend.responder('/reportes/generar', 200, pdf)
+
+    const respuesta = await apiClient.post('/reportes/generar', {}, { responseType: 'blob' })
+
+    expect(respuesta.data).toBe(pdf)
+  })
+
+  it('el error de un archivo pedido como blob llega como ApiError con su código', async () => {
+    const sobre = { status: 'failed', data: null, message: 'Columna inválida', timestamp: 'x', error: 'ERR_IA_07' }
+    backend.responder('/reportes/generar', 400, new Blob([JSON.stringify(sobre)], { type: 'application/json' }))
+
+    await expect(apiClient.post('/reportes/generar', {}, { responseType: 'blob' })).rejects.toEqual(
+      new ApiError('ERR_IA_07', 'Columna inválida'),
+    )
+  })
 })
 
 describe('apiClient: sesión vencida (401)', () => {

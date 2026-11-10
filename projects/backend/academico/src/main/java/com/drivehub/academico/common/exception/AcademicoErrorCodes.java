@@ -70,6 +70,9 @@ public final class AcademicoErrorCodes {
     public static final String PRUEBA_YA_REGISTRADA = "ERR_ACA_40";
     public static final String DATOS_DE_PRUEBA_INVALIDOS = "ERR_ACA_41";
 
+    // * CU52: reportes del Administrador
+    public static final String RANGO_DE_FECHAS_INVALIDO = "ERR_ACA_42";
+
     // * Códigos transversales del sistema (ERR_SYS), iguales en todos los servicios
     public static final String VALIDACION = "ERR_SYS_01";
     public static final String SESION_INVALIDA = "ERR_SYS_04";

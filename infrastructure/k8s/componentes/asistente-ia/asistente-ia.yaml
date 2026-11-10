@@ -63,6 +63,16 @@ spec:
               value: http://academico:8084
             - name: PAGOS_URL
               value: http://pagos:8083
+            # Reportes del Administrador (CU52): los vehículos salen de Escuela y el pedido lo
+            # interpreta un modelo de OpenRouter (sin clave, el reporte se arma a mano).
+            - name: ESCUELA_URL
+              value: http://escuela:8082
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef: { name: drivehub-secretos, key: OPENROUTER_API_KEY, optional: true }
+            - name: OPENROUTER_MODEL
+              valueFrom:
+                configMapKeyRef: { name: drivehub-entorno, key: OPENROUTER_MODEL, optional: true }
           startupProbe:
             tcpSocket: { port: 8087 }
             periodSeconds: 5

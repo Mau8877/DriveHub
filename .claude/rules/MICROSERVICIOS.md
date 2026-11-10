@@ -38,11 +38,11 @@ el espejo de las rutas de
 | --- | --- |
 | `identidad` | `auth`, `usuarios`, `estudiantes`, `roles`, `permisos`, `registros-whatsapp` |
 | `escuela` | `escuelas`, `instructores`, `vehiculos`, `categorias-licencia`, `asignaciones-vehiculo`, `asignaciones-alumno`, `disponibilidad-instructores` |
-| `pagos` | `planes-pago`, `pagos`, `comprobantes`, `billeteras-horas`, `horas-alumnos`, `webhooks-stripe` |
-| `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados` |
+| `pagos` | `planes-pago`, `pagos`, `comprobantes`, `billeteras-horas`, `horas-alumnos`, `webhooks-stripe`, `reportes-pagos` |
+| `academico` | `plantillas-horario`, `franjas`, `solicitudes-clase`, `reservas`, `clases`, `pruebas-clase`, `examenes-conduccion`, `preguntas`, `simulacros`, `intentos-simulacro`, `resultados`, `reportes-clases` |
 | `contenido` | `manuales`, `tutoriales` |
 | `notificaciones` | `notificaciones`, `preferencias-notificacion`, `dispositivos-push`, `graphql` (CU45: `POST /api/v1/graphql`) |
-| `asistente-ia` | `sesiones-ia`, `ayudas-tablero`, `agentes-ia` (y el servidor MCP en `/mcp/`, fuera de `/api/v1`) |
+| `asistente-ia` | `sesiones-ia`, `ayudas-tablero`, `agentes-ia`, `reportes` (y el servidor MCP en `/mcp/`, fuera de `/api/v1`) |
 
 `graphql` es un único punto de entrada, no un recurso con subrutas: hoy lo atiende `notificaciones` (GraphQL al lado
 de sus rutas REST, ver [NESTJS_BACKEND.md](backend/NESTJS_BACKEND.md#graphql-cu45)). Si las consultas que juntan datos de
@@ -118,6 +118,7 @@ que ya existen son:
 | Asistente IA → Contenido | Servidor MCP (`/mcp/`): consultar manuales y tutoriales publicados en nombre de la persona conectada, solo lectura (reenvía su Bearer) | CU46 |
 | Asistente IA → Académico | Servidor MCP: consultar las notas de la persona o las de los alumnos del instructor, solo lectura (reenvía su Bearer) | CU46 |
 | Asistente IA → Pagos y Académico | Chat de WhatsApp: consultar horas, planes, franjas y clases; **escribir** solo al confirmar: reservar clases (`POST /api/v1/reservas`) y crear el pago de una compra (`POST /api/v1/pagos`), con el Bearer de la persona. La escritura exige el código de una confirmación de dos pasos (tabla `ConfirmacionesIA`) | CU49 |
+| Asistente IA → Académico, Pagos, Escuela e Identidad | Reportes del Administrador: leer clases (`reportes-clases`), pagos (`reportes-pagos`), exámenes, notas, vehículos y estudiantes, solo lectura (reenvía su Bearer). El pedido lo interpreta un modelo de OpenRouter, que solo ve el catálogo, nunca los datos | CU52 |
 | n8n → Identidad | Chat de WhatsApp: pedir el código al correo, vincular el número y pedir la sesión corta (5 min) del estudiante, por las rutas internas `/internal/v1/whatsapp/*` con la credencial de servicio (header `X-Service-Key`, variable `IDENTIDAD_CREDENCIAL_N8N`); esas rutas no pasan por el gateway | CU47 |
 
 **n8n** (`infrastructure/n8n/`, puerto 5678, perfil `whatsapp` de Docker Compose) no es un servicio de negocio: es el
@@ -176,7 +177,7 @@ Detalle en [ARQUITECTURA_FRONTEND.md](ARQUITECTURA_FRONTEND.md). Mapa:
 | `pagos` | Angular 22 | Remoto (Native Federation) | 4203 | CU25 | [ANGULAR_FRONTEND.md](frontend/ANGULAR_FRONTEND.md) |
 | `examenes` | React 19 | Remoto (Module Federation) | 4204 | CU19, CU20, CU22, CU23 | rules de `frontend/` (React) |
 | `contenido` | React 19 | Remoto (Module Federation) | 4205 | CU32 | rules de `frontend/` (React) |
-| `asistente-ia` | React 19 | Remoto (Module Federation) | 4206 | CU41, CU43 | rules de `frontend/` (React) |
+| `asistente-ia` | React 19 | Remoto (Module Federation) | 4206 | CU41, CU43, CU52 | rules de `frontend/` (React) |
 
 El móvil (`projects/mobile`, Flutter) es una sola app para estudiante e
 instructor: no forma parte del esquema de micro-frontends.

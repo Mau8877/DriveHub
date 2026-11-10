@@ -23,6 +23,8 @@ resources:
   - ../../enlaces/identidad
   - ../../enlaces/pagos
   - ../../enlaces/academico
+  # Reportes (CU52): asistente-ia lee los vehículos de Escuela.
+  - ../../enlaces/escuela
 
 # Lo que las otras nubes llaman de AWS se publica en la red privada de Tailscale como dh-<servicio>.
 patches:

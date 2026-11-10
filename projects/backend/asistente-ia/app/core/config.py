@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     contenido_url: str = "http://localhost:8085"
     academico_url: str = "http://localhost:8084"
     pagos_url: str = "http://localhost:8083"
+    escuela_url: str = "http://localhost:8082"
+
+    # Reportes generativos (CU52): el modelo de OpenRouter solo traduce el pedido a una
+    # especificación del catálogo; nunca ve los datos de la escuela. Sin clave, interpretar
+    # responde 503 (ERR_IA_08) y los reportes se pueden armar igual a mano.
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "openai/gpt-4o-mini"
+    openrouter_url: str = "https://openrouter.ai/api/v1"
 
     # Reservar y comprar por chat (CU49): minutos que vale una confirmación y tope de
     # confirmaciones ejecutadas por persona por día (limita el daño de un modelo que se equivoque).
