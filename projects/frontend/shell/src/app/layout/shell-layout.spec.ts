@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router'
 import type { DhShell } from '@drivehub/ui'
 
 import type { UsuarioSesion } from '../core/sesion/sesion.types'
+import { AvisosService } from '../core/notificaciones/avisos.service'
 import { PushWebService } from '../core/notificaciones/push-web.service'
 import { SesionService } from '../core/sesion/sesion.service'
 import { ShellLayout } from './shell-layout'
@@ -24,6 +25,13 @@ describe('ShellLayout', () => {
       providers: [
         provideRouter([]),
         { provide: PushWebService, useValue: { activar: vi.fn().mockResolvedValue(undefined) } },
+        {
+          provide: AvisosService,
+          useValue: {
+            noLeidas: signal(4).asReadonly(),
+            refrescarConteo: vi.fn().mockResolvedValue(undefined),
+          },
+        },
         {
           provide: SesionService,
           useValue: {
@@ -58,6 +66,31 @@ describe('ShellLayout', () => {
     })
   })
 
+  describe('Campana de avisos (CU53)', () => {
+    it('el Administrador de escuela ve cuántos avisos sin leer tiene su escuela y se refresca el contador', () => {
+      const { shell } = crear(USUARIO)
+
+      expect(shell.avisos).toBe(4)
+      expect(TestBed.inject(AvisosService).refrescarConteo).toHaveBeenCalled()
+    })
+
+    it('el Super admin no tiene bandeja: no ve la campana ni se pide el contador', () => {
+      const { shell } = crear({ ...USUARIO, roles: ['SUPER_ADMIN'] })
+
+      expect(shell.avisos).toBe(false)
+      expect(TestBed.inject(AvisosService).refrescarConteo).not.toHaveBeenCalled()
+    })
+
+    it('pulsar la campana lleva a /avisos', () => {
+      const { shell } = crear(USUARIO)
+      const navegar = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
+
+      shell.dispatchEvent(new CustomEvent('dh-avisos', { bubbles: true, composed: true }))
+
+      expect(navegar).toHaveBeenCalledWith('/avisos')
+    })
+  })
+
   describe('Armazón compartido', () => {
     it('usa el <dh-shell> de @drivehub/ui con el menú, el usuario y las acciones de la cuenta', () => {
       const { shell } = crear(USUARIO)
@@ -69,7 +102,7 @@ describe('ShellLayout', () => {
       })
       expect(shell.accionesUsuario.map((a) => a.id)).toEqual(['perfil', 'cerrar-sesion'])
       expect(shell.accionesUsuario[0].ruta).toBe('/perfil')
-      expect(shell.avisos).toBe(true)
+      expect(shell.avisos).toBe(4)
     })
 
     it('sin sesión no hay usuario', () => {

@@ -173,6 +173,7 @@ export function migasDeRuta(
   const actual = ruta.split(/[?#]/)[0]
   if (actual === '/' || actual === '') return [{ etiqueta: 'Inicio' }]
   if (actual === '/perfil') return [{ etiqueta: 'Inicio', ruta: '/' }, { etiqueta: 'Mi perfil' }]
+  if (actual === '/avisos') return [{ etiqueta: 'Inicio', ruta: '/' }, { etiqueta: 'Avisos' }]
   const inicio = { etiqueta: 'Inicio', ruta: '/' }
   for (const item of items) {
     if (coincide(actual, item.ruta)) return [inicio, { etiqueta: item.etiqueta }]

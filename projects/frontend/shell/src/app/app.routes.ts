@@ -63,6 +63,14 @@ export const routes: Routes = [
         loadChildren: () => loadRemoteModule('identidad', './routes-perfil').then((m) => m.routes),
       },
 
+      // Avisos de la bandeja (CU53): pantalla propia del shell, a la que lleva la campana de la cabecera. El Super
+      // admin no tiene bandeja.
+      {
+        path: 'avisos',
+        canActivate: [rolGuard(ROLES.ADMIN_ESCUELA, ROLES.INSTRUCTOR, ROLES.ESTUDIANTE)],
+        loadComponent: () => import('./features/avisos/screens/avisos').then((m) => m.Avisos),
+      },
+
       // Angular: Identidad (CU01, CU06), Escuela (CU05, CU07 a CU11), Pagos (CU25)
       {
         path: 'identidad',
