@@ -43,5 +43,5 @@ configMapGenerator:
       - entorno.env
 
 images:
-  - { name: drivehub-pagos, newName: ghcr.io/leonelbm123/drivehub-pagos, newTag: 20261109-1 }
-  - { name: drivehub-academico, newName: ghcr.io/leonelbm123/drivehub-academico, newTag: 20261109-1 }
+  - { name: drivehub-pagos, newName: ghcr.io/leonelbm123/drivehub-pagos, newTag: 20261110-2 }
+  - { name: drivehub-academico, newName: ghcr.io/leonelbm123/drivehub-academico, newTag: 20261110-2 }

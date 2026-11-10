@@ -50,7 +50,7 @@ configMapGenerator:
       - entorno.env
 
 images:
-  - { name: drivehub-gateway, newName: ghcr.io/leonelbm123/drivehub-gateway, newTag: 20261109-1 }
-  - { name: drivehub-web, newName: ghcr.io/leonelbm123/drivehub-web, newTag: 20261109-1 }
+  - { name: drivehub-gateway, newName: ghcr.io/leonelbm123/drivehub-gateway, newTag: 20261110-2 }
+  - { name: drivehub-web, newName: ghcr.io/leonelbm123/drivehub-web, newTag: 20261110-2 }
   - { name: drivehub-identidad, newName: ghcr.io/leonelbm123/drivehub-identidad, newTag: 20261109-1 }
   - { name: drivehub-escuela, newName: ghcr.io/leonelbm123/drivehub-escuela, newTag: 20261109-1 }
